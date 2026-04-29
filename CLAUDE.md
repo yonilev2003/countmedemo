@@ -1,0 +1,168 @@
+@AGENTS.md
+
+# countme — Project Context
+
+countme is an AI-native financial-ops product for Israeli self-employed people (≈352K under-35 freelancers in Israel). The product accompanies users through tax filings, beginning with **Form 1301 (annual income tax return)**.
+
+## What we're building right now
+
+A demo to show senior people at EY through the **Momentum** student accelerator. The demo shows:
+
+- The user opens Form 1301 on the real Israeli tax authority site (`secapp.taxes.gov.il`) on one screen
+- countme runs alongside, showing the same form with **all values pre-calculated** from the user's data
+- Each calculated value is **clickable** → reveals the formula and source (which invoices/expenses fed the number)
+- A chat panel lets the user ask free-text questions about the form
+
+The viewer copy-pastes values from countme into the real form. **We are not auto-submitting** — that's a future feature.
+
+## Project decisions (locked unless re-discussed)
+
+| Topic | Decision | Rationale |
+|---|---|---|
+| Stack | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Anthropic SDK | Latest, fast, deploys to Vercel |
+| Hosting | Vercel | Project email account (NOT yoni's personal) |
+| Database | Supabase | Postponed — connecting Day 2+ |
+| AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
+| Lang/dir | Hebrew, RTL only | Target market |
+| Fonts | Heebo (body), Rubik (display) | Both have native Hebrew |
+| Form approach | Visual reference, not 1:1 React rebuild | User's call — saves time, demo's purpose is "show what to fill" |
+| Persona format | Single JSON file at `personas/dana-cohen.json` | Swappable; replace fields when running with real data |
+
+## Skills installed (Tier 1 + Tier 2)
+
+These come from the [skills-il](https://github.com/skills-il) GitHub org via `npx skills-il add`:
+
+**Tier 1 (demo-critical):**
+- `israeli-tax-returns` — Form 1301 rules, income classification, credits
+- `hebrew-document-generator` — Hebrew PDF/DOCX generation (future)
+- `israeli-id-validator` — Teudat Zehut validation
+
+**Tier 2 (product foundations):**
+- `hebrew-i18n` — RTL, Hebrew formatting, plurals
+- `israeli-accessibility-compliance` — IS 5568 + WCAG 2.1 AA
+- `israeli-vat-reporting` — Doch Maam preparation
+- `israeli-tax-withholding` — Nikui mas bemakor
+- `israeli-bituach-leumi` — National insurance benefits
+- `israeli-expense-categorizer` — Auto-categorization with current Pkudat Mas rules
+- `israeli-receipt-scanner` — Hebrew/English OCR for receipts
+- `israeli-e-invoice` — Hashbonit electronit (mandatory 2024+)
+- `hebrew-chatbot-builder` — Hebrew NLP, RTL chat UI
+- `israeli-privacy-shield` — Tikun 13 compliance (effective Aug 2025)
+- `israel-gov-api` — data.gov.il integration
+
+**Pending:** [`mksglu/context-mode`](https://github.com/mksglu/context-mode) — MCP server for context/token saving. Install Day 2 (requires hook config).
+
+## Architecture
+
+```
+src/
+├── app/                    # Next.js routes
+│   ├── page.tsx            # Landing
+│   ├── demo/page.tsx       # Split-screen demo (form preview + chat)
+│   ├── api/chat/route.ts   # Stub for Claude API (wired Day 2)
+│   ├── layout.tsx          # RTL Hebrew + Heebo/Rubik fonts
+│   └── globals.css         # Tax-authority + countme brand styles
+├── components/
+│   ├── form-1301/          # The form preview UI
+│   │   ├── form-preview.tsx     # Tabs + sections + fields
+│   │   └── interactive-value.tsx # Clickable calculated number with tooltip
+│   └── agent/
+│       └── chat-panel.tsx       # Mock chat (real Claude API tomorrow)
+└── lib/
+    ├── form-1301/schema.ts # Form structure (3 tabs, sections, fields, codes)
+    ├── calculators/        # Pure functions per "star field"
+    │   ├── types.ts        # CalcResult, tax-year constants
+    │   └── index.ts        # 8 calculators + dispatcher
+    ├── persona.ts          # Types + default persona loader
+    └── utils.ts            # cn(), formatters
+
+personas/
+├── dana-cohen.json         # Default demo persona
+├── persona.schema.json     # JSON Schema for validation
+└── README.md               # How to swap personas
+
+demo-references/            # User's screenshots of the live form
+docs/                       # Future: design docs, decision log
+```
+
+## Data flow (the demo's magic)
+
+```
+personas/dana-cohen.json
+        │
+        ▼
+src/lib/persona.ts  ─ default export ─►  Persona object
+        │
+        ▼
+src/lib/calculators/index.ts
+   ├─ field150BusinessIncome(persona) → CalcResult
+   ├─ field238Turnover(persona)       → CalcResult
+   ├─ field030BituachLeumi(persona)   → CalcResult
+   ├─ field137KerenHishtalmut(persona)→ CalcResult
+   ├─ field020Resident(persona)       → CalcResult
+   ├─ field044OlehHadash(persona)     → CalcResult
+   ├─ field068Soldier(persona)        → CalcResult
+   └─ field297Form6111(persona)       → CalcResult
+        │
+        ▼
+src/lib/form-1301/schema.ts (FormField.calculator field)
+        │
+        ▼
+src/components/form-1301/form-preview.tsx
+        │
+        ▼
+<InteractiveValue> for calculated, plain text for personal
+```
+
+To **swap a persona**, edit `personas/dana-cohen.json` (or add a new file and update `defaultPersona` import in `src/lib/persona.ts`). All calculations re-run automatically.
+
+## The 8 "star fields" of the demo
+
+| Field | Section | What it is | Calculator |
+|---|---|---|---|
+| **150** | ג. הכנסות מיגיעה אישית | Income from main business | `field-150-business-income` |
+| **238** | ז. נתונים נוספים | Total annual turnover (no VAT) | `field-238-turnover` |
+| **294** | טו. מחזור למקדמות | Same value as 238 — cross-check | `field-238-turnover` |
+| **030** | יב. ניכויים אישיים | Bituach Leumi self-employed (52% deductible) | `field-030-bituach-leumi` |
+| **137** | יב. ניכויים אישיים | Keren Hishtalmut for self-employed | `field-137-keren-hishtalmut` |
+| **020** | יג. נקודות זיכוי | Resident credit point (auto for any Israeli) | `field-020-resident` |
+| **044** | יג. נקודות זיכוי | Oleh Hadash credit (3-year window) | `field-044-oleh-hadash` |
+| **068** | יג. נקודות זיכוי | Discharged-soldier credit (36-month window) | `field-068-soldier` |
+| **297** | פרטים כלליים | Form 6111 obligation (>256,410 ILS turnover) | `field-297-form-6111` |
+
+## Working conventions for partners
+
+When other team members start contributing code:
+
+1. **Branch naming:** `claude/<short-name>` for AI-assisted work, `feat/<short-name>` for hand-written, `fix/<bug-description>` for bugfixes
+2. **Each PR:** describe what changed in 3 bullets max, link the related issue if any
+3. **Always run before pushing:** `npm run build` (catches type errors and Next.js issues)
+4. **Don't commit secrets:** `.env.local` is gitignored. API keys live in Vercel env vars.
+5. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
+6. **Don't introduce a new framework, library, or DB without writing it here first**
+
+## How to run locally
+
+```
+npm install
+npm run dev    # http://localhost:3000
+```
+
+Pages:
+- `/` — Landing
+- `/demo` — The full demo (split-screen + chat)
+
+## What's NOT done yet
+
+See `NEXT_STEPS.md` for the prioritized list. High-level:
+
+1. Wire `app/api/chat/route.ts` to Anthropic SDK with prompt caching
+2. Build the **input flow** — page where the user enters their persona data via calculators
+3. Connect Vercel + Supabase
+4. Polish form preview to match screenshots more closely (currently approximate)
+5. Install `context-mode` for token savings during long sessions
+6. Add Playwright tests for the demo flow (one-shot, end-to-end, doesn't break before EY)
+
+## Source files for the form schema
+
+The form structure in `src/lib/form-1301/schema.ts` was derived from 16 screenshots of the live `secapp.taxes.gov.il` Form 1301 (tax year 2024). Field codes are verbatim from those screenshots. The schema is intentionally **only the demo subset** — the live form has hundreds of fields; we cover the 8 stars + their surrounding context.

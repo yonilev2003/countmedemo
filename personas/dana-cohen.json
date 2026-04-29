@@ -1,0 +1,117 @@
+{
+  "$schema": "./persona.schema.json",
+  "_comment": "Persona placeholder for the countme demo. Replace any field with real data when running with a real user. All fields use plausible-but-fictional Israeli data. Tax year: 2024.",
+  "id": "dana-cohen",
+  "displayName": "דנה כהן",
+
+  "personal": {
+    "firstName": "דנה",
+    "lastName": "כהן",
+    "fatherName": "אברהם",
+    "teudatZehut": "318274561",
+    "birthDate": "1996-08-14",
+    "maritalStatus": "single",
+    "spouse": null,
+    "isNewResident": false,
+    "isReturningResident": false,
+    "isEilatResident": false,
+    "isSoldierDischarged": false,
+    "soldierDischargeDate": null,
+    "academicDegreeYear": null
+  },
+
+  "contact": {
+    "mailingAddress": {
+      "street": "ארלוזורוב",
+      "houseNumber": "23",
+      "apartment": "4",
+      "city": "תל אביב—יפו",
+      "zipCode": "6473423"
+    },
+    "residenceSameAsMailing": true,
+    "email": "dana@example.com",
+    "phoneMobile": "0541234567",
+    "phoneWork": null,
+    "phoneHome": null,
+    "consentDigitalNotices": true
+  },
+
+  "business": {
+    "tradeName": "דנה כהן — עיצוב חוויית משתמש",
+    "primaryOccupation": "מעצבת חוויית משתמש (UX)",
+    "osekType": "morshe",
+    "osekFileNumber": "318274561",
+    "osekStartDate": "2022-03-01",
+    "address": {
+      "sameAsResidence": true,
+      "street": null,
+      "houseNumber": null,
+      "city": null,
+      "zipCode": null
+    },
+    "bookkeepingMethod": "single-entry",
+    "bookkeepingType": "manual",
+    "isSmallBusiness": false,
+    "hasEmployees": false,
+    "employerNames": []
+  },
+
+  "bank": {
+    "bankCode": "12",
+    "bankName": "בנק הפועלים",
+    "branchCode": "538",
+    "accountNumber": "489203",
+    "accountOwnerName": "דנה כהן"
+  },
+
+  "income": {
+    "year": 2024,
+    "totalRevenue": 248500,
+    "totalDeductibleExpenses": 47800,
+    "netIncome": 200700,
+    "_note": "Field 150 (income from main business) ≈ netIncome. May differ slightly per israeli-tax-returns rules.",
+    "invoiceCount": 38,
+    "expenseCount": 91,
+    "monthlyBreakdown": [
+      { "month": "2024-01", "revenue": 18500, "expenses": 3800 },
+      { "month": "2024-02", "revenue": 21000, "expenses": 4100 },
+      { "month": "2024-03", "revenue": 19800, "expenses": 3950 },
+      { "month": "2024-04", "revenue": 22400, "expenses": 4250 },
+      { "month": "2024-05", "revenue": 20100, "expenses": 3700 },
+      { "month": "2024-06", "revenue": 19400, "expenses": 4050 },
+      { "month": "2024-07", "revenue": 21300, "expenses": 4200 },
+      { "month": "2024-08", "revenue": 18900, "expenses": 3650 },
+      { "month": "2024-09", "revenue": 22800, "expenses": 4400 },
+      { "month": "2024-10", "revenue": 19700, "expenses": 3850 },
+      { "month": "2024-11", "revenue": 22100, "expenses": 4150 },
+      { "month": "2024-12", "revenue": 22500, "expenses": 3700 }
+    ]
+  },
+
+  "deductionsAndCredits": {
+    "kerenHishtalmut": {
+      "annualContribution": 18375,
+      "_note": "Field 137. 7.5% of net income, capped at 19,920 ILS/year for 2024."
+    },
+    "kupatGemel": {
+      "annualContribution": 11000,
+      "_note": "Fields 134/135."
+    },
+    "bituachLeumiSelfEmployed": {
+      "annualPaid": 22340,
+      "_note": "Field 030. 52% deductible, ~11,617 ILS expense, rest is tax credit."
+    },
+    "bituachLifeOrCancerPolicy": 2400,
+    "donations": {
+      "currentYear": 1800,
+      "carriedFromPriorYears": 0
+    },
+    "academicDegreeCredit": false
+  },
+
+  "vatAndTurnover": {
+    "annualTurnoverWithoutVat": 248500,
+    "isAbove6111Threshold": false,
+    "_note": "Field 297 (form 6111) triggers when turnover > 256,410 ILS. Dana is just below."
+  }
+}

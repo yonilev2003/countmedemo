@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "countme Demo Persona",
+  "description": "Schema for a persona JSON used to drive the countme demo. Each field can be edited to test the demo with different data without touching code.",
+  "type": "object",
+  "required": ["id", "displayName", "personal", "business", "income"],
+  "properties": {
+    "id": { "type": "string" },
+    "displayName": { "type": "string" },
+    "personal": {
+      "type": "object",
+      "required": [
+        "firstName",
+        "lastName",
+        "teudatZehut",
+        "birthDate",
+        "maritalStatus"
+      ],
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "fatherName": { "type": ["string", "null"] },
+        "teudatZehut": {
+          "type": "string",
+          "pattern": "^[0-9]{9}$",
+          "description": "9-digit Israeli ID. Validated by israeli-id-validator skill."
+        },
+        "birthDate": { "type": "string", "format": "date" },
+        "maritalStatus": {
+          "enum": ["single", "married", "divorced", "widowed", "separated"]
+        },
+        "spouse": { "type": ["object", "null"] },
+        "isNewResident": { "type": "boolean" },
+        "isReturningResident": { "type": "boolean" },
+        "isEilatResident": { "type": "boolean" },
+        "isSoldierDischarged": { "type": "boolean" },
+        "soldierDischargeDate": { "type": ["string", "null"] },
+        "academicDegreeYear": { "type": ["integer", "null"] }
+      }
+    },
+    "contact": { "type": "object" },
+    "business": {
+      "type": "object",
+      "required": ["tradeName", "primaryOccupation", "osekType"],
+      "properties": {
+        "osekType": {
+          "enum": ["patur", "morshe", "company"],
+          "description": "Osek Patur (exempt) / Osek Murshe (registered) / Company"
+        }
+      }
+    },
+    "bank": { "type": "object" },
+    "income": {
+      "type": "object",
+      "required": ["year", "totalRevenue", "totalDeductibleExpenses"]
+    },
+    "deductionsAndCredits": { "type": "object" },
+    "vatAndTurnover": { "type": "object" }
+  }
+}

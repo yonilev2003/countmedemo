@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #fafaf9;
+  --color-foreground: #1c1917;
+  --color-brand: #3b82f6;
+  --color-brand-deep: #1e40af;
+  --color-tax-blue: #1f4e79;
+  --color-tax-yellow: #ffd966;
+  --font-sans: var(--font-heebo);
+  --font-display: var(--font-rubik);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-feature-settings: "kern", "liga", "calt";
+}
+
+/* Visual frame to make countme app distinct from gov.il */
+.countme-frame {
+  border: 2px solid var(--color-brand);
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.04) 0%,
+    rgba(255, 255, 255, 1) 80px
+  );
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 8px 24px -8px rgb(59 130 246 / 0.18);
+}
+
+/* Tax-authority-like aesthetic for the form preview */
+.gov-form {
+  font-family: Arial, sans-serif;
+  background: #f5f9fc;
+  color: #2a2a2a;
+  border: 1px solid #b6c8d6;
+}
+
+.gov-form-header {
+  background: var(--color-tax-blue);
+  color: white;
+}
+
+.gov-form-tabs {
+  background: #e7eef5;
+  border-bottom: 1px solid #b6c8d6;
+}
+
+.gov-form-tab-active {
+  background: var(--color-tax-yellow);
+}
+
+.gov-form-section {
+  background: #fffceb;
+  border: 1px solid #e0d4a6;
+}
+
+.gov-form-input {
+  background: white;
+  border: 1px solid #a9b9c8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Numeric values that came from the calculator - clickable */
+.calculated-value {
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    transform 150ms;
+}
+.calculated-value:hover {
+  background: #bfdbfe;
+  transform: scale(1.02);
+}
