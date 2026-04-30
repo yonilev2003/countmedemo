@@ -7,7 +7,7 @@ import {
   FormSection,
   FormTab,
 } from "@/lib/form-1301/schema";
-import { calculate, estimateTaxLiability } from "@/lib/calculators";
+import { calculate, CalcResult } from "@/lib/calculators";
 import { Persona, readPersonaPath } from "@/lib/persona";
 import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { InteractiveValue } from "./interactive-value";
@@ -21,56 +21,55 @@ export function FormPreview({ persona }: Props) {
   const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm bg-white">
-      <FormHeader persona={persona} />
-      <TabBar
-        tabs={form1301}
-        activeId={activeTab}
-        onSelect={(id) => setActiveTab(id)}
-      />
+    <div className="overflow-hidden border border-stone-400 shadow-sm bg-white" style={{ borderRadius: 2 }}>
+      <GovTopBar />
+      <GovTitleBar />
+      <GovNavBar tabs={form1301} activeId={activeTab} onSelect={(id) => setActiveTab(id)} />
+      <GovActionBar />
+      <FileInfoTable persona={persona} />
 
-      <div className="bg-[#fdfaf0] px-4 py-4 space-y-3">
+      <div className="bg-[#fdfaf0] px-3 py-3 space-y-2">
         {tab.sections.map((s, i) => (
           <SectionCard key={i} section={s} persona={persona} />
         ))}
       </div>
 
-      <TaxEstimateCard persona={persona} />
       <DisclaimerFooter />
     </div>
   );
 }
 
-function FormHeader({ persona }: { persona: Persona }) {
+/* ──────────────────────────────────────────────────────────
+   Gov.il Top bar — two-part header replicating secapp.taxes.gov.il
+   ────────────────────────────────────────────────────────── */
+function GovTopBar() {
   return (
-    <div className="bg-[#1d3a6e] text-white px-5 py-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-medium text-blue-200 uppercase tracking-wider mb-1">
-            תצוגה מקדימה
-          </div>
-          <h2 className="text-base font-bold leading-tight">
-            דו&quot;ח שנתי ליחיד — טופס 1301
-          </h2>
-          <div className="text-[11px] text-blue-200 mt-1">
-            ערכים מחושבים ע&quot;י countme&nbsp;·&nbsp;שנת מס {persona.income.year}
-          </div>
+    <div className="bg-[#1a3f6a] text-white px-4 py-1.5 flex items-center justify-between text-[11px]">
+      <div className="font-extrabold tracking-wider">gov.il</div>
+      <div className="text-blue-300 text-[10px]">C11 · שנת מס 2024</div>
+      <div className="flex items-center gap-2">
+        <div className="text-right">
+          <div className="font-bold leading-tight text-[11px]">רשות המסים בישראל</div>
+          <div className="text-blue-300 text-[9px]">Israel Tax Authority</div>
         </div>
-        <div className="text-left shrink-0">
-          <div className="text-[10px] text-blue-300 mb-0.5">מספר תיק</div>
-          <div className="font-mono text-sm font-bold">
-            {persona.business.osekFileNumber}
-          </div>
-          <div className="text-[10px] text-blue-300 mt-1">
-            {persona.personal.lastName} {persona.personal.firstName}
-          </div>
-        </div>
+        {/* State of Israel emblem — simple menorah shape in CSS */}
+        <div className="text-[18px] leading-none opacity-90">🕎</div>
       </div>
     </div>
   );
 }
 
-function TabBar({
+function GovTitleBar() {
+  return (
+    <div className="bg-[#1e4d8c] text-white text-center px-4 py-2">
+      <div className="text-[13px] font-bold tracking-wide">
+        שידור דו״ח מס הכנסה ליחיד טופס 1301
+      </div>
+    </div>
+  );
+}
+
+function GovNavBar({
   tabs,
   activeId,
   onSelect,
@@ -80,16 +79,16 @@ function TabBar({
   onSelect: (id: FormTab["id"]) => void;
 }) {
   return (
-    <div className="flex border-b border-stone-200 bg-white">
+    <div className="bg-[#2d5f9e] flex">
       {tabs.map((t) => (
         <button
           key={t.id}
           onClick={() => onSelect(t.id)}
           className={cn(
-            "flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
+            "flex-1 py-2 text-xs font-medium transition-colors border-b-2",
             activeId === t.id
-              ? "border-[#fac832] text-[#1d3a6e] font-bold bg-[#fffbeb]"
-              : "border-transparent text-stone-500 hover:text-stone-700 hover:bg-stone-50",
+              ? "bg-white text-[#1a3f6a] font-bold border-[#fac832]"
+              : "text-blue-100 border-transparent hover:bg-[#3a6db0] hover:text-white",
           )}
         >
           {t.label}
@@ -99,6 +98,69 @@ function TabBar({
   );
 }
 
+function GovActionBar() {
+  const buttons = ["שלח", "בדיקה", "שמירה", "ניקוי", "הבא"];
+  return (
+    <div className="bg-stone-100 border-b border-stone-300 px-3 py-1.5 flex items-center gap-1.5 flex-row-reverse">
+      {buttons.map((b) => (
+        <button
+          key={b}
+          disabled
+          className="px-3 py-0.5 text-[11px] bg-white border border-stone-400 text-stone-500 rounded-sm cursor-not-allowed"
+        >
+          {b}
+        </button>
+      ))}
+      <span className="text-[10px] text-blue-600 font-medium mr-auto">
+        ✦ ערכים מחושבים ע״י countme — לחץ על ערך לפירוט
+      </span>
+    </div>
+  );
+}
+
+function FileInfoTable({ persona }: { persona: Persona }) {
+  return (
+    <div className="bg-white border-b border-stone-300 px-4 py-2.5">
+      <div className="text-[10px] font-bold text-[#1a3f6a] mb-1.5 border-b border-stone-200 pb-1">
+        פרטי תיק
+      </div>
+      <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">מספר תיק:</span>
+          <span className="font-mono font-semibold">{persona.business.osekFileNumber}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">שנת מס:</span>
+          <span className="font-semibold">{persona.income.year}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">שם:</span>
+          <span className="font-semibold">{persona.personal.lastName} {persona.personal.firstName}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">ת.ז.:</span>
+          <span className="font-mono">{persona.personal.teudatZehut}</span>
+        </div>
+        <div className="col-span-2 flex gap-1.5">
+          <span className="text-stone-500 shrink-0">עיסוק:</span>
+          <span>{persona.business.primaryOccupation}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">בנק:</span>
+          <span>{persona.bank.bankName} · סניף {persona.bank.branchCode}</span>
+        </div>
+        <div className="flex gap-1.5">
+          <span className="text-stone-500 shrink-0">חשבון:</span>
+          <span className="font-mono">{persona.bank.accountNumber}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────
+   Section + Field rendering — gov.il cream header style
+   ────────────────────────────────────────────────────────── */
 function SectionCard({
   section,
   persona,
@@ -107,26 +169,42 @@ function SectionCard({
   persona: Persona;
 }) {
   return (
-    <div className="rounded-xl overflow-hidden border border-[#d9c97a] bg-white">
-      <div className="bg-[#1d3a6e] text-white px-4 py-2.5 flex items-center gap-2">
+    <div className="border border-[#c8c0a0] overflow-hidden" style={{ borderRadius: 1 }}>
+      {/* Cream section header, matching gov.il */}
+      <div className="bg-[#e8dfc0] border-b border-[#c8c0a0] px-3 py-1.5 flex items-center gap-2">
         {section.letter && (
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#fac832] text-[#1d3a6e] text-xs font-black shrink-0">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1a3f6a] text-white text-[9px] font-black shrink-0">
             {section.letter.replace(".", "")}
           </span>
         )}
-        <span className="text-xs font-semibold leading-tight">{section.title}</span>
+        <span className="text-[12px] font-bold text-stone-800 leading-tight">
+          {section.title}
+        </span>
         {section.description && (
-          <span className="mr-auto text-[10px] text-blue-200">{section.description}</span>
+          <span className="mr-auto text-[10px] text-stone-500">{section.description}</span>
         )}
       </div>
 
-      <div className="divide-y divide-stone-100">
+      {/* Column header row for two-filer layout */}
+      <div className="grid bg-[#f5f0e0] border-b border-[#c8c0a0] px-3 py-1 text-[10px] text-stone-500" style={{ gridTemplateColumns: "1fr 140px 36px" }}>
+        <div>פרטים</div>
+        <div className="text-center">בן הזוג הרשום</div>
+        <div />
+      </div>
+
+      <div className="divide-y divide-stone-100 bg-white">
         {section.fields.map((f, i) => (
           <FieldRow key={i} field={f} persona={persona} />
         ))}
       </div>
     </div>
   );
+}
+
+function isNotApplicable(field: FormField, persona: Persona): boolean {
+  if (field.status !== "calculated" || !field.calculator) return false;
+  const result = calculate(field.calculator, persona);
+  return result?.value === false;
 }
 
 function FieldRow({
@@ -137,43 +215,46 @@ function FieldRow({
   persona: Persona;
 }) {
   const isSkip = field.status === "skip";
+  const notApplicable = !isSkip && isNotApplicable(field, persona);
+  const isDimmed = isSkip || notApplicable;
 
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-2.5",
-        isSkip && "opacity-40",
+        "grid items-center gap-2 px-3 py-1.5",
+        isDimmed && "opacity-40",
       )}
+      style={{ gridTemplateColumns: "1fr 140px 36px" }}
     >
-      {/* Field code badge — rightmost column in RTL layout */}
-      <div className="shrink-0 w-10 flex justify-end">
-        {field.code && (
-          <span className="inline-flex items-center justify-center min-w-[32px] px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#c62828] text-white font-mono">
-            {field.code}
-          </span>
-        )}
-      </div>
-
       {/* Label + hint */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <span
           className={cn(
-            "text-[12px] text-stone-700 leading-snug",
+            "text-[12px] text-stone-800 leading-snug",
             isSkip && "line-through decoration-stone-400",
           )}
         >
           {field.label}
         </span>
-        {field.hint && !isSkip && (
+        {field.hint && !isDimmed && (
           <p className="text-[10px] text-stone-400 mt-0.5 leading-tight">
             {field.hint}
           </p>
         )}
       </div>
 
-      {/* Value */}
-      <div className="shrink-0 text-left">
-        <FieldValue field={field} persona={persona} />
+      {/* Value — looks like a form input box */}
+      <div className="flex items-center justify-center">
+        <FieldValue field={field} persona={persona} notApplicable={notApplicable} />
+      </div>
+
+      {/* Field code badge — red, on the left of the value column (RTL: left = code side) */}
+      <div className="flex items-center justify-end">
+        {field.code && (
+          <span className="inline-flex items-center justify-center min-w-[28px] px-1 py-0.5 rounded-sm text-[9px] font-bold bg-[#c62828] text-white font-mono">
+            {field.code}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -182,13 +263,20 @@ function FieldRow({
 function FieldValue({
   field,
   persona,
+  notApplicable,
 }: {
   field: FormField;
   persona: Persona;
+  notApplicable?: boolean;
 }) {
   if (field.status === "calculated" && field.calculator) {
+    if (notApplicable) {
+      return (
+        <span className="text-[11px] text-stone-400 italic">לא רלוונטי</span>
+      );
+    }
     const result = calculate(field.calculator, persona);
-    if (result) {
+    if (result && result.value !== false) {
       const variant =
         field.kind === "currency"
           ? "currency"
@@ -208,16 +296,8 @@ function FieldValue({
   if (field.status === "personal" && field.personaPath) {
     const v = readPersonaPath(persona, field.personaPath);
     return (
-      <span className="inline-block rounded border border-stone-200 bg-stone-50 px-2 py-0.5 text-[12px] font-medium text-stone-700 min-w-[80px] text-center">
+      <span className="inline-block border border-stone-300 bg-white px-2 py-0.5 text-[12px] font-medium text-stone-700 min-w-[100px] text-center">
         {renderPersonalValue(v, field)}
-      </span>
-    );
-  }
-
-  if (field.status === "manual") {
-    return (
-      <span className="inline-block rounded border border-dashed border-stone-300 bg-white px-2 py-0.5 text-[11px] text-stone-400 min-w-[80px] text-center">
-        למילוי ידני
       </span>
     );
   }
@@ -240,6 +320,7 @@ function renderPersonalValue(v: unknown, field: FormField): string {
     if (v === "married") return "נשוי/אה";
     if (v === "divorced") return "גרוש/ה";
     if (v === "widowed") return "אלמן/ה";
+    if (v === "false" || v === "true") return v === "true" ? "כן" : "לא";
     return v;
   }
   if (typeof v === "number") {
@@ -257,119 +338,11 @@ function renderPersonalValue(v: unknown, field: FormField): string {
   return String(v);
 }
 
-/* ────────────────────────────────────────────────────────────
-   Tax Estimate Card — bonus collapsible, NOT part of Form 1301
-   Pure math — no API calls.
-   ──────────────────────────────────────────────────────────── */
-function TaxEstimateCard({ persona }: { persona: Persona }) {
-  const [open, setOpen] = useState(false);
-  const est = estimateTaxLiability(persona);
-  const isRefund = est.balance < 0;
-
-  return (
-    <div className="border-t-2 border-dashed border-amber-300 bg-amber-50">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 text-right hover:bg-amber-100 transition-colors"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl text-amber-500">≈</span>
-          <div className="text-right">
-            <div className="text-xs font-bold text-amber-800">
-              הערכת מס — לא חלק מהדוח
-            </div>
-            <div className="text-[11px] text-amber-600 mt-0.5">
-              {isRefund
-                ? `החזר צפוי: ${formatCurrency(Math.abs(est.balance))}`
-                : `חיוב נוסף צפוי: ${formatCurrency(est.balance)}`}
-              {est.mikdamot > 0 && (
-                <span className="mr-2 opacity-70">
-                  (לאחר {formatCurrency(est.mikdamot)} מקדמות)
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <span className="text-amber-500 text-sm ml-2">{open ? "▲" : "▼"}</span>
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 space-y-1.5 text-[12px]">
-          <EstimateRow label="הכנסה מעסק (שדה 150)" value={est.businessIncome} />
-          <EstimateRow label="ניכוי קרן השתלמות" value={est.kerenDeduction} deduct />
-          <EstimateRow label="ניכוי ביטוח לאומי (52%)" value={est.blDeduction} deduct />
-          <EstimateRow label="ניכוי פנסיה (סעיף 47)" value={est.pensionDeduction} deduct />
-          <div className="border-t border-amber-300 pt-2 my-1">
-            <EstimateRow label="הכנסה חייבת (בקירוב)" value={est.taxableIncome} bold />
-          </div>
-          <EstimateRow label="מס גולמי (לפי מדרגות)" value={est.grossTax} />
-          <EstimateRow label="זיכוי נקודות (×2,904 ₪)" value={est.creditPointsValue} deduct />
-          <EstimateRow label="זיכוי ביטוח לאומי (48%)" value={est.blCredit} deduct />
-          <div className="border-t border-amber-300 pt-2 my-1">
-            <EstimateRow label="מס אחרי זיכויים" value={est.taxAfterCredits} bold />
-          </div>
-          {est.mikdamot > 0 && (
-            <EstimateRow label="מקדמות ששולמו השנה" value={est.mikdamot} deduct />
-          )}
-          <div className="border-t-2 border-amber-400 pt-2 mt-2">
-            <div className="flex justify-between font-bold text-[13px]">
-              <span className={isRefund ? "text-emerald-700" : "text-red-700"}>
-                {isRefund ? "החזר מס צפוי" : "חיוב נוסף צפוי"}
-              </span>
-              <span className={isRefund ? "text-emerald-700" : "text-red-700"}>
-                {formatCurrency(Math.abs(est.balance))}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-3 rounded-lg bg-amber-100 border border-amber-300 p-3 text-[11px] text-amber-800 leading-relaxed space-y-1.5">
-            <p className="font-bold">⚠ הערה חשובה</p>
-            <p>
-              ההחזר או החיוב הסופי עשוי לכלול <strong>הפרשי הצמדה וריבית</strong> על
-              מקדמות שלא שולמו במועד.
-            </p>
-            <p>
-              הערכה זו <strong>אינה מחשבת</strong>: הכנסות נוספות, מס שבח, שינויי מצב
-              משפחתי, זיכויים מיוחדים, פטורים ייחודיים, או שנות מס קודמות.
-            </p>
-            <p>
-              המידע מבוסס על הנתונים שהזנת —{" "}
-              <strong>האחריות על נכונות הפרטים חלה עליך בלבד</strong>.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EstimateRow({
-  label,
-  value,
-  deduct = false,
-  bold = false,
-}: {
-  label: string;
-  value: number;
-  deduct?: boolean;
-  bold?: boolean;
-}) {
-  return (
-    <div className={cn("flex justify-between text-amber-900", bold && "font-semibold")}>
-      <span>{deduct ? `− ${label}` : label}</span>
-      <span className="font-mono tabular-nums">
-        {deduct ? `(${formatCurrency(value)})` : formatCurrency(value)}
-      </span>
-    </div>
-  );
-}
-
 function DisclaimerFooter() {
   return (
-    <div className="bg-stone-50 border-t border-stone-200 px-5 py-3 text-[10px] text-stone-400 leading-relaxed text-center">
-      המידע מוצג לצורכי הכוונה בלבד ואינו מהווה ייעוץ מס, ייעוץ משפטי, או ייעוץ פיננסי.
-      הנתונים מבוססים על המידע שהוזן ועל מקורות ציבוריים — האחריות על נכונות הפרטים
-      המוגשים לרשות המסים חלה על הממלא/ת בלבד.
+    <div className="bg-stone-50 border-t border-stone-200 px-4 py-2.5 text-[10px] text-stone-400 leading-relaxed text-center">
+      ✦ ערכים מחושבים ע״י countme מבוססים על נתוני הלקוח — המידע אינו מהווה ייעוץ מס.
+      האחריות על נכונות הפרטים המוגשים לרשות המסים חלה על הממלא/ת בלבד.
     </div>
   );
 }

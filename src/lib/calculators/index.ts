@@ -192,11 +192,90 @@ export const field297Form6111: Calculator = (p) => {
   };
 };
 
+/* ============================================================
+ * שדה 048 — זיכוי בגין תשלומים לביטוח לאומי כעצמאי (48%)
+ * 52% ניכוי כבר נדרש בשדה 030; הנותר נכנס כזיכוי ישיר מהמס
+ * ============================================================ */
+export const field048BituachLeumiCredit: Calculator = (p) => {
+  const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
+  const credit = Math.round(paid * TAX_YEAR_2024.bituachLeumiCreditRate);
+  return {
+    value: credit,
+    formula: `${ils(paid)} (סה"כ ב"ל ששולם) × 48% = ${ils(credit)} (חלק הזיכוי)`,
+    sources: [
+      {
+        label: 'תקבולים מהמוסד לביטוח לאומי',
+        detail: '52% ניכוי כבר נדרש בשדה 030 — חלק זה מוחת ישירות מהמס',
+      },
+    ],
+    confidence: "high",
+    notes: ['זיכוי זה מופחת מהמס — לא מהכנסה החייבת.'],
+  };
+};
+
+/* ============================================================
+ * שדה 045 — זיכוי בגין תרומות מוכרות (סעיף 46)
+ * 35% מהתרומות למוסדות מוכרים; מינימום 200 ₪
+ * ============================================================ */
+export const field045Donations: Calculator = (p) => {
+  const current = p.deductionsAndCredits.donations.currentYear;
+  const carried = p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0;
+  const total = current + carried;
+  if (total < 200) {
+    return {
+      value: 0,
+      formula: `תרומות ${ils(total)} < מינימום 200 ₪ — אין זיכוי`,
+      sources: [{ label: 'תרומות שנת המס' }],
+      confidence: "high",
+    };
+  }
+  const credit = Math.round(total * 0.35);
+  return {
+    value: credit,
+    formula: `${ils(total)} × 35% = ${ils(credit)}`,
+    sources: [
+      {
+        label: `תרומות ${ils(current)} (שנה שוטפת)${carried > 0 ? ` + ${ils(carried)} (מועבר משנה קודמת)` : ""}`,
+        detail: 'למוסדות מוכרים לפי סעיף 46 בלבד',
+      },
+    ],
+    confidence: "high",
+    notes: ['שמור קבלות תרומות. רלוונטי למוסדות שקיבלו אישור מרשות המסים.'],
+  };
+};
+
+/* ============================================================
+ * שדה 072 — זיכוי בגין פרמיית ביטוח חיים (סעיף 40)
+ * 5% מהפרמיה ששולמה; לא רלוונטי אם פרמיה = 0
+ * ============================================================ */
+export const field072LifeInsurance: Calculator = (p) => {
+  const premium = p.deductionsAndCredits.lifeInsurancePremium ?? 0;
+  if (!premium || premium === 0) {
+    return {
+      value: false,
+      formula: 'לא רלוונטי — אין פרמיית ביטוח חיים בנתוני הלקוח',
+      sources: [{ label: 'deductionsAndCredits.lifeInsurancePremium = 0' }],
+      confidence: "high",
+    };
+  }
+  const credit = Math.round(premium * 0.05);
+  return {
+    value: credit,
+    formula: `${ils(premium)} × 5% = ${ils(credit)} זיכוי`,
+    sources: [{ label: 'פרמיית ביטוח חיים (סעיף 40)', detail: 'שמור את הפוליסה ואישורי תשלום שנתיים' }],
+    confidence: "high",
+    notes: ['תקרת הזיכוי: 5% מהפרמיה ששולמה בפועל.'],
+  };
+};
+
 /** Map of all calculators by their identifier in the form schema. */
 export const calculators: Record<string, Calculator> = {
   "field-150-business-income": field150BusinessIncome,
   "field-238-turnover": field238Turnover,
   "field-030-bituach-leumi": field030BituachLeumi,
+  "field-048-bituach-leumi-credit": field048BituachLeumiCredit,
+  "field-045-donations": field045Donations,
+  "field-072-life-insurance": field072LifeInsurance,
   "field-137-keren-hishtalmut": field137KerenHishtalmut,
   "field-020-resident": field020Resident,
   "field-044-oleh-hadash": field044OlehHadash,
@@ -257,11 +336,13 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
   const creditPointsValue = Math.round(creditPoints * TAX_YEAR_2024.pointValueAnnual);
   const blCredit = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiCreditRate);
 
-  const taxAfterCredits = Math.max(0, grossTax - creditPointsValue - blCredit);
+  const totalCredits = creditPointsValue + blCredit;
+  const excessCredits = Math.max(0, totalCredits - grossTax);
+  const taxAfterCredits = Math.max(0, grossTax - totalCredits);
   const mikdamot = persona.income.mikdamot ?? 0;
   const balance = taxAfterCredits - mikdamot;
 
-  return { businessIncome, kerenDeduction, blDeduction, pensionDeduction, taxableIncome, grossTax, creditPointsValue, blCredit, taxAfterCredits, mikdamot, balance };
+  return { businessIncome, kerenDeduction, blDeduction, pensionDeduction, taxableIncome, grossTax, creditPointsValue, blCredit, excessCredits, taxAfterCredits, mikdamot, balance };
 }
 
 /** Rules for the עוסק זעיר simplified tax track (2024). */

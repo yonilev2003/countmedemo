@@ -39,7 +39,7 @@ export interface TaxBracket {
   rate: number;
 }
 
-/** Estimated tax liability breakdown (not a form field — shown as bonus card). */
+/** Estimated tax liability breakdown (not a form field — shown as gate before the form). */
 export interface TaxEstimate {
   businessIncome: number;
   kerenDeduction: number;
@@ -49,6 +49,8 @@ export interface TaxEstimate {
   grossTax: number;
   creditPointsValue: number;
   blCredit: number;
+  /** Credits that exceeded gross tax — cannot be refunded, shown as עודף שלא נוצל */
+  excessCredits: number;
   taxAfterCredits: number;
   mikdamot: number;
   balance: number; // negative = refund, positive = additional payment due
