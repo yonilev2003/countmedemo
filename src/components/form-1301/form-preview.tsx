@@ -14,10 +14,12 @@ import { InteractiveValue } from "./interactive-value";
 
 interface Props {
   persona: Persona;
+  /** Called when the user clicks the bottom "המשך" button — same destination as the page-level "ראה הערכת מס" CTA. */
+  onContinue?: () => void;
 }
 
-export function FormPreview({ persona }: Props) {
-  const [activeTab, setActiveTab] = useState<FormTab["id"]>("income");
+export function FormPreview({ persona, onContinue }: Props) {
+  const [activeTab, setActiveTab] = useState<FormTab["id"]>("personal");
   const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
 
   return (
@@ -25,7 +27,6 @@ export function FormPreview({ persona }: Props) {
       <GovTopBar />
       <GovTitleBar />
       <GovNavBar tabs={form1301} activeId={activeTab} onSelect={(id) => setActiveTab(id)} />
-      <GovActionBar />
       <FileInfoTable persona={persona} />
 
       <div className="bg-[#fdfaf0] px-3 py-3 space-y-2">
@@ -33,6 +34,20 @@ export function FormPreview({ persona }: Props) {
           <SectionCard key={i} section={s} persona={persona} />
         ))}
       </div>
+
+      {onContinue && (
+        <div className="bg-white border-t border-stone-300 px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-[11px] text-stone-500">
+            סיימת לעבור על הדו״ח? המשך להערכת המס השנתית.
+          </p>
+          <button
+            onClick={onContinue}
+            className="rounded-xl bg-[#1a3f6a] hover:bg-[#1e4d8c] text-white font-bold px-6 py-2.5 text-sm transition-colors shadow-md whitespace-nowrap"
+          >
+            המשך →
+          </button>
+        </div>
+      )}
 
       <DisclaimerFooter />
     </div>
@@ -94,26 +109,6 @@ function GovNavBar({
           {t.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-function GovActionBar() {
-  const buttons = ["שלח", "בדיקה", "שמירה", "ניקוי", "הבא"];
-  return (
-    <div className="bg-stone-100 border-b border-stone-300 px-3 py-1.5 flex items-center gap-1.5 flex-row-reverse">
-      {buttons.map((b) => (
-        <button
-          key={b}
-          disabled
-          className="px-3 py-0.5 text-[11px] bg-white border border-stone-400 text-stone-500 rounded-sm cursor-not-allowed"
-        >
-          {b}
-        </button>
-      ))}
-      <span className="text-[10px] text-blue-600 font-medium mr-auto">
-        ✦ ערכים מחושבים ע״י countme — לחץ על ערך לפירוט
-      </span>
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { defaultPersona, Persona } from "@/lib/persona";
+import { useRouter } from "next/navigation";
+import { Persona } from "@/lib/persona";
 import { loadPersona } from "@/lib/setup-storage";
 import { FormPreview } from "@/components/form-1301/form-preview";
 import { ChatPanel } from "@/components/agent/chat-panel";
@@ -13,13 +14,27 @@ import { cn } from "@/lib/utils";
 type Phase = "form" | "estimate";
 
 export default function DemoPage() {
-  const [persona, setPersona] = useState<Persona>(defaultPersona);
+  const router = useRouter();
+  const [persona, setPersona] = useState<Persona | null>(null);
   const [phase, setPhase] = useState<Phase>("form");
 
   useEffect(() => {
     const saved = loadPersona();
-    if (saved) setPersona(saved);
-  }, []);
+    if (!saved) {
+      // Setup is mandatory — no anonymous demo viewing.
+      router.replace("/setup");
+      return;
+    }
+    setPersona(saved);
+  }, [router]);
+
+  if (!persona) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="text-sm text-stone-500">טוען...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -102,7 +117,7 @@ export default function DemoPage() {
                     ראה הערכת מס שנתית →
                   </button>
                 </div>
-                <FormPreview persona={persona} />
+                <FormPreview persona={persona} onContinue={() => setPhase("estimate")} />
               </div>
             ) : (
               <TaxEstimateGate persona={persona} onContinue={() => setPhase("form")} />

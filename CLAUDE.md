@@ -174,6 +174,21 @@ When connecting Supabase, lock these in **before** any real data goes in:
 4. **Anon key is fine on the client** (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) — it's designed for that, but only works through RLS-enforced policies.
 5. **Test policies with both roles** (anon + a user JWT) before each schema change.
 
+## Design decisions — where countme intentionally diverges from gov.il
+
+The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscious diffs.
+**When asked "compare to the real form", I must call out these diffs explicitly.**
+
+| Element | Real gov.il | countme | Why |
+|---|---|---|---|
+| Outer frame | None | Yellow dashed border + "✦ countme" branding | Visual signal "this is countme, not the real form" |
+| Calculated value boxes | Plain gray input | Yellow-dashed clickable button | Highlight that the value is pre-computed; tooltip on click |
+| Default active tab | Wherever the user last left off | **`פרטים אישיים`** (always) | Predictable demo entry; user moves to "פירוט הכנסות" themselves |
+| Action buttons (שלח/בדיקה/שמירה/ניקוי/הבא) | Visible toolbar | **Removed** | We don't submit; replaced by single "המשך" CTA at the bottom |
+| File info table fields | מספר תיק \| שנת מס \| שם משפחה \| ס"ת \| חוליה \| ברקוד \| גרסה | מספר תיק \| שנת מס \| שם \| ת.ז. \| עיסוק \| בנק \| חשבון | Tax-authority internals (חוליה/ס"ת/ברקוד) are useless to the user; ours are useful |
+| Status line ("דו"ח שודר ב…") | Present | Absent | We're not submitting; line would be a lie |
+| Access | Anyone with the URL | **Requires `/setup` first**; `/demo` redirects to `/setup` if no localStorage persona | "כולם יעברו ב-עדכן נתונים בלי יוצא מן הכלל" — locked decision |
+
 ## Why we are NOT integrating these (right now)
 
 Triaged from suggestions during development:
