@@ -113,15 +113,20 @@ export const field137KerenHishtalmut: Calculator = (p) => {
 
 /* ============================================================
  * שדה 020 — נקודת זיכוי תושב
- * אוטומטי לכל אזרח/תושב ישראלי — 2.25 נקודות
+ * אישה: 2.75 נקודות, גבר: 2.25 נקודות
  * ============================================================ */
-export const field020Resident: Calculator = () => {
+export const field020Resident: Calculator = (p) => {
+  const points = p.personal.gender === "female" ? 2.75 : 2.25;
   return {
     value: true,
-    formula: `2.25 נקודות זיכוי × ${ils(TAX_YEAR_2024.pointValueAnnual)} = ${ils(
-      Math.round(2.25 * TAX_YEAR_2024.pointValueAnnual),
+    formula: `${points} נקודות זיכוי × ${ils(TAX_YEAR_2024.pointValueAnnual)} = ${ils(
+      Math.round(points * TAX_YEAR_2024.pointValueAnnual),
     )} זיכוי שנתי`,
-    sources: [{ label: "סטטוס תושב ישראל (אוטומטי)" }],
+    sources: [
+      {
+        label: `סטטוס תושב ישראל (${p.personal.gender === "female" ? "אישה: 2.75 נקודות" : "גבר: 2.25 נקודות"})`,
+      },
+    ],
     confidence: "high",
   };
 };
