@@ -54,6 +54,7 @@
     "bookkeepingMethod": "single-entry",
     "bookkeepingType": "manual",
     "isSmallBusiness": false,
+    "isOsekZeir": false,
     "hasEmployees": false,
     "employerNames": []
   },
@@ -72,6 +73,7 @@
     "totalDeductibleExpenses": 47800,
     "netIncome": 200700,
     "_note": "Field 150 (income from main business) ≈ netIncome. May differ slightly per israeli-tax-returns rules.",
+    "mikdamot": 16000,
     "invoiceCount": 38,
     "expenseCount": 91,
     "monthlyBreakdown": [

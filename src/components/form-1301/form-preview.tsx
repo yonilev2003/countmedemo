@@ -7,7 +7,7 @@ import {
   FormSection,
   FormTab,
 } from "@/lib/form-1301/schema";
-import { calculate } from "@/lib/calculators";
+import { calculate, estimateTaxLiability } from "@/lib/calculators";
 import { Persona, readPersonaPath } from "@/lib/persona";
 import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { InteractiveValue } from "./interactive-value";
@@ -17,81 +17,60 @@ interface Props {
 }
 
 export function FormPreview({ persona }: Props) {
-  const [activeTab, setActiveTab] = useState<FormTab["id"]>("personal");
+  const [activeTab, setActiveTab] = useState<FormTab["id"]>("income");
   const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
 
-  const today = new Date();
-  const dateStamp = `C11 ${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
-
   return (
-    <div className="gov-form rounded-lg" style={{ overflow: "visible" }}>
-      <BrandBar dateStamp={dateStamp} />
-      <AppTabBar />
-      <SubTabBar
+    <div className="rounded-2xl overflow-hidden border border-stone-200 shadow-sm bg-white">
+      <FormHeader persona={persona} />
+      <TabBar
         tabs={form1301}
         activeId={activeTab}
         onSelect={(id) => setActiveTab(id)}
       />
-      <ActionBar />
-      <FileInfoTable persona={persona} />
 
-      <div className="px-4 py-3 space-y-4">
-        <SectionTitle title={`דו"ח שנתי מס הכנסה: ${tab.label}`} />
+      <div className="bg-[#fdfaf0] px-4 py-4 space-y-3">
         {tab.sections.map((s, i) => (
           <SectionCard key={i} section={s} persona={persona} />
         ))}
       </div>
+
+      <TaxEstimateCard persona={persona} />
+      <DisclaimerFooter />
     </div>
   );
 }
 
-function BrandBar({ dateStamp }: { dateStamp: string }) {
+function FormHeader({ persona }: { persona: Persona }) {
   return (
-    <div className="gov-brandbar flex items-center justify-between px-4 py-2.5 rounded-t-lg">
-      <div className="flex items-center gap-1 font-bold text-lg leading-none">
-        <span>gov</span>
-        <span className="text-blue-700">.il</span>
-      </div>
-      <div className="text-center flex-1 px-3">
-        <div className="text-sm font-bold leading-tight">
-          שידור דו&quot;ח מס הכנסה ליחיד טופס 1301
+    <div className="bg-[#1d3a6e] text-white px-5 py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-medium text-blue-200 uppercase tracking-wider mb-1">
+            תצוגה מקדימה
+          </div>
+          <h2 className="text-base font-bold leading-tight">
+            דו&quot;ח שנתי ליחיד — טופס 1301
+          </h2>
+          <div className="text-[11px] text-blue-200 mt-1">
+            ערכים מחושבים ע&quot;י countme&nbsp;·&nbsp;שנת מס {persona.income.year}
+          </div>
+        </div>
+        <div className="text-left shrink-0">
+          <div className="text-[10px] text-blue-300 mb-0.5">מספר תיק</div>
+          <div className="font-mono text-sm font-bold">
+            {persona.business.osekFileNumber}
+          </div>
+          <div className="text-[10px] text-blue-300 mt-1">
+            {persona.personal.lastName} {persona.personal.firstName}
+          </div>
         </div>
       </div>
-      <div className="flex flex-col items-end gap-0.5 text-[10px] leading-tight">
-        <span className="font-mono opacity-70">{dateStamp}</span>
-        <span className="font-bold">רשות המסים בישראל</span>
-        <span className="opacity-70">Israel Tax Authority</span>
-      </div>
     </div>
   );
 }
 
-function AppTabBar() {
-  const tabs = [
-    { label: "דוח שנתי", active: true },
-    { label: "העלאת מסמכים", active: false },
-    { label: "הדפסת טפסים נלווים", active: false },
-    { label: "עזרה", active: false },
-    { label: "יציאה למערכת", active: false },
-  ];
-  return (
-    <div className="gov-appbar flex">
-      {tabs.map((t) => (
-        <div
-          key={t.label}
-          className={cn(
-            "px-4 py-2 text-xs font-medium border-l border-[var(--color-tax-blue-darker)] last:border-l-0 cursor-default",
-            t.active && "gov-appbar-tab-active",
-          )}
-        >
-          {t.label}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SubTabBar({
+function TabBar({
   tabs,
   activeId,
   onSelect,
@@ -101,81 +80,22 @@ function SubTabBar({
   onSelect: (id: FormTab["id"]) => void;
 }) {
   return (
-    <div className="gov-form-tabs flex">
+    <div className="flex border-b border-stone-200 bg-white">
       {tabs.map((t) => (
         <button
           key={t.id}
           onClick={() => onSelect(t.id)}
           className={cn(
-            "px-4 py-2 text-xs font-medium border-l border-[var(--color-tax-blue-darker)] last:border-l-0 transition-colors",
-            activeId === t.id ? "gov-form-tab-active" : "hover:bg-white/10",
+            "flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
+            activeId === t.id
+              ? "border-[#fac832] text-[#1d3a6e] font-bold bg-[#fffbeb]"
+              : "border-transparent text-stone-500 hover:text-stone-700 hover:bg-stone-50",
           )}
         >
           {t.label}
         </button>
       ))}
     </div>
-  );
-}
-
-function ActionBar() {
-  const buttons = ["בדיקה", "שמירה", "ניקוי", "הבא"];
-  return (
-    <div className="gov-form-actions flex gap-2 px-4 py-2">
-      {buttons.map((b) => (
-        <button key={b} className="gov-action-btn cursor-default" disabled>
-          {b}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function FileInfoTable({ persona }: { persona: Persona }) {
-  const cols = [
-    { label: "גרסה", value: "8" },
-    { label: "ברקוד", value: persona.business.osekFileNumber || "—" },
-    { label: 'ת"ז', value: persona.personal.teudatZehut },
-    { label: "חוליה", value: "3" },
-    { label: 'פ"ש', value: "38" },
-    { label: "שם משפחה", value: persona.personal.lastName },
-    { label: "שם פרטי", value: persona.personal.firstName },
-    { label: "שנת מס", value: String(persona.income.year) },
-    {
-      label: "מספר תיק",
-      value: persona.business.osekFileNumber || "—",
-    },
-  ];
-  return (
-    <div className="px-4 pt-3">
-      <div className="text-xs font-bold text-[var(--color-tax-blue)] mb-1">
-        פרטי תיק
-      </div>
-      <table className="gov-info-table">
-        <thead>
-          <tr>
-            {cols.map((c) => (
-              <th key={c.label}>{c.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {cols.map((c) => (
-              <td key={c.label}>{c.value}</td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function SectionTitle({ title }: { title: string }) {
-  return (
-    <h2 className="text-center text-sm font-bold text-[var(--color-tax-blue)] py-1">
-      {title}
-    </h2>
   );
 }
 
@@ -187,83 +107,75 @@ function SectionCard({
   persona: Persona;
 }) {
   return (
-    <section className="gov-form-section">
-      <div className="gov-form-section-header flex items-center gap-2 px-3 py-2">
+    <div className="rounded-xl overflow-hidden border border-[#d9c97a] bg-white">
+      <div className="bg-[#1d3a6e] text-white px-4 py-2.5 flex items-center gap-2">
         {section.letter && (
-          <span className="text-sm font-bold">{section.letter}.</span>
-        )}
-        <h3 className="text-sm">{section.title}</h3>
-        {section.description && (
-          <span className="text-[11px] font-normal opacity-70 mr-auto">
-            {section.description}
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#fac832] text-[#1d3a6e] text-xs font-black shrink-0">
+            {section.letter.replace(".", "")}
           </span>
+        )}
+        <span className="text-xs font-semibold leading-tight">{section.title}</span>
+        {section.description && (
+          <span className="mr-auto text-[10px] text-blue-200">{section.description}</span>
         )}
       </div>
 
-      <table className="w-full border-collapse">
-        <tbody>
-          {section.fields.map((f, i) => (
-            <FieldRow
-              key={i}
-              field={f}
-              persona={persona}
-              isLast={i === section.fields.length - 1}
-            />
-          ))}
-        </tbody>
-      </table>
-    </section>
+      <div className="divide-y divide-stone-100">
+        {section.fields.map((f, i) => (
+          <FieldRow key={i} field={f} persona={persona} />
+        ))}
+      </div>
+    </div>
   );
 }
 
 function FieldRow({
   field,
   persona,
-  isLast,
 }: {
   field: FormField;
   persona: Persona;
-  isLast: boolean;
 }) {
   const isSkip = field.status === "skip";
 
   return (
-    <tr
+    <div
       className={cn(
-        "border-b border-stone-100",
-        isLast && "border-b-0",
-        isSkip && "opacity-50",
+        "flex items-center gap-3 px-4 py-2.5",
+        isSkip && "opacity-40",
       )}
     >
-      {/* Field code badge — far right (in RTL = column 1) */}
-      <td className="w-[60px] px-2 py-2 text-right align-middle">
-        {field.code ? (
-          <span className="gov-field-code">{field.code}</span>
-        ) : null}
-      </td>
+      {/* Field code badge — rightmost column in RTL layout */}
+      <div className="shrink-0 w-10 flex justify-end">
+        {field.code && (
+          <span className="inline-flex items-center justify-center min-w-[32px] px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#c62828] text-white font-mono">
+            {field.code}
+          </span>
+        )}
+      </div>
 
       {/* Label + hint */}
-      <td className="px-2 py-2 align-middle">
+      <div className="flex-1 min-w-0">
         <span
           className={cn(
-            "text-[13px] text-stone-800 leading-snug",
+            "text-[12px] text-stone-700 leading-snug",
             isSkip && "line-through decoration-stone-400",
           )}
         >
           {field.label}
         </span>
         {field.hint && !isSkip && (
-          <span className="block text-[11px] text-stone-500 mt-0.5">
+          <p className="text-[10px] text-stone-400 mt-0.5 leading-tight">
             {field.hint}
-          </span>
+          </p>
         )}
-      </td>
+      </div>
 
-      {/* Value (calculated / personal / manual) */}
-      <td className="w-[160px] pr-3 pl-2 py-2 text-left align-middle">
+      {/* Value */}
+      <div className="shrink-0 text-left">
         <FieldValue field={field} persona={persona} />
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -296,7 +208,7 @@ function FieldValue({
   if (field.status === "personal" && field.personaPath) {
     const v = readPersonaPath(persona, field.personaPath);
     return (
-      <span className="gov-form-input inline-block min-w-[120px]">
+      <span className="inline-block rounded border border-stone-200 bg-stone-50 px-2 py-0.5 text-[12px] font-medium text-stone-700 min-w-[80px] text-center">
         {renderPersonalValue(v, field)}
       </span>
     );
@@ -304,17 +216,30 @@ function FieldValue({
 
   if (field.status === "manual") {
     return (
-      <span className="gov-form-input inline-block min-w-[120px]">&nbsp;</span>
+      <span className="inline-block rounded border border-dashed border-stone-300 bg-white px-2 py-0.5 text-[11px] text-stone-400 min-w-[80px] text-center">
+        למילוי ידני
+      </span>
     );
   }
 
-  return <span className="text-xs text-stone-400">—</span>;
+  return <span className="text-xs text-stone-300">—</span>;
 }
 
 function renderPersonalValue(v: unknown, field: FormField): string {
   if (v == null) return "—";
   if (typeof v === "string") {
     if (field.kind === "date") return formatDate(v);
+    if (v === "morshe") return "מורשה";
+    if (v === "patur") return "פטור";
+    if (v === "company") return "חברה";
+    if (v === "single-entry") return "חד-צדדית";
+    if (v === "double-entry") return "כפולה";
+    if (v === "manual") return "ידני";
+    if (v === "computerized") return "ממוחשב";
+    if (v === "single") return "רווק/ה";
+    if (v === "married") return "נשוי/אה";
+    if (v === "divorced") return "גרוש/ה";
+    if (v === "widowed") return "אלמן/ה";
     return v;
   }
   if (typeof v === "number") {
@@ -330,4 +255,121 @@ function renderPersonalValue(v: unknown, field: FormField): string {
     return JSON.stringify(v);
   }
   return String(v);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Tax Estimate Card — bonus collapsible, NOT part of Form 1301
+   Pure math — no API calls.
+   ──────────────────────────────────────────────────────────── */
+function TaxEstimateCard({ persona }: { persona: Persona }) {
+  const [open, setOpen] = useState(false);
+  const est = estimateTaxLiability(persona);
+  const isRefund = est.balance < 0;
+
+  return (
+    <div className="border-t-2 border-dashed border-amber-300 bg-amber-50">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-3 text-right hover:bg-amber-100 transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl text-amber-500">≈</span>
+          <div className="text-right">
+            <div className="text-xs font-bold text-amber-800">
+              הערכת מס — לא חלק מהדוח
+            </div>
+            <div className="text-[11px] text-amber-600 mt-0.5">
+              {isRefund
+                ? `החזר צפוי: ${formatCurrency(Math.abs(est.balance))}`
+                : `חיוב נוסף צפוי: ${formatCurrency(est.balance)}`}
+              {est.mikdamot > 0 && (
+                <span className="mr-2 opacity-70">
+                  (לאחר {formatCurrency(est.mikdamot)} מקדמות)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <span className="text-amber-500 text-sm ml-2">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-1.5 text-[12px]">
+          <EstimateRow label="הכנסה מעסק (שדה 150)" value={est.businessIncome} />
+          <EstimateRow label="ניכוי קרן השתלמות" value={est.kerenDeduction} deduct />
+          <EstimateRow label="ניכוי ביטוח לאומי (52%)" value={est.blDeduction} deduct />
+          <EstimateRow label="ניכוי פנסיה (סעיף 47)" value={est.pensionDeduction} deduct />
+          <div className="border-t border-amber-300 pt-2 my-1">
+            <EstimateRow label="הכנסה חייבת (בקירוב)" value={est.taxableIncome} bold />
+          </div>
+          <EstimateRow label="מס גולמי (לפי מדרגות)" value={est.grossTax} />
+          <EstimateRow label="זיכוי נקודות (×2,904 ₪)" value={est.creditPointsValue} deduct />
+          <EstimateRow label="זיכוי ביטוח לאומי (48%)" value={est.blCredit} deduct />
+          <div className="border-t border-amber-300 pt-2 my-1">
+            <EstimateRow label="מס אחרי זיכויים" value={est.taxAfterCredits} bold />
+          </div>
+          {est.mikdamot > 0 && (
+            <EstimateRow label="מקדמות ששולמו השנה" value={est.mikdamot} deduct />
+          )}
+          <div className="border-t-2 border-amber-400 pt-2 mt-2">
+            <div className="flex justify-between font-bold text-[13px]">
+              <span className={isRefund ? "text-emerald-700" : "text-red-700"}>
+                {isRefund ? "החזר מס צפוי" : "חיוב נוסף צפוי"}
+              </span>
+              <span className={isRefund ? "text-emerald-700" : "text-red-700"}>
+                {formatCurrency(Math.abs(est.balance))}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-lg bg-amber-100 border border-amber-300 p-3 text-[11px] text-amber-800 leading-relaxed space-y-1.5">
+            <p className="font-bold">⚠ הערה חשובה</p>
+            <p>
+              ההחזר או החיוב הסופי עשוי לכלול <strong>הפרשי הצמדה וריבית</strong> על
+              מקדמות שלא שולמו במועד.
+            </p>
+            <p>
+              הערכה זו <strong>אינה מחשבת</strong>: הכנסות נוספות, מס שבח, שינויי מצב
+              משפחתי, זיכויים מיוחדים, פטורים ייחודיים, או שנות מס קודמות.
+            </p>
+            <p>
+              המידע מבוסס על הנתונים שהזנת —{" "}
+              <strong>האחריות על נכונות הפרטים חלה עליך בלבד</strong>.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EstimateRow({
+  label,
+  value,
+  deduct = false,
+  bold = false,
+}: {
+  label: string;
+  value: number;
+  deduct?: boolean;
+  bold?: boolean;
+}) {
+  return (
+    <div className={cn("flex justify-between text-amber-900", bold && "font-semibold")}>
+      <span>{deduct ? `− ${label}` : label}</span>
+      <span className="font-mono tabular-nums">
+        {deduct ? `(${formatCurrency(value)})` : formatCurrency(value)}
+      </span>
+    </div>
+  );
+}
+
+function DisclaimerFooter() {
+  return (
+    <div className="bg-stone-50 border-t border-stone-200 px-5 py-3 text-[10px] text-stone-400 leading-relaxed text-center">
+      המידע מוצג לצורכי הכוונה בלבד ואינו מהווה ייעוץ מס, ייעוץ משפטי, או ייעוץ פיננסי.
+      הנתונים מבוססים על המידע שהוזן ועל מקורות ציבוריים — האחריות על נכונות הפרטים
+      המוגשים לרשות המסים חלה על הממלא/ת בלבד.
+    </div>
+  );
 }

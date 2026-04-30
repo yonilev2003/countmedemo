@@ -61,6 +61,8 @@ export interface PersonaBusiness {
   bookkeepingMethod: "single-entry" | "double-entry";
   bookkeepingType: "manual" | "computerized";
   isSmallBusiness: boolean;
+  /** עוסק זעיר — simplified 30% expense track. Only valid if osekType === "patur". */
+  isOsekZeir: boolean;
   hasEmployees: boolean;
   employerNames: string[];
 }
@@ -80,6 +82,8 @@ export interface PersonaIncome {
   netIncome: number;
   invoiceCount: number;
   expenseCount: number;
+  /** Advance tax payments (מקדמות) paid during the year. Used in tax estimate card. */
+  mikdamot?: number;
   monthlyBreakdown: { month: string; revenue: number; expenses: number }[];
 }
 

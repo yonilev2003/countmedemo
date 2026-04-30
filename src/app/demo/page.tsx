@@ -58,7 +58,7 @@ export default function DemoPage() {
       </header>
 
       {/* Sub-banner: explainer */}
-      <div className="mx-auto max-w-screen-2xl px-6 pt-4">
+      <div className="mx-auto max-w-screen-2xl px-6 pt-4 space-y-2">
         <div className="countme-frame relative px-5 py-3 text-sm text-stone-700">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
@@ -70,6 +70,16 @@ export default function DemoPage() {
               איך חישבנו ומאיפה הוא הגיע. השאלות החופשיות בצ׳אט.
             </div>
           </div>
+        </div>
+
+        {/* Legal disclaimer banner */}
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-3 text-[11px] text-stone-500 leading-relaxed">
+          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
+          המידע המוצג מבוסס על נתונים שהוזנו ידנית ועל מקורות ציבוריים ברשת — הוא אינו מהווה
+          ייעוץ מס, ייעוץ משפטי, או ייעוץ פיננסי מקצועי.{" "}
+          <strong>האחריות על נכונות כל הפרטים המוגשים לרשות המסים חלה על הממלא/ת בלבד.</strong>{" "}
+          לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך. countme אינה אחראית לכל נזק
+          ישיר, עקיף, או תוצאתי הנובע משימוש במידע זה.
         </div>
       </div>
 
@@ -89,8 +99,13 @@ export default function DemoPage() {
         </div>
       </main>
 
-      <footer className="mx-auto max-w-screen-2xl px-6 pb-6 text-center text-xs text-stone-400">
-        countme · דמו — נתונים בדיוניים, להמחשה בלבד · {persona.income.year}
+      <footer className="mx-auto max-w-screen-2xl px-6 pb-8 pt-2 text-center text-[10px] text-stone-400 leading-relaxed space-y-1">
+        <p>countme · גרסת דמו · שנת מס {persona.income.year}</p>
+        <p>
+          המידע אינו מהווה ייעוץ מס או ייעוץ משפטי. countme מבוסס על מידע זמין לציבור
+          ואינו אחראי לטעויות, שינויי חקיקה, או אי-דיוקים בנתונים. הגשת הדוח ומילוי הפרטים
+          הנכונים הינה באחריות הממלא/ת בלבד.
+        </p>
       </footer>
     </div>
   );

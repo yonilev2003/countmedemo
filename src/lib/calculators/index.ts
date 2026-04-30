@@ -7,9 +7,9 @@
  */
 
 import { Persona } from "@/lib/persona";
-import { Calculator, CalcResult, TAX_YEAR_2024 } from "./types";
+import { Calculator, CalcResult, TaxEstimate, TAX_YEAR_2024 } from "./types";
 
-export type { CalcResult } from "./types";
+export type { CalcResult, TaxEstimate } from "./types";
 
 const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
@@ -87,26 +87,20 @@ export const field030BituachLeumi: Calculator = (p) => {
  * ============================================================ */
 export const field137KerenHishtalmut: Calculator = (p) => {
   const contribution = p.deductionsAndCredits.kerenHishtalmut.annualContribution;
+  const income = p.income.totalRevenue - p.income.totalDeductibleExpenses;
   const incomeBased = Math.round(
-    (p.income.totalRevenue - p.income.totalDeductibleExpenses) *
+    Math.min(income, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) *
       TAX_YEAR_2024.kerenHishtalmutRate,
   );
-  const allowed = Math.min(
-    contribution,
-    incomeBased,
-    TAX_YEAR_2024.kerenHishtalmutCap,
-  );
+  const allowed = Math.min(contribution, incomeBased, TAX_YEAR_2024.kerenHishtalmutCap);
   return {
     value: allowed,
-    formula: `min(הפקדה ${ils(contribution)}, 4.5% × הכנסה = ${ils(
-      incomeBased,
-    )}, תקרה ${ils(TAX_YEAR_2024.kerenHishtalmutCap)}) = ${ils(allowed)}`,
-    sources: [
-      { label: "אישור הפקדה שנתי מקרן ההשתלמות" },
-    ],
+    formula: `min(הפקדה ${ils(contribution)}, 4.5% × min(הכנסה, תקרה ${ils(TAX_YEAR_2024.kerenHishtalmutIncomeCeiling)}) = ${ils(incomeBased)}, תקרת ניכוי ${ils(TAX_YEAR_2024.kerenHishtalmutCap)}) = ${ils(allowed)}`,
+    sources: [{ label: "אישור הפקדה שנתי מקרן ההשתלמות" }],
     confidence: "high",
     notes: [
-      `הסכום הנותר (${ils(contribution - allowed)}) — אם יש — לא ינוכה אבל יישמר בקרן ויהיה זמין למשיכה.`,
+      `תקרת הפקדה לפטור ממס רווחי הון: ${ils(20566)} (ניתן להפקיד יותר מהחלק המוכר).`,
+      ...(contribution > allowed ? [`הסכום הנותר (${ils(contribution - allowed)}) אינו מוכר כהוצאה אך גדל פטור ממס.`] : []),
     ],
   };
 };
@@ -218,3 +212,70 @@ export function calculate(
   const fn = calculators[calculatorId];
   return fn ? fn(persona) : null;
 }
+
+/**
+ * Pure function — no API calls.
+ * Estimates income tax liability for the demo persona.
+ * This is NOT part of Form 1301; shown as a bonus card with a disclaimer.
+ */
+export function estimateTaxLiability(persona: Persona): TaxEstimate {
+  const businessIncome = persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
+
+  // Deductions from taxable income
+  const kerenDeduction = Math.min(
+    persona.deductionsAndCredits.kerenHishtalmut.annualContribution,
+    Math.round(Math.min(businessIncome, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) * TAX_YEAR_2024.kerenHishtalmutRate),
+    TAX_YEAR_2024.kerenHishtalmutCap,
+  );
+  const blDeduction = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
+  const pensionDeduction = Math.min(
+    persona.deductionsAndCredits.pensionContributions.annualContribution,
+    Math.round(businessIncome * TAX_YEAR_2024.pensionDeductionRate),
+    TAX_YEAR_2024.pensionDeductionCap,
+  );
+
+  const taxableIncome = Math.max(0, businessIncome - kerenDeduction - blDeduction - pensionDeduction);
+
+  // Progressive tax brackets
+  let grossTax = 0;
+  for (const bracket of TAX_YEAR_2024.taxBrackets) {
+    if (taxableIncome <= bracket.from) break;
+    const inBracket = Math.min(taxableIncome, bracket.to === Infinity ? taxableIncome : bracket.to) - bracket.from;
+    grossTax += inBracket * bracket.rate;
+  }
+  grossTax = Math.round(grossTax);
+
+  // Tax credits
+  let creditPoints = persona.personal.gender === "female" ? 2.75 : 2.25;
+  if (persona.personal.isNewResident) creditPoints += 3.0;
+  if (persona.personal.isSoldierDischarged) creditPoints += 0.5;
+  creditPoints += (persona.personal.children ?? []).length * (persona.personal.children?.some(c => {
+    const age = persona.income.year - c.birthYear;
+    return age >= 1 && age <= 5;
+  }) ? 2.5 : 1.0);
+
+  const creditPointsValue = Math.round(creditPoints * TAX_YEAR_2024.pointValueAnnual);
+  const blCredit = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiCreditRate);
+
+  const taxAfterCredits = Math.max(0, grossTax - creditPointsValue - blCredit);
+  const mikdamot = persona.income.mikdamot ?? 0;
+  const balance = taxAfterCredits - mikdamot;
+
+  return { businessIncome, kerenDeduction, blDeduction, pensionDeduction, taxableIncome, grossTax, creditPointsValue, blCredit, taxAfterCredits, mikdamot, balance };
+}
+
+/** Rules for the עוסק זעיר simplified tax track (2024). */
+export const OSEK_ZEIR_RULES = {
+  threshold: TAX_YEAR_2024.osekZeirThreshold,
+  expenseRate: TAX_YEAR_2024.osekZeirExpenseRate,
+  notes: [
+    "30% מהמחזור מוכרים אוטומטית כהוצאות — ההכנסה החייבת היא 70% מהמחזור",
+    "כולל בתוכו הוצאות ביטוח לאומי — לא ניתן לנכות אותן בנוסף",
+    "לא ניתן לדרוש הפסדים מועברים",
+    "אין חובת מקדמות; קיים מסלול וולונטרי לתשלום מקדמות",
+    "פטור מהגשת הצהרת הון (רשות המסים רשאית לדרוש במקרים מיוחדים)",
+    "יציאה מהמסלול: לא ניתן לחזור אליו בשנתיים הבאות",
+    "חריגה מהתקרה = יציאה אוטומטית; ניכוי 30% חל גם בשנת היציאה",
+    "הפטור חל רק במסלול הדיווח המקוצר",
+  ],
+};

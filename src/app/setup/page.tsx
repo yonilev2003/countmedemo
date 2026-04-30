@@ -441,6 +441,7 @@ export default function SetupPage() {
         bookkeepingMethod: "single-entry",
         bookkeepingType: "computerized",
         isSmallBusiness: totalRevenue < 100000,
+        isOsekZeir: s3.osekType === "patur" && totalRevenue <= 120000,
         hasEmployees: false,
         employerNames: [],
       },
