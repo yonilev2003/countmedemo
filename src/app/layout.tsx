@@ -31,7 +31,7 @@ export default function RootLayout({
       dir="rtl"
       className={`${heebo.variable} ${rubik.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-stone-50 text-stone-900 font-sans">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-stone-50 text-stone-900 font-sans">
         {children}
       </body>
     </html>
