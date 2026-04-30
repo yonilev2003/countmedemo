@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { defaultPersona } from "@/lib/persona";
+import { defaultPersona, Persona } from "@/lib/persona";
+import { loadPersona } from "@/lib/setup-storage";
 import { FormPreview } from "@/components/form-1301/form-preview";
 import { ChatPanel } from "@/components/agent/chat-panel";
 
 export default function DemoPage() {
-  const persona = defaultPersona;
+  const [persona, setPersona] = useState<Persona>(defaultPersona);
+
+  useEffect(() => {
+    const saved = loadPersona();
+    if (saved) setPersona(saved);
+  }, []);
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -32,6 +39,12 @@ export default function DemoPage() {
             <div className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
               משתמש: {persona.displayName}
             </div>
+            <Link
+              href="/setup"
+              className="rounded-full border border-blue-300 px-3 py-1 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
+            >
+              ← עדכן נתונים
+            </Link>
             <a
               href="https://secapp.taxes.gov.il/"
               target="_blank"
