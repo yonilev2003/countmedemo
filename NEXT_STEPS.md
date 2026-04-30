@@ -54,13 +54,18 @@
 
 ---
 
-## דברים שיוני יבקש לעשות *לפני* התחלת היום
+## דברים שיוני כבר עשה הערב ✅
 
-- [ ] להעלות את 16 התמונות של הטופס ל-`demo-references/` בריפו (דרך GitHub web UI, drag & drop)
-- [ ] להוסיף את `ANTHROPIC_API_KEY` ב-Vercel
-- [ ] לחבר את הריפו ל-Vercel project
-- [ ] ליצור פרויקט Supabase
-- [ ] להחליט: האם הסשן של מחר על שני המסכים (יוני + claude) או יוני בולע את הפלט באופן a-sync?
+- [x] חיבור Vercel + deploy ראשון של הריפו (מייל countme5555@gmail.com)
+- [x] יצירת פרויקט Supabase "CountMe" (אבטחה: Data API + RLS אוטומטי + auto-expose)
+- [x] הקודי שחזור של Vercel נשמרים ב-`/secrets/` המוקפדים מ-git
+
+## נשאר ליוני לעשות לפני סשן 9:00
+
+- [ ] לפתוח את האתר של ה-Vercel deployment ולשלוח לי את ה-URL (כדי שאדע שהדמו עלה)
+- [ ] להעתיק `.env.template` ל-`.env.local` (אצלי כבר עשיתי) ולהדביק את הערכים מ-Supabase Project Settings → API: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] להוסיף את `ANTHROPIC_API_KEY` גם ב-Vercel וגם ב-`.env.local` המקומי
+- [ ] להחליט: האם הסשן של מחר על שני המסכים (יוני + claude) או א-סינכרוני?
 
 ## הסיפור שאנחנו מספרים ב-EY (להזכרה)
 

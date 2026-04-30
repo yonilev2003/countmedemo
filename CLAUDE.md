@@ -81,8 +81,8 @@ personas/
 ├── persona.schema.json     # JSON Schema for validation
 └── README.md               # How to swap personas
 
-demo-references/            # User's screenshots of the live form
 docs/                       # Future: design docs, decision log
+secrets/                    # Gitignored — account credentials + recovery codes
 ```
 
 ## Data flow (the demo's magic)
@@ -163,6 +163,8 @@ See `NEXT_STEPS.md` for the prioritized list. High-level:
 5. Install `context-mode` for token savings during long sessions
 6. Add Playwright tests for the demo flow (one-shot, end-to-end, doesn't break before EY)
 
-## Source files for the form schema
+## Source of truth for the form structure
 
-The form structure in `src/lib/form-1301/schema.ts` was derived from 16 screenshots of the live `secapp.taxes.gov.il` Form 1301 (tax year 2024). Field codes are verbatim from those screenshots. The schema is intentionally **only the demo subset** — the live form has hundreds of fields; we cover the 8 stars + their surrounding context.
+`src/lib/form-1301/schema.ts` is the canonical structure. Field codes match the live `secapp.taxes.gov.il` Form 1301 (tax year 2024) verbatim. The schema is intentionally **only the demo subset** — the live form has hundreds of fields; we cover the 8 stars + their surrounding context.
+
+We don't store reference screenshots in the repo. The schema is the durable artifact — anyone reading it can see what each field is, what feeds it (calculated vs. personal), and which calculator engine drives the value.
