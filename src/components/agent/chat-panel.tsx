@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 
@@ -13,20 +13,23 @@ interface Props {
   persona: Persona;
 }
 
-const initialMessages = (p: Persona): Message[] => [
-  {
-    role: "agent",
-    text: `שלום ${p.personal.firstName}! עברתי על כל ${p.income.invoiceCount} החשבוניות שלך משנת ${p.income.year} ועל ${p.income.expenseCount} ההוצאות. אספתי את כל הנתונים שצריך לדו"ח השנתי שלך.`,
-  },
-  {
-    role: "agent",
-    text: 'מצד ימין יש לך את הטופס שלי, כל הערכים מוכנים. לחץ על כל מספר כדי לראות מאיפה הוא הגיע ואיך חישבתי אותו. אפשר להעתיק לטופס ברשות המסים בלי דאגה.',
-  },
-  {
-    role: "agent",
-    text: "מה תרצי להבין יותר? אפשר לשאול אותי שאלה.",
-  },
-];
+const initialMessages = (p: Persona): Message[] => {
+  const f = p.personal.gender === "female";
+  return [
+    {
+      role: "agent",
+      text: `שלום ${p.personal.firstName}! ${f ? "עברתי" : "עברתי"} על כל ${p.income.invoiceCount} החשבוניות ${f ? "שלך" : "שלך"} משנת ${p.income.year} ועל ${p.income.expenseCount} ההוצאות. אספתי את כל הנתונים שצריך לדו"ח השנתי.`,
+    },
+    {
+      role: "agent",
+      text: `${f ? "מצד ימין יש לך" : "מצד ימין יש לך"} את הטופס שלי, כל הערכים מוכנים. ${f ? "לחצי" : "לחץ"} על כל מספר כדי לראות מאיפה הוא הגיע ואיך חישבתי אותו. אפשר להעתיק לטופס ברשות המסים בלי דאגה.`,
+    },
+    {
+      role: "agent",
+      text: `מה ${f ? "תרצי" : "תרצה"} להבין יותר? אפשר לשאול אותי שאלה.`,
+    },
+  ];
+};
 
 export function ChatPanel({ persona }: Props) {
   const [messages, setMessages] = useState<Message[]>(() =>
@@ -40,6 +43,12 @@ export function ChatPanel({ persona }: Props) {
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     [],
   );
+
+  // Reset greeting when persona switches (e.g. localStorage hydration on mount).
+  useEffect(() => {
+    setMessages(initialMessages(persona));
+    historyRef.current = [];
+  }, [persona.id]);
 
   async function send() {
     const trimmed = input.trim();

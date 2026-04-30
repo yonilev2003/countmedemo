@@ -15,8 +15,30 @@ const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
 /* ============================================================
  * שדה 150 — מיגיעה אישית מעסק או משלח יד
+ * עוסק זעיר: 70% מהמחזור (30% מוכרים אוטומטית כהוצאות)
+ * רגיל: מחזור פחות הוצאות מוכרות
  * ============================================================ */
 export const field150BusinessIncome: Calculator = (p) => {
+  if (p.business.isOsekZeir) {
+    const revenue = p.income.totalRevenue;
+    const value = Math.round(revenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate));
+    return {
+      value,
+      formula: `מסלול עוסק זעיר: מחזור ${ils(revenue)} × 70% = ${ils(value)}`,
+      sources: [
+        {
+          label: `${p.income.invoiceCount} חשבוניות בשנת ${p.income.year}`,
+          detail: "מסלול מקוצר — 30% מהמחזור מוכרים אוטומטית כהוצאות",
+        },
+      ],
+      confidence: "high",
+      notes: [
+        "ה-30% המוכרים אוטומטית כוללים את הוצאות הביטוח הלאומי — לא ניתן לנכות בנוסף בשדה 030.",
+        "לא ניתן לדרוש הפסדים מועברים במסלול זה.",
+      ],
+    };
+  }
+
   const value = p.income.totalRevenue - p.income.totalDeductibleExpenses;
   return {
     value,
@@ -60,9 +82,20 @@ export const field238Turnover: Calculator = (p) => {
 
 /* ============================================================
  * שדה 030 — ניכוי בגין תשלומי ביטוח לאומי לעצמאי
- * 52% מהתשלום מותר בניכוי (יתרת 48% נכנסת כזיכוי בשדה 089)
+ * רגיל: 52% מהתשלום מותר בניכוי
+ * עוסק זעיר: לא ניתן — כלול ב-30% ההוצאות האוטומטיות
  * ============================================================ */
 export const field030BituachLeumi: Calculator = (p) => {
+  if (p.business.isOsekZeir) {
+    return {
+      value: false,
+      formula: 'מסלול עוסק זעיר: ניכוי הב"ל כלול ב-30% ההוצאות האוטומטיות — לא ניתן לנכות בנוסף',
+      sources: [{ label: 'business.isOsekZeir = true' }],
+      confidence: "high",
+      notes: ['זיכוי הב"ל בשיעור 48% (שדה 048) עדיין רלוונטי — זה זיכוי ישיר מהמס.'],
+    };
+  }
+
   const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
   const deductible = Math.round(paid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
   return {
@@ -76,7 +109,7 @@ export const field030BituachLeumi: Calculator = (p) => {
     ],
     confidence: "high",
     notes: [
-      "החלק הנותר (48%) נכנס כזיכוי בשדה 089 — נחשב בנפרד.",
+      "החלק הנותר (48%) נכנס כזיכוי בשדה 048 — נחשב בנפרד.",
     ],
   };
 };
@@ -87,7 +120,9 @@ export const field030BituachLeumi: Calculator = (p) => {
  * ============================================================ */
 export const field137KerenHishtalmut: Calculator = (p) => {
   const contribution = p.deductionsAndCredits.kerenHishtalmut.annualContribution;
-  const income = p.income.totalRevenue - p.income.totalDeductibleExpenses;
+  const income = p.business.isOsekZeir
+    ? Math.round(p.income.totalRevenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate))
+    : p.income.totalRevenue - p.income.totalDeductibleExpenses;
   const incomeBased = Math.round(
     Math.min(income, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) *
       TAX_YEAR_2024.kerenHishtalmutRate,
@@ -298,7 +333,12 @@ export function calculate(
  * This is NOT part of Form 1301; shown as a bonus card with a disclaimer.
  */
 export function estimateTaxLiability(persona: Persona): TaxEstimate {
-  const businessIncome = persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
+  const isOsekZeir = persona.business.isOsekZeir;
+
+  // עוסק זעיר: 70% of revenue is taxable; 30% auto-deducted as expenses (includes BL)
+  const businessIncome = isOsekZeir
+    ? Math.round(persona.income.totalRevenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate))
+    : persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
 
   // Deductions from taxable income
   const kerenDeduction = Math.min(
@@ -306,7 +346,10 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
     Math.round(Math.min(businessIncome, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) * TAX_YEAR_2024.kerenHishtalmutRate),
     TAX_YEAR_2024.kerenHishtalmutCap,
   );
-  const blDeduction = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
+  // BL 52% deduction is bundled into the 30% auto-expense for עוסק זעיר
+  const blDeduction = isOsekZeir
+    ? 0
+    : Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
   const pensionDeduction = Math.min(
     persona.deductionsAndCredits.pensionContributions.annualContribution,
     Math.round(businessIncome * TAX_YEAR_2024.pensionDeductionRate),

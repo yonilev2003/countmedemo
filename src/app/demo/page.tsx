@@ -136,6 +136,7 @@ function TaxEstimateGate({
 }) {
   const est = estimateTaxLiability(persona);
   const isRefund = est.balance < 0;
+  const isOsekZeir = persona.business.isOsekZeir;
 
   return (
     <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 shadow-sm overflow-hidden">
@@ -174,11 +175,24 @@ function TaxEstimateGate({
         </div>
       </div>
 
+      {/* Osek Zeir banner */}
+      {isOsekZeir && (
+        <div className="border-y border-blue-200 bg-blue-50 px-6 py-2.5 text-[12px] text-blue-900">
+          <span className="font-bold">מסלול עוסק זעיר:</span>{" "}
+          חישוב פושט — 70% מהמחזור נחשב כהכנסה חייבת (30% הוצאות אוטומטיות, כולל ב״ל).
+        </div>
+      )}
+
       {/* Breakdown */}
       <div className="px-6 py-5 space-y-1 text-[13px]">
-        <EstimateRow label="הכנסה מעסק (שדה 150)" value={est.businessIncome} />
+        <EstimateRow
+          label={isOsekZeir ? "הכנסה חייבת — 70% ממחזור (שדה 150)" : "הכנסה מעסק (שדה 150)"}
+          value={est.businessIncome}
+        />
         <EstimateRow label="ניכוי קרן השתלמות (שדה 137)" value={est.kerenDeduction} deduct />
-        <EstimateRow label="ניכוי ביטוח לאומי — 52% (שדה 030)" value={est.blDeduction} deduct />
+        {!isOsekZeir && (
+          <EstimateRow label="ניכוי ביטוח לאומי — 52% (שדה 030)" value={est.blDeduction} deduct />
+        )}
         <EstimateRow label="ניכוי פנסיה (סעיף 47)" value={est.pensionDeduction} deduct />
         <div className="border-t border-amber-300 pt-2 mt-2">
           <EstimateRow label="הכנסה חייבת (בקירוב)" value={est.taxableIncome} bold />
