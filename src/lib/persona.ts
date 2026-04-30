@@ -15,6 +15,8 @@ export interface PersonaPersonal {
   fatherName: string | null;
   teudatZehut: string;
   birthDate: string;
+  /** Affects resident credit points: female = 2.75, male = 2.25 */
+  gender: "male" | "female";
   maritalStatus: MaritalStatus;
   spouse: unknown | null;
   isNewResident: boolean;
@@ -23,6 +25,8 @@ export interface PersonaPersonal {
   isSoldierDischarged: boolean;
   soldierDischargeDate: string | null;
   academicDegreeYear: number | null;
+  /** List of children for credit point calculations */
+  children: { birthYear: number }[];
 }
 
 export interface PersonaContact {
@@ -82,8 +86,12 @@ export interface PersonaIncome {
 export interface PersonaDeductions {
   kerenHishtalmut: { annualContribution: number };
   kupatGemel: { annualContribution: number };
+  /** Sections 45A/47 — pension/provident fund contributions */
+  pensionContributions: { annualContribution: number };
   bituachLeumiSelfEmployed: { annualPaid: number };
   bituachLifeOrCancerPolicy: number;
+  /** Section 72 — life insurance premium */
+  lifeInsurancePremium: number;
   donations: { currentYear: number; carriedFromPriorYears: number };
   academicDegreeCredit: boolean;
 }

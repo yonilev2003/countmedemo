@@ -10,6 +10,7 @@
     "fatherName": "אברהם",
     "teudatZehut": "318274561",
     "birthDate": "1996-08-14",
+    "gender": "female",
     "maritalStatus": "single",
     "spouse": null,
     "isNewResident": false,
@@ -17,7 +18,8 @@
     "isEilatResident": false,
     "isSoldierDischarged": false,
     "soldierDischargeDate": null,
-    "academicDegreeYear": null
+    "academicDegreeYear": null,
+    "children": []
   },
 
   "contact": {
@@ -97,11 +99,16 @@
       "annualContribution": 11000,
       "_note": "Fields 134/135."
     },
+    "pensionContributions": {
+      "annualContribution": 9000,
+      "_note": "Sections 45A/47 — pension/provident fund contributions."
+    },
     "bituachLeumiSelfEmployed": {
       "annualPaid": 22340,
       "_note": "Field 030. 52% deductible, ~11,617 ILS expense, rest is tax credit."
     },
     "bituachLifeOrCancerPolicy": 2400,
+    "lifeInsurancePremium": 0,
     "donations": {
       "currentYear": 1800,
       "carriedFromPriorYears": 0
