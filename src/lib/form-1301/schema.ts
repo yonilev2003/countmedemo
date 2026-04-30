@@ -370,6 +370,54 @@ const tabIncome: FormTab = {
       ],
     },
     {
+      letter: "ד.",
+      title: "הכנסות חייבות בשיעורי מס רגילים שאינן מיגיעה אישית",
+      fields: [
+        {
+          code: "158",
+          label: 'ריבית, דיבידנד ושכ"ד חייב',
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "162",
+          label: "שכר דירה — הכנסות חייבות (מסלול רגיל)",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
+      letter: "ה.",
+      title: "הכנסות חייבות בשיעורי מס מיוחדים",
+      fields: [
+        {
+          code: "170",
+          label: "שכר דירה למגורים — 10% מס קבוע",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "174",
+          label: 'רווחי הון ממכירת ני"ע סחירים',
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
+      letter: "ו.",
+      title: "מוסד כספי",
+      fields: [
+        {
+          code: "180",
+          label: "הכנסה חייבת של מוסד כספי",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
       letter: "ז.",
       title: "נתונים נוספים",
       fields: [
@@ -380,6 +428,110 @@ const tabIncome: FormTab = {
           status: "calculated",
           calculator: "field-238-turnover",
           hint: "סכום כל החשבוניות שלך לפני ניכוי הוצאות.",
+        },
+        {
+          code: "239",
+          label: 'פרמיית ביטוח חיים כמשמעותו בסעיף 32(14)',
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "248",
+          label: 'תשלומים לקופ"ג לא מוכרת מעל התקרה',
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "236",
+          label: "ניכויים שנדרשו בשנים קודמות בסכום ששולם",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "232",
+          label: "הפסד שמותר לקיזוז — שנה שוטפת",
+          kind: "currency",
+          status: "manual",
+          hint: "הפסד עסקי מהעסק בשנה הנוכחית אם רלוונטי",
+        },
+        {
+          code: "233",
+          label: "הפסד לקיזוז שהועבר מהשנה הקודמת",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
+      letter: "ח.",
+      title: "הכנסות מרווח הון ומשבח מקרקעין",
+      fields: [
+        {
+          code: "300",
+          label: "שבח מקרקעין ורווח הון חייב",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "302",
+          label: "הפסד הון",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
+      letter: "ט.",
+      title: 'הכנסות חו"ל',
+      fields: [
+        {
+          code: "160",
+          label: 'הכנסה מחו״ל חייבת בשיעור מס רגיל',
+          kind: "currency",
+          status: "skip",
+          hint: "סמן 'לא רלוונטי' אם כל הכנסותיך ממקורות ישראליים",
+        },
+      ],
+    },
+    {
+      letter: "י.",
+      title: "הכנסות/רווחים פטורים ובלתי חייבים",
+      fields: [
+        {
+          code: "191",
+          label: "פיצויי פיטורין פטורים",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "043",
+          label: "קצבאות פטורות (ביטוח לאומי וכד')",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
+      letter: "יא.",
+      title: "פרטים נוספים ויתרות להעברה",
+      fields: [
+        {
+          code: "260",
+          label: "הפסד עסקי/מקצועי להעברה לשנה הבאה",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "261",
+          label: "הפסד הון להעברה",
+          kind: "currency",
+          status: "skip",
+        },
+        {
+          code: "262",
+          label: "זיכויים בלתי מנוצלים להעברה",
+          kind: "currency",
+          status: "skip",
         },
       ],
     },
@@ -437,6 +589,39 @@ const tabIncome: FormTab = {
       ],
     },
     {
+      letter: "יד.",
+      title: "זיכויים אישיים בעד תשלומים",
+      fields: [
+        {
+          code: "072",
+          label: "זיכוי בגין פרמיית ביטוח חיים (סעיף 40)",
+          kind: "currency",
+          status: "manual",
+          hint: "עד 5% מהפרמיה ששולמה, בהתאם לתקרה",
+        },
+        {
+          code: "045",
+          label: "זיכוי בגין תרומות מוכרות (סעיף 46)",
+          kind: "currency",
+          status: "manual",
+          hint: "35% מסכום התרומות למוסדות מוכרים",
+        },
+        {
+          code: "048",
+          label: "זיכוי בגין תשלומים לביטוח לאומי כעצמאי (48%)",
+          kind: "currency",
+          status: "manual",
+          hint: "48% מסכום הביטוח הלאומי ששולם, שאינם ניתנים לניכוי בשדה 030",
+        },
+        {
+          code: "079",
+          label: "זיכוי בגין הכנסת בן/בת זוג",
+          kind: "currency",
+          status: "skip",
+        },
+      ],
+    },
+    {
       letter: "טו.",
       title: 'מחזור למקדמות, ניכויים במקור, מס שבח',
       fields: [
@@ -448,6 +633,25 @@ const tabIncome: FormTab = {
           status: "calculated",
           calculator: "field-238-turnover",
           hint: "אותו סכום של שדה 238 — הצלבת אימות.",
+        },
+      ],
+    },
+    {
+      letter: "טז.",
+      title: "שדות נוספים",
+      fields: [
+        {
+          code: "010",
+          label: "גיל הנישום בתחילת שנת המס",
+          kind: "date",
+          status: "personal",
+          personaPath: "personal.birthDate",
+        },
+        {
+          code: "011",
+          label: "גיל בן/בת הזוג",
+          kind: "integer",
+          status: "skip",
         },
       ],
     },

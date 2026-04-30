@@ -26,9 +26,12 @@ export function FormPreview({ persona }: Props) {
   const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
 
   return (
-    <div className="gov-form rounded-lg overflow-hidden">
+    <div className="gov-form rounded-lg" style={{ overflow: "visible" }}>
       {/* Header */}
-      <div className="gov-form-header px-5 py-3 flex items-center justify-between text-sm">
+      <div
+        className="gov-form-header px-5 py-3 flex items-center justify-between text-sm rounded-t-lg"
+        style={{ overflow: "hidden" }}
+      >
         <div>
           <div className="font-semibold">
             תצוגה מקדימה — דו"ח שנתי ליחיד טופס 1301
@@ -41,7 +44,7 @@ export function FormPreview({ persona }: Props) {
       </div>
 
       {/* Tabs */}
-      <div className="gov-form-tabs flex">
+      <div className="gov-form-tabs flex" style={{ overflow: "hidden" }}>
         {form1301.map((t) => (
           <button
             key={t.id}
@@ -70,42 +73,83 @@ export function FormPreview({ persona }: Props) {
 
 function SectionView({ section, persona }: { section: FormSection; persona: Persona }) {
   return (
-    <section className="gov-form-section rounded-md p-3">
-      <h3 className="text-sm font-bold text-stone-800 mb-1">
+    <section className="gov-form-section rounded-md overflow-hidden">
+      {/* Section header */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e0d4a6] bg-[#f5edca]">
         {section.letter && (
-          <span className="ml-1 text-stone-500">{section.letter}</span>
+          <span className="inline-flex items-center justify-center rounded bg-blue-100 text-blue-800 text-xs font-bold px-1.5 py-0.5 shrink-0">
+            {section.letter}
+          </span>
         )}
-        {section.title}
-      </h3>
-      {section.description && (
-        <p className="text-xs text-stone-600 mb-2">{section.description}</p>
-      )}
-      <ul className="divide-y divide-stone-200">
-        {section.fields.map((f, i) => (
-          <li key={i} className="py-2">
-            <FieldRow field={f} persona={persona} />
-          </li>
-        ))}
-      </ul>
+        <h3 className="text-sm font-bold text-stone-800">{section.title}</h3>
+        {section.description && (
+          <span className="text-xs text-stone-500 mr-auto">{section.description}</span>
+        )}
+      </div>
+
+      {/* Fields table */}
+      <table className="w-full border-collapse">
+        <tbody>
+          {section.fields.map((f, i) => (
+            <FieldRow key={i} field={f} persona={persona} isLast={i === section.fields.length - 1} />
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
 
-function FieldRow({ field, persona }: { field: FormField; persona: Persona }) {
+function FieldRow({
+  field,
+  persona,
+  isLast,
+}: {
+  field: FormField;
+  persona: Persona;
+  isLast: boolean;
+}) {
+  const isSkip = field.status === "skip";
+
   return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex-1 text-sm text-stone-700">
-        {field.label}
-        {field.hint && (
-          <span className="block text-xs text-stone-500 mt-0.5">
-            {field.hint}
+    <tr
+      className={cn(
+        "border-b border-stone-100",
+        isLast && "border-b-0",
+        isSkip && "opacity-50",
+      )}
+    >
+      {/* Column 1: field code */}
+      <td
+        className="w-[10%] pl-3 pr-2 py-2 text-right align-top"
+        style={{ whiteSpace: "nowrap" }}
+      >
+        {field.code ? (
+          <span className="font-mono text-[11px] text-stone-400 leading-5">
+            {field.code}
           </span>
+        ) : null}
+      </td>
+
+      {/* Column 2: label + hint */}
+      <td className="w-[70%] px-2 py-2 align-top">
+        <span
+          className={cn(
+            "text-sm text-stone-700 leading-snug",
+            isSkip && "line-through decoration-stone-400",
+          )}
+        >
+          {field.label}
+        </span>
+        {field.hint && !isSkip && (
+          <span className="block text-xs text-stone-500 mt-0.5">{field.hint}</span>
         )}
-      </div>
-      <div className="shrink-0 min-w-[120px] text-left">
+      </td>
+
+      {/* Column 3: value */}
+      <td className="w-[20%] pr-3 pl-2 py-2 text-left align-top">
         <FieldValue field={field} persona={persona} />
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }
 
@@ -138,9 +182,17 @@ function FieldValue({ field, persona }: { field: FormField; persona: Persona }) 
     );
   }
 
+  if (field.status === "manual") {
+    return (
+      <span className="gov-form-input inline-block rounded px-2 py-1 text-sm text-stone-400 min-w-[80px]">
+        &nbsp;
+      </span>
+    );
+  }
+
   if (field.status === "skip") {
     return (
-      <span className="text-xs text-stone-400">לא רלוונטי</span>
+      <span className="text-xs text-stone-400">—</span>
     );
   }
 
