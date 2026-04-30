@@ -5,8 +5,12 @@
   --color-foreground: #1c1917;
   --color-brand: #F59E0B;
   --color-brand-deep: #1e40af;
-  --color-tax-blue: #1f4e79;
-  --color-tax-yellow: #ffd966;
+  --color-tax-blue: #1d3a6e;
+  --color-tax-blue-darker: #142a52;
+  --color-tax-yellow: #fac832;
+  --color-tax-cream: #fdfaf0;
+  --color-tax-cream-border: #d9c97a;
+  --color-tax-fieldcode: #c62828;
   --font-sans: var(--font-heebo);
   --font-display: var(--font-rubik);
 }
@@ -31,47 +35,124 @@ body {
 
 /* Tax-authority-like aesthetic for the form preview */
 .gov-form {
-  font-family: Arial, sans-serif;
-  background: #f5f9fc;
+  font-family: Arial, "Heebo", sans-serif;
+  background: var(--color-tax-cream);
   color: #2a2a2a;
   border: 1px solid #b6c8d6;
 }
 
-.gov-form-header {
+/* Top brand bar (rashut hamasim + gov.il) */
+.gov-brandbar {
+  background: white;
+  border-bottom: 1px solid #cdd5dd;
+  color: var(--color-tax-blue);
+}
+
+/* Top app-tabs bar (דוח שנתי, העלאת מסמכים, ...) */
+.gov-appbar {
   background: var(--color-tax-blue);
   color: white;
 }
-
-.gov-form-tabs {
-  background: #e7eef5;
-  border-bottom: 1px solid #b6c8d6;
+.gov-appbar-tab-active {
+  background: var(--color-tax-yellow);
+  color: #1a1a1a;
 }
 
+/* Sub-tabs strip (פרטים אישיים, פירוט הכנסות, ...) */
+.gov-form-tabs {
+  background: var(--color-tax-blue);
+  color: white;
+  border-bottom: 2px solid var(--color-tax-blue-darker);
+}
 .gov-form-tab-active {
   background: var(--color-tax-yellow);
+  color: #1a1a1a;
+  font-weight: 700;
 }
 
+/* Action button bar (בדיקה, שמירה, ניקוי, הבא) */
+.gov-form-actions {
+  background: var(--color-tax-cream);
+  border-bottom: 1px solid var(--color-tax-cream-border);
+}
+.gov-action-btn {
+  background: var(--color-tax-blue);
+  color: white;
+  font-size: 12px;
+  padding: 4px 14px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+/* Section card on the cream form body */
 .gov-form-section {
-  background: #fffceb;
-  border: 1px solid #e0d4a6;
+  background: white;
+  border: 1px solid var(--color-tax-cream-border);
+  border-radius: 4px;
+}
+.gov-form-section-header {
+  border-bottom: 2px solid var(--color-tax-blue);
+  color: var(--color-tax-blue);
+  font-weight: 700;
 }
 
+/* Field code badge (red boxed number on the right of every field) */
+.gov-field-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  padding: 2px 6px;
+  background: var(--color-tax-fieldcode);
+  color: white;
+  font-family: "Arial", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* Input box that visually mimics the gov form's empty fields */
 .gov-form-input {
   background: white;
-  border: 1px solid #a9b9c8;
+  border: 1px solid #8aa0b6;
+  border-radius: 2px;
   font-variant-numeric: tabular-nums;
+  padding: 2px 6px;
+  min-height: 22px;
+  font-size: 13px;
+}
+
+/* Top "פרטי תיק" small data table */
+.gov-info-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+}
+.gov-info-table th {
+  background: #e8eef5;
+  color: var(--color-tax-blue);
+  font-weight: 600;
+  border: 1px solid #cdd5dd;
+  padding: 3px 6px;
+}
+.gov-info-table td {
+  background: white;
+  border: 1px solid #cdd5dd;
+  padding: 3px 6px;
+  text-align: center;
 }
 
 /* Numeric values that came from the calculator - clickable */
 .calculated-value {
-  background: #dbeafe;
-  border: 1px solid #93c5fd;
+  background: #fff8e1;
+  border: 1px dashed #c9a227;
   cursor: pointer;
   transition:
     background-color 150ms,
     transform 150ms;
 }
 .calculated-value:hover {
-  background: #bfdbfe;
+  background: #ffeeb8;
   transform: scale(1.02);
 }
