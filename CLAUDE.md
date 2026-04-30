@@ -52,6 +52,8 @@ These come from the [skills-il](https://github.com/skills-il) GitHub org via `np
 
 **Pending:** [`mksglu/context-mode`](https://github.com/mksglu/context-mode) — MCP server for context/token saving. Install Day 2 (requires hook config).
 
+**Planned (post-EY-demo, not yet installed):** [`openai/skills`](https://github.com/openai/skills) — Codex-side skills catalog for second-opinion code review. Plan: hook in `.claude/settings.json` runs Codex audit on `npm test` / `npm run build` events. Requires Codex CLI install + separate `OPENAI_API_KEY`. Don't install before demo (cost + iteration friction). Document the hook here when wired.
+
 ## Architecture
 
 ```
@@ -141,6 +143,45 @@ When other team members start contributing code:
 5. **Env-var hygiene:** Every variable added to `.env` must also appear (with an empty value) in `.env.template`. The template is committed and serves as documentation for new developers. `.env` is gitignored and never committed.
 6. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
 7. **Don't introduce a new framework, library, or DB without writing it here first**
+
+## Pre-launch checklist (before EY demo)
+
+Mapped from a generic launch-readiness checklist to **what's actually relevant for this demo**. Each row is do/skip with a reason — don't add work that doesn't apply to the current scope.
+
+| Item | Relevant? | Status |
+|---|---|---|
+| Authorization (users access only their own data) | Not yet — no auth, no DB | N/A until Supabase + auth |
+| Input validation/sanitization on `/api/chat` | **Yes** | TODO: validate `message` length, strip control chars |
+| CORS | Default Next.js (same-origin) is fine | OK |
+| **Rate limiting on `/api/chat`** | **Critical — Anthropic costs** | TODO: per-IP limit (e.g. 10/min) before going public |
+| Password reset link expiry | No auth yet | N/A |
+| Frontend error boundaries | Yes | TODO: add a top-level `<ErrorBoundary>` in `app/layout.tsx` |
+| DB indexing | No DB yet | N/A until Supabase |
+| Logging | Vercel built-in is enough for demo | OK |
+| **Alerts** | **Yes — before EY** | TODO: Vercel error alerts + Anthropic usage budget alert |
+| Rollback strategy | Vercel "Promote previous deployment" | Already covered |
+
+## Security: Supabase (when wired Day 2+)
+
+When connecting Supabase, lock these in **before** any real data goes in:
+
+1. **Row Level Security (RLS) ON for every table.** No table is exposed without explicit policies.
+2. **Clear policies per role.** Define what `anon` can read (probably nothing sensitive) vs. what `authenticated` can read/write (only their own rows: `auth.uid() = user_id`).
+3. **Service role key never on the client.** `SUPABASE_SERVICE_ROLE_KEY` lives **only** in:
+   - `.env.local` (gitignored)
+   - Vercel env vars (Production/Preview, not exposed to browser)
+   It must NOT appear in any `NEXT_PUBLIC_*` var, any client component, or any `useEffect`.
+4. **Anon key is fine on the client** (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) — it's designed for that, but only works through RLS-enforced policies.
+5. **Test policies with both roles** (anon + a user JWT) before each schema change.
+
+## Why we are NOT integrating these (right now)
+
+Triaged from suggestions during development:
+
+- **Anthropic creative connectors (Blender/Adobe/Ableton/Photoshop/Splice/etc.)** — released April 2026. All for creative tools. Zero relevance to a Hebrew tax-form demo.
+- **Google Stitch (`google-labs-code/stitch-skills`)** — generates "AI design language" UIs. Conflicts with the explicit goal that `/demo` looks **exactly like gov.il**. Reconsider only for `/` and `/setup` pages.
+- **TurboTax connector** — US tax, irrelevant for Israeli market.
+- **Codex review hook** — see "Planned" note above. Worth doing post-demo when iteration speed matters less than review depth.
 
 ## How to run locally
 
