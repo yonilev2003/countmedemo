@@ -2,10 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
 import { TAX_YEAR_2024 } from "@/lib/calculators/types";
 
-const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme — עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
-אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה (כי הדמו הוא לדנה כהן), בצורה ידידותית ומקצועית.
-תשובות קצרות וממוקדות — זה ממשק צ'אט, לא מאמר.
-אם שאלה לא קשורה למיסים/עסק, תגיד שאתה מתמחה בנושאים פיננסיים בלבד.`;
+const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
+אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה, בצורה ידידותית ומקצועית.
+תשובות קצרות וממוקדות. אל תשתמש בשום סימני markdown כמו כוכביות, מקפים, קווים, גרשיים כפולים.
+כתוב טקסט רגיל בלבד. אפשר להשתמש בסוגריים ובפסיקים. אל תפתח תשובה עם מקף.
+אם שאלה לא קשורה למיסים או עסק, ציין שאתה מתמחה בנושאים פיננסיים בלבד.`;
 
 function buildPersonaContext(persona: Persona): string {
   const p = persona;
@@ -30,7 +31,7 @@ function buildPersonaContext(persona: Persona): string {
 מחזור שנתי (שדות 238/294): ${p.income.totalRevenue.toLocaleString("he-IL")} ₪
 ביטוח לאומי ששולם: ${bituachPaid.toLocaleString("he-IL")} ₪ (מוכר לניכוי: ${bituachDeductible.toLocaleString("he-IL")} ₪)
 קרן השתלמות: ${p.deductionsAndCredits.kerenHishtalmut.annualContribution.toLocaleString("he-IL")} ₪
-עסק: ${p.business.tradeName} — ${p.business.primaryOccupation}
+עסק: ${p.business.tradeName}, ${p.business.primaryOccupation}
 סוג עוסק: ${p.business.osekType}
 טופס 6111: ${form6111}
 נקודות זיכוי: ${creditLines.join(", ")}`;

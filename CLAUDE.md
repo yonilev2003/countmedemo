@@ -138,8 +138,9 @@ When other team members start contributing code:
 2. **Each PR:** describe what changed in 3 bullets max, link the related issue if any
 3. **Always run before pushing:** `npm run build` (catches type errors and Next.js issues)
 4. **Don't commit secrets:** `.env.local` is gitignored. API keys live in Vercel env vars.
-5. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
-6. **Don't introduce a new framework, library, or DB without writing it here first**
+5. **Env-var hygiene:** Every variable added to `.env` must also appear (with an empty value) in `.env.template`. The template is committed and serves as documentation for new developers. `.env` is gitignored and never committed.
+6. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
+7. **Don't introduce a new framework, library, or DB without writing it here first**
 
 ## How to run locally
 

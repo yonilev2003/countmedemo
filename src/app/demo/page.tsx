@@ -46,7 +46,7 @@ export default function DemoPage() {
               ← עדכן נתונים
             </Link>
             <a
-              href="https://secapp.taxes.gov.il/"
+              href="https://www.gov.il/he/service/reporting-and-payment-2024-annual-tax-report-for-individuals"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-700 hover:bg-stone-100"
@@ -77,7 +77,9 @@ export default function DemoPage() {
       <main className="mx-auto max-w-screen-2xl px-6 py-6">
         <div className="grid grid-cols-12 gap-6">
           <section className="col-span-12 lg:col-span-8">
-            <FormPreview persona={persona} />
+            <div className="rounded-2xl border-2 border-yellow-200 bg-yellow-50 p-5">
+              <FormPreview persona={persona} />
+            </div>
           </section>
           <aside className="col-span-12 lg:col-span-4">
             <div className="sticky top-6 h-[calc(100vh-7rem)]">

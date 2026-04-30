@@ -16,11 +16,11 @@ interface Props {
 const initialMessages = (p: Persona): Message[] => [
   {
     role: "agent",
-    text: `שלום ${p.personal.firstName}! עברתי על כל ${p.income.invoiceCount} החשבוניות שלך מ-${p.income.year} ועל ${p.income.expenseCount} ההוצאות. אספתי את כל הנתונים שצריך לדו"ח השנתי שלך.`,
+    text: `שלום ${p.personal.firstName}! עברתי על כל ${p.income.invoiceCount} החשבוניות שלך משנת ${p.income.year} ועל ${p.income.expenseCount} ההוצאות. אספתי את כל הנתונים שצריך לדו"ח השנתי שלך.`,
   },
   {
     role: "agent",
-    text: 'מצד ימין יש לך את הטופס שלי — כל הערכים מוכנים. **לחץ על כל מספר** כדי לראות מאיפה הוא הגיע ואיך חישבתי אותו. אפשר להעתיק לטופס ברשות המסים בלי דאגה.',
+    text: 'מצד ימין יש לך את הטופס שלי, כל הערכים מוכנים. לחץ על כל מספר כדי לראות מאיפה הוא הגיע ואיך חישבתי אותו. אפשר להעתיק לטופס ברשות המסים בלי דאגה.',
   },
   {
     role: "agent",

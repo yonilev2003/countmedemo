@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CalcResult } from "@/lib/calculators";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 
@@ -15,9 +16,12 @@ interface Props {
 /**
  * The "clickable number" — the wow factor of the demo.
  * Click → shows formula, sources, confidence.
+ * Tooltip renders via React portal to escape any overflow clipping.
  */
 export function InteractiveValue({ result, variant = "currency", fieldCode }: Props) {
   const [open, setOpen] = useState(false);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const display = (() => {
     if (typeof result.value === "number") {
@@ -37,50 +41,62 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
     low: "bg-rose-100 text-rose-900 border-rose-300",
   }[result.confidence];
 
-  return (
-    <span className="relative inline-block">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "calculated-value inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-sm font-semibold tabular-nums",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-        )}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-      >
-        {fieldCode && (
-          <span className="text-[10px] font-mono text-blue-700">
-            {fieldCode}
-          </span>
-        )}
-        <span>{display}</span>
-        <svg
-          aria-hidden
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          className={cn(
-            "text-blue-700 transition-transform",
-            open && "rotate-180",
-          )}
-        >
-          <path
-            d="M3 4.5l3 3 3-3"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
+  // Measure button position and set tooltip position
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
 
-      {open && (
+    const rect = buttonRef.current.getBoundingClientRect();
+    const tooltipWidth = Math.min(360, window.innerWidth - 32);
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const showAbove = spaceBelow < 280 && spaceAbove > spaceBelow;
+
+    // Align right edge of tooltip with right edge of button (RTL friendly)
+    let right = window.innerWidth - rect.right;
+    // Clamp so tooltip doesn't overflow left edge
+    if (rect.right - tooltipWidth < 16) {
+      right = window.innerWidth - tooltipWidth - 16;
+    }
+
+    setTooltipStyle({
+      position: "fixed",
+      width: tooltipWidth,
+      right,
+      ...(showAbove
+        ? { bottom: window.innerHeight - rect.top + 8 }
+        : { top: rect.bottom + 8 }),
+      zIndex: 9999,
+    });
+  }, [open]);
+
+  // Close on outside click or Escape
+  useEffect(() => {
+    if (!open) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const tooltip = open
+    ? createPortal(
         <div
           role="dialog"
           aria-label="פרטי החישוב"
-          className="absolute z-30 mt-2 w-[min(360px,calc(100vw-2rem))] right-0 rounded-xl border border-stone-200 bg-white p-4 text-right shadow-lg"
+          style={tooltipStyle}
+          className="rounded-xl border border-stone-200 bg-white p-4 text-right shadow-xl"
         >
           <div className="mb-3 flex items-center justify-between">
             <span
@@ -137,8 +153,51 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
               </ul>
             </div>
           )}
-        </div>
-      )}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <span className="relative inline-block">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "calculated-value inline-flex items-center gap-2 rounded-md px-2.5 py-1 text-sm font-semibold tabular-nums",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+        )}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+      >
+        {fieldCode && (
+          <span className="text-[10px] font-mono text-blue-700">
+            {fieldCode}
+          </span>
+        )}
+        <span>{display}</span>
+        <svg
+          aria-hidden
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          className={cn(
+            "text-blue-700 transition-transform",
+            open && "rotate-180",
+          )}
+        >
+          <path
+            d="M3 4.5l3 3 3-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {tooltip}
     </span>
   );
 }
