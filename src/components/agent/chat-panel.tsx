@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 
@@ -24,30 +24,144 @@ const initialMessages = (p: Persona): Message[] => [
   },
   {
     role: "agent",
-    text: "מה תרצה/י להבין יותר? אפשר לשאול אותי שאלה.",
+    text: "מה תרצי להבין יותר? אפשר לשאול אותי שאלה.",
   },
 ];
 
-const mockResponses = [
-  'זה החלק הקל בעצם. סך הכנסות שלך השנה היה גדול מההוצאות, אז אין הפסד עסקי להעביר לשנה הבאה. החיסכון הצפוי על רואה חשבון ~1,200 ₪.',
-  'כדי לחשב מע"מ בצורה מסודרת, יש לי סקיל ייעודי (israeli-vat-reporting). נחזור לזה בפיצ\'ר הבא של countme.',
-  'נקודות הזיכוי שלך: 2.25 (תושב). אם היית שירתת/בוגר תואר השנה — היו עוד נקודות. נראה שלא רלוונטי השנה.',
-  'שדה 297 (טופס 6111) — אצלך לא רלוונטי כי המחזור מתחת ל-256,410 ₪. אם בשנה הבאה תעלי מעל לסף, יידרש מאזן + רוו"ה. נזכיר לך בזמן.',
-];
-
 export function ChatPanel({ persona }: Props) {
-  const [messages, setMessages] = useState<Message[]>(() => initialMessages(persona));
+  const [messages, setMessages] = useState<Message[]>(() =>
+    initialMessages(persona),
+  );
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
 
-  function send() {
-    if (!input.trim()) return;
-    const userMsg: Message = { role: "user", text: input };
-    const reply: Message = {
-      role: "agent",
-      text: mockResponses[messages.length % mockResponses.length],
-    };
-    setMessages((m) => [...m, userMsg, reply]);
+  // Track API-ready conversation history (user/assistant only, no initial agent greetings)
+  const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
+    [],
+  );
+
+  async function send() {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+
+    const userMsg: Message = { role: "user", text: trimmed };
+    setMessages((m) => [...m, userMsg]);
     setInput("");
+    setIsLoading(true);
+    setStreamingText("");
+
+    // Keep history to last 10 turns (20 messages) before adding current
+    const history = historyRef.current.slice(-20);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: trimmed,
+          history,
+          persona,
+        }),
+      });
+
+      if (!res.ok) {
+        // Handle non-streaming errors (e.g. 503 no API key)
+        let errorText = "אירעה שגיאה בחיבור ל-Claude. נסי שוב.";
+        try {
+          const json = await res.json();
+          if (json?.error) {
+            errorText =
+              res.status === 503
+                ? "מפתח ה-API אינו מוגדר. פנה למנהל המערכת."
+                : `שגיאה: ${json.error}`;
+          }
+        } catch {
+          // ignore parse error
+        }
+        setMessages((m) => [...m, { role: "agent", text: errorText }]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!res.body) {
+        setMessages((m) => [
+          ...m,
+          { role: "agent", text: "שגיאה: אין תגובה מהשרת." },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Read SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last (potentially incomplete) line in the buffer
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+
+          if (data === "[DONE]") {
+            // Finalise: move streamingText into messages
+            const finalText = accumulated || "לא התקבלה תשובה.";
+            setMessages((m) => [...m, { role: "agent", text: finalText }]);
+            setStreamingText("");
+            // Update history for next turn
+            historyRef.current = [
+              ...historyRef.current,
+              { role: "user", content: trimmed },
+              { role: "assistant", content: finalText },
+            ];
+            setIsLoading(false);
+            return;
+          }
+
+          if (data.startsWith("[ERROR] ")) {
+            const errMsg = data.slice(8);
+            setMessages((m) => [...m, { role: "agent", text: errMsg }]);
+            setStreamingText("");
+            setIsLoading(false);
+            return;
+          }
+
+          accumulated += data;
+          setStreamingText(accumulated);
+        }
+      }
+
+      // Stream ended without [DONE] (e.g. connection drop)
+      if (accumulated) {
+        setMessages((m) => [...m, { role: "agent", text: accumulated }]);
+        historyRef.current = [
+          ...historyRef.current,
+          { role: "user", content: trimmed },
+          { role: "assistant", content: accumulated },
+        ];
+      }
+      setStreamingText("");
+      setIsLoading(false);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        {
+          role: "agent",
+          text: "שגיאת רשת — לא ניתן להתחבר לשרת. בדקי את החיבור ונסי שוב.",
+        },
+      ]);
+      setStreamingText("");
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -80,6 +194,25 @@ export function ChatPanel({ persona }: Props) {
             {m.text}
           </div>
         ))}
+
+        {/* Live streaming bubble */}
+        {streamingText && (
+          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-800">
+            {streamingText}
+            <span className="inline-block w-1.5 h-3.5 bg-stone-400 animate-pulse ml-0.5 align-middle" />
+          </div>
+        )}
+
+        {/* Loading indicator (before first token arrives) */}
+        {isLoading && !streamingText && (
+          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-400">
+            <span className="inline-flex gap-1">
+              <span className="animate-bounce [animation-delay:0ms]">•</span>
+              <span className="animate-bounce [animation-delay:150ms]">•</span>
+              <span className="animate-bounce [animation-delay:300ms]">•</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Input */}
@@ -88,19 +221,21 @@ export function ChatPanel({ persona }: Props) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="שאל/י שאלה על הדו״ח..."
-            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+            placeholder="שאלי שאלה על הדו״ח..."
+            disabled={isLoading}
+            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <button
             onClick={send}
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            disabled={isLoading || !input.trim()}
+            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            שלח
+            {isLoading ? "..." : "שלח"}
           </button>
         </div>
         <div className="mt-2 text-center text-[10px] text-stone-400">
-          תשובות לדמו זה הן mock — חיבור Claude API יוטמע מחר
+          {isLoading ? "מחובר ל-Claude Sonnet — מעבד..." : "מחובר ל-Claude Sonnet"}
         </div>
       </div>
     </div>
