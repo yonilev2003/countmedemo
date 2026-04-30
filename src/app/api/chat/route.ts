@@ -8,6 +8,119 @@ const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה �
 כתוב טקסט רגיל בלבד. אפשר להשתמש בסוגריים ובפסיקים. אל תפתח תשובה עם מקף.
 אם שאלה לא קשורה למיסים או עסק, ציין שאתה מתמחה בנושאים פיננסיים בלבד.`;
 
+/* ──────────────────────────────────────────────────────────
+   Rate limiting — in-memory, per-IP. Resets when the function
+   instance recycles. Good enough for a demo before EY; switch
+   to Upstash/Vercel KV once we're under real load.
+   ────────────────────────────────────────────────────────── */
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 12;  // per IP per window
+const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function getClientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  const real = request.headers.get("x-real-ip");
+  if (real) return real.trim();
+  return "unknown";
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const bucket = ipBuckets.get(ip);
+
+  if (!bucket || now > bucket.resetAt) {
+    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    // Clean up old buckets occasionally to avoid memory leak
+    if (ipBuckets.size > 1000) {
+      for (const [k, v] of ipBuckets.entries()) {
+        if (now > v.resetAt) ipBuckets.delete(k);
+      }
+    }
+    return { allowed: true };
+  }
+
+  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
+  }
+
+  bucket.count += 1;
+  return { allowed: true };
+}
+
+/* ──────────────────────────────────────────────────────────
+   Input validation — narrow JSON body to expected shape.
+   Reject early on malformed input so we don't pay Anthropic
+   for noise.
+   ────────────────────────────────────────────────────────── */
+const MAX_MESSAGE_CHARS = 2000;
+const MAX_HISTORY_ITEMS = 40;
+const MAX_HISTORY_ITEM_CHARS = 4000;
+
+interface ValidatedBody {
+  message: string;
+  history: { role: "user" | "assistant"; content: string }[];
+  persona: Persona;
+}
+
+function validateBody(raw: unknown): { ok: true; body: ValidatedBody } | { ok: false; error: string } {
+  if (typeof raw !== "object" || raw === null) {
+    return { ok: false, error: "Body must be an object" };
+  }
+  const r = raw as Record<string, unknown>;
+
+  if (typeof r.message !== "string") {
+    return { ok: false, error: "message must be a string" };
+  }
+  // Strip control chars (except newline/tab) — simple sanitization
+  const message = r.message.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  if (message.length === 0) return { ok: false, error: "message is empty" };
+  if (message.length > MAX_MESSAGE_CHARS) {
+    return { ok: false, error: `message exceeds ${MAX_MESSAGE_CHARS} chars` };
+  }
+
+  if (!Array.isArray(r.history)) {
+    return { ok: false, error: "history must be an array" };
+  }
+  if (r.history.length > MAX_HISTORY_ITEMS) {
+    return { ok: false, error: `history exceeds ${MAX_HISTORY_ITEMS} items` };
+  }
+  const history: { role: "user" | "assistant"; content: string }[] = [];
+  for (const item of r.history) {
+    if (typeof item !== "object" || item === null) {
+      return { ok: false, error: "history item must be an object" };
+    }
+    const it = item as Record<string, unknown>;
+    if (it.role !== "user" && it.role !== "assistant") {
+      return { ok: false, error: "history role must be user or assistant" };
+    }
+    if (typeof it.content !== "string") {
+      return { ok: false, error: "history content must be a string" };
+    }
+    if (it.content.length > MAX_HISTORY_ITEM_CHARS) {
+      return { ok: false, error: "history item too long" };
+    }
+    history.push({ role: it.role, content: it.content });
+  }
+
+  if (typeof r.persona !== "object" || r.persona === null) {
+    return { ok: false, error: "persona must be an object" };
+  }
+  // Minimal persona shape check — enough to build the system prompt without crashing
+  const p = r.persona as Record<string, unknown>;
+  if (
+    typeof p.personal !== "object" ||
+    typeof p.income !== "object" ||
+    typeof p.business !== "object" ||
+    typeof p.deductionsAndCredits !== "object" ||
+    typeof p.vatAndTurnover !== "object"
+  ) {
+    return { ok: false, error: "persona missing required sections" };
+  }
+
+  return { ok: true, body: { message, history, persona: r.persona as Persona } };
+}
+
 function buildPersonaContext(persona: Persona): string {
   const p = persona;
   const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
@@ -43,19 +156,32 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  let body: {
-    message: string;
-    history: { role: "user" | "assistant"; content: string }[];
-    persona: Persona;
-  };
+  // Rate limit BEFORE parsing/validating the body — cheapest reject possible
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip);
+  if (!rl.allowed) {
+    return Response.json(
+      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
+      {
+        status: 429,
+        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
+      },
+    );
+  }
 
+  let raw: unknown;
   try {
-    body = await request.json();
+    raw = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { message, history, persona } = body;
+  const validated = validateBody(raw);
+  if (!validated.ok) {
+    return Response.json({ error: validated.error }, { status: 400 });
+  }
+
+  const { message, history, persona } = validated.body;
 
   // Build messages: last 10 turns from history + current user message
   const trimmedHistory = history.slice(-20); // 20 items = 10 turns

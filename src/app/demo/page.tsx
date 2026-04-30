@@ -10,11 +10,11 @@ import { estimateTaxLiability, TaxEstimate } from "@/lib/calculators";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
-type Phase = "estimate" | "form";
+type Phase = "form" | "estimate";
 
 export default function DemoPage() {
   const [persona, setPersona] = useState<Persona>(defaultPersona);
-  const [phase, setPhase] = useState<Phase>("estimate");
+  const [phase, setPhase] = useState<Phase>("form");
 
   useEffect(() => {
     const saved = loadPersona();
@@ -42,12 +42,12 @@ export default function DemoPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {phase === "form" && (
+            {phase === "estimate" && (
               <button
-                onClick={() => setPhase("estimate")}
-                className="rounded-full border border-amber-300 px-3 py-1 text-xs text-amber-700 hover:bg-amber-50 transition-colors"
+                onClick={() => setPhase("form")}
+                className="rounded-full border border-blue-300 px-3 py-1 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
               >
-                ← הערכת מס
+                ← חזור לדו״ח
               </button>
             )}
             <div className="rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600">
@@ -85,19 +85,27 @@ export default function DemoPage() {
       {/* Main content — split: right = main area, left = chat */}
       <main className="mx-auto max-w-screen-2xl px-6 py-6">
         <div className="grid grid-cols-12 gap-6">
-          {/* Main area — estimate gate OR form preview */}
+          {/* Main area — form preview OR tax estimate summary */}
           <section className="col-span-12 lg:col-span-8">
-            {phase === "estimate" ? (
-              <TaxEstimateGate persona={persona} onContinue={() => setPhase("form")} />
-            ) : (
+            {phase === "form" ? (
               <div className="rounded-2xl border-2 border-yellow-300 bg-yellow-50 p-5">
-                <div className="mb-3 flex items-center gap-2 text-[11px] text-amber-700">
-                  <span className="font-bold">✦ countme</span>
-                  <span>·</span>
-                  <span>כל ערך מחושב הוא לחיץ — לחץ לראות פירוט, מקורות וביטחון החישוב</span>
+                <div className="mb-3 flex items-center justify-between gap-2 text-[11px]">
+                  <div className="flex items-center gap-2 text-amber-700">
+                    <span className="font-bold">✦ countme</span>
+                    <span>·</span>
+                    <span>כל ערך מחושב הוא לחיץ — לחץ לראות פירוט, מקורות וביטחון החישוב</span>
+                  </div>
+                  <button
+                    onClick={() => setPhase("estimate")}
+                    className="rounded-full bg-[#1a3f6a] hover:bg-[#1e4d8c] text-white font-bold px-4 py-1.5 text-xs transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    ראה הערכת מס שנתית →
+                  </button>
                 </div>
                 <FormPreview persona={persona} />
               </div>
+            ) : (
+              <TaxEstimateGate persona={persona} onContinue={() => setPhase("form")} />
             )}
           </section>
 
@@ -140,18 +148,18 @@ function TaxEstimateGate({
 
   return (
     <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 shadow-sm overflow-hidden">
-      {/* Gate header */}
+      {/* Summary header */}
       <div className="bg-amber-400 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-0.5">
-              שלב 1 מתוך 2 — לפני הטופס
+              סיכום שנתי — מה זה אומר על המס שלך
             </div>
             <h2 className="text-lg font-extrabold text-amber-950">
               הערכת מס שנתית · {persona.income.year}
             </h2>
             <p className="text-[12px] text-amber-800 mt-1">
-              עיין/י בהערכה, ואז לחץ/י ״אישור והמשך לטופס״ למטה
+              לפי הנתונים והערכים בדו״ח — ההערכה אינה מחייבת ואינה מהווה ייעוץ מס
             </p>
           </div>
           <div className={cn(
@@ -243,13 +251,13 @@ function TaxEstimateGate({
       {/* CTA */}
       <div className="border-t-2 border-amber-300 bg-white px-6 py-4 flex items-center justify-between">
         <p className="text-[11px] text-stone-500">
-          לאחר הלחיצה, הטופס יוצג עם הערכים המחושבים — העתק/י לטופס הרשמי ב-gov.il
+          רוצה לעדכן ערך? חזור/י לדו״ח, או עדכן/י את הנתונים בטופס ההגדרה
         </p>
         <button
           onClick={onContinue}
           className="rounded-xl bg-[#1a3f6a] hover:bg-[#1e4d8c] text-white font-bold px-6 py-3 text-sm transition-colors shadow-md"
         >
-          אישור והמשך לטופס ←
+          ← חזור לדו״ח
         </button>
       </div>
     </div>

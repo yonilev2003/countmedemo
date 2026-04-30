@@ -59,6 +59,7 @@ interface Step3Data {
   primaryOccupation: string;
   osekType: OsekType;
   osekStartDate: string;
+  isOsekZeir: boolean;
 }
 
 interface Step4Data {
@@ -192,6 +193,7 @@ export default function SetupPage() {
     primaryOccupation: "",
     osekType: "patur",
     osekStartDate: "",
+    isOsekZeir: false,
   });
 
   const [s4, setS4] = useState<Step4Data>({
@@ -242,6 +244,7 @@ export default function SetupPage() {
       primaryOccupation: saved.business.primaryOccupation,
       osekType: saved.business.osekType,
       osekStartDate: saved.business.osekStartDate,
+      isOsekZeir: saved.business.isOsekZeir,
     });
     setS4({
       totalRevenue: String(saved.income.totalRevenue),
@@ -441,7 +444,9 @@ export default function SetupPage() {
         bookkeepingMethod: "single-entry",
         bookkeepingType: "computerized",
         isSmallBusiness: totalRevenue < 100000,
-        isOsekZeir: s3.osekType === "patur" && totalRevenue <= 120000,
+        // Explicit toggle from step 3 — only valid if עוסק פטור AND under 120k threshold
+        isOsekZeir:
+          s3.isOsekZeir && s3.osekType === "patur" && totalRevenue <= 120000,
         hasEmployees: false,
         employerNames: [],
       },
@@ -880,9 +885,15 @@ export default function SetupPage() {
                   <select
                     id="osekType"
                     value={s3.osekType}
-                    onChange={(e) =>
-                      setS3({ ...s3, osekType: e.target.value as OsekType })
-                    }
+                    onChange={(e) => {
+                      const next = e.target.value as OsekType;
+                      setS3({
+                        ...s3,
+                        osekType: next,
+                        // עוסק זעיר rule applies only to עוסק פטור
+                        isOsekZeir: next === "patur" ? s3.isOsekZeir : false,
+                      });
+                    }}
                     className={inputCls(false)}
                   >
                     <option value="patur">עוסק פטור</option>
@@ -890,6 +901,30 @@ export default function SetupPage() {
                     <option value="company">חברה בע&quot;מ</option>
                   </select>
                 </div>
+
+                {s3.osekType === "patur" && (
+                  <div className="rounded-lg border border-stone-200 p-4">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={s3.isOsekZeir}
+                        onChange={(e) =>
+                          setS3({ ...s3, isOsekZeir: e.target.checked })
+                        }
+                        className="h-4 w-4 mt-0.5 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-stone-800">
+                          מסלול עוסק זעיר (ניכוי 30% אוטומטי)
+                        </span>
+                        <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                          לעוסק פטור עם מחזור עד 120,000 ₪. 30% מהמחזור מוכרים אוטומטית כהוצאות
+                          (כולל ביטוח לאומי). אין חובת מקדמות. יציאה מהמסלול חוסמת חזרה לשנתיים.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                )}
 
                 <div>
                   <FieldLabel htmlFor="osekStartDate" required>
