@@ -7,6 +7,8 @@ import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
 import { savePersona, loadPersona } from "@/lib/setup-storage";
 import { TAX_YEAR_2024 } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
+import { DocumentUpload } from "@/components/upload/document-upload";
+import type { ExtractedData } from "@/app/api/upload/route";
 
 function validateTeudatZehut(id: string): boolean {
   if (!/^\d{9}$/.test(id)) return false;
@@ -168,7 +170,7 @@ function ProgressBar({ step }: { step: number }) {
 
 export default function SetupPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0 = optional fast-track upload, 1-6 = wizard steps
   const currentYear = new Date().getFullYear();
 
   const [s1, setS1] = useState<Step1Data>({
@@ -222,6 +224,8 @@ export default function SetupPage() {
   useEffect(() => {
     const saved = loadPersona();
     if (!saved) return;
+    // Returning user already has a persona — skip the upload step and go straight to the wizard
+    setStep(1);
     setS1({
       firstName: saved.personal.firstName,
       lastName: saved.personal.lastName,
@@ -365,6 +369,12 @@ export default function SetupPage() {
 
   function handleNext() {
     let errs: Errors = {};
+    if (step === 0) {
+      // Fast-track step has no required fields — always pass
+      setStep(1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     if (step === 1) errs = validateStep1();
     if (step === 2) errs = validateStep2();
     if (step === 3) errs = validateStep3();
@@ -374,6 +384,47 @@ export default function SetupPage() {
     if (Object.keys(errs).length > 0) return;
     setStep((p) => p + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function applyExtracted(kind: string, data: ExtractedData) {
+    if (kind === "income-report") {
+      if (data.fullName) {
+        const parts = data.fullName.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          setS1((s) => ({
+            ...s,
+            firstName: s.firstName || parts[0],
+            lastName: s.lastName || parts.slice(1).join(" "),
+          }));
+        }
+      }
+      if (data.osekType) {
+        setS3((s) => ({
+          ...s,
+          osekType: data.osekType!,
+          isOsekZeir: data.osekType === "patur" ? s.isOsekZeir : false,
+        }));
+      }
+      if (data.totalRevenue != null) {
+        setS4((s) => ({ ...s, totalRevenue: String(data.totalRevenue) }));
+      }
+    }
+    if (kind === "expenses-excel") {
+      if (data.totalExpenses != null) {
+        setS5((s) => ({
+          ...s,
+          totalDeductibleExpenses: String(data.totalExpenses),
+          expenseCount:
+            s.expenseCount ||
+            String(
+              data.expensesByCategory?.reduce((acc, c) => acc + c.count, 0) ?? 0,
+            ),
+        }));
+      }
+    }
+    if (kind === "donations" && data.donationsTotal != null) {
+      setS5((s) => ({ ...s, donations: String(data.donationsTotal) }));
+    }
   }
 
   function handleBack() {
@@ -545,19 +596,33 @@ export default function SetupPage() {
           <div className="rounded-2xl bg-white border border-stone-200 shadow-sm p-7 md:p-8">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold shadow-sm text-sm">
-                {step}
+                {step === 0 ? "⚡" : step}
               </div>
               <div>
                 <h1 className="text-xl font-bold leading-tight">
-                  {STEP_TITLES[step - 1]}
+                  {step === 0
+                    ? "מסלול מהיר — אופציונלי"
+                    : STEP_TITLES[step - 1]}
                 </h1>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {STEP_SUBTITLES[step - 1]}
+                  {step === 0
+                    ? "העלי מסמכים שיש לך — אחלץ נתונים ואחסוך לך מילוי ידני"
+                    : STEP_SUBTITLES[step - 1]}
                 </p>
               </div>
             </div>
 
-            <ProgressBar step={step} />
+            {step > 0 && <ProgressBar step={step} />}
+
+            {step === 0 && (
+              <DocumentUpload
+                onExtracted={applyExtracted}
+                onSkip={() => {
+                  setStep(1);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+            )}
 
             {step === 1 && (
               <div className="space-y-4">
@@ -898,7 +963,6 @@ export default function SetupPage() {
                   >
                     <option value="patur">עוסק פטור</option>
                     <option value="morshe">עוסק מורשה</option>
-                    <option value="company">חברה בע&quot;מ</option>
                   </select>
                 </div>
 
@@ -1282,37 +1346,40 @@ export default function SetupPage() {
               </div>
             )}
 
-            <div className="mt-8 flex items-center justify-between gap-3">
-              {step > 1 ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="rounded-full border border-stone-300 px-5 py-2 text-sm text-stone-700 hover:bg-stone-100 transition-colors"
-                >
-                  ← חזרה
-                </button>
-              ) : (
-                <div />
-              )}
+            {/* Bottom nav — DocumentUpload has its own "skip"/"continue" button at step 0 */}
+            {step > 0 && (
+              <div className="mt-8 flex items-center justify-between gap-3">
+                {step > 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="rounded-full border border-stone-300 px-5 py-2 text-sm text-stone-700 hover:bg-stone-100 transition-colors"
+                  >
+                    ← חזרה
+                  </button>
+                ) : (
+                  <div />
+                )}
 
-              {step < TOTAL_STEPS ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-sm"
-                >
-                  הבא →
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-md shadow-blue-600/20"
-                >
-                  הציגי את הדוח שלי →
-                </button>
-              )}
-            </div>
+                {step < TOTAL_STEPS ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-sm"
+                  >
+                    הבא →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-md shadow-blue-600/20"
+                  >
+                    הציגי את הדוח שלי →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <p className="mt-4 text-center text-xs text-stone-400">

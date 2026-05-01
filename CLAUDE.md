@@ -58,25 +58,32 @@ These come from the [skills-il](https://github.com/skills-il) GitHub org via `np
 
 ```
 src/
-├── app/                    # Next.js routes
-│   ├── page.tsx            # Landing
-│   ├── demo/page.tsx       # Split-screen demo (form preview + chat)
-│   ├── api/chat/route.ts   # Stub for Claude API (wired Day 2)
-│   ├── layout.tsx          # RTL Hebrew + Heebo/Rubik fonts
-│   └── globals.css         # Tax-authority + countme brand styles
+├── app/                          # Next.js routes
+│   ├── page.tsx                  # Landing
+│   ├── demo/page.tsx             # Split-screen demo (form preview + chat)
+│   ├── setup/page.tsx            # 7-stage wizard (step 0 = optional upload, 1–6 = data entry)
+│   ├── business-expenses/page.tsx # Expense coaching tailored to persona.business.primaryOccupation
+│   ├── api/chat/route.ts         # Anthropic chat (rate-limited, validated)
+│   ├── api/upload/route.ts       # Document parser: xlsx via exceljs + PDF via Claude vision
+│   ├── error.tsx, global-error.tsx # Hebrew error boundaries
+│   ├── layout.tsx                # RTL Hebrew + Heebo/Rubik fonts
+│   └── globals.css               # Tax-authority palette + countme brand
 ├── components/
-│   ├── form-1301/          # The form preview UI
-│   │   ├── form-preview.tsx     # Tabs + sections + fields
+│   ├── form-1301/                # The form preview UI
+│   │   ├── form-preview.tsx      # Tabs + sections + fields (gov.il blue-grey palette)
 │   │   └── interactive-value.tsx # Clickable calculated number with tooltip
-│   └── agent/
-│       └── chat-panel.tsx       # Mock chat (real Claude API tomorrow)
+│   ├── agent/
+│   │   └── chat-panel.tsx        # Live Claude chat with persona-aware greeting
+│   └── upload/
+│       └── document-upload.tsx   # 4-slot drag-drop UI for fast-track step
 └── lib/
-    ├── form-1301/schema.ts # Form structure (3 tabs, sections, fields, codes)
-    ├── calculators/        # Pure functions per "star field"
-    │   ├── types.ts        # CalcResult, tax-year constants
-    │   └── index.ts        # 8 calculators + dispatcher
-    ├── persona.ts          # Types + default persona loader
-    └── utils.ts            # cn(), formatters
+    ├── form-1301/schema.ts       # Form structure (3 tabs, sections, fields, codes)
+    ├── calculators/              # Pure functions per "star field"
+    │   ├── types.ts              # CalcResult, tax-year constants
+    │   └── index.ts              # 8 calculators + dispatcher
+    ├── business-expenses/profiles.ts # Per-occupation expense category lists
+    ├── persona.ts                # Types + default persona loader
+    └── utils.ts                  # cn(), formatters
 
 personas/
 ├── dana-cohen.json         # Default demo persona
@@ -182,12 +189,26 @@ The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscio
 | Element | Real gov.il | countme | Why |
 |---|---|---|---|
 | Outer frame | None | Yellow dashed border + "✦ countme" branding | Visual signal "this is countme, not the real form" |
-| Calculated value boxes | Plain gray input | Yellow-dashed clickable button | Highlight that the value is pre-computed; tooltip on click |
+| Calculated value boxes | Plain gray input | Pastel yellow with dashed gold border (`#fff8d6` / `#d4af37`) | Subtle highlight — the value is pre-computed; tooltip on click |
+| Section headers | Cream/gold band | Blue-grey gradient (`#cdddec` → `#dde7f0`) with navy text | Faithful match — gov.il uses blue-grey, never cream |
+| Filled persona inputs | White box | Light blue bg (`#eef3f8`) with navy border | Faithful match — gov.il highlights filled fields with blue tint |
+| Form body bg | Light grey-blue | `#f5f7fa` (light grey-blue) | Faithful match |
 | Default active tab | Wherever the user last left off | **`פרטים אישיים`** (always) | Predictable demo entry; user moves to "פירוט הכנסות" themselves |
 | Action buttons (שלח/בדיקה/שמירה/ניקוי/הבא) | Visible toolbar | **Removed** | We don't submit; replaced by single "המשך" CTA at the bottom |
 | File info table fields | מספר תיק \| שנת מס \| שם משפחה \| ס"ת \| חוליה \| ברקוד \| גרסה | מספר תיק \| שנת מס \| שם \| ת.ז. \| עיסוק \| בנק \| חשבון | Tax-authority internals (חוליה/ס"ת/ברקוד) are useless to the user; ours are useful |
+| Osek type "חברה בע״מ" | Available | **Removed** | Form 1301 is for individuals only — companies file Form 1214 |
 | Status line ("דו"ח שודר ב…") | Present | Absent | We're not submitting; line would be a lie |
 | Access | Anyone with the URL | **Requires `/setup` first**; `/demo` redirects to `/setup` if no localStorage persona | "כולם יעברו ב-עדכן נתונים בלי יוצא מן הכלל" — locked decision |
+
+## Two new pages added on 2026-05-01 (post-design-review)
+
+**`/business-expenses`** — companion page that uses `persona.business.primaryOccupation` to pick an expense profile (creative / tech / consultant / default) and shows the user the typical deductible categories for their type of business with deduction rules (full / partial / depreciation). Reachable from `/demo` header. Powered by `lib/business-expenses/profiles.ts` — extend by adding new `ExpenseProfile` entries.
+
+**`/setup` step 0 (fast-track upload)** — optional document-upload step at the start of the wizard. 4 slots: דו״ח הכנסות (PDF), אקסל הוצאות (XLSX), טופס 106 (PDF), קבלות תרומה (PDF). Hands files to `/api/upload`:
+- Excel parsed via **exceljs** (chose over `xlsx` due to known prototype-pollution + ReDoS CVEs in `xlsx` with no fix)
+- PDF parsed via **Claude Haiku 4.5 vision** with per-doc prompts that return JSON
+- Extracted fields auto-populate the wizard state (firstName/lastName, osekType, totalRevenue, totalDeductibleExpenses, donations)
+- Returning users with a persona in localStorage skip step 0 and land on step 1 directly
 
 ## Why we are NOT integrating these (right now)
 

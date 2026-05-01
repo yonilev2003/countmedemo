@@ -29,7 +29,7 @@ export function FormPreview({ persona, onContinue }: Props) {
       <GovNavBar tabs={form1301} activeId={activeTab} onSelect={(id) => setActiveTab(id)} />
       <FileInfoTable persona={persona} />
 
-      <div className="bg-[#fdfaf0] px-3 py-3 space-y-2">
+      <div className="bg-[#f5f7fa] px-3 py-3 space-y-2">
         {tab.sections.map((s, i) => (
           <SectionCard key={i} section={s} persona={persona} />
         ))}
@@ -115,8 +115,8 @@ function GovNavBar({
 
 function FileInfoTable({ persona }: { persona: Persona }) {
   return (
-    <div className="bg-white border-b border-stone-300 px-4 py-2.5">
-      <div className="text-[10px] font-bold text-[#1a3f6a] mb-1.5 border-b border-stone-200 pb-1">
+    <div className="bg-white border-b border-[#bdcde0] px-4 py-2.5">
+      <div className="text-[10px] font-bold text-[#1a3f6a] mb-1.5 border-b border-[#cdddec] pb-1">
         פרטי תיק
       </div>
       <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
@@ -164,26 +164,26 @@ function SectionCard({
   persona: Persona;
 }) {
   return (
-    <div className="border border-[#c8c0a0] overflow-hidden" style={{ borderRadius: 1 }}>
-      {/* Cream section header, matching gov.il */}
-      <div className="bg-[#e8dfc0] border-b border-[#c8c0a0] px-3 py-1.5 flex items-center gap-2">
+    <div className="border border-[#9bb5cf] overflow-hidden bg-white" style={{ borderRadius: 2 }}>
+      {/* Blue-grey section header, matching gov.il */}
+      <div className="bg-gradient-to-l from-[#dde7f0] to-[#cdddec] border-b border-[#9bb5cf] px-3 py-2 flex items-center gap-2">
         {section.letter && (
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1a3f6a] text-white text-[9px] font-black shrink-0">
             {section.letter.replace(".", "")}
           </span>
         )}
-        <span className="text-[12px] font-bold text-stone-800 leading-tight">
+        <span className="text-[12px] font-bold text-[#1a3f6a] leading-tight">
           {section.title}
         </span>
         {section.description && (
-          <span className="mr-auto text-[10px] text-stone-500">{section.description}</span>
+          <span className="mr-auto text-[10px] text-[#3a5775]">{section.description}</span>
         )}
       </div>
 
       {/* Column header row for two-filer layout */}
-      <div className="grid bg-[#f5f0e0] border-b border-[#c8c0a0] px-3 py-1 text-[10px] text-stone-500" style={{ gridTemplateColumns: "1fr 140px 36px" }}>
+      <div className="grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium" style={{ gridTemplateColumns: "1fr 140px 36px" }}>
         <div>פרטים</div>
-        <div className="text-center">בן הזוג הרשום</div>
+        <div className="text-center">בן/בת הזוג הרשום</div>
         <div />
       </div>
 
@@ -290,8 +290,16 @@ function FieldValue({
 
   if (field.status === "personal" && field.personaPath) {
     const v = readPersonaPath(persona, field.personaPath);
+    const hasValue = v != null && v !== "";
     return (
-      <span className="inline-block border border-stone-300 bg-white px-2 py-0.5 text-[12px] font-medium text-stone-700 min-w-[100px] text-center">
+      <span
+        className={cn(
+          "inline-block border px-2 py-0.5 text-[12px] font-medium min-w-[100px] text-center",
+          hasValue
+            ? "border-[#a8b8c8] bg-[#eef3f8] text-[#1a3f6a]"
+            : "border-stone-300 bg-white text-stone-400",
+        )}
+      >
         {renderPersonalValue(v, field)}
       </span>
     );
@@ -306,7 +314,6 @@ function renderPersonalValue(v: unknown, field: FormField): string {
     if (field.kind === "date") return formatDate(v);
     if (v === "morshe") return "מורשה";
     if (v === "patur") return "פטור";
-    if (v === "company") return "חברה";
     if (v === "single-entry") return "חד-צדדית";
     if (v === "double-entry") return "כפולה";
     if (v === "manual") return "ידני";

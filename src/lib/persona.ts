@@ -7,7 +7,7 @@ export type MaritalStatus =
   | "widowed"
   | "separated";
 
-export type OsekType = "patur" | "morshe" | "company";
+export type OsekType = "patur" | "morshe";
 
 export interface PersonaPersonal {
   firstName: string;

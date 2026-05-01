@@ -69,6 +69,12 @@ export default function DemoPage() {
               משתמש: {persona.displayName}
             </div>
             <Link
+              href="/business-expenses"
+              className="rounded-full border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              💼 הוצאות לעסק שלך
+            </Link>
+            <Link
               href="/setup"
               className="rounded-full border border-blue-300 px-3 py-1 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
             >

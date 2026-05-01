@@ -109,8 +109,18 @@ test.describe("/demo — gov.il-faithful form preview", () => {
 });
 
 test.describe("/setup — wizard", () => {
+  test("step 0 fast-track upload step is the entry point", async ({ page }) => {
+    await page.goto("/setup");
+    await expect(page.getByText("מסלול מהיר — אופציונלי")).toBeVisible();
+    await expect(page.getByText("דו״ח הכנסות תקופתי")).toBeVisible();
+    await expect(page.getByText("אקסל הוצאות")).toBeVisible();
+  });
+
   test("step 1 blocks advance when required fields are empty", async ({ page }) => {
     await page.goto("/setup");
+
+    // Skip the optional fast-track step
+    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
 
     await page.getByRole("button", { name: /הבא/ }).click();
 
@@ -121,6 +131,7 @@ test.describe("/setup — wizard", () => {
   test("עוסק זעיר checkbox appears only when עוסק פטור is selected", async ({ page }) => {
     await page.goto("/setup");
 
+    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
     await page.getByLabel("שם פרטי").fill("טסט");
     await page.getByLabel("שם משפחה").fill("טסטסון");
     await page.getByLabel("תעודת זהות").fill("318274561");
@@ -133,6 +144,58 @@ test.describe("/setup — wizard", () => {
 
     await page.getByLabel("סוג עוסק").selectOption("morshe");
     await expect(page.getByText("מסלול עוסק זעיר")).toHaveCount(0);
+  });
+
+  test("חברה בע״מ option is no longer available", async ({ page }) => {
+    await page.goto("/setup");
+    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
+    await page.getByLabel("שם פרטי").fill("טסט");
+    await page.getByLabel("שם משפחה").fill("טסטסון");
+    await page.getByLabel("תעודת זהות").fill("318274561");
+    await page.getByLabel("תאריך לידה").fill("1996-08-14");
+    await page.getByRole("button", { name: /הבא/ }).click();
+    await page.getByRole("button", { name: /הבא/ }).click();
+
+    const options = await page.getByLabel("סוג עוסק").locator("option").allTextContents();
+    expect(options).not.toContain("חברה בע\"מ");
+    expect(options).toEqual(expect.arrayContaining(["עוסק פטור", "עוסק מורשה"]));
+  });
+});
+
+test.describe("/business-expenses — expense coaching page", () => {
+  test("redirects to /setup when localStorage has no persona", async ({ page }) => {
+    await page.goto("/business-expenses");
+    await expect(page).toHaveURL(/\/setup$/);
+  });
+
+  test("shows occupation-tailored expense profile", async ({ page }) => {
+    await page.addInitScript((p) => {
+      localStorage.setItem("countme_persona", JSON.stringify(p));
+    }, danaCohen);
+    await page.goto("/business-expenses");
+
+    await expect(page.getByRole("heading", { name: /יצירה ועיצוב|עצמאי כללי/ })).toBeVisible();
+    await expect(page.getByText("ביטוח לאומי לעצמאי")).toBeVisible();
+    await expect(page.getByText("קרן השתלמות לעצמאי")).toBeVisible();
+  });
+});
+
+test.describe("/api/upload — file validation", () => {
+  test("rejects request without file", async ({ request }) => {
+    const res = await request.post("/api/upload", {
+      multipart: { kind: "expenses-excel" },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test("rejects unknown kind", async ({ request }) => {
+    const res = await request.post("/api/upload", {
+      multipart: {
+        kind: "garbage",
+        file: { name: "x.pdf", mimeType: "application/pdf", buffer: Buffer.from("x") },
+      },
+    });
+    expect(res.status()).toBe(400);
   });
 });
 
