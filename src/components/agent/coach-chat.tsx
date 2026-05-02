@@ -7,10 +7,42 @@ import { cn } from "@/lib/utils";
 
 export type CoachMode = "audit" | "discover";
 
+type Attachment = {
+  name: string;
+  /** Image MIME (jpeg/png/...) or "application/pdf". */
+  mediaType: string;
+  /** Base64 without the `data:...;base64,` prefix. */
+  data: string;
+  /** Object URL for image preview, null for PDF. */
+  previewUrl: string | null;
+};
+
 type Message = {
   role: "agent" | "user";
   text: string;
+  attachment?: { name: string; previewUrl: string | null };
 };
+
+const ALLOWED_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+];
+const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+async function fileToAttachment(file: File): Promise<Attachment> {
+  const buf = await file.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const data = btoa(binary);
+  const previewUrl = file.type.startsWith("image/")
+    ? URL.createObjectURL(file)
+    : null;
+  return { name: file.name, mediaType: file.type, data, previewUrl };
+}
 
 interface Props {
   /** Optional persona — only used in audit mode for richer context. */
@@ -56,10 +88,13 @@ export function CoachChat({ persona }: Props) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [attachError, setAttachError] = useState<string | null>(null);
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     [],
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,16 +111,60 @@ export function CoachChat({ persona }: Props) {
     setMessages([]);
     setStreamingText("");
     setInput("");
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    setAttachment(null);
+    setAttachError(null);
     historyRef.current = [];
+  }
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setAttachError(null);
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setAttachError("פורמט לא נתמך. אפשר תמונה (JPG/PNG/GIF/WebP) או PDF.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setAttachError("הקובץ גדול מדי. מקסימום 5MB.");
+      return;
+    }
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    const att = await fileToAttachment(file);
+    setAttachment(att);
+  }
+
+  function clearAttachment() {
+    if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+    setAttachment(null);
+    setAttachError(null);
   }
 
   async function send() {
     const trimmed = input.trim();
-    if (!trimmed || isLoading || !mode) return;
+    // Allow sending with just an attachment + a default prompt, but require either one.
+    if ((!trimmed && !attachment) || isLoading || !mode) return;
 
-    const userMsg: Message = { role: "user", text: trimmed };
+    const messageText =
+      trimmed ||
+      (attachment?.mediaType === "application/pdf"
+        ? "אפשר/י לעבור על המסמך הזה ולספר לי מה את רואה?"
+        : "אפשר/י להסתכל על הקבלה הזאת ולומר אם היא מוכרת לעסק?");
+
+    const sentAttachment = attachment;
+    const userMsg: Message = {
+      role: "user",
+      text: trimmed || messageText,
+      attachment: sentAttachment
+        ? { name: sentAttachment.name, previewUrl: sentAttachment.previewUrl }
+        : undefined,
+    };
     setMessages((m) => [...m, userMsg]);
     setInput("");
+    setAttachment(null);
+    setAttachError(null);
     setIsLoading(true);
     setStreamingText("");
 
@@ -96,10 +175,17 @@ export function CoachChat({ persona }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: trimmed,
+          message: messageText,
           history,
           mode,
           persona: mode === "audit" ? persona ?? null : null,
+          attachment: sentAttachment
+            ? {
+                name: sentAttachment.name,
+                mediaType: sentAttachment.mediaType,
+                data: sentAttachment.data,
+              }
+            : null,
         }),
       });
 
@@ -152,7 +238,12 @@ export function CoachChat({ persona }: Props) {
             setStreamingText("");
             historyRef.current = [
               ...historyRef.current,
-              { role: "user", content: trimmed },
+              {
+                role: "user",
+                content: sentAttachment
+                  ? `${messageText} [קובץ מצורף: ${sentAttachment.name}]`
+                  : messageText,
+              },
               { role: "assistant", content: finalText },
             ];
             setIsLoading(false);
@@ -234,6 +325,22 @@ export function CoachChat({ persona }: Props) {
                 : "ml-auto bg-emerald-600 text-white",
             )}
           >
+            {m.attachment && (
+              <div className="mb-2">
+                {m.attachment.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.attachment.previewUrl}
+                    alt={m.attachment.name}
+                    className="max-h-40 rounded-lg border border-emerald-300"
+                  />
+                ) : (
+                  <div className="rounded-lg bg-white/20 border border-white/40 px-2 py-1 text-[11px] inline-flex items-center gap-1.5">
+                    📄 <span className="truncate max-w-[180px]">{m.attachment.name}</span>
+                  </div>
+                )}
+              </div>
+            )}
             {m.text}
           </div>
         ))}
@@ -283,29 +390,89 @@ export function CoachChat({ persona }: Props) {
 
       {/* Input */}
       <div className="border-t border-stone-200 p-3">
+        {/* Attachment preview chip */}
+        {attachment && (
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5">
+            {attachment.previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={attachment.previewUrl}
+                alt={attachment.name}
+                className="h-10 w-10 rounded-md object-cover border border-emerald-300"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-md bg-white border border-emerald-300 flex items-center justify-center text-lg">
+                📄
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-medium text-emerald-900 truncate">
+                {attachment.name}
+              </div>
+              <div className="text-[10px] text-emerald-700">
+                מצורף — ישלח עם ההודעה הבאה
+              </div>
+            </div>
+            <button
+              onClick={clearAttachment}
+              className="text-stone-500 hover:text-stone-800 text-lg leading-none"
+              aria-label="הסר קובץ"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {attachError && (
+          <div className="mb-2 rounded-lg bg-red-50 border border-red-200 px-3 py-1.5 text-[11px] text-red-700">
+            {attachError}
+          </div>
+        )}
+
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+            onChange={onFilePicked}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            type="button"
+            className="rounded-full border border-stone-300 bg-white px-3 py-2 text-stone-600 hover:bg-stone-100 hover:border-emerald-300 hover:text-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="צרף קבלה (JPG/PNG) או PDF"
+            aria-label="צרף קובץ"
+          >
+            📎
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
             placeholder={
-              mode === "audit"
-                ? "ענה לשאלה או שאל משהו משלך..."
-                : "ענה ובוא נמשיך..."
+              attachment
+                ? "הוסיפי שאלה (אופציונלי) ושלחי..."
+                : mode === "audit"
+                  ? "ענה לשאלה או שאל משהו משלך..."
+                  : "ענה ובוא נמשיך..."
             }
             disabled={isLoading}
             className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <button
             onClick={send}
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || (!input.trim() && !attachment)}
             className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "..." : "שלח"}
           </button>
         </div>
         <div className="mt-2 text-center text-[10px] text-stone-400">
-          {isLoading ? "מחובר ל-Claude Sonnet — מעבד..." : "מחובר ל-Claude Sonnet"}
+          {isLoading
+            ? "מחובר ל-Claude Sonnet — מעבד..."
+            : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
         </div>
       </div>
     </div>
