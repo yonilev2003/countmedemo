@@ -39,6 +39,12 @@ const SYSTEM_AUDIT = `אתה מאמן ההוצאות של countme בתפקיד �
 אחרי 6-8 שאלות, סכם בנקודות מה גילית, ותגיד שאפשר לחזור לטופס 1301 בכתובת /demo.
 אם המשתמשת רוצה לראות מדריך מלא להוצאות לעיסוק שלה, הפנה אותה ל /business-expenses.
 
+צירוף קבצים:
+המשתמשת יכולה לצרף לך קבלות (תמונות JPG/PNG) או דוחות PDF. אתה רואה אותם ישירות.
+כשהיא מצרפת קובץ, נתח אותו: זהה את המוכר, סוג ההוצאה, סכום, תאריך, ועוסק/מע"מ אם רשום.
+תגיד לה אם זה נראה לך הוצאה מוכרת לעסק, ובאיזה אחוז (100%, 80%, 45%, וכו').
+אם הקבלה לא בעברית או לא ברורה, תציין זאת ותבקש פרטים נוספים.
+
 חוקי כתיבה:
 עברית בלבד. בלי markdown, בלי כוכביות, בלי קווים, בלי כוכבי כותרת.
 טקסט נקי בלבד. אפשר פסיקים וסוגריים. אל תפתח תשובה עם מקף.
@@ -79,6 +85,11 @@ const SYSTEM_DISCOVER = `אתה מאמן ההוצאות של countme בתפקי�
 לא לשאול "אילו הוצאות יש לך?" - זה דורש ממנה לדעת מראש את התשובה.
 לא לתת רשימה של 13 קטגוריות לפני שביררת מספיק.
 לא לכתוב פסקה ארוכה - שאלה אחת ממוקדת.
+
+צירוף קבצים:
+המשתמשת יכולה לצרף קבלה (תמונה) או PDF. אתה רואה אותם ישירות.
+כשהיא מצרפת קבלה, נתח: מוכר, מה נקנה, סכום, תאריך. תגיד לה אם זה נראה הוצאה מוכרת לעסק שלה ובאיזה אחוז.
+זו הזדמנות מצוינת ללמד אותה - כל קבלה היא דוגמה קונקרטית של הכלל הכללי.
 
 חוקי כתיבה:
 עברית בלבד, גוף שני נקבה כברירת מחדל.
@@ -124,12 +135,29 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_HISTORY_ITEMS = 40;
 const MAX_HISTORY_ITEM_CHARS = 4000;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB after base64 decode
+const ALLOWED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+] as const;
+type AttachmentMediaType = (typeof ALLOWED_ATTACHMENT_TYPES)[number];
+
+interface Attachment {
+  name: string;
+  mediaType: AttachmentMediaType;
+  /** Base64-encoded file content (without the data: prefix). */
+  data: string;
+}
 
 interface ValidatedBody {
   message: string;
   history: { role: "user" | "assistant"; content: string }[];
   mode: "audit" | "discover";
   persona?: Persona;
+  attachment?: Attachment;
 }
 
 function validateBody(
@@ -187,9 +215,42 @@ function validateBody(
     persona = r.persona as Persona;
   }
 
+  let attachment: Attachment | undefined;
+  if (r.attachment !== undefined && r.attachment !== null) {
+    if (typeof r.attachment !== "object") {
+      return { ok: false, error: "attachment must be an object" };
+    }
+    const a = r.attachment as Record<string, unknown>;
+    if (typeof a.name !== "string" || a.name.length === 0 || a.name.length > 200) {
+      return { ok: false, error: "attachment.name invalid" };
+    }
+    if (
+      typeof a.mediaType !== "string" ||
+      !ALLOWED_ATTACHMENT_TYPES.includes(a.mediaType as AttachmentMediaType)
+    ) {
+      return {
+        ok: false,
+        error: "attachment.mediaType must be image (jpeg/png/gif/webp) or PDF",
+      };
+    }
+    if (typeof a.data !== "string" || a.data.length === 0) {
+      return { ok: false, error: "attachment.data must be a base64 string" };
+    }
+    // Rough byte-size check from base64 length (4 base64 chars ≈ 3 bytes)
+    const approxBytes = Math.floor((a.data.length * 3) / 4);
+    if (approxBytes > MAX_ATTACHMENT_BYTES) {
+      return { ok: false, error: "attachment exceeds 5MB" };
+    }
+    attachment = {
+      name: a.name,
+      mediaType: a.mediaType as AttachmentMediaType,
+      data: a.data,
+    };
+  }
+
   return {
     ok: true,
-    body: { message, history, mode: r.mode, persona },
+    body: { message, history, mode: r.mode, persona, attachment },
   };
 }
 
@@ -241,15 +302,46 @@ export async function POST(request: Request) {
     return Response.json({ error: validated.error }, { status: 400 });
   }
 
-  const { message, history, mode, persona } = validated.body;
+  const { message, history, mode, persona, attachment } = validated.body;
 
   const trimmedHistory = history.slice(-20);
+
+  // Build the current user turn. If a file is attached, include it as a vision
+  // content block alongside the text — Claude can read receipts and PDFs directly.
+  let currentTurnContent: Anthropic.MessageParam["content"];
+  if (attachment) {
+    const blocks: Anthropic.ContentBlockParam[] = [];
+    if (attachment.mediaType === "application/pdf") {
+      blocks.push({
+        type: "document",
+        source: {
+          type: "base64",
+          media_type: "application/pdf",
+          data: attachment.data,
+        },
+      });
+    } else {
+      blocks.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: attachment.mediaType,
+          data: attachment.data,
+        },
+      });
+    }
+    blocks.push({ type: "text", text: message });
+    currentTurnContent = blocks;
+  } else {
+    currentTurnContent = message;
+  }
+
   const messages: Anthropic.MessageParam[] = [
     ...trimmedHistory.map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
     })),
-    { role: "user" as const, content: message },
+    { role: "user" as const, content: currentTurnContent },
   ];
 
   const anthropic = new Anthropic({ apiKey });
