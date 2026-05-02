@@ -12,12 +12,20 @@ export default function Home() {
             </div>
             <span className="text-lg font-bold">countme</span>
           </div>
-          <Link
-            href="/demo"
-            className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-          >
-            צפה בדמו →
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/coach"
+              className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+            >
+              ✦ דבר עם המאמן
+            </Link>
+            <Link
+              href="/demo"
+              className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              צפה בדמו →
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -47,6 +55,12 @@ export default function Home() {
             className="rounded-full bg-blue-600 px-7 py-3 text-base font-medium text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors"
           >
             הדמו של טופס 1301 →
+          </Link>
+          <Link
+            href="/coach"
+            className="rounded-full bg-emerald-600 px-7 py-3 text-base font-medium text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-colors"
+          >
+            ✦ דבר עם המאמן →
           </Link>
           <a
             href="#how-it-works"
