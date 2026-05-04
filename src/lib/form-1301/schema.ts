@@ -418,6 +418,14 @@ const tabIncome: FormTab = {
       title: "מוסד כספי",
       fields: [
         {
+          code: "032",
+          label: "הכנסות מריבית/דיבידנד ממוסד כספי",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-032-financial-institution",
+          hint: "הכנסות ריבית ודיבידנד מבנקים/גופים מוסדיים.",
+        },
+        {
           code: "180",
           label: "הכנסה חייבת של מוסד כספי",
           kind: "currency",
@@ -475,6 +483,20 @@ const tabIncome: FormTab = {
       title: "הכנסות מרווח הון ומשבח מקרקעין",
       fields: [
         {
+          code: "054",
+          label: "רווח הון ריאלי ממכירת נכסים",
+          kind: "currency",
+          status: "skip",
+          hint: "יש למלא ידנית — ראה טופס 1399",
+        },
+        {
+          code: "056",
+          label: "רווח הון ממכירת ניירות ערך",
+          kind: "currency",
+          status: "skip",
+          hint: "יש למלא ידנית — ראה טופס 1322/1325",
+        },
+        {
           code: "300",
           label: "שבח מקרקעין ורווח הון חייב",
           kind: "currency",
@@ -492,6 +514,13 @@ const tabIncome: FormTab = {
       letter: "ט.",
       title: 'הכנסות חו"ל',
       fields: [
+        {
+          code: "290",
+          label: 'הכנסות מחו׳׳ל',
+          kind: "currency",
+          status: "skip",
+          hint: "יש למלא ידנית — ראה נספח ג׳",
+        },
         {
           code: "160",
           label: 'הכנסה מחו״ל חייבת בשיעור מס רגיל',
@@ -557,6 +586,22 @@ const tabIncome: FormTab = {
           hint: "החלק של תשלומי הביטוח הלאומי שמותר לנכות מההכנסה (52%).",
         },
         {
+          code: "112",
+          label: "ניכוי ביטוח אובדן כושר עבודה",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-112-loss-of-work-capacity",
+          hint: "פרמיית ביטוח אובדן כושר עבודה — 100% ניכוי.",
+        },
+        {
+          code: "135",
+          label: "הפקדות לקופת גמל לקיצבה",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-135-kupat-gemel",
+          hint: "הפקדות לקופ״ג — לפי הסכום שהופקד.",
+        },
+        {
           code: "137",
           label: "קרן השתלמות לעצמאים",
           kind: "currency",
@@ -594,12 +639,44 @@ const tabIncome: FormTab = {
           calculator: "field-068-soldier",
           hint: "1/6 נקודות זיכוי ב-36 חודשים מהשחרור. דנה השתחררה ב-2018, לא רלוונטי.",
         },
+        {
+          code: "181",
+          label: "נקודת זיכוי בגין תואר אקדמי",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-181-academic-degree",
+          hint: "נקודת זיכוי אחת לבעלי תואר אקדמי.",
+        },
       ],
     },
     {
       letter: "יד.",
       title: "זיכויים אישיים בעד תשלומים",
       fields: [
+        {
+          code: "037",
+          label: "תרומות — סכום ששולם השנה",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-037-donations-current",
+          hint: "תרומות שנתיות שישמשו לחישוב הזיכוי בשדה 046.",
+        },
+        {
+          code: "364",
+          label: "תרומות — הועברו משנים קודמות",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-364-donations-carried",
+          hint: "תרומות שהועברו משנים קודמות לצורך זיכוי.",
+        },
+        {
+          code: "046",
+          label: "זיכוי ממס על תרומות (35%)",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-046-donations-credit",
+          hint: "35% מסכום התרומות הכולל (שוטף + מועבר), מינימום 200 ₪.",
+        },
         {
           code: "072",
           label: "זיכוי בגין פרמיית ביטוח חיים (סעיף 40)",
@@ -644,6 +721,22 @@ const tabIncome: FormTab = {
           status: "calculated",
           calculator: "field-238-turnover",
           hint: "אותו סכום של שדה 238 — הצלבת אימות.",
+        },
+        {
+          code: "042",
+          label: "מקדמות ששולמו השנה",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-042-mikdamot",
+          hint: "מקדמות מס הכנסה ששולמו במהלך השנה.",
+        },
+        {
+          code: "115",
+          label: "ניכוי מס במקור",
+          kind: "currency",
+          status: "calculated",
+          calculator: "field-115-tax-withheld",
+          hint: "ניכוי מס במקור שבוצע על ידי לקוחות.",
         },
       ],
     },

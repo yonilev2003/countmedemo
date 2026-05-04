@@ -52,6 +52,7 @@ interface Step2Data {
   isSoldierDischarged: boolean;
   soldierDischargeDate: string;
   isNewResident: boolean;
+  aliyahDate: string;
   academicDegreeYear: string;
   children: { birthYear: string }[];
 }
@@ -60,18 +61,15 @@ interface Step3Data {
   tradeName: string;
   primaryOccupation: string;
   osekType: OsekType;
-  osekStartDate: string;
   isOsekZeir: boolean;
 }
 
 interface Step4Data {
   totalRevenue: string;
-  invoiceCount: string;
 }
 
 interface Step5Data {
   totalDeductibleExpenses: string;
-  expenseCount: string;
   bituachLeumiAnnualPaid: string;
   kerenHishtalmut: string;
   pensionContributions: string;
@@ -186,6 +184,7 @@ export default function SetupPage() {
     isSoldierDischarged: false,
     soldierDischargeDate: "",
     isNewResident: false,
+    aliyahDate: "",
     academicDegreeYear: "",
     children: [],
   });
@@ -194,18 +193,15 @@ export default function SetupPage() {
     tradeName: "",
     primaryOccupation: "",
     osekType: "patur",
-    osekStartDate: "",
     isOsekZeir: false,
   });
 
   const [s4, setS4] = useState<Step4Data>({
     totalRevenue: "",
-    invoiceCount: "",
   });
 
   const [s5, setS5] = useState<Step5Data>({
     totalDeductibleExpenses: "",
-    expenseCount: "",
     bituachLeumiAnnualPaid: "",
     kerenHishtalmut: "",
     pensionContributions: "",
@@ -238,6 +234,7 @@ export default function SetupPage() {
       isSoldierDischarged: saved.personal.isSoldierDischarged,
       soldierDischargeDate: saved.personal.soldierDischargeDate ?? "",
       isNewResident: saved.personal.isNewResident,
+      aliyahDate: saved.personal.aliyahDate ?? "",
       academicDegreeYear: saved.personal.academicDegreeYear?.toString() ?? "",
       children: saved.personal.children.map((c) => ({
         birthYear: c.birthYear.toString(),
@@ -247,16 +244,13 @@ export default function SetupPage() {
       tradeName: saved.business.tradeName,
       primaryOccupation: saved.business.primaryOccupation,
       osekType: saved.business.osekType,
-      osekStartDate: saved.business.osekStartDate,
       isOsekZeir: saved.business.isOsekZeir,
     });
     setS4({
       totalRevenue: String(saved.income.totalRevenue),
-      invoiceCount: String(saved.income.invoiceCount),
     });
     setS5({
       totalDeductibleExpenses: String(saved.income.totalDeductibleExpenses),
-      expenseCount: String(saved.income.expenseCount),
       bituachLeumiAnnualPaid: String(
         saved.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid,
       ),
@@ -319,7 +313,6 @@ export default function SetupPage() {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
     if (!s3.primaryOccupation.trim()) e.primaryOccupation = "שדה חובה";
-    if (!s3.osekStartDate) e.osekStartDate = "שדה חובה";
     return e;
   }
 
@@ -333,8 +326,6 @@ export default function SetupPage() {
     const e: Errors = {};
     const r = validateNumber(s4.totalRevenue, "מחזור");
     if (r) e.totalRevenue = r;
-    const i = validateNumber(s4.invoiceCount, "מספר חשבוניות");
-    if (i) e.invoiceCount = i;
     return e;
   }
 
@@ -342,8 +333,6 @@ export default function SetupPage() {
     const e: Errors = {};
     const ex = validateNumber(s5.totalDeductibleExpenses, "הוצאות");
     if (ex) e.totalDeductibleExpenses = ex;
-    const ec = validateNumber(s5.expenseCount, "מספר קבלות");
-    if (ec) e.expenseCount = ec;
     if (s5.bituachLeumiAnnualPaid) {
       const v = Number(s5.bituachLeumiAnnualPaid);
       if (isNaN(v) || v < 0) e.bituachLeumiAnnualPaid = "מספר לא תקין";
@@ -414,11 +403,6 @@ export default function SetupPage() {
         setS5((s) => ({
           ...s,
           totalDeductibleExpenses: String(data.totalExpenses),
-          expenseCount:
-            s.expenseCount ||
-            String(
-              data.expensesByCategory?.reduce((acc, c) => acc + c.count, 0) ?? 0,
-            ),
         }));
       }
     }
@@ -461,6 +445,7 @@ export default function SetupPage() {
         academicDegreeYear: s2.academicDegreeYear
           ? Number(s2.academicDegreeYear)
           : null,
+        aliyahDate: s2.isNewResident ? s2.aliyahDate || null : null,
         children: s2.children
           .filter((c) => c.birthYear)
           .map((c) => ({ birthYear: Number(c.birthYear) })),
@@ -484,7 +469,7 @@ export default function SetupPage() {
         primaryOccupation: s3.primaryOccupation,
         osekType: s3.osekType,
         osekFileNumber: s1.teudatZehut,
-        osekStartDate: s3.osekStartDate,
+        osekStartDate: "",
         address: {
           sameAsResidence: true,
           street: null,
@@ -513,8 +498,8 @@ export default function SetupPage() {
         totalRevenue,
         totalDeductibleExpenses,
         netIncome,
-        invoiceCount: Number(s4.invoiceCount),
-        expenseCount: Number(s5.expenseCount),
+        invoiceCount: 0,
+        expenseCount: 0,
         monthlyBreakdown: [],
       },
       deductionsAndCredits: {
@@ -834,6 +819,25 @@ export default function SetupPage() {
                       </p>
                     </div>
                   </label>
+                  {s2.isNewResident && (
+                    <div className="mt-3 mr-7">
+                      <FieldLabel htmlFor="aliyahDate" required>
+                        תאריך עלייה
+                      </FieldLabel>
+                      <input
+                        id="aliyahDate"
+                        type="date"
+                        value={s2.aliyahDate}
+                        onChange={(e) => setS2({ ...s2, aliyahDate: e.target.value })}
+                        className={inputCls(false)}
+                        dir="ltr"
+                        max={new Date().toISOString().split("T")[0]}
+                      />
+                      <p className="mt-1 text-xs text-stone-500">
+                        נדרש לחישוב מספר שנות הזכאות לנקודות עולה חדש/ה
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -990,23 +994,6 @@ export default function SetupPage() {
                   </div>
                 )}
 
-                <div>
-                  <FieldLabel htmlFor="osekStartDate" required>
-                    תאריך פתיחת תיק
-                  </FieldLabel>
-                  <input
-                    id="osekStartDate"
-                    type="date"
-                    value={s3.osekStartDate}
-                    onChange={(e) =>
-                      setS3({ ...s3, osekStartDate: e.target.value })
-                    }
-                    className={inputCls(!!errors.osekStartDate)}
-                    dir="ltr"
-                    max={new Date().toISOString().split("T")[0]}
-                  />
-                  <ErrorMsg msg={errors.osekStartDate} />
-                </div>
               </div>
             )}
 
@@ -1038,69 +1025,47 @@ export default function SetupPage() {
                   </p>
                 </div>
 
-                <div>
-                  <FieldLabel htmlFor="invoiceCount" required>
-                    מספר חשבוניות שהוצאת השנה
-                  </FieldLabel>
-                  <input
-                    id="invoiceCount"
-                    type="number"
-                    min={0}
-                    value={s4.invoiceCount}
-                    onChange={(e) =>
-                      setS4({ ...s4, invoiceCount: e.target.value })
-                    }
-                    className={inputCls(!!errors.invoiceCount)}
-                    dir="ltr"
-                    placeholder="38"
-                  />
-                  <ErrorMsg msg={errors.invoiceCount} />
-                </div>
               </div>
             )}
 
             {step === 5 && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel htmlFor="expenses" required>
-                      סך הוצאות מוכרות
-                    </FieldLabel>
-                    <input
-                      id="expenses"
-                      type="number"
-                      min={0}
-                      value={s5.totalDeductibleExpenses}
-                      onChange={(e) =>
-                        setS5({
-                          ...s5,
-                          totalDeductibleExpenses: e.target.value,
-                        })
-                      }
-                      className={inputCls(!!errors.totalDeductibleExpenses)}
-                      dir="ltr"
-                      placeholder="47800"
-                    />
-                    <ErrorMsg msg={errors.totalDeductibleExpenses} />
-                  </div>
-                  <div>
-                    <FieldLabel htmlFor="expenseCount" required>
-                      מספר קבלות
-                    </FieldLabel>
-                    <input
-                      id="expenseCount"
-                      type="number"
-                      min={0}
-                      value={s5.expenseCount}
-                      onChange={(e) =>
-                        setS5({ ...s5, expenseCount: e.target.value })
-                      }
-                      className={inputCls(!!errors.expenseCount)}
-                      dir="ltr"
-                      placeholder="91"
-                    />
-                    <ErrorMsg msg={errors.expenseCount} />
-                  </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex gap-2 items-start">
+                  <span className="mt-0.5 shrink-0 text-base">ℹ️</span>
+                  <span>
+                    <span className="font-medium">הוצאות במטבע זר?</span>{" "}
+                    המר/י לשקלים לפי שער יציג של בנק ישראל בתאריך כל חשבונית בנפרד. אם
+                    השער השתנה במהלך השנה — כל חשבונית מקבלת שער המרה משלה. הסכום
+                    המסכם בשדה זה חייב להיות שקלי.
+                  </span>
+                </div>
+                <div>
+                  <FieldLabel htmlFor="expenses" required>
+                    {s3.osekType === "morshe"
+                      ? "סך הוצאות מוכרות (ללא מע״מ)"
+                      : "סך הוצאות מוכרות (כולל מע״מ)"}
+                  </FieldLabel>
+                  <input
+                    id="expenses"
+                    type="number"
+                    min={0}
+                    value={s5.totalDeductibleExpenses}
+                    onChange={(e) =>
+                      setS5({
+                        ...s5,
+                        totalDeductibleExpenses: e.target.value,
+                      })
+                    }
+                    className={inputCls(!!errors.totalDeductibleExpenses)}
+                    dir="ltr"
+                    placeholder="47800"
+                  />
+                  <ErrorMsg msg={errors.totalDeductibleExpenses} />
+                  <p className="mt-1 text-xs text-stone-500">
+                    {s3.osekType === "morshe"
+                      ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
+                      : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
+                  </p>
                 </div>
 
                 <div className="border-t border-stone-200 pt-4 mt-2">
