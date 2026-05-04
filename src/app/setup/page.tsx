@@ -534,7 +534,7 @@ export default function SetupPage() {
     if (Object.keys(errs).length > 0) return;
     const persona = buildPersona();
     savePersona(persona);
-    router.push("/demo");
+    router.push("/dashboard");
   }
 
   function addChild() {

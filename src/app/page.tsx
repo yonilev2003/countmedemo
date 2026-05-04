@@ -14,10 +14,28 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href="/dashboard"
+              className="rounded-full border border-stone-200 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              דשבורד
+            </Link>
+            <Link
+              href="/file"
+              className="rounded-full border border-stone-200 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              מילוי 1301
+            </Link>
+            <Link
+              href="/invoices"
+              className="rounded-full border border-stone-200 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-50 transition-colors"
+            >
+              חשבוניות
+            </Link>
+            <Link
               href="/coach"
               className="rounded-full border border-success/50 bg-success/10 px-4 py-2 text-sm font-medium text-success hover:bg-success/20 transition-colors"
             >
-              ✦ דבר עם המאמן
+              ✦ איתן
             </Link>
             <Link
               href="/demo"
@@ -60,7 +78,7 @@ export default function Home() {
             href="/coach"
             className="rounded-full bg-success px-7 py-3 text-base font-medium text-white shadow-lg shadow-brand hover:bg-success/90 transition-colors"
           >
-            ✦ דבר עם המאמן →
+            ✦ דבר עם איתן →
           </Link>
           <a
             href="#how-it-works"
@@ -77,6 +95,41 @@ export default function Home() {
           <Stat label="זמן ממוצע למילוי 1301" value="3 דקות" suffix="עם countme" />
         </div>
       </main>
+
+      {/* Features grid */}
+      <section className="border-t border-stone-200 bg-cream py-14">
+        <div className="mx-auto max-w-screen-xl px-6">
+          <h2 className="mb-8 text-center font-display text-2xl font-bold text-brand-navy">
+            כל הכלים במקום אחד
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FeatureCard
+              href="/dashboard"
+              icon="📊"
+              title="דשבורד רווח והפסד"
+              desc="מבט חי על הכנסות, הוצאות ורווח נקי עם תובנות מאיתן"
+            />
+            <FeatureCard
+              href="/file"
+              icon="📋"
+              title="מילוי טופס 1301"
+              desc="מסלול מודרך עם איתן ב-12 שלבים, או מבט מומחה מהיר"
+            />
+            <FeatureCard
+              href="/business-expenses"
+              icon="💼"
+              title="הוצאות מוכרות"
+              desc="רשימת ההוצאות המותרות לפי סוג העסק שלך עם כללי ניכוי"
+            />
+            <FeatureCard
+              href="/invoices"
+              icon="🧾"
+              title="חשבוניות וקבלות"
+              desc="הוצא חשבוניות מס וקבלות בפורמט ישראלי עם הדפסה נוחה"
+            />
+          </div>
+        </div>
+      </section>
 
       {/* How it works */}
       <section
@@ -131,6 +184,32 @@ function Stat({
       </div>
       <div className="mt-1 text-sm text-stone-600">{label}</div>
     </div>
+  );
+}
+
+function FeatureCard({
+  href,
+  icon,
+  title,
+  desc,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hover:border-brand-navy/30 hover:shadow-md transition-all"
+    >
+      <span className="text-3xl">{icon}</span>
+      <h3 className="font-bold text-brand-navy group-hover:text-brand-navy/80">{title}</h3>
+      <p className="text-sm text-stone-500 leading-relaxed">{desc}</p>
+      <span className="mt-auto text-xs font-medium text-brand-navy/60 group-hover:text-brand-navy">
+        כניסה ←
+      </span>
+    </Link>
   );
 }
 
