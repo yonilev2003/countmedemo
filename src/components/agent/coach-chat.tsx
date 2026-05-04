@@ -202,8 +202,8 @@ export function CoachChat({ persona }: Props) {
   return (
     <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="border-b border-stone-200 bg-gradient-to-l from-emerald-50 to-white px-4 py-3 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-bold shadow-sm">
+      <div className="border-b border-stone-200 bg-gradient-to-l from-info/40 to-cream px-4 py-3 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-success to-brand-navy text-white font-bold shadow-sm">
           ✦
         </div>
         <div className="flex-1 min-w-0">
@@ -230,8 +230,8 @@ export function CoachChat({ persona }: Props) {
             className={cn(
               "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap",
               m.role === "agent"
-                ? "bg-stone-100 text-stone-800"
-                : "ml-auto bg-emerald-600 text-white",
+                ? "bg-info text-brand-navy"
+                : "ml-auto bg-brand-navy text-white",
             )}
           >
             {m.text}
@@ -239,14 +239,14 @@ export function CoachChat({ persona }: Props) {
         ))}
 
         {streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-800 whitespace-pre-wrap">
+          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-info text-brand-navy whitespace-pre-wrap">
             {streamingText}
-            <span className="inline-block w-1.5 h-3.5 bg-stone-400 animate-pulse ml-0.5 align-middle" />
+            <span className="inline-block w-1.5 h-3.5 bg-brand-navy/40 animate-pulse ml-0.5 align-middle" />
           </div>
         )}
 
         {isLoading && !streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-400">
+          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-info text-brand-navy/50">
             <span className="inline-flex gap-1">
               <span className="animate-bounce [animation-delay:0ms]">•</span>
               <span className="animate-bounce [animation-delay:150ms]">•</span>
@@ -259,22 +259,22 @@ export function CoachChat({ persona }: Props) {
 
       {/* CTA bar — only in audit mode, only if persona exists */}
       {mode === "audit" && persona && (
-        <div className="border-t border-stone-200 bg-emerald-50 px-4 py-2 text-[11px] text-emerald-800 flex items-center justify-between gap-2">
+        <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>סיימת? אפשר לחזור לטופס המלא</span>
           <Link
             href="/demo"
-            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 text-[11px] transition-colors"
+            className="rounded-full bg-success hover:bg-success/90 text-white font-bold px-3 py-1 text-[11px] transition-colors"
           >
             לטופס 1301 ←
           </Link>
         </div>
       )}
       {mode === "discover" && (
-        <div className="border-t border-stone-200 bg-emerald-50 px-4 py-2 text-[11px] text-emerald-800 flex items-center justify-between gap-2">
+        <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>רוצה לראות מדריך מלא להוצאות לעיסוק שלך?</span>
           <Link
             href="/business-expenses"
-            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 text-[11px] transition-colors"
+            className="rounded-full bg-success hover:bg-success/90 text-white font-bold px-3 py-1 text-[11px] transition-colors"
           >
             המדריך המלא ←
           </Link>
@@ -294,12 +294,12 @@ export function CoachChat({ persona }: Props) {
                 : "ענה ובוא נמשיך..."
             }
             disabled={isLoading}
-            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <button
             onClick={send}
             disabled={isLoading || !input.trim()}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-full bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "..." : "שלח"}
           </button>
@@ -324,9 +324,9 @@ function ModePicker({
 }) {
   return (
     <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-stone-200 bg-gradient-to-l from-emerald-50 to-white px-5 py-4">
+      <div className="border-b border-stone-200 bg-gradient-to-l from-info/40 to-cream px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-white text-lg font-bold shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-success to-brand-navy text-white text-lg font-bold shadow-sm">
             ✦
           </div>
           <div>
@@ -345,14 +345,14 @@ function ModePicker({
 
         <button
           onClick={() => onPick("audit")}
-          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50 transition-colors p-5"
+          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-success/60 hover:bg-success/10 transition-colors p-5"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
-              <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-1">
+              <div className="text-[11px] font-bold text-success uppercase tracking-wider mb-1">
                 {persona ? "מומלץ עבורך" : "ביקורת טרום-הגשה"}
               </div>
-              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-emerald-800">
+              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-brand-navy">
                 יש לי דוח הוצאות, רוצה לוודא שלא שכחתי כלום
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
@@ -361,7 +361,7 @@ function ModePicker({
                 מהן עובדת.
               </p>
             </div>
-            <span className="text-2xl text-emerald-500 group-hover:translate-x-[-4px] transition-transform">
+            <span className="text-2xl text-success group-hover:translate-x-[-4px] transition-transform">
               ←
             </span>
           </div>
@@ -369,14 +369,14 @@ function ModePicker({
 
         <button
           onClick={() => onPick("discover")}
-          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50 transition-colors p-5"
+          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-success/60 hover:bg-success/10 transition-colors p-5"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1">
-              <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mb-1">
+              <div className="text-[11px] font-bold text-success uppercase tracking-wider mb-1">
                 לעצמאיות מתחילות
               </div>
-              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-emerald-800">
+              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-brand-navy">
                 בדיוק התחלתי - בואו נגלה אילו הוצאות מוכרות לי
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
@@ -385,7 +385,7 @@ function ModePicker({
                 מקצועיים, ועוד.
               </p>
             </div>
-            <span className="text-2xl text-emerald-500 group-hover:translate-x-[-4px] transition-transform">
+            <span className="text-2xl text-success group-hover:translate-x-[-4px] transition-transform">
               ←
             </span>
           </div>

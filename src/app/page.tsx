@@ -15,13 +15,13 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Link
               href="/coach"
-              className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+              className="rounded-full border border-success/50 bg-success/10 px-4 py-2 text-sm font-medium text-success hover:bg-success/20 transition-colors"
             >
               ✦ דבר עם המאמן
             </Link>
             <Link
               href="/demo"
-              className="rounded-full bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              className="rounded-full bg-brand-navy px-5 py-2 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors"
             >
               צפה בדמו →
             </Link>
@@ -31,14 +31,14 @@ export default function Home() {
 
       {/* Hero */}
       <main className="mx-auto flex max-w-screen-xl flex-1 flex-col items-center justify-center gap-8 px-6 py-20 text-center">
-        <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+        <div className="rounded-full border border-info bg-info/30 px-3 py-1 text-xs font-medium text-brand-navy">
           מוצר חדש לעצמאים בישראל · בפיתוח
         </div>
 
         <h1 className="max-w-3xl font-display text-4xl font-bold leading-tight tracking-tight md:text-6xl">
           מלא/י דו״חות מס
           <br />
-          <span className="bg-gradient-to-l from-blue-600 to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-l from-brand-navy to-brand-navy/60 bg-clip-text text-transparent">
             בלי רואה חשבון, בלי פחד
           </span>
         </h1>
@@ -52,13 +52,13 @@ export default function Home() {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/demo"
-            className="rounded-full bg-blue-600 px-7 py-3 text-base font-medium text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-colors"
+            className="rounded-full bg-brand-navy px-7 py-3 text-base font-medium text-white shadow-lg shadow-brand hover:bg-brand-navy/90 transition-colors"
           >
             הדמו של טופס 1301 →
           </Link>
           <Link
             href="/coach"
-            className="rounded-full bg-emerald-600 px-7 py-3 text-base font-medium text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition-colors"
+            className="rounded-full bg-success px-7 py-3 text-base font-medium text-white shadow-lg shadow-brand hover:bg-success/90 transition-colors"
           >
             ✦ דבר עם המאמן →
           </Link>
@@ -121,7 +121,7 @@ function Stat({
 }) {
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-5">
-      <div className="font-display text-3xl font-bold text-blue-700">
+      <div className="font-display text-3xl font-bold text-brand-navy">
         {value}
         {suffix && (
           <span className="mr-1 text-base font-normal text-stone-500">
@@ -145,7 +145,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info font-bold text-brand-navy">
         {num}
       </div>
       <div>

@@ -13,6 +13,13 @@
   --color-tax-fieldcode: #c62828;
   --font-sans: var(--font-heebo);
   --font-display: var(--font-rubik);
+  --color-cream: #FAF0CA;
+  --color-brand-navy: #0D3B66;
+  --color-success: #9FB878;
+  --color-success-light: #D5E79E;
+  --color-alert: #80181D;
+  --color-info: #D2E8FF;
+  --shadow-brand: 0 4px 16px rgba(13, 59, 102, 0.10);
 }
 
 html {
