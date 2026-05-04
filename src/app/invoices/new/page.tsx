@@ -5,14 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadPersona, savePersona } from "@/lib/setup-storage";
 import { nextInvoiceNumber, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
-import { Persona, InvoiceLine } from "@/lib/persona";
+import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
 
-type DocType = "invoice" | "receipt";
+const DOC_TYPE_LABELS: Record<InvoiceDocType, { title: string; sub: string; cta: string }> = {
+  "tax-invoice-receipt": {
+    title: "חשבונית מס/קבלה",
+    sub: "חשבונית מס + אישור על קבלת תשלום (305) — הנפוץ ביותר לעצמאיים",
+    cta: "הפק חשבונית מס/קבלה",
+  },
+  receipt: {
+    title: "קבלה",
+    sub: "אישור על קבלת תשלום בלבד (320) — בעיקר אחרי הפקת חשבונית מס נפרדת",
+    cta: "הפק קבלה",
+  },
+};
 
 export default function NewInvoicePage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
-  const [docType, setDocType] = useState<DocType>("invoice");
+  const [docType, setDocType] = useState<InvoiceDocType>("tax-invoice-receipt");
   const [form, setForm] = useState({
     customerName: "",
     customerTaxId: "",
@@ -50,6 +61,7 @@ export default function NewInvoicePage() {
       vat: totals.vat,
       total: totals.total,
       category: form.category || undefined,
+      docType,
     };
 
     const updatedPersona = {
@@ -78,18 +90,25 @@ export default function NewInvoicePage() {
 
       <main className="mx-auto max-w-screen-md px-6 py-8">
         {/* Doc type selector */}
-        <div className="flex gap-3 mb-6">
-          {(["invoice", "receipt"] as DocType[]).map(t => (
-            <button
-              key={t}
-              onClick={() => setDocType(t)}
-              className={`flex-1 rounded-xl border-2 py-3 text-sm font-medium transition-colors ${
-                docType === t ? "border-brand-navy bg-brand-navy/5 text-brand-navy" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300"
-              }`}
-            >
-              {t === "invoice" ? "חשבונית מס" : "קבלה"}
-            </button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+          {(Object.keys(DOC_TYPE_LABELS) as InvoiceDocType[]).map(t => {
+            const labels = DOC_TYPE_LABELS[t];
+            const active = docType === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setDocType(t)}
+                className={`text-right rounded-xl border-2 px-4 py-3 transition-colors ${
+                  active ? "border-brand-navy bg-brand-navy/5" : "border-stone-200 bg-white hover:border-stone-300"
+                }`}
+              >
+                <div className={`text-sm font-bold ${active ? "text-brand-navy" : "text-stone-700"}`}>
+                  {labels.title}
+                </div>
+                <div className="text-xs text-stone-500 mt-1 leading-snug">{labels.sub}</div>
+              </button>
+            );
+          })}
         </div>
 
         <div className="rounded-2xl bg-white border border-stone-200 p-6 space-y-4">
@@ -155,7 +174,7 @@ export default function NewInvoicePage() {
 
           <button onClick={handleSubmit}
             className="w-full rounded-full bg-brand-navy py-3 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors shadow-sm">
-            {docType === "invoice" ? "הפק חשבונית מס" : "הפק קבלה"} &#x2190;
+            {DOC_TYPE_LABELS[docType].cta} &#x2190;
           </button>
         </div>
       </main>

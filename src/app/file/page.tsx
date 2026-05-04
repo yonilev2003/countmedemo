@@ -54,9 +54,9 @@ export default function FilePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Expert View */}
+          {/* Expert View — points to /demo (gov.il-faithful preview with copy buttons + chat) */}
           <Link
-            href="/file/expert"
+            href="/demo"
             className="group rounded-2xl border-2 border-brand-navy/20 bg-white p-6 shadow-sm hover:border-brand-navy/50 hover:shadow-brand transition-all"
           >
             <div className="mb-3 text-3xl">⚡</div>
@@ -64,11 +64,11 @@ export default function FilePage() {
               מסלול מהיר
             </h2>
             <p className="text-sm text-stone-600 leading-relaxed">
-              טבלה מרוכזת עם כל הנתונים מוכנים. כפתור העתקה לכל שדה. מתאים
-              לאלה שיודעים מה הם עושים.
+              הטופס המוכר של gov.il עם כל הערכים מחושבים, כפתור העתקה ליד כל שדה,
+              וצ׳אט עם איתן בצד. מתאים לאלה שיודעים מה הם עושים.
             </p>
             <div className="mt-4 text-sm font-medium text-brand-navy group-hover:underline">
-              צפייה בטבלה →
+              לצפייה בטופס →
             </div>
           </Link>
 

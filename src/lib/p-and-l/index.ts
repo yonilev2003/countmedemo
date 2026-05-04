@@ -2,9 +2,11 @@
  * P&L calculation functions for the dashboard.
  * Pure functions — no React, no side effects.
  *
- * Note on monthlyBreakdown: the Persona type declares it as
- * `{ month: string; revenue: number; expenses: number }[]`
- * where month is an ISO year-month string like "2024-01".
+ * Strategy for monthly breakdown (in priority order):
+ *   1. If persona.income.invoices[] has dates → group revenue by month from invoices.
+ *      Same for expenses.
+ *   2. Else if persona.income.monthlyBreakdown exists → use that.
+ *   3. Else distribute totals evenly across 12 months (demo fallback).
  */
 
 import { Persona } from "@/lib/persona";
@@ -23,6 +25,10 @@ export interface PLSummary {
   netProfit: number;
   expenseBreakdown: { category: string; amount: number }[];
   monthlyData: MonthlyPL[];
+  /** True iff month-level data came from real dated line items (invoices/expenses). */
+  hasDatedData: boolean;
+  /** First and last month with any activity, 1-12. Useful for auto-zoom. */
+  activeRange: { from: number; to: number };
 }
 
 const MONTH_LABELS = [
@@ -40,40 +46,98 @@ const MONTH_LABELS = [
   "דצמ׳",
 ];
 
+function monthFromIso(iso: string): number | null {
+  // Accepts "YYYY-MM-DD" or "YYYY-MM"
+  const parts = iso.split("-");
+  if (parts.length < 2) return null;
+  const m = parseInt(parts[1], 10);
+  if (Number.isNaN(m) || m < 1 || m > 12) return null;
+  return m;
+}
+
 export function calculatePL(persona: Persona): PLSummary {
   const totalRevenue = persona.income.totalRevenue;
   const totalExpenses = persona.income.totalDeductibleExpenses;
   const netProfit = totalRevenue - totalExpenses;
 
-  // Monthly data — use monthlyBreakdown if available, otherwise distribute evenly.
-  // monthlyBreakdown.month is a string like "2024-01" (ISO year-month).
-  const monthlyData: MonthlyPL[] = Array.from({ length: 12 }, (_, i) => {
-    const monthNum = i + 1;
-    // Match "YYYY-MM" where MM is the 1-indexed month (zero-padded)
-    const mb = persona.income.monthlyBreakdown?.find((m) => {
-      const monthStr = String(m.month);
-      // Handle both numeric months (legacy) and ISO "YYYY-MM" strings
-      if (typeof m.month === "number") return m.month === monthNum;
-      // Extract month from "YYYY-MM" format
-      const parts = monthStr.split("-");
-      return parts.length === 2 && parseInt(parts[1], 10) === monthNum;
-    });
-    const rev = mb?.revenue ?? Math.round(totalRevenue / 12);
-    const exp = mb?.expenses ?? Math.round(totalExpenses / 12);
-    return {
-      month: monthNum,
-      label: MONTH_LABELS[i],
-      revenue: rev,
-      expenses: exp,
-      net: rev - exp,
-    };
-  });
+  // Initialize 12-month buckets
+  const revenueByMonth = Array(12).fill(0) as number[];
+  const expensesByMonth = Array(12).fill(0) as number[];
 
-  // Expense breakdown by category — use line items if available, else rough demo split.
+  let hasDatedData = false;
+
+  // Source 1: dated invoice line items
+  const invoices = persona.income.invoices ?? [];
+  if (invoices.length > 0) {
+    for (const inv of invoices) {
+      const m = monthFromIso(inv.date);
+      if (m !== null) {
+        revenueByMonth[m - 1] += inv.total;
+        hasDatedData = true;
+      }
+    }
+  }
+
+  // Source 1: dated expense line items
+  const expensesLines = persona.income.expenses ?? [];
+  if (expensesLines.length > 0) {
+    for (const exp of expensesLines) {
+      const m = monthFromIso(exp.date);
+      if (m !== null) {
+        expensesByMonth[m - 1] += exp.amount;
+        hasDatedData = true;
+      }
+    }
+  }
+
+  // Source 2: monthlyBreakdown (only fills in months that line items didn't cover)
+  const mb = persona.income.monthlyBreakdown ?? [];
+  for (const row of mb) {
+    const monthVal = row.month;
+    let m: number | null = null;
+    if (typeof monthVal === "number") m = monthVal;
+    else if (typeof monthVal === "string") m = monthFromIso(monthVal);
+    if (m === null) continue;
+    if (revenueByMonth[m - 1] === 0) revenueByMonth[m - 1] = row.revenue;
+    if (expensesByMonth[m - 1] === 0) expensesByMonth[m - 1] = row.expenses;
+  }
+
+  // Source 3: even distribution (only for months still empty AND we have no dated source)
+  if (!hasDatedData && mb.length === 0) {
+    const evenRev = Math.round(totalRevenue / 12);
+    const evenExp = Math.round(totalExpenses / 12);
+    for (let i = 0; i < 12; i++) {
+      revenueByMonth[i] = evenRev;
+      expensesByMonth[i] = evenExp;
+    }
+  }
+
+  const monthlyData: MonthlyPL[] = Array.from({ length: 12 }, (_, i) => ({
+    month: i + 1,
+    label: MONTH_LABELS[i],
+    revenue: revenueByMonth[i],
+    expenses: expensesByMonth[i],
+    net: revenueByMonth[i] - expensesByMonth[i],
+  }));
+
+  // Active range — first and last month with any non-zero activity
+  let from = 1;
+  let to = 12;
+  if (hasDatedData) {
+    const activeMonths = monthlyData
+      .filter((m) => m.revenue > 0 || m.expenses > 0)
+      .map((m) => m.month);
+    if (activeMonths.length > 0) {
+      from = Math.min(...activeMonths);
+      to = Math.max(...activeMonths);
+    }
+  }
+
+  // Expense breakdown by category — line items if any, else rough demo split.
   let expenseBreakdown: { category: string; amount: number }[] = [];
-  if (persona.income.expenses && persona.income.expenses.length > 0) {
+  if (expensesLines.length > 0) {
     const byCategory: Record<string, number> = {};
-    for (const exp of persona.income.expenses) {
+    for (const exp of expensesLines) {
       byCategory[exp.category] = (byCategory[exp.category] ?? 0) + exp.amount;
     }
     expenseBreakdown = Object.entries(byCategory).map(([category, amount]) => ({
@@ -81,23 +145,24 @@ export function calculatePL(persona: Persona): PLSummary {
       amount,
     }));
   } else {
-    // Default rough split for demo when no expense lines exist
     expenseBreakdown = [
-      {
-        category: "תוכנות ומנויים",
-        amount: Math.round(totalExpenses * 0.25),
-      },
-      {
-        category: "השתלמות ולמידה",
-        amount: Math.round(totalExpenses * 0.15),
-      },
+      { category: "תוכנות ומנויים", amount: Math.round(totalExpenses * 0.25) },
+      { category: "השתלמות ולמידה", amount: Math.round(totalExpenses * 0.15) },
       { category: "ציוד ומחשוב", amount: Math.round(totalExpenses * 0.3) },
       { category: "ביטוח לאומי", amount: Math.round(totalExpenses * 0.2) },
       { category: "אחר", amount: Math.round(totalExpenses * 0.1) },
     ];
   }
 
-  return { totalRevenue, totalExpenses, netProfit, expenseBreakdown, monthlyData };
+  return {
+    totalRevenue,
+    totalExpenses,
+    netProfit,
+    expenseBreakdown,
+    monthlyData,
+    hasDatedData,
+    activeRange: { from, to },
+  };
 }
 
 export function filterByQuarter(
@@ -106,4 +171,11 @@ export function filterByQuarter(
 ): MonthlyPL[] {
   const start = (quarter - 1) * 3 + 1;
   return data.filter((m) => m.month >= start && m.month <= start + 2);
+}
+
+export function filterByMonth(
+  data: MonthlyPL[],
+  month: number,
+): MonthlyPL[] {
+  return data.filter((m) => m.month === month);
 }

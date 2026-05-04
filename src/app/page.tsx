@@ -18,6 +18,7 @@ export default function Home() {
             <NavLink href="/business-expenses">הוצאות</NavLink>
             <NavLink href="/invoices">חשבוניות</NavLink>
             <NavLink href="/coach">✦ איתן</NavLink>
+            <NavLink href="/about">תיעוד</NavLink>
           </nav>
           <div className="flex items-center gap-2">
             <Link
@@ -93,40 +94,62 @@ export default function Home() {
             <h2 className="font-display text-3xl font-bold text-brand-navy">
               כל מה שצריך לדוח שנתי
             </h2>
-            <p className="mt-2 text-stone-500">ארבעה כלים, עבודה אחת שלמה</p>
+            <p className="mt-2 text-stone-500">חמישה כלים, עבודה אחת שלמה</p>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
               href="/dashboard"
               accent="bg-info"
+              accentText="text-brand-navy"
               label="דשבורד"
               title="רווח והפסד בזמן אמת"
-              desc="תצוגה חיה של הכנסות, הוצאות ורווח נקי לפי חודש ורבעון. גרפים עם Recharts, תובנות אוטומטיות מאיתן, ייצוא ל-PDF בלחיצה."
+              desc="תצוגה חיה של הכנסות, הוצאות ורווח נקי. סינון אוטומטי לפי תאריכי החשבוניות וההוצאות שלך — חודש, רבעון או שנה."
               cta="פתח/י דשבורד"
             />
             <FeatureCard
               href="/file"
               accent="bg-brand-navy"
+              accentText="text-white"
               label="טופס 1301"
               title="מסלול מילוי חכם"
-              desc='שני מסלולים: מסלול מודרך עם איתן ב-12 שלבים שמסביר כל שדה, או מבט מומחה — טבלה עם כל הערכים המחושבים ו-📋 העתק.'
+              desc='שני מסלולים: מסלול מודרך עם איתן ב-12 שלבים עם עריכת שדות חיה, או הטופס המוכר של gov.il עם 📋 העתק וצ׳אט.'
               cta="למסלול המילוי"
             />
             <FeatureCard
               href="/business-expenses"
               accent="bg-success"
+              accentText="text-white"
               label="הוצאות"
               title="הוצאות מוכרות לפי עסק"
-              desc="רשימה מותאמת לסוג העיסוק שלך (קריאייטיב / טכנולוגיה / ייעוץ) עם כללי ניכוי מדויקים — חלקי, מלא, פחת. מתעדכנת מהפרסונה."
+              desc="רשימה מותאמת לתחום עיסוק (קריאייטיב / טכנולוגיה / ייעוץ) עם כללי ניכוי — חלקי, מלא, פחת."
               cta="לרשימת ההוצאות"
             />
             <FeatureCard
               href="/invoices"
               accent="bg-alert"
+              accentText="text-white"
               label="חשבוניות"
-              title="הוצאת חשבוניות מס ישראליות"
-              desc="הוצא חשבוניות מס וקבלות בפורמט חוקי ישראלי, מספור רץ אוטומטי, חישוב מע״מ לפי סוג עוסק, הדפסה ישירה מהדפדפן."
+              title="חשבונית מס/קבלה ישראלית"
+              desc="הוצא חשבונית מס/קבלה (305) או קבלה (320) בפורמט חוקי, מספור רץ אוטומטי, מע״מ לפי סוג עוסק, הדפסה ישירה."
               cta="לחשבוניות"
+            />
+            <FeatureCard
+              href="/coach"
+              accent="bg-success-light"
+              accentText="text-success"
+              label="איתן"
+              title="ייעוץ AI מתמיד"
+              desc="צ׳אט עם איתן — מאתר הוצאות שפספסת, מחיל כללי ניכוי, מקבל קבלות וקורא PDF, בעברית בגובה העיניים."
+              cta="פתח שיחה"
+            />
+            <FeatureCard
+              href="/about"
+              accent="bg-stone-700"
+              accentText="text-white"
+              label="תיעוד"
+              title="איך זה בנוי"
+              desc="תיעוד טכני: ארכיטקטורה, רשימת דפים, שדות הכוכב של 1301, סטאק טכנולוגי, וטוקני העיצוב — הכל בעמוד אחד."
+              cta="לתיעוד הטכני"
             />
           </div>
         </div>
@@ -250,6 +273,7 @@ function Stat({ value, label, suffix }: { value: string; label: string; suffix?:
 function FeatureCard({
   href,
   accent,
+  accentText,
   label,
   title,
   desc,
@@ -257,6 +281,7 @@ function FeatureCard({
 }: {
   href: string;
   accent: string;
+  accentText?: string;
   label: string;
   title: string;
   desc: string;
@@ -268,7 +293,7 @@ function FeatureCard({
       className="group flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-6 hover:border-brand-navy/20 hover:shadow-lg transition-all"
     >
       <div className="flex items-center gap-2">
-        <span className={`rounded-full ${accent} px-2.5 py-0.5 text-xs font-medium text-white`}>
+        <span className={`rounded-full ${accent} px-2.5 py-0.5 text-xs font-medium ${accentText ?? "text-white"}`}>
           {label}
         </span>
       </div>

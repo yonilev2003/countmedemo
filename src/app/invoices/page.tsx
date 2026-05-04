@@ -57,6 +57,7 @@ export default function InvoicesPage() {
               <thead>
                 <tr className="bg-stone-50 border-b border-stone-200">
                   <th className="px-4 py-3 text-right font-semibold text-stone-600">מספר</th>
+                  <th className="px-4 py-3 text-right font-semibold text-stone-600">סוג</th>
                   <th className="px-4 py-3 text-right font-semibold text-stone-600">תאריך</th>
                   <th className="px-4 py-3 text-right font-semibold text-stone-600">לקוח</th>
                   <th className="px-4 py-3 text-right font-semibold text-stone-600">תיאור</th>
@@ -65,22 +66,33 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv, idx) => (
-                  <tr key={inv.invoiceNumber} className={idx % 2 === 0 ? "bg-white" : "bg-stone-50/50"}>
-                    <td className="px-4 py-3 font-mono text-xs text-stone-500">{inv.invoiceNumber}</td>
-                    <td className="px-4 py-3 text-stone-600">{formatHebrewDate(inv.date)}</td>
-                    <td className="px-4 py-3 font-medium text-stone-800">{inv.customerName}</td>
-                    <td className="px-4 py-3 text-stone-600 max-w-xs truncate">{inv.description}</td>
-                    <td className="px-4 py-3 text-left font-semibold text-brand-navy" dir="ltr">
-                      &#x20AA;{inv.total.toLocaleString("he-IL")}
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      <Link href={`/invoices/${inv.invoiceNumber}`} className="text-xs text-brand-navy hover:underline">
-                        צפייה
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {invoices.map((inv, idx) => {
+                  const dt = inv.docType ?? "tax-invoice-receipt";
+                  const dtLabel = dt === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
+                  return (
+                    <tr key={inv.invoiceNumber} className={idx % 2 === 0 ? "bg-white" : "bg-stone-50/50"}>
+                      <td className="px-4 py-3 font-mono text-xs text-stone-500">{inv.invoiceNumber}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          dt === "receipt" ? "bg-success/15 text-success" : "bg-info text-brand-navy"
+                        }`}>
+                          {dtLabel}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-stone-600">{formatHebrewDate(inv.date)}</td>
+                      <td className="px-4 py-3 font-medium text-stone-800">{inv.customerName}</td>
+                      <td className="px-4 py-3 text-stone-600 max-w-xs truncate">{inv.description}</td>
+                      <td className="px-4 py-3 text-left font-semibold text-brand-navy" dir="ltr">
+                        &#x20AA;{inv.total.toLocaleString("he-IL")}
+                      </td>
+                      <td className="px-4 py-3 text-left">
+                        <Link href={`/invoices/${inv.invoiceNumber}`} className="text-xs text-brand-navy hover:underline">
+                          צפייה
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

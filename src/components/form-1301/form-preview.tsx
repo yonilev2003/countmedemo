@@ -11,6 +11,7 @@ import { calculate, CalcResult } from "@/lib/calculators";
 import { Persona, readPersonaPath } from "@/lib/persona";
 import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { InteractiveValue } from "./interactive-value";
+import { InlineCopyButton } from "./copy-button";
 
 interface Props {
   persona: Persona;
@@ -181,8 +182,9 @@ function SectionCard({
       </div>
 
       {/* Column header row for two-filer layout */}
-      <div className="grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium" style={{ gridTemplateColumns: "1fr 140px 36px" }}>
+      <div className="grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium" style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}>
         <div>פרטים</div>
+        <div />
         <div className="text-center">בן/בת הזוג הרשום</div>
         <div />
       </div>
@@ -213,13 +215,15 @@ function FieldRow({
   const notApplicable = !isSkip && isNotApplicable(field, persona);
   const isDimmed = isSkip || notApplicable;
 
+  const copyValue = !isDimmed ? rawCopyValue(field, persona) : null;
+
   return (
     <div
       className={cn(
         "grid items-center gap-2 px-3 py-1.5",
         isDimmed && "opacity-40",
       )}
-      style={{ gridTemplateColumns: "1fr 140px 36px" }}
+      style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}
     >
       {/* Label + hint */}
       <div className="min-w-0">
@@ -238,6 +242,11 @@ function FieldRow({
         )}
       </div>
 
+      {/* Inline copy — only when value exists */}
+      <div className="flex items-center justify-center">
+        {copyValue !== null && <InlineCopyButton value={copyValue} />}
+      </div>
+
       {/* Value — looks like a form input box */}
       <div className="flex items-center justify-center">
         <FieldValue field={field} persona={persona} notApplicable={notApplicable} />
@@ -253,6 +262,34 @@ function FieldRow({
       </div>
     </div>
   );
+}
+
+/** Returns the plain string to paste into gov.il, or null if no real value. */
+function rawCopyValue(field: FormField, persona: Persona): string | null {
+  if (field.status === "calculated" && field.calculator) {
+    const r = calculate(field.calculator, persona);
+    if (!r || r.value === false || r.value === null || r.value === undefined) return null;
+    if (typeof r.value === "number") {
+      if (r.value === 0) return null;
+      return String(Math.round(r.value));
+    }
+    if (typeof r.value === "boolean") return r.value ? "כן" : null;
+    return String(r.value);
+  }
+  if (field.status === "personal" && field.personaPath) {
+    const v = readPersonaPath(persona, field.personaPath);
+    if (v === null || v === undefined || v === "") return null;
+    if (typeof v === "number") return String(v);
+    if (typeof v === "boolean") return v ? "כן" : null;
+    if (typeof v === "string") return v;
+    if (typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      if ("street" in o) {
+        return `${o.street ?? ""} ${o.houseNumber ?? ""}, ${o.city ?? ""}`.trim();
+      }
+    }
+  }
+  return null;
 }
 
 function FieldValue({

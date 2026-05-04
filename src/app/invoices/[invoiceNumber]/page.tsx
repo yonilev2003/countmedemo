@@ -25,7 +25,12 @@ export default function InvoicePrintPage() {
   if (!persona || !invoice) return null;
 
   const isPatur = persona.business.osekType === "patur";
-  const isInvoice = invoice.vat > 0 || !isPatur; // heuristic — can be improved
+  // Default legacy invoices to combined "tax-invoice-receipt" (305 — most common)
+  const docType = invoice.docType ?? "tax-invoice-receipt";
+  const docTitle = docType === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
+  // SHAAM allocation number — required for invoices > 25K from 2024+. Mock for demo.
+  const showAllocation = docType === "tax-invoice-receipt" && invoice.total > 25000;
+  const mockAllocation = showAllocation ? `IL${invoice.invoiceNumber.replace("-", "")}${Math.floor(Math.random() * 1000)}` : null;
 
   return (
     <>
@@ -45,19 +50,25 @@ export default function InvoicePrintPage() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-brand-navy">
           <div>
-            <h1 className="font-display text-2xl font-bold text-brand-navy">
-              {isInvoice ? "חשבונית מס" : "קבלה"}
-            </h1>
-            <p className="text-stone-500 text-sm mt-1">מספר: {invoice.invoiceNumber}</p>
+            <h1 className="font-display text-2xl font-bold text-brand-navy">{docTitle}</h1>
+            <p className="text-stone-600 text-sm mt-1 font-mono">מספר: {invoice.invoiceNumber}</p>
             <p className="text-stone-500 text-sm">תאריך: {formatHebrewDate(invoice.date)}</p>
+            {mockAllocation && (
+              <p className="text-xs text-stone-500 mt-1 font-mono">מספר הקצאה (שע&quot;מ): {mockAllocation}</p>
+            )}
           </div>
           <div className="text-left">
             <p className="font-bold text-lg text-brand-navy">{persona.business.tradeName}</p>
             <p className="text-sm text-stone-600">
-              {isPatur ? "עוסק פטור" : "עוסק מורשה"} מס&#x2019; {persona.business.osekFileNumber}
+              {isPatur ? "עוסק פטור" : "עוסק מורשה"} · ח.פ./ע.פ.: {persona.business.osekFileNumber}
             </p>
-            {persona.contact.phoneMobile && <p className="text-sm text-stone-500">{persona.contact.phoneMobile}</p>}
-            {persona.contact.email && <p className="text-sm text-stone-500">{persona.contact.email}</p>}
+            {persona.contact?.mailingAddress && (
+              <p className="text-xs text-stone-500">
+                {persona.contact.mailingAddress.street} {persona.contact.mailingAddress.houseNumber}, {persona.contact.mailingAddress.city}
+              </p>
+            )}
+            {persona.contact?.phoneMobile && <p className="text-xs text-stone-500">{persona.contact.phoneMobile}</p>}
+            {persona.contact?.email && <p className="text-xs text-stone-500">{persona.contact.email}</p>}
           </div>
         </div>
 
@@ -104,11 +115,20 @@ export default function InvoicePrintPage() {
           </div>
         </div>
 
+        {/* Payment confirmation block — for receipt + combined */}
+        <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3">
+          <p className="text-sm font-bold text-emerald-800">✓ קבלת תשלום מאושרת</p>
+          <p className="text-xs text-emerald-700 mt-0.5">
+            מאשרים בזאת קבלת סך {invoice.total.toLocaleString("he-IL")} &#x20AA; עבור השירות המפורט לעיל.
+          </p>
+        </div>
+
         {/* Footer */}
-        <div className="border-t border-stone-200 pt-4 text-xs text-stone-500">
-          {isPatur && <p className="mb-1">עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
-          <p>שולם ע&quot;י: {persona.bank.bankName} | חשבון: {persona.bank.accountNumber}</p>
-          <p className="mt-1">הופק באמצעות countme · countmedemo.vercel.app</p>
+        <div className="border-t border-stone-200 pt-4 text-xs text-stone-500 leading-relaxed space-y-1">
+          {isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
+          {!isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          <p>חתימה דיגיטלית: {persona.business.tradeName} · {new Date().toISOString().split("T")[0]}</p>
+          <p className="text-stone-400 text-[10px] mt-2">הופק באמצעות countme · countmedemo.vercel.app</p>
         </div>
       </div>
 

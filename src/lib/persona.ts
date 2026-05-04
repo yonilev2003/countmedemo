@@ -30,6 +30,8 @@ export interface PersonaPersonal {
   children: { birthYear: number }[];
 }
 
+export type InvoiceDocType = "tax-invoice-receipt" | "receipt";
+
 export interface InvoiceLine {
   invoiceNumber: string;       // e.g. "2024-0042"
   date: string;                // ISO date
@@ -40,6 +42,8 @@ export interface InvoiceLine {
   vat: number;                 // 0 for עוסק פטור
   total: number;               // amount + vat
   category?: string;           // e.g. "ייעוץ", "עיצוב"
+  /** SHAAM doc type — "tax-invoice-receipt" (305, default) or "receipt" (320) */
+  docType?: InvoiceDocType;
 }
 
 export interface ExpenseLine {

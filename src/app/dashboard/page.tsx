@@ -9,6 +9,7 @@ import { Persona } from "@/lib/persona";
 import {
   calculatePL,
   filterByQuarter,
+  filterByMonth,
   MonthlyPL,
   PLSummary,
 } from "@/lib/p-and-l/index";
@@ -20,7 +21,11 @@ const PLChart = dynamic(
   { ssr: false },
 );
 
-type Filter = "year" | "q1" | "q2" | "q3" | "q4";
+type Granularity = "year" | "quarter" | "month";
+type Filter =
+  | { kind: "year" }
+  | { kind: "quarter"; q: 1 | 2 | 3 | 4 }
+  | { kind: "month"; m: number };
 
 function KPI({
   label,
@@ -44,10 +49,13 @@ function KPI({
   );
 }
 
+const MONTH_LABELS = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
+
 export default function DashboardPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
-  const [filter, setFilter] = useState<Filter>("year");
+  const [granularity, setGranularity] = useState<Granularity>("year");
+  const [filter, setFilter] = useState<Filter>({ kind: "year" });
   const [pl, setPL] = useState<PLSummary | null>(null);
 
   useEffect(() => {
@@ -63,15 +71,39 @@ export default function DashboardPage() {
   if (!persona || !pl) return null;
 
   const filteredMonthly: MonthlyPL[] =
-    filter === "year"
+    filter.kind === "year"
       ? pl.monthlyData
-      : filterByQuarter(pl.monthlyData, Number(filter[1]) as 1 | 2 | 3 | 4);
+      : filter.kind === "quarter"
+        ? filterByQuarter(pl.monthlyData, filter.q)
+        : filterByMonth(pl.monthlyData, filter.m);
 
   const filteredRevenue = filteredMonthly.reduce((s, m) => s + m.revenue, 0);
   const filteredExpenses = filteredMonthly.reduce((s, m) => s + m.expenses, 0);
   const filteredNet = filteredRevenue - filteredExpenses;
 
   const fmt = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+
+  // Auto-detected active months — only show period buttons for months with activity
+  const activeMonths = pl.hasDatedData
+    ? pl.monthlyData.filter((m) => m.revenue > 0 || m.expenses > 0).map((m) => m.month)
+    : Array.from({ length: 12 }, (_, i) => i + 1);
+  const activeQuarters = Array.from(
+    new Set(activeMonths.map((m) => Math.ceil(m / 3))),
+  ).sort();
+
+  function setGranularityAndFilter(g: Granularity) {
+    setGranularity(g);
+    if (g === "year") setFilter({ kind: "year" });
+    else if (g === "quarter") setFilter({ kind: "quarter", q: (activeQuarters[0] ?? 1) as 1 | 2 | 3 | 4 });
+    else setFilter({ kind: "month", m: activeMonths[0] ?? 1 });
+  }
+
+  const periodLabel =
+    filter.kind === "year"
+      ? "כל השנה"
+      : filter.kind === "quarter"
+        ? `רבעון ${filter.q}`
+        : MONTH_LABELS[filter.m - 1];
 
   return (
     <div className="min-h-screen bg-cream">
@@ -111,21 +143,69 @@ export default function DashboardPage() {
             </h1>
             <p className="text-sm text-stone-500 mt-0.5">שנת מס 2024</p>
           </div>
-          <div className="flex gap-1">
-            {(["year", "q1", "q2", "q3", "q4"] as Filter[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filter === f
-                    ? "bg-brand-navy text-white"
-                    : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
-                }`}
-              >
-                {f === "year" ? "שנה" : f.toUpperCase()}
-              </button>
-            ))}
+          <div className="flex flex-col gap-2 items-end">
+            {/* Granularity toggle */}
+            <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
+              {(["year", "quarter", "month"] as Granularity[]).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGranularityAndFilter(g)}
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                    granularity === g
+                      ? "bg-white text-brand-navy shadow-sm"
+                      : "text-stone-500 hover:text-stone-700"
+                  }`}
+                >
+                  {g === "year" ? "שנה" : g === "quarter" ? "רבעון" : "חודש"}
+                </button>
+              ))}
+            </div>
+            {/* Period selector — shown only for quarter/month */}
+            {granularity === "quarter" && (
+              <div className="flex gap-1">
+                {activeQuarters.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => setFilter({ kind: "quarter", q: q as 1 | 2 | 3 | 4 })}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                      filter.kind === "quarter" && filter.q === q
+                        ? "bg-brand-navy text-white"
+                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
+                  >
+                    Q{q}
+                  </button>
+                ))}
+              </div>
+            )}
+            {granularity === "month" && (
+              <div className="flex flex-wrap gap-1 max-w-[400px] justify-end">
+                {activeMonths.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setFilter({ kind: "month", m })}
+                    className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                      filter.kind === "month" && filter.m === m
+                        ? "bg-brand-navy text-white"
+                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
+                  >
+                    {MONTH_LABELS[m - 1]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Period banner — explains what user is seeing */}
+        <div className="mb-4 rounded-lg bg-info/30 border border-brand-navy/10 px-4 py-2 text-xs text-brand-navy">
+          תצוגה: <span className="font-bold">{periodLabel}</span>
+          {pl.hasDatedData ? (
+            <span className="text-stone-500"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
+          ) : (
+            <span className="text-stone-500"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
+          )}
         </div>
 
         {/* KPI strip */}

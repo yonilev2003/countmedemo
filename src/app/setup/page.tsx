@@ -991,6 +991,11 @@ export default function SetupPage() {
                         </p>
                       </div>
                     </label>
+                    <OsekZeirWarning
+                      checked={s3.isOsekZeir}
+                      totalRevenue={Number(s4.totalRevenue) || 0}
+                      totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
+                    />
                   </div>
                 )}
 
@@ -1355,6 +1360,61 @@ export default function SetupPage() {
           </p>
         </div>
       </main>
+    </div>
+  );
+}
+
+/**
+ * Warning banner shown when osek zeir is checked but real expenses
+ * exceed the 30% auto-deduction. The user would lose the difference
+ * in deductions by filing as zeir.
+ *
+ * Reference: Israeli Tax Ordinance — מסלול עוסק זעיר (סעיף 8א2 לפקודה,
+ * תיקון 257 משנת 2024). מאפשר ניכוי אוטומטי של 30% מהמחזור כהוצאות
+ * במקום הוצאות בפועל.
+ */
+function OsekZeirWarning({
+  checked,
+  totalRevenue,
+  totalExpenses,
+}: {
+  checked: boolean;
+  totalRevenue: number;
+  totalExpenses: number;
+}) {
+  if (!checked) return null;
+  if (totalRevenue <= 0 || totalExpenses <= 0) return null;
+
+  const ratio = totalExpenses / totalRevenue;
+  if (ratio <= 0.3) return null;
+
+  const lostDeduction = Math.round(totalExpenses - totalRevenue * 0.3);
+
+  return (
+    <div className="mt-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+      <div className="flex items-start gap-2">
+        <span className="text-amber-700 text-base shrink-0 mt-0.5">⚠</span>
+        <div className="flex-1 text-xs leading-relaxed text-amber-900">
+          <p className="font-bold mb-1">
+            שימי לב — מסלול זעיר עשוי להפסיד לך הוצאות
+          </p>
+          <p>
+            לפי תיקון 257 לפקודת מס הכנסה (רפורמת המסלול הירוק לעוסק זעיר), הגשה
+            כעוסק/ת זעיר/ה תכיר ב-30% מהמחזור בלבד כהוצאות אוטומטיות
+            ({Math.round(totalRevenue * 0.3).toLocaleString("he-IL")} ₪).
+          </p>
+          <p className="mt-1.5">
+            ההוצאות שדיווחת ({totalExpenses.toLocaleString("he-IL")} ₪) הן{" "}
+            <strong>{Math.round(ratio * 100)}%</strong> מהמחזור — תאבד/י הכרה
+            ב-<strong>{lostDeduction.toLocaleString("he-IL")} ₪</strong> של
+            הוצאות אמיתיות.
+          </p>
+          <p className="mt-1.5 text-amber-700">
+            מומלץ לבטל את המסלול ולדווח בדרך הרגילה (עוסק פטור) כדי לקבל הכרה
+            מלאה בכל ההוצאות.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
