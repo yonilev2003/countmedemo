@@ -1,0 +1,104 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { loadPersona } from "@/lib/setup-storage";
+import { Persona } from "@/lib/persona";
+
+export default function FilePage() {
+  const router = useRouter();
+  const [persona, setPersona] = useState<Persona | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const p = loadPersona();
+    if (!p) {
+      router.push("/setup");
+      return;
+    }
+    setPersona(p);
+    setHydrated(true);
+  }, [router]);
+
+  if (!hydrated) return null;
+
+  return (
+    <div className="min-h-screen bg-cream flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-stone-200">
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-xl font-bold text-white shadow-sm">
+              c
+            </div>
+            <span className="text-lg font-bold">countme</span>
+          </Link>
+          <Link
+            href="/demo"
+            className="text-sm text-brand-navy/70 hover:text-brand-navy"
+          >
+            צפה בטופס Gov.il ←
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex-1 mx-auto w-full max-w-screen-md px-6 py-12">
+        <div className="text-center mb-10">
+          <h1 className="font-display text-3xl font-bold text-brand-navy mb-2">
+            הגש/י את הדוח השנתי
+          </h1>
+          <p className="text-stone-600">
+            שלום {persona!.personal.firstName} — בחר/י את המסלול שמתאים לך
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Expert View */}
+          <Link
+            href="/file/expert"
+            className="group rounded-2xl border-2 border-brand-navy/20 bg-white p-6 shadow-sm hover:border-brand-navy/50 hover:shadow-brand transition-all"
+          >
+            <div className="mb-3 text-3xl">⚡</div>
+            <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
+              מסלול מהיר
+            </h2>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              טבלה מרוכזת עם כל הנתונים מוכנים. כפתור העתקה לכל שדה. מתאים
+              לאלה שיודעים מה הם עושים.
+            </p>
+            <div className="mt-4 text-sm font-medium text-brand-navy group-hover:underline">
+              צפייה בטבלה →
+            </div>
+          </Link>
+
+          {/* Guided */}
+          <Link
+            href="/file/guided"
+            className="group rounded-2xl border-2 border-success/30 bg-white p-6 shadow-sm hover:border-success/60 hover:shadow-brand transition-all"
+          >
+            <div className="mb-3 text-3xl">✦</div>
+            <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
+              מסלול מודרך עם איתן
+            </h2>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              12 שלבים, שדה אחר שדה, עם הסבר של איתן בכל נקודה. מומלץ לביצוע
+              ראשון.
+            </p>
+            <div className="mt-4 text-sm font-medium text-success group-hover:underline">
+              התחל/י את המסלול →
+            </div>
+          </Link>
+        </div>
+
+        <p className="mt-8 text-center text-xs text-stone-400">
+          אחרי שמילאת את הנתונים —{" "}
+          <Link href="/demo" className="text-brand-navy hover:underline">
+            פתח/י את הטופס של gov.il
+          </Link>{" "}
+          לצד countme והעתק/י את הערכים
+        </p>
+      </main>
+    </div>
+  );
+}
