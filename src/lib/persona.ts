@@ -25,8 +25,33 @@ export interface PersonaPersonal {
   isSoldierDischarged: boolean;
   soldierDischargeDate: string | null;
   academicDegreeYear: number | null;
+  aliyahDate?: string | null;  // date of aliyah (ISO), for עולה חדש/ה credit
   /** List of children for credit point calculations */
   children: { birthYear: number }[];
+}
+
+export interface InvoiceLine {
+  invoiceNumber: string;       // e.g. "2024-0042"
+  date: string;                // ISO date
+  customerName: string;
+  customerTaxId?: string;      // teudat zehut or company number
+  description: string;
+  amount: number;              // before VAT
+  vat: number;                 // 0 for עוסק פטור
+  total: number;               // amount + vat
+  category?: string;           // e.g. "ייעוץ", "עיצוב"
+}
+
+export interface ExpenseLine {
+  date: string;                // ISO date
+  vendorName: string;
+  description: string;
+  amount: number;              // total paid (incl. VAT for patur, ex VAT for morshe)
+  vat?: number;
+  category: string;            // matches business-expenses/profiles.ts category names
+  receiptPath?: string;
+  deductionRule: "full" | "partial" | "depreciation";
+  partialPercent?: number;
 }
 
 export interface PersonaContact {
@@ -84,6 +109,10 @@ export interface PersonaIncome {
   expenseCount: number;
   /** Advance tax payments (מקדמות) paid during the year. Used in tax estimate card. */
   mikdamot?: number;
+  invoices?: InvoiceLine[];
+  expenses?: ExpenseLine[];
+  financialInstitutionsIncome?: number;   // for field 032
+  taxWithheldAtSource?: number;           // for field 115
   monthlyBreakdown: { month: string; revenue: number; expenses: number }[];
 }
 
@@ -98,6 +127,7 @@ export interface PersonaDeductions {
   lifeInsurancePremium: number;
   donations: { currentYear: number; carriedFromPriorYears: number };
   academicDegreeCredit: boolean;
+  lossOfWorkCapacityPremium?: number;     // for field 112 (אובדן כושר עבודה)
 }
 
 export interface Persona {
@@ -113,6 +143,7 @@ export interface Persona {
     annualTurnoverWithoutVat: number;
     isAbove6111Threshold: boolean;
   };
+  invoiceCounter?: number;   // next invoice number to use
 }
 
 /** Default persona for the demo. Replace by editing personas/dana-cohen.json. */
