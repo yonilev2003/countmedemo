@@ -303,19 +303,161 @@ export const field072LifeInsurance: Calculator = (p) => {
   };
 };
 
+/* ============================================================
+ * שדה 032 — הכנסות מריבית/דיבידנד ממוסד כספי
+ * ============================================================ */
+export const field032FinancialInstitution: Calculator = (p) => {
+  const income = p.income.financialInstitutionsIncome ?? 0;
+  return {
+    value: income,
+    formula: "הכנסות ריבית/דיבידנד ממוסד כספי",
+    sources: [{ label: "הכנסות ממוסד כספי", detail: income === 0 ? "לא צוינו הכנסות" : String(income) }],
+    confidence: "high",
+    notes: income === 0 ? ["לא צוינו הכנסות ממוסדות כספיים"] : undefined,
+  };
+};
+
+/* ============================================================
+ * שדה 112 — ניכוי ביטוח אובדן כושר עבודה
+ * 100% ניכוי מהפרמיה ששולמה
+ * ============================================================ */
+export const field112LossOfWorkCapacity: Calculator = (p) => {
+  const premium = p.deductionsAndCredits.lossOfWorkCapacityPremium ?? 0;
+  return {
+    value: premium,
+    formula: "פרמיית ביטוח אובדן כושר עבודה — 100% ניכוי",
+    sources: [{ label: "ביטוח אובדן כושר עבודה", detail: premium === 0 ? "לא הוזנה פרמיה" : `${ils(premium)} פרמיה שנתית` }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 135 — הפקדות לקופת גמל לקיצבה
+ * ============================================================ */
+export const field135KupatGemel: Calculator = (p) => {
+  const amount = p.deductionsAndCredits.kupatGemel.annualContribution;
+  return {
+    value: amount,
+    formula: "הפקדות לקופ״ג — לפי הסכום שהופקד",
+    sources: [{ label: "קופת גמל", detail: `${ils(amount)} הופקד` }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 181 — נקודת זיכוי בגין תואר אקדמי
+ * ============================================================ */
+export const field181AcademicDegree: Calculator = (p) => {
+  const year = p.personal.academicDegreeYear;
+  const creditValue = TAX_YEAR_2024.pointValueAnnual;
+  const value = year ? creditValue : 0;
+  return {
+    value,
+    formula: year
+      ? `תואר אקדמי (${year}) — נקודת זיכוי אחת = ${creditValue.toLocaleString("he-IL")} ₪`
+      : "אין תואר אקדמי",
+    sources: year
+      ? [{ label: `תואר אקדמי ${year}`, detail: `${ils(value)} זיכוי` }]
+      : [{ label: "personal.academicDegreeYear = null" }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 037 — תרומות — סכום ששולם השנה
+ * ============================================================ */
+export const field037DonationsCurrent: Calculator = (p) => {
+  const amount = p.deductionsAndCredits.donations.currentYear;
+  return {
+    value: amount,
+    formula: "תרומות שנתיות — ייכנסו לחישוב הזיכוי בשדה 046",
+    sources: [{ label: "תרומות השנה", detail: ils(amount) }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 046 — זיכוי ממס על תרומות (35%)
+ * ============================================================ */
+export const field046DonationsCredit: Calculator = (p) => {
+  const current = p.deductionsAndCredits.donations.currentYear;
+  const carried = p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0;
+  const total = current + carried;
+  const qualified = total >= 200 ? total : 0;
+  const credit = Math.round(qualified * 0.35);
+  return {
+    value: credit,
+    formula: `${total.toLocaleString("he-IL")} ₪ × 35% = ${credit.toLocaleString("he-IL")} ₪ זיכוי`,
+    sources: [
+      { label: "תרומות השנה", detail: ils(current) },
+      { label: "תרומות מועברות", detail: ils(carried) },
+    ],
+    confidence: "high",
+    notes: total < 200 ? ["סכום תרומות מתחת לסף המינימום (200 ₪)"] : undefined,
+  };
+};
+
+/* ============================================================
+ * שדה 364 — תרומות — הועברו משנים קודמות
+ * ============================================================ */
+export const field364DonationsCarried: Calculator = (p) => {
+  const amount = p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0;
+  return {
+    value: amount,
+    formula: "תרומות שהועברו משנים קודמות",
+    sources: [{ label: "תרומות מועברות", detail: ils(amount) }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 042 — מקדמות ששולמו השנה
+ * ============================================================ */
+export const field042Mikdamot: Calculator = (p) => {
+  const amount = p.income.mikdamot ?? 0;
+  return {
+    value: amount,
+    formula: "מקדמות מס הכנסה ששולמו במהלך השנה",
+    sources: [{ label: "מקדמות", detail: ils(amount) }],
+    confidence: "high",
+  };
+};
+
+/* ============================================================
+ * שדה 115 — ניכוי מס במקור
+ * ============================================================ */
+export const field115TaxWithheld: Calculator = (p) => {
+  const amount = p.income.taxWithheldAtSource ?? 0;
+  return {
+    value: amount,
+    formula: "ניכוי מס במקור שבוצע על ידי לקוחות",
+    sources: [{ label: "ניכוי במקור", detail: amount === 0 ? "לא בוצע ניכוי במקור" : ils(amount) }],
+    confidence: "high",
+  };
+};
+
 /** Map of all calculators by their identifier in the form schema. */
 export const calculators: Record<string, Calculator> = {
   "field-150-business-income": field150BusinessIncome,
   "field-238-turnover": field238Turnover,
   "field-030-bituach-leumi": field030BituachLeumi,
+  "field-032-financial-institution": field032FinancialInstitution,
+  "field-042-mikdamot": field042Mikdamot,
+  "field-046-donations-credit": field046DonationsCredit,
   "field-048-bituach-leumi-credit": field048BituachLeumiCredit,
+  "field-037-donations-current": field037DonationsCurrent,
   "field-045-donations": field045Donations,
   "field-072-life-insurance": field072LifeInsurance,
+  "field-112-loss-of-work-capacity": field112LossOfWorkCapacity,
+  "field-115-tax-withheld": field115TaxWithheld,
+  "field-135-kupat-gemel": field135KupatGemel,
   "field-137-keren-hishtalmut": field137KerenHishtalmut,
+  "field-181-academic-degree": field181AcademicDegree,
   "field-020-resident": field020Resident,
   "field-044-oleh-hadash": field044OlehHadash,
   "field-068-soldier": field068Soldier,
   "field-297-form-6111": field297Form6111,
+  "field-364-donations-carried": field364DonationsCarried,
 };
 
 /** Run a calculator by its identifier in the form schema. */

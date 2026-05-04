@@ -7,6 +7,10 @@
   "properties": {
     "id": { "type": "string" },
     "displayName": { "type": "string" },
+    "invoiceCounter": {
+      "type": "integer",
+      "description": "Next invoice number to use"
+    },
     "personal": {
       "type": "object",
       "required": [
@@ -35,7 +39,11 @@
         "isEilatResident": { "type": "boolean" },
         "isSoldierDischarged": { "type": "boolean" },
         "soldierDischargeDate": { "type": ["string", "null"] },
-        "academicDegreeYear": { "type": ["integer", "null"] }
+        "academicDegreeYear": { "type": ["integer", "null"] },
+        "aliyahDate": {
+          "type": ["string", "null"],
+          "description": "Date of aliyah (ISO format), for עולה חדש/ה credit calculation"
+        }
       }
     },
     "contact": { "type": "object" },
@@ -52,9 +60,65 @@
     "bank": { "type": "object" },
     "income": {
       "type": "object",
-      "required": ["year", "totalRevenue", "totalDeductibleExpenses"]
+      "required": ["year", "totalRevenue", "totalDeductibleExpenses"],
+      "properties": {
+        "financialInstitutionsIncome": {
+          "type": "number",
+          "description": "Income from interest/dividends from financial institutions (field 032)"
+        },
+        "taxWithheldAtSource": {
+          "type": "number",
+          "description": "Tax withheld at source by clients (field 115)"
+        },
+        "invoices": {
+          "type": "array",
+          "description": "List of invoices issued during the tax year",
+          "items": {
+            "type": "object",
+            "required": ["invoiceNumber", "date", "customerName", "description", "amount", "vat", "total"],
+            "properties": {
+              "invoiceNumber": { "type": "string" },
+              "date": { "type": "string", "format": "date" },
+              "customerName": { "type": "string" },
+              "customerTaxId": { "type": "string" },
+              "description": { "type": "string" },
+              "amount": { "type": "number" },
+              "vat": { "type": "number" },
+              "total": { "type": "number" },
+              "category": { "type": "string" }
+            }
+          }
+        },
+        "expenses": {
+          "type": "array",
+          "description": "List of business expenses for the tax year",
+          "items": {
+            "type": "object",
+            "required": ["date", "vendorName", "description", "amount", "category", "deductionRule"],
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "vendorName": { "type": "string" },
+              "description": { "type": "string" },
+              "amount": { "type": "number" },
+              "vat": { "type": "number" },
+              "category": { "type": "string" },
+              "receiptPath": { "type": "string" },
+              "deductionRule": { "enum": ["full", "partial", "depreciation"] },
+              "partialPercent": { "type": "number" }
+            }
+          }
+        }
+      }
     },
-    "deductionsAndCredits": { "type": "object" },
+    "deductionsAndCredits": {
+      "type": "object",
+      "properties": {
+        "lossOfWorkCapacityPremium": {
+          "type": "number",
+          "description": "Annual premium for loss of work capacity insurance (field 112)"
+        }
+      }
+    },
     "vatAndTurnover": { "type": "object" }
   }
 }

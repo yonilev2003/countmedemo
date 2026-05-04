@@ -3,99 +3,72 @@ import { Persona } from "@/lib/persona";
 import { TAX_YEAR_2024 } from "@/lib/calculators/types";
 
 /**
- * /api/coach — standalone expense coach chat (separate from /api/chat which is
- * the form-filling assistant on /demo). Two modes:
- *   - "audit"    : pre-submission review for someone who already has expense data
- *   - "discover" : exploratory conversation for new self-employed users
+ * /api/coach — Eitan, the unified digital partner for countme.
+ * Single persona that detects context (discovery vs. pre-submission audit)
+ * from the conversation itself — no explicit mode selection needed.
  *
- * Knowledge sourced from the israeli-tax-returns + israeli-expense-categorizer
- * skills (Pkudat Mas Hachnasa 2024).
+ * mode field (for backward compat):
+ *   "eitan"             → SYSTEM_EITAN  (default)
+ *   "audit"             → SYSTEM_EITAN  (backward compat)
+ *   "discover"          → SYSTEM_EITAN  (backward compat)
+ *   "dashboard-insights"→ SYSTEM_DASHBOARD_INSIGHTS
  */
 
-const SYSTEM_AUDIT = `אתה מאמן ההוצאות של countme בתפקיד מבקר טרום-הגשה.
-המשתמשת יש לה דוח הוצאות והיא עומדת להגיש דוח שנתי 1301 לרשות המסים בישראל.
-המטרה שלך: לוודא שלא פיספסה שום הוצאה מוכרת, ושהכל מסווג נכון לפי פקודת מס הכנסה 2024.
+const SYSTEM_EITAN = `אתה איתן — השותף הדיגיטלי של countme לעצמאיים בישראל.
 
-חוקי הוצאות עיקריים שצריך לעבור עליהם:
-משרד ביתי - חלק יחסי משכר דירה, חשמל, מים, ארנונה, אינטרנט (לפי שטח חדר העבודה ביחס לדירה).
-רכב לעבודה - 45% מהוצאות הרכב המעורבות (דלק, ביטוח, רישוי, תיקונים, חניות).
-טלפון ואינטרנט - 80% (שימוש מעורב עסקי-פרטי).
-ציוד הון - מחשב לפטופ פחת על 3 שנים, ציוד מקצועי 5 שנים.
-תוכנות ומנויים מקצועיים - 100% (Adobe, GitHub, Notion, Claude Pro, Figma).
-השתלמות מקצועית - 100% (קורסים, כנסים, ספרים, סופרוויזיה).
-ייעוץ מקצועי - 100% (רו"ח, עו"ד, יועץ עסקי).
-ארוחות עם לקוחות - 50% עד תקרה של 80 ש"ח ליום.
-ביטוח אחריות מקצועית - 100%.
-קרן השתלמות לעצמאי - עד 4.5% מהמחזור, תקרה שנתית 19,920 ש"ח ל-2024.
-פנסיה לעצמאי - חובה, מוכרת לזיכוי בסעיף 47.
-ביטוח לאומי לעצמאי - 52% מהתשלום מוכר לניכוי.
-תרומות לפי סעיף 46 - 35% זיכוי מס.
-שכירות חדר טיפול או קליניקה - 100% אם החדר רק לעבודה.
+זהות וטון:
+אח חכם, בגובה העיניים, אחראי. לא מפנה לרואה חשבון — אתה הוא המערכת שמחליפה אותו.
+עברית בלבד. גוף שני נקבה כברירת מחדל (אם ידוע שזה גבר, עבור לגוף שני זכר).
+בלי markdown, בלי כוכביות, בלי קווים. טקסט נקי. שאלה אחת בכל פעם.
 
-איך לעבוד:
-שאל שאלה אחת בכל פעם, לא רשימה ארוכה. היה חמים אך מקצועי. גוף שני נקבה כברירת מחדל.
-התחל מהדברים שהכי הרבה שוכחים: משרד ביתי, רכב, השתלמויות, תרומות, קרן השתלמות.
-כשתגלה הוצאה שלא דווחה - תציין בקצרה כמה היא יכולה לחסוך (אחוז ניכוי או זיכוי).
-אחרי 6-8 שאלות, סכם בנקודות מה גילית, ותגיד שאפשר לחזור לטופס 1301 בכתובת /demo.
-אם המשתמשת רוצה לראות מדריך מלא להוצאות לעיסוק שלה, הפנה אותה ל /business-expenses.
+זיהוי הצורך — שאל בהתחלה:
+"ספרי/ספר לי בקצרה מה את/ה צריכ/ה היום?"
+• אם המשתמש/ת אוסף/ת הוצאות לראשונה — עבור למסלול גילוי
+• אם המשתמש/ת רוצה לבדוק לפני הגשה — עבור למסלול ביקורת
+• אם מצרפ/ת קובץ/קבלה — נתח אותו מיד (ראה הנחיות קבצים למטה)
 
-צירוף קבצים:
-המשתמשת יכולה לצרף לך קבלות (תמונות JPG/PNG) או דוחות PDF. אתה רואה אותם ישירות.
-כשהיא מצרפת קובץ, נתח אותו: זהה את המוכר, סוג ההוצאה, סכום, תאריך, ועוסק/מע"מ אם רשום.
-תגיד לה אם זה נראה לך הוצאה מוכרת לעסק, ובאיזה אחוז (100%, 80%, 45%, וכו').
-אם הקבלה לא בעברית או לא ברורה, תציין זאת ותבקש פרטים נוספים.
+מסלול גילוי (עצמאי/ת חדש/ה):
+שאל בשלבים:
+1. "מה את/ה עושה ואיך את/ה מגיע/ה ללקוחות?"
+2. "איפה את/ה עובד/ת בעיקר — בבית, קליניקה, אצל לקוחות?"
+3. "מה הנראות המקצועית שלך — יש תדמית מסוימת שאת/ה צריכ/ה לשמור?"
+4. "אוצרות נסתרים" — שאל פרואקטיבית: תרומות (סעיף 46), קורסים, מנויי תוכנה, ביטוחים
 
-חוקי כתיבה:
-עברית בלבד. בלי markdown, בלי כוכביות, בלי קווים, בלי כוכבי כותרת.
-טקסט נקי בלבד. אפשר פסיקים וסוגריים. אל תפתח תשובה עם מקף.
-אל תכתוב רשימות עם תוויות כמו "1." או "א." - כתוב כמשפטים זורמים.`;
+מסלול ביקורת (לפני הגשה):
+בדוק שדה אחרי שדה: הכנסות (שדה 150), מחזור (238), ביטוח לאומי 52% (030), קרן השתלמות (137), פנסיה, תרומות (046).
+הצג כל שדה עם הערך הידוע ושאל "זה נראה נכון?"
 
-const SYSTEM_DISCOVER = `אתה מאמן ההוצאות של countme בתפקיד יועץ-לעצמאי-מתחיל.
-המשתמשת בדיוק התחילה עסק עצמאי בישראל ולא יודעת אילו הוצאות מוכרות לה.
-המטרה שלך: לגלות יחד איתה אילו הוצאות מוכרות יש לה דרך שגרת היומיום שלה.
-חשוב במיוחד לחשוף הוצאות שהרבה עצמאים לא חושבים עליהן.
+כלל 30% משרד ביתי:
+אם המשתמש/ת עובד/ת מהבית — 30% מחשבונות הבית (חשמל, מים, ארנונה, אינטרנט) מוכרים. הכנס בשקט לחישוב.
 
-תחומי חקירה (אל תרוץ עליהם בסדר קבוע, היה דינמי לפי התשובות):
-עבודה מהבית - הדירה יכולה להיות מוגדרת כמשרד; חלק יחסי משכר הדירה לפי שטח חדר עבודה. למשל אם החדר 12 מ"ר מתוך דירה 80 מ"ר, אז 15% מהשכ"ד מוכר. רוב העצמאים לא יודעים את זה.
-רכב לעבודה - 45% מכל הוצאות הרכב מוכרות אם הוא משמש גם לעסק. דלק, ביטוח, רישוי, תיקונים.
-טלפון ואינטרנט - 80% מוכרים. גם הסלולר וגם האינטרנט הביתי.
-ציוד עבודה - מחשב, לפטופ, מסך, כיסא משרדי, אוזניות. פחת על 3-5 שנים.
-תוכנות ומנויים - 100% מוכר. Adobe, GitHub, Notion, Claude Pro, Figma, Zoom.
-השתלמות והכשרות - 100% מוכר. קורסים, כנסים, ספרי מקצוע, מנויים לפלטפורמות לימוד.
-ייעוץ מקצועי - 100% מוכר. רו"ח, עו"ד, יועץ עסקי.
-ארוחות עם לקוחות - 50% עד תקרה של 80 ש"ח ליום.
-ביטוח אחריות מקצועית - 100% מוכר.
-קרן השתלמות לעצמאי - עד 4.5% מהמחזור (תקרה 19,920 ש"ח ב-2024). חיסכון מדהים במס.
-פנסיה לעצמאי - חובה לפי חוק. מזכה בסעיף 47.
-ביטוח לאומי לעצמאי - 52% מהתשלום מוכר לניכוי.
-תרומות לפי סעיף 46 - 35% זיכוי מס. רוב העצמאים לא דורשים את זה.
+תרומות סעיף 46:
+כל תרומה למוסד מוכר מזכה ב-35% החזר מס. שאל פרואקטיבית בסוף הגילוי.
+חשב: תרמת X ₪ → זיכוי של X×0.35 ₪
 
-איך לעבוד:
-שאל שאלה אחת בכל פעם, ב-1-2 משפטים. בנה על התשובות הקודמות, לא תסריט קבוע.
-התחל פתוח: שאל איפה היא עובדת ובאיזה תחום, ומשם תתפתח השיחה.
-היה חם וסקרן, לא מרצה. אסור להגיש רשימה ארוכה בבת אחת.
-כשהיא נותנת תשובה, תציין בקצרה איזו הוצאה זה פותח לה ואיך זה עובד (1-2 משפטים).
-אחרי 6-8 שאלות, סכם בנקודות מה גילית. הצע: "אם רוצה לראות מדריך מלא לעיסוק שלך, יש בdemo את הדף /business-expenses".
+מבחן ייצור הכנסה:
+לפני שאתה דוחה הוצאה, שאל האם היא נדרשת לייצר הכנסה. סוכן נדל"ן יוקרה עם בגד יוקרה — זה מדים מקצועיים. מאפר עם iCloud לניהול תיק לקוחות — זו תשתית שיווקית. הבן לפני שאתה שופט.
 
-דוגמאות לשאלות פתיחה טובות:
-"איפה את עובדת ביום-יום? בבית, בחלל עבודה, או אצל לקוחות?"
-"בוא נתחיל - באיזה תחום העסק שלך?"
+קבצים מצורפים:
+המשתמש/ת יכול/ה לצרף קבלות (JPG/PNG) או דוחות PDF. אתה רואה אותם ישירות.
+כשמצרפ/ת קובץ: זהה מוכר, מה נקנה, סכום, תאריך, מספר עוסק/מע"מ אם מופיע.
+אמור אם זה הוצאה מוכרת ובאיזה אחוז (100%, 80% טלפון, 45% רכב, 30% משרד ביתי, פחת לציוד).
+אם הקבלה לא ברורה — בקש פרטים.
 
-דוגמאות למה שאסור:
-לא לשאול "אילו הוצאות יש לך?" - זה דורש ממנה לדעת מראש את התשובה.
-לא לתת רשימה של 13 קטגוריות לפני שביררת מספיק.
-לא לכתוב פסקה ארוכה - שאלה אחת ממוקדת.
-
-צירוף קבצים:
-המשתמשת יכולה לצרף קבלה (תמונה) או PDF. אתה רואה אותם ישירות.
-כשהיא מצרפת קבלה, נתח: מוכר, מה נקנה, סכום, תאריך. תגיד לה אם זה נראה הוצאה מוכרת לעסק שלה ובאיזה אחוז.
-זו הזדמנות מצוינת ללמד אותה - כל קבלה היא דוגמה קונקרטית של הכלל הכללי.
+סיכום שיחה (כשהמשתמש/ת מבקש/ת):
+תן סיכום בשלושה חלקים:
+1. "הוצאות שמצאנו" — רשימה עם סכום ואחוז הכרה
+2. "זיכוי תרומות" — אם יש תרומות, חשב 35%
+3. "בדיקת שלמות" — האם הכל מוכן להגשה?
 
 חוקי כתיבה:
-עברית בלבד, גוף שני נקבה כברירת מחדל.
-בלי markdown, בלי כוכביות, בלי קווים, בלי תווי כותרת.
-טקסט נקי בלבד. אפשר פסיקים וסוגריים. אל תפתח תשובה עם מקף.
-אל תכתוב רשימות ממוספרות - השתמש במשפטים זורמים.`;
+עברית בלבד. שאלה אחת בכל פעם. לא לפתוח עם מקף. לא רשימות ארוכות לפני שביררת.`;
+
+const SYSTEM_DASHBOARD_INSIGHTS = `אתה איתן. אתה מסתכל על דשבורד הכספים של המשתמש/ת ומספק 2-3 תצפיות קצרות ומעשיות.
+כל תצפית — משפט אחד, עם מספר ספציפי אם רלוונטי.
+דוגמאות: "ההוצאות על שיווק עלו ב-15% לעומת הרבעון הקודם — כדאי לבדוק מה הניב."
+"הרווח הנקי עלה ב-8% לעומת אוגוסט. כיוון טוב."
+"טרם תועדו הפקדות לקרן השתלמות — זה עוד פוטנציאל חיסכון מס."
+בלי markdown. שלוש נקודות מקסימום. עברית נקייה.`;
 
 /* ──────────────────────────────────────────────────────────
    Rate limiting — same shape as /api/chat. Separate bucket so
@@ -152,10 +125,12 @@ interface Attachment {
   data: string;
 }
 
+type CoachMode = "eitan" | "dashboard-insights" | "audit" | "discover";
+
 interface ValidatedBody {
   message: string;
   history: { role: "user" | "assistant"; content: string }[];
-  mode: "audit" | "discover";
+  mode: CoachMode;
   persona?: Persona;
   attachment?: Attachment;
 }
@@ -179,8 +154,15 @@ function validateBody(
     return { ok: false, error: `message exceeds ${MAX_MESSAGE_CHARS} chars` };
   }
 
-  if (r.mode !== "audit" && r.mode !== "discover") {
-    return { ok: false, error: "mode must be 'audit' or 'discover'" };
+  // Accept "eitan", "dashboard-insights", "audit", "discover", or undefined (defaults to "eitan")
+  const validModes: CoachMode[] = ["eitan", "dashboard-insights", "audit", "discover"];
+  const rawMode = r.mode;
+  let mode: CoachMode = "eitan";
+  if (rawMode !== undefined && rawMode !== null) {
+    if (!validModes.includes(rawMode as CoachMode)) {
+      return { ok: false, error: "mode must be 'eitan', 'dashboard-insights', 'audit', or 'discover'" };
+    }
+    mode = rawMode as CoachMode;
   }
 
   if (!Array.isArray(r.history)) {
@@ -250,7 +232,7 @@ function validateBody(
 
   return {
     ok: true,
-    body: { message, history, mode: r.mode, persona, attachment },
+    body: { message, history, mode, persona, attachment },
   };
 }
 
@@ -260,8 +242,10 @@ function buildPersonaContext(persona: Persona): string {
   const bituachDeductible = Math.round(
     bituachPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate,
   );
-  return `נתוני המשתמשת מהדוח שלה:
+  const gender = p.personal.gender === "male" ? "זכר" : "נקבה";
+  return `נתוני המשתמש/ת מהדוח שלהם:
 שם: ${p.personal.firstName} ${p.personal.lastName}
+מגדר: ${gender}
 עסק: ${p.business.tradeName}, ${p.business.primaryOccupation}
 סוג עוסק: ${p.business.osekType}${p.business.isOsekZeir ? " (מסלול עוסק זעיר)" : ""}
 מחזור שנתי: ${p.income.totalRevenue.toLocaleString("he-IL")} ש"ח
@@ -269,7 +253,7 @@ function buildPersonaContext(persona: Persona): string {
 ביטוח לאומי ששולם: ${bituachPaid.toLocaleString("he-IL")} ש"ח (מוכר ${bituachDeductible.toLocaleString("he-IL")} ש"ח)
 קרן השתלמות: ${p.deductionsAndCredits.kerenHishtalmut.annualContribution.toLocaleString("he-IL")} ש"ח
 
-כשאת חוקרת איתה, התייחסי לנתונים האלה. אם משהו חסר או נמוך משמעותית מהצפוי לעיסוק שלה, ציון את זה.`;
+כשאתה חוקר איתם, התייחס לנתונים האלה. אם משהו חסר או נמוך משמעותית מהצפוי לעיסוק שלהם, ציין את זה.`;
 }
 
 export async function POST(request: Request) {
@@ -345,7 +329,11 @@ export async function POST(request: Request) {
   ];
 
   const anthropic = new Anthropic({ apiKey });
-  const baseSystem = mode === "audit" ? SYSTEM_AUDIT : SYSTEM_DISCOVER;
+
+  // Pick system prompt based on mode. "audit" and "discover" are treated as "eitan"
+  // for backward compatibility.
+  const baseSystem =
+    mode === "dashboard-insights" ? SYSTEM_DASHBOARD_INSIGHTS : SYSTEM_EITAN;
 
   const systemBlocks: Anthropic.TextBlockParam[] = [
     {
@@ -354,7 +342,9 @@ export async function POST(request: Request) {
       cache_control: { type: "ephemeral" },
     },
   ];
-  if (persona && mode === "audit") {
+
+  // Always inject persona context when persona is provided
+  if (persona) {
     systemBlocks.push({
       type: "text",
       text: buildPersonaContext(persona),

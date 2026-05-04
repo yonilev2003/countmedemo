@@ -57,7 +57,7 @@ export default function BusinessExpensesPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/demo"
-              className="rounded-full border border-blue-300 px-3 py-1 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
+              className="rounded-full border border-info px-3 py-1 text-xs text-brand-navy hover:bg-info/30 transition-colors"
             >
               ← חזור לדו״ח
             </Link>
@@ -73,10 +73,10 @@ export default function BusinessExpensesPage() {
 
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Hero */}
-        <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-l from-blue-50 to-white p-6 mb-6">
+        <div className="rounded-2xl border-2 border-info bg-gradient-to-l from-info/30 to-white p-6 mb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider mb-1">
+              <div className="text-[11px] font-bold text-brand-navy uppercase tracking-wider mb-1">
                 מותאם לעסק שלך
               </div>
               <h1 className="text-2xl font-extrabold text-stone-900 mb-1">
@@ -87,8 +87,8 @@ export default function BusinessExpensesPage() {
             <BusinessChip persona={persona} />
           </div>
 
-          <div className="mt-5 rounded-xl bg-white border border-blue-200 px-4 py-3 text-[12px] text-stone-700 leading-relaxed">
-            <span className="font-bold text-blue-700">💡 איך להשתמש: </span>
+          <div className="mt-5 rounded-xl bg-white border border-info px-4 py-3 text-[12px] text-stone-700 leading-relaxed">
+            <span className="font-bold text-brand-navy">💡 איך להשתמש: </span>
             הקטגוריות למטה מותאמות לעיסוק <strong>{persona.business.primaryOccupation}</strong>.
             כל הוצאה מוגדרת לפי כללי פקודת מס הכנסה 2024 — מה מוכר במלואו, מה חלקית,
             ומה כפחת לאורך שנים. שמרי קבלות, ובסוף השנה — הזיני לדו״ח 1301 שלך.
@@ -149,9 +149,9 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
   const ruleLabel = ruleDisplayLabel(category);
   const ruleColor =
     category.rule === "full"
-      ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+      ? "bg-success-light text-brand-navy border-success/50"
       : category.rule === "partial"
-        ? "bg-blue-100 text-blue-800 border-blue-300"
+        ? "bg-info text-brand-navy border-info"
         : "bg-purple-100 text-purple-800 border-purple-300";
 
   return (
@@ -173,12 +173,12 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
         </span>
       </div>
 
-      <div className="px-5 py-3 bg-stone-50 text-[12px]">
+      <div className="px-5 py-3 bg-success-light/30 text-[12px]">
         <div className="font-semibold text-stone-700 mb-1.5">דוגמאות:</div>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-stone-600">
           {category.examples.map((ex, i) => (
             <li key={i} className="flex gap-1.5">
-              <span className="text-blue-500">•</span>
+              <span className="text-brand-navy">•</span>
               <span>{ex}</span>
             </li>
           ))}
