@@ -27,7 +27,7 @@ export default function CoachPage() {
             <div>
               <div className="text-base font-bold leading-tight">countme</div>
               <div className="text-[11px] text-stone-500 leading-tight">
-                המאמן · שיחה אישית
+                איתן · ייעוץ כספי אישי
               </div>
             </div>
           </Link>

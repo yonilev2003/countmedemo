@@ -5,8 +5,6 @@ import Link from "next/link";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 
-export type CoachMode = "audit" | "discover";
-
 type Attachment = {
   name: string;
   /** Image MIME (jpeg/png/...) or "application/pdf". */
@@ -44,46 +42,22 @@ async function fileToAttachment(file: File): Promise<Attachment> {
   return { name: file.name, mediaType: file.type, data, previewUrl };
 }
 
+function eitanGreeting(persona: Persona | null | undefined): string {
+  const name = persona?.personal.firstName;
+  const female = persona?.personal.gender !== "male";
+  const prefix = name ? `היי ${name}` : "היי";
+  const suffix = female
+    ? "ספרי לי בקצרה מה את צריכה היום?"
+    : "ספר לי בקצרה מה אתה צריך היום?";
+  return `${prefix} 👋 אני איתן, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
+}
+
 interface Props {
-  /** Optional persona — only used in audit mode for richer context. */
+  /** Optional persona — used for greeting and richer context in conversations. */
   persona?: Persona | null;
 }
 
-const greetingFor = (mode: CoachMode, persona?: Persona | null): Message[] => {
-  if (mode === "audit") {
-    const name = persona?.personal.firstName;
-    const opener = name
-      ? `שלום ${name}! אני המאמן של countme.`
-      : `שלום! אני המאמן של countme.`;
-    return [
-      {
-        role: "agent",
-        text: `${opener} לפני שמגישות את דוח 1301, בוא נעבור יחד על ההוצאות שלך - אני אעזור לוודא שלא פיספסת שום הוצאה מוכרת ושהכל מסווג נכון לפי פקודת מס הכנסה.`,
-      },
-      {
-        role: "agent",
-        text: "אתחיל בשאלה שהרבה עצמאים שוכחים: את עובדת מהבית? אם כן, את יכולה להכיר חלק יחסי משכר הדירה, החשמל, המים והארנונה כהוצאה.",
-      },
-    ];
-  }
-  return [
-    {
-      role: "agent",
-      text: "שלום! אני המאמן של countme, ואני כאן כדי לעזור לך לזהות אילו הוצאות עסקיות מוכרות יש לך - גם כאלה שעצמאים רבים לא חושבים עליהן.",
-    },
-    {
-      role: "agent",
-      text: "אני יודע שכשמתחילים בעצמאות זה יכול להיות מבלבל - מה נחשב הוצאה מוכרת ומה לא. אבל בעדינות נגלה ביחד, ויש כאן כסף אמיתי להחזיר.",
-    },
-    {
-      role: "agent",
-      text: "נתחיל בקטן - באיזה תחום העסק שלך, ואיפה את עובדת ביום-יום (מהבית, חלל עבודה, אצל לקוחות)?",
-    },
-  ];
-};
-
 export function CoachChat({ persona }: Props) {
-  const [mode, setMode] = useState<CoachMode | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -96,19 +70,19 @@ export function CoachChat({ persona }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Show Eitan's greeting immediately on mount
+  useEffect(() => {
+    setMessages([{ role: "agent", text: eitanGreeting(persona) }]);
+    historyRef.current = [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streamingText]);
 
-  function pickMode(m: CoachMode) {
-    setMode(m);
-    setMessages(greetingFor(m, persona));
-    historyRef.current = [];
-  }
-
   function reset() {
-    setMode(null);
-    setMessages([]);
+    setMessages([{ role: "agent", text: eitanGreeting(persona) }]);
     setStreamingText("");
     setInput("");
     if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
@@ -142,21 +116,18 @@ export function CoachChat({ persona }: Props) {
     setAttachError(null);
   }
 
-  async function send() {
-    const trimmed = input.trim();
-    // Allow sending with just an attachment + a default prompt, but require either one.
-    if ((!trimmed && !attachment) || isLoading || !mode) return;
+  async function sendMessage(messageText: string, sentAttachment: Attachment | null) {
+    if ((!messageText.trim() && !sentAttachment) || isLoading) return;
 
-    const messageText =
-      trimmed ||
-      (attachment?.mediaType === "application/pdf"
+    const resolvedText =
+      messageText.trim() ||
+      (sentAttachment?.mediaType === "application/pdf"
         ? "אפשר/י לעבור על המסמך הזה ולספר לי מה את רואה?"
         : "אפשר/י להסתכל על הקבלה הזאת ולומר אם היא מוכרת לעסק?");
 
-    const sentAttachment = attachment;
     const userMsg: Message = {
       role: "user",
-      text: trimmed || messageText,
+      text: messageText.trim() || resolvedText,
       attachment: sentAttachment
         ? { name: sentAttachment.name, previewUrl: sentAttachment.previewUrl }
         : undefined,
@@ -175,10 +146,10 @@ export function CoachChat({ persona }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: messageText,
+          message: resolvedText,
           history,
-          mode,
-          persona: mode === "audit" ? persona ?? null : null,
+          // No explicit mode — defaults to "eitan" on the server
+          persona: persona ?? null,
           attachment: sentAttachment
             ? {
                 name: sentAttachment.name,
@@ -241,8 +212,8 @@ export function CoachChat({ persona }: Props) {
               {
                 role: "user",
                 content: sentAttachment
-                  ? `${messageText} [קובץ מצורף: ${sentAttachment.name}]`
-                  : messageText,
+                  ? `${resolvedText} [קובץ מצורף: ${sentAttachment.name}]`
+                  : resolvedText,
               },
               { role: "assistant", content: finalText },
             ];
@@ -267,7 +238,7 @@ export function CoachChat({ persona }: Props) {
         setMessages((m) => [...m, { role: "agent", text: accumulated }]);
         historyRef.current = [
           ...historyRef.current,
-          { role: "user", content: trimmed },
+          { role: "user", content: resolvedText },
           { role: "assistant", content: accumulated },
         ];
       }
@@ -286,8 +257,17 @@ export function CoachChat({ persona }: Props) {
     }
   }
 
-  if (!mode) {
-    return <ModePicker persona={persona} onPick={pickMode} />;
+  async function send() {
+    if ((!input.trim() && !attachment) || isLoading) return;
+    const sentAttachment = attachment;
+    await sendMessage(input, sentAttachment);
+  }
+
+  async function sendSummary() {
+    if (isLoading) return;
+    const summaryPrompt =
+      "תסכם לי את השיחה שלנו — מה הוצאות מצאנו, כמה זיכוי מס על תרומות, ואם הכל מוכן להגשה";
+    await sendMessage(summaryPrompt, null);
   }
 
   return (
@@ -298,18 +278,14 @@ export function CoachChat({ persona }: Props) {
           ✦
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold">המאמן של countme</div>
-          <div className="text-xs text-stone-500 truncate">
-            {mode === "audit"
-              ? "ביקורת טרום-הגשה לטופס 1301"
-              : "גילוי הוצאות לעצמאית מתחילה"}
-          </div>
+          <div className="text-sm font-semibold">איתן · שותף countme שלך</div>
+          <div className="text-xs text-stone-500 truncate">ייעוץ כספי אישי</div>
         </div>
         <button
           onClick={reset}
           className="rounded-full border border-stone-300 px-3 py-1 text-[11px] text-stone-600 hover:bg-stone-100 transition-colors shrink-0"
         >
-          החלף נושא
+          שיחה חדשה
         </button>
       </div>
 
@@ -364,8 +340,8 @@ export function CoachChat({ persona }: Props) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* CTA bar — only in audit mode, only if persona exists */}
-      {mode === "audit" && persona && (
+      {/* CTA bar — links to form and expense guide */}
+      {persona && (
         <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>סיימת? אפשר לחזור לטופס המלא</span>
           <Link
@@ -376,7 +352,7 @@ export function CoachChat({ persona }: Props) {
           </Link>
         </div>
       )}
-      {mode === "discover" && (
+      {!persona && (
         <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>רוצה לראות מדריך מלא להוצאות לעיסוק שלך?</span>
           <Link
@@ -454,9 +430,7 @@ export function CoachChat({ persona }: Props) {
             placeholder={
               attachment
                 ? "הוסיפי שאלה (אופציונלי) ושלחי..."
-                : mode === "audit"
-                  ? "ענה לשאלה או שאל משהו משלך..."
-                  : "ענה ובוא נמשיך..."
+                : "כתוב/י הודעה לאיתן..."
             }
             disabled={isLoading}
             className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info disabled:opacity-60 disabled:cursor-not-allowed"
@@ -469,98 +443,23 @@ export function CoachChat({ persona }: Props) {
             {isLoading ? "..." : "שלח"}
           </button>
         </div>
-        <div className="mt-2 text-center text-[10px] text-stone-400">
-          {isLoading
-            ? "מחובר ל-Claude Sonnet — מעבד..."
-            : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-/* ──────────────────────────────────────────────────────────
-   Mode picker — shown before the chat starts.
-   ────────────────────────────────────────────────────────── */
-function ModePicker({
-  persona,
-  onPick,
-}: {
-  persona?: Persona | null;
-  onPick: (m: CoachMode) => void;
-}) {
-  return (
-    <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-stone-200 bg-gradient-to-l from-info/40 to-cream px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-success to-brand-navy text-white text-lg font-bold shadow-sm">
-            ✦
-          </div>
-          <div>
-            <h2 className="text-base font-bold">המאמן של countme</h2>
-            <p className="text-xs text-stone-500">
-              שיחה אישית על ההוצאות העסקיות שלך
-            </p>
+        {/* Summary shortcut */}
+        <div className="mt-2 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={sendSummary}
+            disabled={isLoading || messages.length < 2}
+            className="text-xs text-success/80 hover:text-success underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+          >
+            סיכום השיחה ✦
+          </button>
+          <div className="text-[10px] text-stone-400">
+            {isLoading
+              ? "מחובר ל-Claude Sonnet — מעבד..."
+              : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
           </div>
         </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        <p className="text-sm text-stone-600 leading-relaxed">
-          אני כאן כדי לעזור לך עם ההוצאות העסקיות שלך. במה את צריכה עזרה?
-        </p>
-
-        <button
-          onClick={() => onPick("audit")}
-          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-success/60 hover:bg-success/10 transition-colors p-5"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <div className="text-[11px] font-bold text-success uppercase tracking-wider mb-1">
-                {persona ? "מומלץ עבורך" : "ביקורת טרום-הגשה"}
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-brand-navy">
-                יש לי דוח הוצאות, רוצה לוודא שלא שכחתי כלום
-              </h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                המאמן יעבור איתך על ההוצאות שלך לפני שתגישי את הדוח, יזהה הזדמנויות
-                שפיספסת (משרד ביתי, תרומות 46, קרן השתלמות), ויסביר איך כל אחת
-                מהן עובדת.
-              </p>
-            </div>
-            <span className="text-2xl text-success group-hover:translate-x-[-4px] transition-transform">
-              ←
-            </span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => onPick("discover")}
-          className="group w-full text-right rounded-xl border-2 border-stone-200 hover:border-success/60 hover:bg-success/10 transition-colors p-5"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1">
-              <div className="text-[11px] font-bold text-success uppercase tracking-wider mb-1">
-                לעצמאיות מתחילות
-              </div>
-              <h3 className="text-base font-bold text-stone-900 mb-1.5 group-hover:text-brand-navy">
-                בדיוק התחלתי - בואו נגלה אילו הוצאות מוכרות לי
-              </h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                שיחה זורמת על השגרה והעבודה שלך. נחשוף ביחד הוצאות שעצמאים רבים
-                מפספסים — חלק יחסי משכ״ד אם את עובדת מהבית, אחוז מהרכב, מנויים
-                מקצועיים, ועוד.
-              </p>
-            </div>
-            <span className="text-2xl text-success group-hover:translate-x-[-4px] transition-transform">
-              ←
-            </span>
-          </div>
-        </button>
-
-        <p className="text-[11px] text-stone-400 text-center pt-2">
-          השיחות אינן מהוות ייעוץ מס. לפני הגשה, התייעצי עם רואה חשבון.
-        </p>
       </div>
     </div>
   );
