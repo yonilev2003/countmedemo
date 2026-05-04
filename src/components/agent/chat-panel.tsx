@@ -197,7 +197,7 @@ export function ChatPanel({ persona }: Props) {
               "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
               m.role === "agent"
                 ? "bg-stone-100 text-stone-800"
-                : "ml-auto bg-blue-600 text-white",
+                : "ml-auto bg-brand-navy text-white",
             )}
           >
             {m.text}
@@ -233,12 +233,12 @@ export function ChatPanel({ persona }: Props) {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
             placeholder="שאלי שאלה על הדו״ח..."
             disabled={isLoading}
-            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <button
             onClick={send}
             disabled={isLoading || !input.trim()}
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-full bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "..." : "שלח"}
           </button>
