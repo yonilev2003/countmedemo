@@ -35,13 +35,13 @@ export default function CoachPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/demo"
-              className="rounded-full border border-blue-300 px-3 py-1 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
+              className="rounded-full border border-info px-3 py-1 text-xs text-brand-navy hover:bg-info/30 transition-colors"
             >
               לדוח 1301 ←
             </Link>
             <Link
               href="/business-expenses"
-              className="rounded-full border border-emerald-300 px-3 py-1 text-xs text-emerald-700 hover:bg-emerald-50 transition-colors"
+              className="rounded-full border border-success/50 px-3 py-1 text-xs text-success hover:bg-success/10 transition-colors"
             >
               מדריך הוצאות ←
             </Link>
