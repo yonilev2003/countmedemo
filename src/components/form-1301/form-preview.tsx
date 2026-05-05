@@ -264,14 +264,21 @@ function FieldRow({
   );
 }
 
-/** Returns the plain string to paste into gov.il, or null if no real value. */
+/**
+ * Returns the string to paste into gov.il — must match exactly what's
+ * displayed in the cell (Hebrew labels for enums, formatted dates, etc.),
+ * or null if no real value to copy.
+ */
 function rawCopyValue(field: FormField, persona: Persona): string | null {
   if (field.status === "calculated" && field.calculator) {
     const r = calculate(field.calculator, persona);
     if (!r || r.value === false || r.value === null || r.value === undefined) return null;
     if (typeof r.value === "number") {
       if (r.value === 0) return null;
-      return String(Math.round(r.value));
+      // Match the InteractiveValue display formatter
+      if (field.kind === "currency") return formatCurrency(r.value);
+      if (field.kind === "integer") return formatNumber(r.value);
+      return String(r.value);
     }
     if (typeof r.value === "boolean") return r.value ? "כן" : null;
     return String(r.value);
@@ -279,15 +286,12 @@ function rawCopyValue(field: FormField, persona: Persona): string | null {
   if (field.status === "personal" && field.personaPath) {
     const v = readPersonaPath(persona, field.personaPath);
     if (v === null || v === undefined || v === "") return null;
-    if (typeof v === "number") return String(v);
-    if (typeof v === "boolean") return v ? "כן" : null;
-    if (typeof v === "string") return v;
-    if (typeof v === "object") {
-      const o = v as Record<string, unknown>;
-      if ("street" in o) {
-        return `${o.street ?? ""} ${o.houseNumber ?? ""}, ${o.city ?? ""}`.trim();
-      }
-    }
+    // Reuse the same renderer as the visible cell — gives Hebrew labels for
+    // enums (single→"רווק/ה", patur→"פטור"), DD.MM.YYYY for dates, ₪ formatting
+    // for currency, etc.
+    const rendered = renderPersonalValue(v, field);
+    if (rendered === "—") return null;
+    return rendered;
   }
   return null;
 }
