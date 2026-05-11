@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9FB878"/>
+      <stop offset="100%" stop-color="#0D3B66"/>
+    </linearGradient>
+  </defs>
+  <!-- Body -->
+  <ellipse cx="80" cy="180" rx="55" ry="15" fill="#0D3B66" opacity="0.1"/>
+  <circle cx="80" cy="70" r="45" fill="url(#bg)"/>
+  <!-- Pointing arm -->
+  <rect x="40" y="100" width="20" height="50" rx="10" fill="url(#bg)" transform="rotate(-25, 50, 125)"/>
+  <circle cx="32" cy="148" r="9" fill="#9FB878"/>
+  <!-- Body -->
+  <rect x="55" y="105" width="50" height="65" rx="20" fill="url(#bg)"/>
+  <!-- Face: smiling Eitan-style -->
+  <circle cx="65" cy="65" r="3.5" fill="white"/>
+  <circle cx="95" cy="65" r="3.5" fill="white"/>
+  <path d="M65 82 Q80 92 95 82" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Sparkle -->
+  <text x="120" y="40" font-family="serif" font-size="20" fill="#9FB878">✦</text>
+  <!-- Label -->
+  <text x="80" y="198" text-anchor="middle" font-family="sans-serif" font-size="9" fill="#0D3B66" opacity="0.6">איתן</text>
+</svg>
