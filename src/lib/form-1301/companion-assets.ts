@@ -1,32 +1,43 @@
 /**
- * Companion track — image references per module step.
+ * Companion track — Eitan character poses.
  *
- * To replace a placeholder image: just drop your file at the matching
- * path inside /public — no code change needed.
- *   - Eitan pointing images: /public/eitan/companion/pictureN.png
- *   - Gov.il section screenshots: /public/govil-screenshots/screenshotN.png
+ * To replace the placeholders: save your PNGs to /public/eitan/companion/
+ * with these exact filenames. Only 5 distinct poses are needed for all
+ * 12 modules; reuse is intentional.
  *
- * If a file doesn't exist, the component falls back automatically to the
- * placeholder SVG committed in the repo.
+ *   picture1.png  → מסביר — ידיים יחד (calm explainer)
+ *   picture2.png  → אגודל למעלה — חיובי (encouragement / "we did it")
+ *   picture3.png  → מהורהר — יד על הסנטר (let's think about this)
+ *   picture4.png  → מצביע עם שתי ידיים — דגש (emphasizes critical info)
+ *   picture5.png  → מצביע עם יד אחת — הכוונה (points at the field)
  *
- * To re-route a specific step to a different file: edit the constant below.
+ * Missing files automatically fall back to the placeholder SVG in the repo.
  */
 
-// Eitan "pointing" images — one per module step (12 modules)
-export const picture1 = "/eitan/companion/picture1.png";
-export const picture2 = "/eitan/companion/picture2.png";
-export const picture3 = "/eitan/companion/picture3.png";
-export const picture4 = "/eitan/companion/picture4.png";
-export const picture5 = "/eitan/companion/picture5.png";
-export const picture6 = "/eitan/companion/picture6.png";
-export const picture7 = "/eitan/companion/picture7.png";
-export const picture8 = "/eitan/companion/picture8.png";
-export const picture9 = "/eitan/companion/picture9.png";
-export const picture10 = "/eitan/companion/picture10.png";
-export const picture11 = "/eitan/companion/picture11.png";
-export const picture12 = "/eitan/companion/picture12.png";
+const path = (n: string) => `/eitan/companion/${n}.png`;
 
-// Gov.il section screenshots — one per module step
+// Semantic pose aliases — use these in modules.ts to pick a pose by intent.
+export const POSE_EXPLAINER = path("picture1");
+export const POSE_THUMBS_UP = path("picture2");
+export const POSE_THOUGHTFUL = path("picture3");
+export const POSE_POINTING_BOTH = path("picture4");
+export const POSE_POINTING_ONE = path("picture5");
+
+// Backwards-compatible numbered exports (1..5 map to the 5 poses; 6..12 reuse).
+export const picture1 = POSE_EXPLAINER;
+export const picture2 = POSE_THUMBS_UP;
+export const picture3 = POSE_THOUGHTFUL;
+export const picture4 = POSE_POINTING_BOTH;
+export const picture5 = POSE_POINTING_ONE;
+export const picture6 = POSE_THOUGHTFUL;
+export const picture7 = POSE_POINTING_BOTH;
+export const picture8 = POSE_EXPLAINER;
+export const picture9 = POSE_THUMBS_UP;
+export const picture10 = POSE_THUMBS_UP;
+export const picture11 = POSE_THUMBS_UP;
+export const picture12 = POSE_THUMBS_UP;
+
+// Gov.il section screenshots — one per module step (still placeholder by default)
 export const screenshot1 = "/govil-screenshots/screenshot1.png";
 export const screenshot2 = "/govil-screenshots/screenshot2.png";
 export const screenshot3 = "/govil-screenshots/screenshot3.png";
