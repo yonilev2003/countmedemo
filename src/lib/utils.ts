@@ -26,9 +26,11 @@ export function formatNumber(n: number): string {
   return n.toLocaleString("he-IL");
 }
 
-/** Format an ISO date as DD/MM/YYYY (Israeli convention). */
+/** Format an ISO date as DD.MM.YYYY (Israeli convention, with leading zeros). */
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("he-IL");
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}.${month}.${d.getFullYear()}`;
 }
