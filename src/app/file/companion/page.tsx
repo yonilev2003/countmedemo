@@ -7,7 +7,7 @@ import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
 import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
-import { FORM_MODULES, PointerPosition } from "@/lib/form-1301/modules";
+import { FORM_MODULES } from "@/lib/form-1301/modules";
 import { PLACEHOLDER_EITAN } from "@/lib/form-1301/companion-assets";
 
 /** Hook wrapping the Web Speech API for Hebrew narration. */
@@ -125,7 +125,8 @@ export default function CompanionPage() {
         <div className="rounded-2xl bg-info border border-brand-navy/10 p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success text-white font-bold text-sm shadow-sm">✦</div>
-            <p className="text-sm text-stone-800 leading-relaxed flex-1">{currentModule.eitanIntro}</p>
+            {/* Bubble shows the same text TTS reads — perfect alignment */}
+            <p className="text-sm text-stone-800 leading-relaxed flex-1">{narration}</p>
           </div>
           <button
             onClick={() => speak(narration)}
@@ -145,23 +146,33 @@ export default function CompanionPage() {
           </button>
         </div>
 
-        <div className="relative">
-          <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
-            <div className="bg-stone-50 px-4 py-2 border-b border-stone-200 flex items-center gap-2">
-              <span className="inline-block rounded-full bg-brand-navy w-2 h-2"></span>
-              <p className="text-xs font-semibold text-stone-600">הקטע הרלוונטי בטופס gov.il — לחצ/י על 📋 ליד כל ערך כדי להעתיק</p>
+        {/* Layout: Eitan in a side column, form in the main area.
+            On mobile: Eitan above the form. On desktop (RTL): Eitan on the
+            right (first DOM child = rightmost in flex-row RTL), form on the left. */}
+        <div className="flex flex-col md:flex-row gap-4 items-start">
+          {currentModule.picture && (
+            <div className="w-24 sm:w-32 md:w-36 lg:w-44 mx-auto md:mx-0 shrink-0">
+              <EitanIllustration src={currentModule.picture} />
             </div>
-            <div className="p-2">
-              {currentModule.fieldCodes.length > 0 ? (
-                <GovilSections persona={persona} fieldCodes={currentModule.fieldCodes} />
-              ) : (
-                <ContactInfoCard persona={persona} moduleId={currentModule.id} />
-              )}
+          )}
+
+          <div className="flex-1 w-full min-w-0">
+            <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
+              <div className="bg-stone-50 px-4 py-2 border-b border-stone-200 flex items-center gap-2">
+                <span className="inline-block rounded-full bg-brand-navy w-2 h-2"></span>
+                <p className="text-xs font-semibold text-stone-600">
+                  הקטע הרלוונטי בטופס gov.il — לחצ/י על 📋 ליד כל ערך כדי להעתיק
+                </p>
+              </div>
+              <div className="p-2">
+                {currentModule.fieldCodes.length > 0 ? (
+                  <GovilSections persona={persona} fieldCodes={currentModule.fieldCodes} />
+                ) : (
+                  <ContactInfoCard persona={persona} moduleId={currentModule.id} />
+                )}
+              </div>
             </div>
           </div>
-          {currentModule.picture && (
-            <EitanPointer src={currentModule.picture} position={currentModule.pointerPosition ?? "bottom-right"} />
-          )}
         </div>
       </main>
 
@@ -222,19 +233,24 @@ function ContactInfoCard({ persona, moduleId }: { persona: Persona; moduleId: nu
   );
 }
 
-function EitanPointer({ src, position }: { src: string; position: PointerPosition }) {
+/**
+ * Eitan illustration placed in a side column next to the form (not overlaying it).
+ * Falls back to the placeholder SVG if the real image is missing.
+ */
+function EitanIllustration({ src }: { src: string }) {
   const [actualSrc, setActualSrc] = useState(src);
-  useEffect(() => { setActualSrc(src); }, [src]);
-  const positionClass = {
-    "top-right": "top-1 -right-2 sm:-right-12",
-    "top-left": "top-1 -left-2 sm:-left-12",
-    "bottom-right": "bottom-1 -right-2 sm:-right-12",
-    "bottom-left": "bottom-1 -left-2 sm:-left-12",
-  }[position];
+  useEffect(() => {
+    setActualSrc(src);
+  }, [src]);
   return (
-    <div className={`absolute ${positionClass} pointer-events-none z-10`}>
+    <div className="md:sticky md:top-28">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={actualSrc} alt="איתן מצביע" className="h-20 sm:h-28 w-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.25)]" onError={() => setActualSrc(PLACEHOLDER_EITAN)} />
+      <img
+        src={actualSrc}
+        alt="איתן"
+        className="w-full h-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.18)]"
+        onError={() => setActualSrc(PLACEHOLDER_EITAN)}
+      />
     </div>
   );
 }
