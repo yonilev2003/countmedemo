@@ -1,17 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  form1301,
-  FormField,
-  FormSection,
-  FormTab,
-} from "@/lib/form-1301/schema";
-import { calculate, CalcResult } from "@/lib/calculators";
-import { Persona, readPersonaPath } from "@/lib/persona";
-import { cn, formatCurrency, formatDate, formatNumber } from "@/lib/utils";
-import { InteractiveValue } from "./interactive-value";
-import { InlineCopyButton } from "./copy-button";
+import { form1301, FormTab } from "@/lib/form-1301/schema";
+import { Persona } from "@/lib/persona";
+import { cn } from "@/lib/utils";
+import { SectionCard } from "./govil-section";
 
 interface Props {
   persona: Persona;
@@ -24,10 +17,17 @@ export function FormPreview({ persona, onContinue }: Props) {
   const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
 
   return (
-    <div className="overflow-hidden border border-stone-400 shadow-sm bg-white" style={{ borderRadius: 2 }}>
+    <div
+      className="overflow-hidden border border-stone-400 shadow-sm bg-white"
+      style={{ borderRadius: 2 }}
+    >
       <GovTopBar />
       <GovTitleBar />
-      <GovNavBar tabs={form1301} activeId={activeTab} onSelect={(id) => setActiveTab(id)} />
+      <GovNavBar
+        tabs={form1301}
+        activeId={activeTab}
+        onSelect={(id) => setActiveTab(id)}
+      />
       <FileInfoTable persona={persona} />
 
       <div className="bg-[#f5f7fa] px-3 py-3 space-y-2">
@@ -55,9 +55,9 @@ export function FormPreview({ persona, onContinue }: Props) {
   );
 }
 
-/* ──────────────────────────────────────────────────────────
-   Gov.il Top bar — two-part header replicating secapp.taxes.gov.il
-   ────────────────────────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────────
+   Gov.il chrome — top bar, title bar, tab strip, file info.
+   ─────────────────────────────────────────────────────────── */
 function GovTopBar() {
   return (
     <div className="bg-[#1a3f6a] text-white px-4 py-1.5 flex items-center justify-between text-[11px]">
@@ -65,11 +65,12 @@ function GovTopBar() {
       <div className="text-blue-300 text-[10px]">C11 · שנת מס 2024</div>
       <div className="flex items-center gap-2">
         <div className="text-right">
-          <div className="font-bold leading-tight text-[11px]">רשות המסים בישראל</div>
+          <div className="font-bold leading-tight text-[11px]">
+            רשות המסים בישראל
+          </div>
           <div className="text-blue-300 text-[9px]">Israel Tax Authority</div>
         </div>
-        {/* State of Israel emblem — simple menorah shape in CSS */}
-        <div className="text-[18px] leading-none opacity-90">🕎</div>
+        <div className="text-[18px] leading-none opacity-90">🕮</div>
       </div>
     </div>
   );
@@ -123,7 +124,9 @@ function FileInfoTable({ persona }: { persona: Persona }) {
       <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[11px]">
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">מספר תיק:</span>
-          <span className="font-mono font-semibold">{persona.business.osekFileNumber}</span>
+          <span className="font-mono font-semibold">
+            {persona.business.osekFileNumber}
+          </span>
         </div>
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">שנת מס:</span>
@@ -131,7 +134,9 @@ function FileInfoTable({ persona }: { persona: Persona }) {
         </div>
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">שם:</span>
-          <span className="font-semibold">{persona.personal.lastName} {persona.personal.firstName}</span>
+          <span className="font-semibold">
+            {persona.personal.lastName} {persona.personal.firstName}
+          </span>
         </div>
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">ת.ז.:</span>
@@ -143,7 +148,9 @@ function FileInfoTable({ persona }: { persona: Persona }) {
         </div>
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">בנק:</span>
-          <span>{persona.bank.bankName} · סניף {persona.bank.branchCode}</span>
+          <span>
+            {persona.bank.bankName} · סניף {persona.bank.branchCode}
+          </span>
         </div>
         <div className="flex gap-1.5">
           <span className="text-stone-500 shrink-0">חשבון:</span>
@@ -154,238 +161,12 @@ function FileInfoTable({ persona }: { persona: Persona }) {
   );
 }
 
-/* ──────────────────────────────────────────────────────────
-   Section + Field rendering — gov.il cream header style
-   ────────────────────────────────────────────────────────── */
-function SectionCard({
-  section,
-  persona,
-}: {
-  section: FormSection;
-  persona: Persona;
-}) {
-  return (
-    <div className="border border-[#9bb5cf] overflow-hidden bg-white" style={{ borderRadius: 2 }}>
-      {/* Blue-grey section header, matching gov.il */}
-      <div className="bg-gradient-to-l from-[#dde7f0] to-[#cdddec] border-b border-[#9bb5cf] px-3 py-2 flex items-center gap-2">
-        {section.letter && (
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#1a3f6a] text-white text-[9px] font-black shrink-0">
-            {section.letter.replace(".", "")}
-          </span>
-        )}
-        <span className="text-[12px] font-bold text-[#1a3f6a] leading-tight">
-          {section.title}
-        </span>
-        {section.description && (
-          <span className="mr-auto text-[10px] text-[#3a5775]">{section.description}</span>
-        )}
-      </div>
-
-      {/* Column header row for two-filer layout */}
-      <div className="grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium" style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}>
-        <div>פרטים</div>
-        <div />
-        <div className="text-center">בן/בת הזוג הרשום</div>
-        <div />
-      </div>
-
-      <div className="divide-y divide-stone-100 bg-white">
-        {section.fields.map((f, i) => (
-          <FieldRow key={i} field={f} persona={persona} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function isNotApplicable(field: FormField, persona: Persona): boolean {
-  if (field.status !== "calculated" || !field.calculator) return false;
-  const result = calculate(field.calculator, persona);
-  return result?.value === false;
-}
-
-function FieldRow({
-  field,
-  persona,
-}: {
-  field: FormField;
-  persona: Persona;
-}) {
-  const isSkip = field.status === "skip";
-  const notApplicable = !isSkip && isNotApplicable(field, persona);
-  const isDimmed = isSkip || notApplicable;
-
-  const copyValue = !isDimmed ? rawCopyValue(field, persona) : null;
-
-  return (
-    <div
-      className={cn(
-        "grid items-center gap-2 px-3 py-1.5",
-        isDimmed && "opacity-40",
-      )}
-      style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}
-    >
-      {/* Label + hint */}
-      <div className="min-w-0">
-        <span
-          className={cn(
-            "text-[12px] text-stone-800 leading-snug",
-            isSkip && "line-through decoration-stone-400",
-          )}
-        >
-          {field.label}
-        </span>
-        {field.hint && !isDimmed && (
-          <p className="text-[10px] text-stone-400 mt-0.5 leading-tight">
-            {field.hint}
-          </p>
-        )}
-      </div>
-
-      {/* Inline copy — only when value exists */}
-      <div className="flex items-center justify-center">
-        {copyValue !== null && <InlineCopyButton value={copyValue} />}
-      </div>
-
-      {/* Value — looks like a form input box */}
-      <div className="flex items-center justify-center">
-        <FieldValue field={field} persona={persona} notApplicable={notApplicable} />
-      </div>
-
-      {/* Field code badge — red, on the left of the value column (RTL: left = code side) */}
-      <div className="flex items-center justify-end">
-        {field.code && (
-          <span className="inline-flex items-center justify-center min-w-[28px] px-1 py-0.5 rounded-sm text-[9px] font-bold bg-[#c62828] text-white font-mono">
-            {field.code}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Returns the string to paste into gov.il — must match exactly what's
- * displayed in the cell (Hebrew labels for enums, formatted dates, etc.),
- * or null if no real value to copy.
- */
-function rawCopyValue(field: FormField, persona: Persona): string | null {
-  if (field.status === "calculated" && field.calculator) {
-    const r = calculate(field.calculator, persona);
-    if (!r || r.value === false || r.value === null || r.value === undefined) return null;
-    if (typeof r.value === "number") {
-      if (r.value === 0) return null;
-      // Match the InteractiveValue display formatter
-      if (field.kind === "currency") return formatCurrency(r.value);
-      if (field.kind === "integer") return formatNumber(r.value);
-      return String(r.value);
-    }
-    if (typeof r.value === "boolean") return r.value ? "כן" : null;
-    return String(r.value);
-  }
-  if (field.status === "personal" && field.personaPath) {
-    const v = readPersonaPath(persona, field.personaPath);
-    if (v === null || v === undefined || v === "") return null;
-    // Reuse the same renderer as the visible cell — gives Hebrew labels for
-    // enums (single→"רווק/ה", patur→"פטור"), DD.MM.YYYY for dates, ₪ formatting
-    // for currency, etc.
-    const rendered = renderPersonalValue(v, field);
-    if (rendered === "—") return null;
-    return rendered;
-  }
-  return null;
-}
-
-function FieldValue({
-  field,
-  persona,
-  notApplicable,
-}: {
-  field: FormField;
-  persona: Persona;
-  notApplicable?: boolean;
-}) {
-  if (field.status === "calculated" && field.calculator) {
-    if (notApplicable) {
-      return (
-        <span className="text-[11px] text-stone-400 italic">לא רלוונטי</span>
-      );
-    }
-    const result = calculate(field.calculator, persona);
-    if (result && result.value !== false) {
-      const variant =
-        field.kind === "currency"
-          ? "currency"
-          : field.kind === "integer"
-            ? "integer"
-            : "raw";
-      return (
-        <InteractiveValue
-          result={result}
-          variant={variant}
-          fieldCode={field.code}
-        />
-      );
-    }
-  }
-
-  if (field.status === "personal" && field.personaPath) {
-    const v = readPersonaPath(persona, field.personaPath);
-    const hasValue = v != null && v !== "";
-    return (
-      <span
-        className={cn(
-          "inline-block border px-2 py-0.5 text-[12px] font-medium min-w-[100px] text-center",
-          hasValue
-            ? "border-[#a8b8c8] bg-[#eef3f8] text-[#1a3f6a]"
-            : "border-stone-300 bg-white text-stone-400",
-        )}
-      >
-        {renderPersonalValue(v, field)}
-      </span>
-    );
-  }
-
-  return <span className="text-xs text-stone-300">—</span>;
-}
-
-function renderPersonalValue(v: unknown, field: FormField): string {
-  if (v == null) return "—";
-  if (typeof v === "string") {
-    if (field.kind === "date") return formatDate(v);
-    if (v === "morshe") return "מורשה";
-    if (v === "patur") return "פטור";
-    if (v === "single-entry") return "חד-צדדית";
-    if (v === "double-entry") return "כפולה";
-    if (v === "manual") return "ידני";
-    if (v === "computerized") return "ממוחשב";
-    if (v === "single") return "רווק/ה";
-    if (v === "married") return "נשוי/אה";
-    if (v === "divorced") return "גרוש/ה";
-    if (v === "widowed") return "אלמן/ה";
-    if (v === "false" || v === "true") return v === "true" ? "כן" : "לא";
-    return v;
-  }
-  if (typeof v === "number") {
-    if (field.kind === "currency") return formatCurrency(v);
-    return formatNumber(v);
-  }
-  if (typeof v === "boolean") return v ? "כן" : "לא";
-  if (typeof v === "object") {
-    const o = v as Record<string, unknown>;
-    if ("street" in o) {
-      return `${o.street ?? ""} ${o.houseNumber ?? ""}, ${o.city ?? ""}`.trim();
-    }
-    return JSON.stringify(v);
-  }
-  return String(v);
-}
-
 function DisclaimerFooter() {
   return (
     <div className="bg-stone-50 border-t border-stone-200 px-4 py-2.5 text-[10px] text-stone-400 leading-relaxed text-center">
-      ✦ ערכים מחושבים ע״י countme מבוססים על נתוני הלקוח — המידע אינו מהווה ייעוץ מס.
-      האחריות על נכונות הפרטים המוגשים לרשות המסים חלה על הממלא/ת בלבד.
+      ✦ ערכים מחושבים ע״י countme מבוססים על נתוני הלקוח — המידע אינו מהווה
+      ייעוץ מס. האחריות על נכונות הפרטים המוגשים לרשות המסים חלה על הממלא/ת
+      בלבד.
     </div>
   );
 }

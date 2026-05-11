@@ -4,41 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadPersona } from "@/lib/setup-storage";
-import { Persona, readPersonaPath } from "@/lib/persona";
-import { form1301, FormField } from "@/lib/form-1301/schema";
-import { calculate } from "@/lib/calculators/index";
-import { CopyButton } from "@/components/form-1301/copy-button";
+import { Persona } from "@/lib/persona";
+import { GovilSections } from "@/components/form-1301/govil-section";
+import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES, PointerPosition } from "@/lib/form-1301/modules";
-import { formatFieldValue } from "@/lib/form-1301/format-value";
-import {
-  PLACEHOLDER_EITAN,
-  PLACEHOLDER_SCREENSHOT,
-} from "@/lib/form-1301/companion-assets";
-
-function buildFieldMap(
-  persona: Persona,
-): Map<string, { field: FormField; displayValue: string }> {
-  const map = new Map<string, { field: FormField; displayValue: string }>();
-  for (const tab of form1301) {
-    for (const section of tab.sections) {
-      for (const field of section.fields) {
-        if (!field.code) continue;
-        let displayValue: string;
-        if (field.calculator) {
-          const r = calculate(field.calculator, persona);
-          displayValue = r ? formatFieldValue(r.value, field) : "—";
-        } else if (field.personaPath) {
-          const raw = readPersonaPath(persona, field.personaPath);
-          displayValue = formatFieldValue(raw, field);
-        } else {
-          displayValue = "—";
-        }
-        map.set(field.code, { field, displayValue });
-      }
-    }
-  }
-  return map;
-}
+import { PLACEHOLDER_EITAN } from "@/lib/form-1301/companion-assets";
 
 /** Hook wrapping the Web Speech API for Hebrew narration. */
 function useHebrewSpeech() {
@@ -113,17 +83,10 @@ export default function CompanionPage() {
 
   const totalModules = FORM_MODULES.length;
   const currentModule = FORM_MODULES[moduleIndex];
-  const fieldMap = buildFieldMap(persona);
   const isLast = moduleIndex === totalModules - 1;
   const isFirst = moduleIndex === 0;
 
   const narration = currentModule.narration ?? currentModule.eitanIntro;
-
-  const moduleFields = currentModule.fieldCodes
-    .map((c) => fieldMap.get(c))
-    .filter(
-      (e): e is { field: FormField; displayValue: string } => e !== undefined,
-    );
 
   function goNext() {
     if (!isLast) setModuleIndex((i) => i + 1);
@@ -135,7 +98,7 @@ export default function CompanionPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <header className="bg-white border-b border-stone-200 sticky top-0 z-20">
-        <div className="mx-auto flex max-w-screen-sm items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-3">
           <Link href="/file" className="text-sm text-stone-600 hover:text-brand-navy">← מסלולים</Link>
           <div className="flex items-center gap-2">
             <span className="text-base">🎯</span>
@@ -144,7 +107,7 @@ export default function CompanionPage() {
           </div>
           <Link href="/demo" className="text-xs text-stone-400 hover:text-brand-navy">דלג ←</Link>
         </div>
-        <div className="mx-auto max-w-screen-sm px-4 pb-2">
+        <div className="mx-auto max-w-screen-md px-4 pb-2">
           <div className="flex gap-1 items-center">
             {FORM_MODULES.map((m, idx) => (
               <div key={m.id} className={["h-1.5 flex-1 rounded-full transition-colors", idx < moduleIndex ? "bg-success" : idx === moduleIndex ? "bg-brand-navy" : "bg-stone-200"].join(" ")} />
@@ -153,7 +116,7 @@ export default function CompanionPage() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-screen-sm px-4 py-5 space-y-4">
+      <main className="flex-1 mx-auto w-full max-w-screen-md px-4 py-5 space-y-4">
         <div className="rounded-2xl bg-white border border-stone-200 p-5 shadow-sm">
           <p className="text-xs uppercase tracking-wider text-brand-navy/60 mb-1">שלב {moduleIndex + 1} מתוך {totalModules}</p>
           <h1 className="font-display text-2xl font-bold text-brand-navy">{currentModule.title}</h1>
@@ -164,7 +127,6 @@ export default function CompanionPage() {
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success text-white font-bold text-sm shadow-sm">✦</div>
             <p className="text-sm text-stone-800 leading-relaxed flex-1">{currentModule.eitanIntro}</p>
           </div>
-          {/* Hebrew TTS chip — visible button below the bubble */}
           <button
             onClick={() => speak(narration)}
             disabled={!supported}
@@ -183,49 +145,36 @@ export default function CompanionPage() {
           </button>
         </div>
 
-        <div className="relative rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
-          <ScreenshotImage src={currentModule.screenshot} />
+        <div className="relative">
+          <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
+            <div className="bg-stone-50 px-4 py-2 border-b border-stone-200 flex items-center gap-2">
+              <span className="inline-block rounded-full bg-brand-navy w-2 h-2"></span>
+              <p className="text-xs font-semibold text-stone-600">הקטע הרלוונטי בטופס gov.il — לחצ/י על 📋 ליד כל ערך כדי להעתיק</p>
+            </div>
+            <div className="p-2">
+              {currentModule.fieldCodes.length > 0 ? (
+                <GovilSections persona={persona} fieldCodes={currentModule.fieldCodes} />
+              ) : (
+                <ContactInfoCard persona={persona} moduleId={currentModule.id} />
+              )}
+            </div>
+          </div>
           {currentModule.picture && (
             <EitanPointer src={currentModule.picture} position={currentModule.pointerPosition ?? "bottom-right"} />
           )}
         </div>
-
-        {moduleFields.length > 0 && (
-          <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden">
-            <div className="bg-stone-50 px-4 py-2 border-b border-stone-200">
-              <p className="text-xs font-semibold text-stone-500">ערכים להעתקה — הקש/י על 📋 לכל שדה</p>
-            </div>
-            <div className="divide-y divide-stone-100">
-              {moduleFields.map(({ field, displayValue }) => {
-                const showCopy = displayValue !== "—" && displayValue !== "0";
-                return (
-                  <div key={field.code} className="flex items-center gap-3 px-4 py-3">
-                    <span className="inline-block rounded bg-alert/10 px-1.5 py-0.5 text-xs font-mono text-alert shrink-0">{field.code}</span>
-                    <span className="flex-1 text-sm text-stone-700">{field.label}</span>
-                    <span className="font-semibold text-brand-navy text-sm tabular-nums" dir="ltr">{displayValue}</span>
-                    {showCopy && <CopyButton value={displayValue} />}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {moduleFields.length === 0 && (
-          <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-sm text-stone-500 text-center">לשלב הזה אין שדות מספריים — רק לעבור על הפרטים בצילום למעלה.</div>
-        )}
       </main>
 
       <nav className="sticky bottom-0 bg-white border-t border-stone-200 shadow-[0_-4px_16px_rgba(13,59,102,0.06)]">
-        <div className="mx-auto max-w-screen-sm px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} disabled={isFirst} className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">←</button>
+        <div className="mx-auto max-w-screen-md px-4 py-3 flex items-center gap-3">
+          <button onClick={goBack} disabled={isFirst} className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="חזרה לשלב הקודם">←</button>
           {isLast ? (
             <Link href="/" className="flex-1 text-center rounded-full bg-success px-6 py-3 text-sm font-bold text-white hover:bg-success/90 transition-colors shadow-sm">סיום — חזרה לדף הבית →</Link>
           ) : (
             <button onClick={goNext} className="flex-1 rounded-full bg-brand-navy px-6 py-3 text-sm font-bold text-white hover:bg-brand-navy/90 transition-colors shadow-sm">המשך →</button>
           )}
         </div>
-        <div className="mx-auto max-w-screen-sm px-4 pb-3 text-center">
+        <div className="mx-auto max-w-screen-md px-4 pb-3 text-center">
           <Link href="/demo" className="text-xs text-stone-400 hover:text-stone-700 underline-offset-2 hover:underline">דלג על הסיור</Link>
         </div>
       </nav>
@@ -233,37 +182,59 @@ export default function CompanionPage() {
   );
 }
 
-function ScreenshotImage({ src }: { src?: string }) {
-  const [actualSrc, setActualSrc] = useState(src ?? PLACEHOLDER_SCREENSHOT);
-  useEffect(() => {
-    setActualSrc(src ?? PLACEHOLDER_SCREENSHOT);
-  }, [src]);
+/**
+ * Fallback for modules with no field codes (currently only module 3 — contact info).
+ */
+function ContactInfoCard({ persona, moduleId }: { persona: Persona; moduleId: number }) {
+  const rows: { label: string; value: string | null | undefined }[] =
+    moduleId === 3
+      ? [
+          { label: "רחוב", value: persona.contact.mailingAddress.street },
+          { label: "מספר בית", value: persona.contact.mailingAddress.houseNumber },
+          { label: "עיר", value: persona.contact.mailingAddress.city },
+          { label: "מיקוד", value: persona.contact.mailingAddress.zipCode },
+          { label: "דואר אלקטרוני", value: persona.contact.email },
+          { label: "טלפון נייד", value: persona.contact.phoneMobile },
+        ]
+      : [];
+
+  if (rows.length === 0) {
+    return (<div className="px-4 py-4 text-sm text-stone-500 text-center">אין שדות מספריים לשלב זה — הפרטים מתועלים בשלבים אחרים.</div>);
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={actualSrc}
-      alt="צילום מסך של החלק הרלוונטי בטופס 1301"
-      className="w-full h-auto block"
-      onError={() => setActualSrc(PLACEHOLDER_SCREENSHOT)}
-    />
+    <div className="bg-[#f5f7fa] p-3 border border-stone-300" style={{ borderRadius: 2 }}>
+      <div className="border border-[#9bb5cf] overflow-hidden bg-white" style={{ borderRadius: 2 }}>
+        <div className="bg-gradient-to-l from-[#dde7f0] to-[#cdddec] border-b border-[#9bb5cf] px-3 py-2 flex items-center gap-2">
+          <span className="text-[12px] font-bold text-[#1a3f6a] leading-tight">פרטי התקשרות</span>
+        </div>
+        <div className="divide-y divide-stone-100">
+          {rows.map(({ label, value }) => (
+            <div key={label} className="grid items-center gap-2 px-3 py-1.5" style={{ gridTemplateColumns: "1fr 28px 140px" }}>
+              <span className="text-[12px] text-stone-800 leading-snug">{label}</span>
+              <div className="flex items-center justify-center">{value ? <InlineCopyButton value={value} /> : null}</div>
+              <span className={"inline-block border px-2 py-0.5 text-[12px] font-medium min-w-[100px] text-center " + (value ? "border-[#a8b8c8] bg-[#eef3f8] text-[#1a3f6a]" : "border-stone-300 bg-white text-stone-400")} dir="ltr">{value || "—"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
 function EitanPointer({ src, position }: { src: string; position: PointerPosition }) {
   const [actualSrc, setActualSrc] = useState(src);
-  useEffect(() => {
-    setActualSrc(src);
-  }, [src]);
+  useEffect(() => { setActualSrc(src); }, [src]);
   const positionClass = {
-    "top-right": "top-3 right-3",
-    "top-left": "top-3 left-3",
-    "bottom-right": "bottom-3 right-3",
-    "bottom-left": "bottom-3 left-3",
+    "top-right": "top-1 -right-2 sm:-right-12",
+    "top-left": "top-1 -left-2 sm:-left-12",
+    "bottom-right": "bottom-1 -right-2 sm:-right-12",
+    "bottom-left": "bottom-1 -left-2 sm:-left-12",
   }[position];
   return (
-    <div className={`absolute ${positionClass} pointer-events-none`}>
+    <div className={`absolute ${positionClass} pointer-events-none z-10`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={actualSrc} alt="איתן מצביע" className="h-32 sm:h-40 w-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.25)]" onError={() => setActualSrc(PLACEHOLDER_EITAN)} />
+      <img src={actualSrc} alt="איתן מצביע" className="h-20 sm:h-28 w-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.25)]" onError={() => setActualSrc(PLACEHOLDER_EITAN)} />
     </div>
   );
 }
