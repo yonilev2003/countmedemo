@@ -3,10 +3,13 @@
  * Pure functions — no React, no side effects.
  *
  * Strategy for monthly breakdown (in priority order):
- *   1. If persona.income.invoices[] has dates → group revenue by month from invoices.
- *      Same for expenses.
- *   2. Else if persona.income.monthlyBreakdown exists → use that.
+ *   1. If persona.income.monthlyBreakdown covers ≥ 6 months → use it (complete truth).
+ *   2. Else if persona.income.invoices[] has dated entries → group revenue by month.
+ *      Same for expenses. `hasDatedData` = true.
  *   3. Else distribute totals evenly across 12 months (demo fallback).
+ *
+ * Note: monthlyBreakdown takes priority over sample invoices because it represents
+ * the complete monthly summary (not just a few sampled line items).
  */
 
 import { Persona } from "@/lib/persona";
@@ -66,44 +69,49 @@ export function calculatePL(persona: Persona): PLSummary {
 
   let hasDatedData = false;
 
-  // Source 1: dated invoice line items
-  const invoices = persona.income.invoices ?? [];
-  if (invoices.length > 0) {
-    for (const inv of invoices) {
-      const m = monthFromIso(inv.date);
-      if (m !== null) {
-        revenueByMonth[m - 1] += inv.total;
-        hasDatedData = true;
-      }
-    }
-  }
-
-  // Source 1: dated expense line items
-  const expensesLines = persona.income.expenses ?? [];
-  if (expensesLines.length > 0) {
-    for (const exp of expensesLines) {
-      const m = monthFromIso(exp.date);
-      if (m !== null) {
-        expensesByMonth[m - 1] += exp.amount;
-        hasDatedData = true;
-      }
-    }
-  }
-
-  // Source 2: monthlyBreakdown (only fills in months that line items didn't cover)
+  // Source 1: monthlyBreakdown — authoritative when it covers ≥ 6 months
   const mb = persona.income.monthlyBreakdown ?? [];
-  for (const row of mb) {
-    const monthVal = row.month;
-    let m: number | null = null;
-    if (typeof monthVal === "number") m = monthVal;
-    else if (typeof monthVal === "string") m = monthFromIso(monthVal);
-    if (m === null) continue;
-    if (revenueByMonth[m - 1] === 0) revenueByMonth[m - 1] = row.revenue;
-    if (expensesByMonth[m - 1] === 0) expensesByMonth[m - 1] = row.expenses;
+  const mbCoveredMonths = new Set<number>();
+  if (mb.length >= 6) {
+    for (const row of mb) {
+      const monthVal = row.month;
+      let m: number | null = null;
+      if (typeof monthVal === "number") m = monthVal;
+      else if (typeof monthVal === "string") m = monthFromIso(monthVal);
+      if (m === null) continue;
+      revenueByMonth[m - 1] = row.revenue;
+      expensesByMonth[m - 1] = row.expenses;
+      mbCoveredMonths.add(m);
+    }
   }
 
-  // Source 3: even distribution (only for months still empty AND we have no dated source)
-  if (!hasDatedData && mb.length === 0) {
+  // Source 2: dated invoice/expense line items — only when monthlyBreakdown is sparse
+  const invoices = persona.income.invoices ?? [];
+  const expensesLines = persona.income.expenses ?? [];
+
+  if (mbCoveredMonths.size < 6) {
+    if (invoices.length > 0) {
+      for (const inv of invoices) {
+        const m = monthFromIso(inv.date);
+        if (m !== null) {
+          revenueByMonth[m - 1] += inv.total;
+          hasDatedData = true;
+        }
+      }
+    }
+    if (expensesLines.length > 0) {
+      for (const exp of expensesLines) {
+        const m = monthFromIso(exp.date);
+        if (m !== null) {
+          expensesByMonth[m - 1] += exp.amount;
+          hasDatedData = true;
+        }
+      }
+    }
+  }
+
+  // Source 3: even distribution (only if both sources above produced nothing)
+  if (!hasDatedData && mbCoveredMonths.size === 0) {
     const evenRev = Math.round(totalRevenue / 12);
     const evenExp = Math.round(totalExpenses / 12);
     for (let i = 0; i < 12; i++) {

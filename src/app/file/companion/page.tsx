@@ -56,6 +56,8 @@ function useHebrewSpeech() {
   return { speaking, supported, speak, stop };
 }
 
+const COMPANION_STEP_KEY = "countme_companion_step";
+
 export default function CompanionPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
@@ -70,6 +72,14 @@ export default function CompanionPage() {
       return;
     }
     setPersona(p);
+    // Restore saved step
+    try {
+      const saved = localStorage.getItem(COMPANION_STEP_KEY);
+      if (saved !== null) {
+        const idx = parseInt(saved, 10);
+        if (!isNaN(idx) && idx >= 0) setModuleIndex(idx);
+      }
+    } catch { /* ignore */ }
   }, [router]);
 
   useEffect(() => {
@@ -77,9 +87,19 @@ export default function CompanionPage() {
       stop();
       lastIndexRef.current = moduleIndex;
     }
+    // Persist step to localStorage
+    try { localStorage.setItem(COMPANION_STEP_KEY, String(moduleIndex)); } catch { /* ignore */ }
   }, [moduleIndex, stop]);
 
-  if (!persona) return null;
+  if (!persona) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-3 w-80 animate-pulse">
+        <div className="h-8 rounded-lg bg-stone-200 w-2/3 mx-auto" />
+        <div className="h-24 rounded-2xl bg-stone-200" />
+        <div className="h-40 rounded-2xl bg-stone-200" />
+      </div>
+    </div>
+  );
 
   const totalModules = FORM_MODULES.length;
   const currentModule = FORM_MODULES[moduleIndex];
@@ -180,7 +200,7 @@ export default function CompanionPage() {
         <div className="mx-auto max-w-screen-md px-4 py-3 flex items-center gap-3">
           <button onClick={goBack} disabled={isFirst} className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="חזרה לשלב הקודם">←</button>
           {isLast ? (
-            <Link href="/" className="flex-1 text-center rounded-full bg-success px-6 py-3 text-sm font-bold text-white hover:bg-success/90 transition-colors shadow-sm">סיום — חזרה לדף הבית →</Link>
+            <Link href="/" onClick={() => { try { localStorage.removeItem(COMPANION_STEP_KEY); } catch { /* ignore */ } }} className="flex-1 text-center rounded-full bg-success px-6 py-3 text-sm font-bold text-white hover:bg-success/90 transition-colors shadow-sm">סיום — חזרה לדף הבית →</Link>
           ) : (
             <button onClick={goNext} className="flex-1 rounded-full bg-brand-navy px-6 py-3 text-sm font-bold text-white hover:bg-brand-navy/90 transition-colors shadow-sm">המשך →</button>
           )}

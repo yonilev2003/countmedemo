@@ -68,7 +68,17 @@ export default function DashboardPage() {
     setPL(calculatePL(p));
   }, [router]);
 
-  if (!persona || !pl) return null;
+  if (!persona || !pl) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-4 w-full max-w-screen-xl px-6 animate-pulse">
+        <div className="h-8 rounded-lg bg-stone-200 w-64" />
+        <div className="grid grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => <div key={i} className="h-20 rounded-xl bg-stone-200" />)}
+        </div>
+        <div className="h-64 rounded-2xl bg-stone-200" />
+      </div>
+    </div>
+  );
 
   const filteredMonthly: MonthlyPL[] =
     filter.kind === "year"

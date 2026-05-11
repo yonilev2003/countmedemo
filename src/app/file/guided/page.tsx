@@ -49,7 +49,16 @@ export default function GuidedPage() {
     setPersona(p);
   }, [router]);
 
-  if (!persona) return null;
+  if (!persona) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-3 w-96 animate-pulse">
+        <div className="h-6 rounded-lg bg-stone-200 w-1/2 mx-auto" />
+        <div className="h-16 rounded-2xl bg-stone-200" />
+        <div className="h-32 rounded-2xl bg-stone-200" />
+        <div className="h-10 rounded-xl bg-stone-200 w-1/3 mr-auto" />
+      </div>
+    </div>
+  );
 
   const totalModules = FORM_MODULES.length;
   const currentModule = FORM_MODULES[moduleIndex];
