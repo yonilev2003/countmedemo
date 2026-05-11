@@ -21,7 +21,16 @@ export default function FilePage() {
     setHydrated(true);
   }, [router]);
 
-  if (!hydrated) return null;
+  if (!hydrated) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-4 w-full max-w-screen-md px-6 animate-pulse">
+        <div className="h-8 rounded-lg bg-stone-200 w-48 mx-auto" />
+        <div className="grid grid-cols-3 gap-4">
+          {[0,1,2].map(i => <div key={i} className="h-48 rounded-2xl bg-stone-200" />)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">

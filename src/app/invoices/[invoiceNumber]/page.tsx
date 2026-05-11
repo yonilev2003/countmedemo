@@ -22,7 +22,14 @@ export default function InvoicePrintPage() {
     setInvoice(inv);
   }, [params.invoiceNumber, router]);
 
-  if (!persona || !invoice) return null;
+  if (!persona || !invoice) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-3 w-96 animate-pulse">
+        <div className="h-8 rounded-lg bg-stone-200 w-1/2 mx-auto" />
+        <div className="h-96 rounded-2xl bg-stone-200" />
+      </div>
+    </div>
+  );
 
   const isPatur = persona.business.osekType === "patur";
   // Default legacy invoices to combined "tax-invoice-receipt" (305 — most common)

@@ -17,7 +17,14 @@ export default function InvoicesPage() {
     setPersona(p);
   }, [router]);
 
-  if (!persona) return null;
+  if (!persona) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <div className="space-y-3 w-96 animate-pulse">
+        <div className="h-6 rounded-lg bg-stone-200 w-1/2 mx-auto" />
+        <div className="h-64 rounded-2xl bg-stone-200" />
+      </div>
+    </div>
+  );
 
   const invoices: InvoiceLine[] = [...(persona.income.invoices ?? [])].reverse();
 
