@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" width="600" height="360">
+  <rect width="600" height="360" fill="#f5f7fa"/>
+  <rect x="0" y="0" width="600" height="40" fill="#1a3f6a"/>
+  <text x="20" y="26" font-family="sans-serif" font-size="14" font-weight="bold" fill="white">gov.il</text>
+  <text x="580" y="26" text-anchor="end" font-family="sans-serif" font-size="11" fill="#bfd4ee">שנת מס 2024</text>
+  <rect x="0" y="40" width="600" height="36" fill="#1e4d8c"/>
+  <text x="300" y="63" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="white">שידור דו״ח מס הכנסה ליחיד טופס 1301</text>
+  <g transform="translate(40, 110)">
+    <rect width="520" height="34" rx="2" fill="#cdddec" stroke="#9bb5cf"/>
+    <text x="260" y="22" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#1a3f6a">קטע מטופס 1301 — יוצג כאן צילום מסך</text>
+    <rect y="40" width="520" height="60" fill="white" stroke="#bdcde0"/>
+    <rect y="110" width="520" height="60" fill="white" stroke="#bdcde0"/>
+    <rect y="180" width="520" height="60" fill="white" stroke="#bdcde0"/>
+    <text x="510" y="62" text-anchor="end" font-family="monospace" font-size="11" fill="#6a7a8c">— · —</text>
+    <text x="510" y="132" text-anchor="end" font-family="monospace" font-size="11" fill="#6a7a8c">— · —</text>
+    <text x="510" y="202" text-anchor="end" font-family="monospace" font-size="11" fill="#6a7a8c">— · —</text>
+  </g>
+  <text x="300" y="340" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#8a99ad">העלה צילום מסך אמיתי ל-public/govil-screenshots/screenshotN.png</text>
+</svg>

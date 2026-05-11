@@ -53,17 +53,17 @@ export default function FilePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Expert View — points to /demo (gov.il-faithful preview with copy buttons + chat) */}
           <Link
             href="/demo"
-            className="group rounded-2xl border-2 border-brand-navy/20 bg-white p-6 shadow-sm hover:border-brand-navy/50 hover:shadow-brand transition-all"
+            className="group rounded-2xl border-2 border-brand-navy/20 bg-white p-6 shadow-sm hover:border-brand-navy/50 hover:shadow-brand transition-all flex flex-col"
           >
             <div className="mb-3 text-3xl">⚡</div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
               מסלול מהיר
             </h2>
-            <p className="text-sm text-stone-600 leading-relaxed">
+            <p className="text-sm text-stone-600 leading-relaxed flex-1">
               הטופס המוכר של gov.il עם כל הערכים מחושבים, כפתור העתקה ליד כל שדה,
               וצ׳אט עם איתן בצד. מתאים לאלה שיודעים מה הם עושים.
             </p>
@@ -72,21 +72,39 @@ export default function FilePage() {
             </div>
           </Link>
 
-          {/* Guided */}
+          {/* Guided — 12-step conversation */}
           <Link
             href="/file/guided"
-            className="group rounded-2xl border-2 border-success/30 bg-white p-6 shadow-sm hover:border-success/60 hover:shadow-brand transition-all"
+            className="group rounded-2xl border-2 border-success/30 bg-white p-6 shadow-sm hover:border-success/60 hover:shadow-brand transition-all flex flex-col"
           >
             <div className="mb-3 text-3xl">✦</div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
               מסלול מודרך עם איתן
             </h2>
-            <p className="text-sm text-stone-600 leading-relaxed">
-              12 שלבים, שדה אחר שדה, עם הסבר של איתן בכל נקודה. מומלץ לביצוע
-              ראשון.
+            <p className="text-sm text-stone-600 leading-relaxed flex-1">
+              12 שלבים עם הסבר של איתן בכל נקודה, עריכה inline של פרטים, וסנכרון
+              אוטומטי. מומלץ לביצוע ראשון.
             </p>
             <div className="mt-4 text-sm font-medium text-success group-hover:underline">
               התחל/י את המסלול →
+            </div>
+          </Link>
+
+          {/* Companion — 12-step walkthrough with screenshots, Eitan pointer image, voice */}
+          <Link
+            href="/file/companion"
+            className="group rounded-2xl border-2 border-alert/30 bg-white p-6 shadow-sm hover:border-alert/60 hover:shadow-brand transition-all flex flex-col"
+          >
+            <div className="mb-3 text-3xl">🤝</div>
+            <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
+              ליווי צמוד
+            </h2>
+            <p className="text-sm text-stone-600 leading-relaxed flex-1">
+              לכל שלב — צילום מסך של gov.il, איתן מצביע על המקום הנכון, הקראה
+              קולית של ההסבר, וכפתור העתק/הדבק. הכי מתאים לפעם הראשונה.
+            </p>
+            <div className="mt-4 text-sm font-medium text-alert group-hover:underline">
+              בוא/י נצא לדרך →
             </div>
           </Link>
         </div>
