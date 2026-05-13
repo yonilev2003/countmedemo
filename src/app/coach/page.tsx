@@ -21,11 +21,10 @@ export default function CoachPage() {
       <header className="bg-white border-b border-stone-200">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-xl font-bold text-white shadow-sm">
-              c
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
             <div>
-              <div className="text-base font-bold leading-tight">countme</div>
+              <div className="text-base font-bold leading-tight">CountMe</div>
               <div className="text-[11px] text-stone-500 leading-tight">
                 איתן · ייעוץ כספי אישי
               </div>

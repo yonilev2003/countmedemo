@@ -121,10 +121,9 @@ export default function DashboardPage() {
       <header className="bg-white border-b border-stone-200">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-xl font-bold text-white shadow-sm">
-              c
-            </div>
-            <span className="text-lg font-bold">countme · דשבורד</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
+            <span className="text-lg font-bold">CountMe · דשבורד</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
