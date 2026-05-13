@@ -1,19 +1,19 @@
 /**
  * Companion track — Eitan character poses.
  *
- * JPEGs live at /public/eitan/companion/picture{1-5}.jpg.
+ * Transparent-background PNGs live at /public/eitan/companion/picture{1-5}.png.
  * Only 5 distinct poses are needed for all 12 modules; reuse is intentional.
  *
- *   picture1.jpg  → מסביר — ידיים יחד (calm explainer)
- *   picture2.jpg  → אגודל למעלה — חיובי (encouragement / "we did it")
- *   picture3.jpg  → מהורהר — יד על הסנטר (let's think about this)
- *   picture4.jpg  → מצביע עם שתי ידיים — דגש (emphasizes critical info)
- *   picture5.jpg  → מצביע עם יד אחת — הכוונה (points at the field)
+ *   picture1.png  → מסביר — ידיים יחד (calm explainer)
+ *   picture2.png  → אגודל למעלה — חיובי (encouragement / "we did it")
+ *   picture3.png  → מהורהר — יד על הסנטר (let's think about this)
+ *   picture4.png  → מצביע עם שתי ידיים — דגש (emphasizes critical info)
+ *   picture5.png  → מצביע עם יד אחת — הכוונה (points at the field)
  *
  * Missing files automatically fall back to the placeholder SVG in the repo.
  */
 
-const path = (n: string) => `/eitan/companion/${n}.jpg`;
+const path = (n: string) => `/eitan/companion/${n}.png`;
 
 // Semantic pose aliases — use these in modules.ts to pick a pose by intent.
 export const POSE_EXPLAINER = path("picture1");
