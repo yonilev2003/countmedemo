@@ -10,10 +10,9 @@ export default function AboutPage() {
       <header className="bg-white border-b border-stone-200">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-navy to-brand-navy/70 text-lg font-bold text-white shadow-sm">
-              c
-            </div>
-            <span className="text-base font-bold tracking-tight">countme</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/countme-logo.svg" alt="CountMe" className="h-9 w-9" />
+            <span className="text-base font-bold tracking-tight">CountMe</span>
           </Link>
           <Link
             href="/"

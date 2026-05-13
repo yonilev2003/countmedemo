@@ -42,14 +42,12 @@ export default function DemoPage() {
       <header className="bg-white border-b border-stone-200">
         <div className="mx-auto flex max-w-screen-2xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-xl font-bold text-white shadow-sm"
-            >
-              c
+            <Link href="/" className="flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
             </Link>
             <div>
-              <div className="text-base font-bold leading-tight">countme</div>
+              <div className="text-base font-bold leading-tight">CountMe</div>
               <div className="text-[11px] text-stone-500 leading-tight">
                 המלווה לדו״ח שלך · גרסת דמו
               </div>
