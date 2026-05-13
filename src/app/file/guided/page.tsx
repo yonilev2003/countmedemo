@@ -92,8 +92,9 @@ export default function GuidedPage() {
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
           <Link href="/file" className="flex items-center gap-2 text-sm text-stone-600 hover:text-brand-navy">← בחירת מסלול</Link>
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white">c</div>
-            <span className="font-bold">countme · מסלול מודרך</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/countme-logo.svg" alt="CountMe" className="h-8 w-8" />
+            <span className="font-bold">CountMe · מסלול מודרך</span>
           </div>
           <Link href="/demo" className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20">טופס Gov.il ←</Link>
         </div>

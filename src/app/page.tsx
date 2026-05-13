@@ -6,11 +6,10 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-navy to-brand-navy/70 text-lg font-bold text-white shadow-sm">
-              c
-            </div>
-            <span className="text-base font-bold tracking-tight">countme</span>
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/countme-logo.svg" alt="CountMe" className="h-9 w-9" />
+            <span className="text-base font-bold tracking-tight">CountMe</span>
           </div>
           <nav className="hidden items-center gap-1 sm:flex">
             <NavLink href="/dashboard">דשבורד</NavLink>
@@ -229,8 +228,9 @@ export default function Home() {
         <div className="mx-auto max-w-screen-xl px-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-navy text-sm font-bold text-white">c</div>
-              <span className="text-sm font-medium">countme</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/countme-logo.svg" alt="CountMe" className="h-7 w-7" />
+              <span className="text-sm font-medium">CountMe</span>
               <span className="text-xs text-stone-400">· לעצמאים בישראל</span>
             </div>
             <div className="flex gap-4 text-xs text-stone-400">
