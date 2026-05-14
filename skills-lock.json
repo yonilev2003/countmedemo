@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "israeli-financial-reports": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "computedHash": "13fb3d57fbf5c1602ba45857b9dae6092af7b6e2162f549cbed9a41ba114dda8"
+    }
+  }
+}
