@@ -1384,9 +1384,9 @@ function OsekZeirWarning({
   if (!checked) return null;
   if (totalRevenue <= 0 || totalExpenses <= 0) return null;
 
+  // Use the shared algorithm (kept locally inline to avoid pulling persona shape into setup state)
   const ratio = totalExpenses / totalRevenue;
   if (ratio <= 0.3) return null;
-
   const lostDeduction = Math.round(totalExpenses - totalRevenue * 0.3);
 
   return (
