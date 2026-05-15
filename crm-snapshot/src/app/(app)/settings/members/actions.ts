@@ -16,7 +16,10 @@ export async function inviteMemberAction(args: {
   const supabase = await createClient();
 
   const email = args.email.trim().toLowerCase();
-  if (!email || !email.includes("@")) return { ok: false, error: "אימייל לא תקין" };
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    return { ok: false, error: "אימייל לא תקין" };
+  }
 
   // Verify the user is admin/owner of the workspace
   const { data: me } = await supabase
@@ -28,6 +31,17 @@ export async function inviteMemberAction(args: {
 
   if (!me || (me.role !== "owner" && me.role !== "admin")) {
     return { ok: false, error: "אין לך הרשאה" };
+  }
+
+  // Per-workspace rate-limit: max 10 invitations per hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentCount } = await supabase
+    .from("invitations")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", args.workspaceId)
+    .gte("created_at", oneHourAgo);
+  if ((recentCount ?? 0) >= 10) {
+    return { ok: false, error: "יותר מדי הזמנות בשעה האחרונה — נסה שוב מאוחר יותר" };
   }
 
   // Already a member?

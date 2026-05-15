@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseGanttFile } from "@/lib/gantt-parser";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 
 export async function POST(request: Request) {
@@ -61,9 +64,10 @@ export async function POST(request: Request) {
   });
 
   if (!outcome.ok) {
+    console.error("Gantt parse failed", { error: outcome.error, hint: outcome.hint });
     return NextResponse.json(
       {
-        error: outcome.error,
+        error: "לא הצלחנו לפענח את הקובץ",
         hint: outcome.hint,
         sourceUrl: signedUrl?.signedUrl ?? null,
       },
@@ -81,14 +85,15 @@ export async function POST(request: Request) {
       raw_ai_response: outcome.result.raw,
       parsed_tasks: outcome.result.tasks,
       uncertainties: outcome.result.uncertainties,
-      status: outcome.result.uncertainties.length > 0 ? "parsed" : "parsed",
+      status: outcome.result.uncertainties.length > 0 ? "parsed" : "imported",
       uploaded_by: user.id,
     })
     .select("*")
     .single();
   if (importErr || !importRow) {
+    console.error("Gantt import insert failed", importErr);
     return NextResponse.json(
-      { error: importErr?.message ?? "DB error" },
+      { error: "שמירת היבוא נכשלה" },
       { status: 500 },
     );
   }

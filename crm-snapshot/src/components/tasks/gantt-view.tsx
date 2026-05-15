@@ -25,10 +25,12 @@ export function GanttView({
   tasks,
   projectColor,
   projectId,
+  dependenciesByTaskId,
 }: {
   tasks: TaskWithAssignee[];
   projectColor: string;
   projectId: string;
+  dependenciesByTaskId?: Record<string, string[]>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const ganttRef = useRef<unknown>(null);
@@ -51,13 +53,16 @@ export function GanttView({
       // Clear container
       containerRef.current.innerHTML = "";
 
+      const validIds = new Set(validTasks.map((t) => t.id));
       const ganttTasks = validTasks.map((t) => ({
         id: t.id,
         name: t.title,
         start: t.start_date as string,
         end: t.end_date as string,
         progress: t.progress,
-        dependencies: "",
+        dependencies: (dependenciesByTaskId?.[t.id] ?? [])
+          .filter((depId) => validIds.has(depId))
+          .join(","),
         custom_class:
           t.status === "done" ? "gantt-bar-done"
             : t.status === "blocked" ? "gantt-bar-blocked"
@@ -95,7 +100,7 @@ export function GanttView({
     return () => {
       cancelled = true;
     };
-  }, [validTasks, mode, projectId, router, toast]);
+  }, [validTasks, mode, projectId, router, toast, dependenciesByTaskId]);
 
   if (tasks.length === 0) {
     return (

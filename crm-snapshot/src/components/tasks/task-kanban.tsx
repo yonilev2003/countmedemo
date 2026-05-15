@@ -33,6 +33,8 @@ export function TaskKanban({
   const router = useRouter();
   const [, startTransition] = useTransition();
 
+  const titleById = new Map(tasks.map((t) => [t.id, t.title]));
+
   function moveTo(taskId: string, status: TaskStatus) {
     startTransition(async () => {
       await updateTaskAction({ id: taskId, status });
@@ -80,6 +82,11 @@ export function TaskKanban({
                     )}
                   >
                     <div className="text-sm font-medium text-surface-900 mb-1">{t.title}</div>
+                    {t.parent_task_id && titleById.has(t.parent_task_id) && (
+                      <div className="text-xs text-surface-400 mb-1 truncate">
+                        ↳ {titleById.get(t.parent_task_id)}
+                      </div>
+                    )}
                     {(t.start_date || t.end_date) && (
                       <div className="text-xs text-surface-500 mb-2">
                         {t.end_date ? `עד ${formatDate(t.end_date)}` : t.start_date ? `מ-${formatDate(t.start_date)}` : ""}
@@ -117,6 +124,7 @@ export function TaskKanban({
           projectId={projectId}
           task={editing}
           members={members}
+          allTasks={tasks.map((t) => ({ id: t.id, title: t.title, parent_task_id: t.parent_task_id }))}
         />
       )}
     </>

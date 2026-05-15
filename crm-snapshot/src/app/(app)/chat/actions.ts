@@ -5,17 +5,21 @@ import { requireSession, requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import type { MessageAttachment } from "@/types/db";
 
 export async function sendMessageAction(args: {
   channelId: string;
   text: string;
+  attachments?: MessageAttachment[];
 }): Promise<{ ok: true; messageId: string } | { ok: false; error: string }> {
   const user = await requireUser();
   const supabase = await createClient();
 
   const text = args.text.trim();
-  if (!text) return { ok: false, error: "הודעה ריקה" };
+  const attachments = args.attachments ?? [];
+  if (!text && attachments.length === 0) return { ok: false, error: "הודעה ריקה" };
   if (text.length > 8000) return { ok: false, error: "הודעה ארוכה מדי" };
+  if (attachments.length > 10) return { ok: false, error: "יותר מדי קבצים מצורפים" };
 
   const { data, error } = await supabase
     .from("messages")
@@ -23,6 +27,7 @@ export async function sendMessageAction(args: {
       channel_id: args.channelId,
       user_id: user.id,
       content: { text },
+      attachments,
     })
     .select("id")
     .single();

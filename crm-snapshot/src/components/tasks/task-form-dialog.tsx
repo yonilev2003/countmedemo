@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Task, TaskStatus } from "@/types/db";
 import { Dialog, DialogFooter } from "@/components/ui/dialog";
@@ -8,9 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea, Field } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { upsertTaskAction, deleteTaskAction } from "@/app/(app)/tasks/actions";
+import {
+  upsertTaskAction,
+  deleteTaskAction,
+  setTaskDependenciesAction,
+} from "@/app/(app)/tasks/actions";
+import { createClient } from "@/lib/supabase/client";
+import { TaskDependencyPicker } from "./task-dependency-picker";
 
 type Member = { id: string; full_name: string | null; email: string; avatar_url: string | null };
+type TaskPick = { id: string; title: string; parent_task_id: string | null };
 
 const STATUSES: { value: TaskStatus; label: string }[] = [
   { value: "todo", label: "לעשות" },
@@ -26,17 +33,22 @@ export function TaskFormDialog({
   projectId,
   task,
   members,
+  allTasks,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
   task?: Task;
   members: Member[];
+  allTasks?: TaskPick[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [delPending, startDelete] = useTransition();
+  const [depsOpen, setDepsOpen] = useState(false);
+  const [pendingDeps, setPendingDeps] = useState<string[] | null>(null);
+  const [existingDeps, setExistingDeps] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     title: task?.title ?? "",
@@ -46,7 +58,48 @@ export function TaskFormDialog({
     end_date: task?.end_date ?? "",
     status: task?.status ?? ("todo" as TaskStatus),
     progress: task?.progress ?? 0,
+    parent_task_id: task?.parent_task_id ?? "",
   });
+
+  // Load existing dependencies for this task
+  useEffect(() => {
+    if (!open || !task?.id) {
+      setExistingDeps([]);
+      setPendingDeps(null);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("task_dependencies")
+      .select("depends_on_task_id")
+      .eq("task_id", task.id)
+      .then(({ data }) => {
+        const deps = (data ?? []).map((d) => (d as { depends_on_task_id: string }).depends_on_task_id);
+        setExistingDeps(deps);
+      });
+  }, [open, task?.id]);
+
+  // Parent candidates: any task in project except self + descendants
+  const parentCandidates: TaskPick[] = (() => {
+    if (!allTasks) return [];
+    if (!task) return allTasks;
+    // Block self and descendants (would create cycle)
+    const blocked = new Set<string>([task.id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const t of allTasks) {
+        if (t.parent_task_id && blocked.has(t.parent_task_id) && !blocked.has(t.id)) {
+          blocked.add(t.id);
+          changed = true;
+        }
+      }
+    }
+    return allTasks.filter((t) => !blocked.has(t.id));
+  })();
+
+  const depCandidates: TaskPick[] = (allTasks ?? []).filter((t) => t.id !== task?.id);
+  const currentDeps = pendingDeps ?? existingDeps;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,10 +114,23 @@ export function TaskFormDialog({
         end_date: form.end_date || null,
         status: form.status,
         progress: Number(form.progress) || 0,
+        parent_task_id: form.parent_task_id || null,
       });
       if (!r.ok) {
         toast({ title: "שגיאה", description: r.error, tone: "danger" });
         return;
+      }
+      // Save dependencies if changed
+      if (pendingDeps && task?.id) {
+        const depResult = await setTaskDependenciesAction({
+          taskId: task.id,
+          dependsOn: pendingDeps,
+          projectId,
+        });
+        if (!depResult.ok) {
+          toast({ title: "שגיאה בשמירת תלויות", description: depResult.error, tone: "danger" });
+          return;
+        }
       }
       toast({ title: task ? "עודכן" : "נוצר", tone: "success" });
       onOpenChange(false);
@@ -144,6 +210,21 @@ export function TaskFormDialog({
               ))}
             </Select>
           </Field>
+          {allTasks && parentCandidates.length > 0 && (
+            <Field label="משימת-אב">
+              <Select
+                value={form.parent_task_id}
+                onChange={(e) => setForm({ ...form, parent_task_id: e.target.value })}
+              >
+                <option value="">— ללא —</option>
+                {parentCandidates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
         </div>
         <Field label={`התקדמות: ${form.progress}%`}>
           <input
@@ -156,6 +237,16 @@ export function TaskFormDialog({
             className="w-full"
           />
         </Field>
+        {task && depCandidates.length > 0 && (
+          <div className="flex items-center justify-between rounded-md border border-surface-200 bg-surface-50 px-3 py-2">
+            <div className="text-sm text-surface-700">
+              תלויה ב-{currentDeps.length} משימות
+            </div>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setDepsOpen(true)}>
+              ערוך תלויות
+            </Button>
+          </div>
+        )}
         <DialogFooter>
           {task && (
             <Button type="button" variant="ghost" onClick={remove} loading={delPending} className="text-danger me-auto">
@@ -170,6 +261,15 @@ export function TaskFormDialog({
           </Button>
         </DialogFooter>
       </form>
+      {task && (
+        <TaskDependencyPicker
+          open={depsOpen}
+          onOpenChange={setDepsOpen}
+          candidates={depCandidates}
+          initialSelected={currentDeps}
+          onSave={(sel) => setPendingDeps(sel)}
+        />
+      )}
     </Dialog>
   );
 }

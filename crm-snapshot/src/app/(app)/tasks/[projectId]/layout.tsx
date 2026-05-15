@@ -37,6 +37,14 @@ export default async function ProjectLayout({
     return mm.profile;
   });
 
+  // Tasks for parent/dependency pickers in the New Task dialog
+  const { data: tasksForPickers } = await supabase
+    .from("tasks")
+    .select("id, title, parent_task_id")
+    .eq("project_id", project.id)
+    .order("position");
+  const taskPicks = (tasksForPickers ?? []) as Array<{ id: string; title: string; parent_task_id: string | null }>;
+
   return (
     <div className="flex h-full flex-col">
       <header className="border-b border-surface-200 bg-white">
@@ -61,7 +69,7 @@ export default async function ProjectLayout({
             </div>
             <div className="flex items-center gap-2">
               <GanttUploadButton projectId={project.id} />
-              <NewTaskButton projectId={project.id} members={memberList} />
+              <NewTaskButton projectId={project.id} members={memberList} allTasks={taskPicks} />
             </div>
           </div>
           <ProjectViewTabs projectId={project.id} />

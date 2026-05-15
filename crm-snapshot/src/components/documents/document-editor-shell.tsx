@@ -85,6 +85,13 @@ export function DocumentEditorShell({
             {status === "saving" ? "שומר..." : status === "saved" ? `נשמר ${relativeTime(savedAt)}` : status === "error" ? "שגיאה בשמירה" : `עודכן ${relativeTime(savedAt)}`}
           </span>
           <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.open(`/api/documents/${documentId}/pdf`, "_blank")}
+          >
+            ייצא PDF
+          </Button>
+          <Button
             variant="ghost"
             size="icon"
             onClick={() => setConfirmDelete(true)}

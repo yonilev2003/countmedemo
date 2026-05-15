@@ -1,7 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 import { env } from "@/lib/env";
 import type { ParseOutcome } from "./types";
-import type { ParsedGanttTask, GanttUncertainty } from "@/types/db";
+import type { GanttUncertainty, ParsedGanttTask } from "@/types/db";
+
+const ParsedTaskSchema = z.object({
+  title: z.string(),
+  start_date: z.string().nullable().optional(),
+  end_date: z.string().nullable().optional(),
+  assignee_hint: z.string().optional(),
+  progress: z.number().int().min(0).max(100).optional(),
+  confidence: z.number().min(0).max(1),
+  uncertainties: z.array(z.string()).optional(),
+});
+
+const ParsedGanttSchema = z.object({
+  tasks: z.array(ParsedTaskSchema),
+  notes: z.string().optional(),
+});
 
 const SYSTEM = `You are a Gantt chart parser. The user uploads a screenshot, photo, or PDF page of a project plan or Gantt chart (could be MS Project, Asana, Monday, hand-drawn, anything). Extract the tasks into structured JSON.
 
@@ -49,8 +65,8 @@ export async function parseGanttImageOrPdf(args: {
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 4096,
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
       system: SYSTEM,
       messages: [
         {
@@ -84,10 +100,30 @@ export async function parseGanttImageOrPdf(args: {
       return { ok: false, error: "המודל החזיר טקסט שאינו JSON" };
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as { tasks: ParsedGanttTask[]; notes?: string };
+    let rawParsed: unknown;
+    try {
+      rawParsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      return { ok: false, error: "פלט המודל לא JSON תקין" };
+    }
+    const validation = ParsedGanttSchema.safeParse(rawParsed);
+    if (!validation.success) {
+      console.error("Gantt schema validation failed", validation.error);
+      return { ok: false, error: "פלט המודל לא תואם סכמה" };
+    }
+    const tasks: ParsedGanttTask[] = validation.data.tasks.map((t) => ({
+      title: t.title,
+      start_date: t.start_date ?? null,
+      end_date: t.end_date ?? null,
+      assignee_hint: t.assignee_hint,
+      progress: t.progress,
+      confidence: t.confidence,
+      uncertainties: t.uncertainties,
+    }));
+    const parsedNotes = validation.data.notes;
 
     const uncertainties: GanttUncertainty[] = [];
-    parsed.tasks.forEach((t, i) => {
+    tasks.forEach((t, i) => {
       if (!t.start_date) {
         uncertainties.push({ task_index: i, field: "start_date", reason: "המודל לא הצליח לקרוא תאריך התחלה" });
       }
@@ -104,10 +140,10 @@ export async function parseGanttImageOrPdf(args: {
       ok: true,
       result: {
         format: args.format,
-        tasks: parsed.tasks,
+        tasks,
         uncertainties,
-        notes: parsed.notes,
-        raw: { model: "claude-haiku-4-5", outputLength: textBlock.text.length },
+        notes: parsedNotes,
+        raw: { model: "claude-sonnet-4-6", outputLength: textBlock.text.length },
       },
     };
   } catch (err) {

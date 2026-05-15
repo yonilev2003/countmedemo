@@ -45,6 +45,19 @@ export default async function ChannelPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Workspace members for @mention highlighting
+  const { data: memberRows } = await supabase
+    .from("workspace_members")
+    .select("user_id, profile:profiles(id, full_name, email)")
+    .eq("workspace_id", session.workspace.id);
+  const workspaceMembers = ((memberRows ?? []) as unknown as Array<{
+    profile: { id: string; full_name: string | null; email: string };
+  }>).map((m) => ({
+    id: m.profile.id,
+    full_name: m.profile.full_name,
+    email: m.profile.email,
+  }));
+
   return (
     <>
       <ChannelHeader
@@ -56,8 +69,13 @@ export default async function ChannelPage({
         channelId={channelId}
         currentUserId={session.user.id}
         initialMessages={(initialMessages ?? []).reverse()}
+        members={workspaceMembers}
       />
-      <MessageComposer channelId={channelId} placeholder={`כתוב הודעה ל-${displayName}...`} />
+      <MessageComposer
+        channelId={channelId}
+        workspaceId={session.workspace.id}
+        placeholder={`כתוב הודעה ל-${displayName}...`}
+      />
     </>
   );
 }

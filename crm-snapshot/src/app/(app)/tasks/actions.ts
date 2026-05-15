@@ -41,10 +41,15 @@ export async function upsertTaskAction(args: {
   end_date: string | null;
   status: TaskStatus;
   progress: number;
+  parent_task_id?: string | null;
 }): Promise<{ ok: true; taskId: string } | { ok: false; error: string }> {
   const user = await requireUser();
   const supabase = await createClient();
   if (!args.title.trim()) return { ok: false, error: "כותרת חובה" };
+  // Self-parent guard
+  if (args.id && args.parent_task_id === args.id) {
+    return { ok: false, error: "משימה לא יכולה להיות אב של עצמה" };
+  }
 
   if (args.id) {
     const { data, error } = await supabase
@@ -57,6 +62,7 @@ export async function upsertTaskAction(args: {
         end_date: args.end_date,
         status: args.status,
         progress: args.progress,
+        parent_task_id: args.parent_task_id ?? null,
       })
       .eq("id", args.id)
       .select("id")
@@ -77,6 +83,7 @@ export async function upsertTaskAction(args: {
       end_date: args.end_date,
       status: args.status,
       progress: args.progress,
+      parent_task_id: args.parent_task_id ?? null,
       created_by: user.id,
     })
     .select("id")
@@ -84,6 +91,34 @@ export async function upsertTaskAction(args: {
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/tasks/${args.projectId}`, "layout");
   return { ok: true, taskId: data.id };
+}
+
+export async function setTaskDependenciesAction(args: {
+  taskId: string;
+  dependsOn: string[];
+  projectId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireUser();
+  const supabase = await createClient();
+  if (args.dependsOn.includes(args.taskId)) {
+    return { ok: false, error: "משימה לא יכולה להיות תלויה בעצמה" };
+  }
+  const { error: delErr } = await supabase
+    .from("task_dependencies")
+    .delete()
+    .eq("task_id", args.taskId);
+  if (delErr) return { ok: false, error: delErr.message };
+  if (args.dependsOn.length > 0) {
+    const rows = args.dependsOn.map((id) => ({
+      task_id: args.taskId,
+      depends_on_task_id: id,
+      type: "FS" as const,
+    }));
+    const { error } = await supabase.from("task_dependencies").insert(rows);
+    if (error) return { ok: false, error: error.message };
+  }
+  revalidatePath(`/tasks/${args.projectId}`, "layout");
+  return { ok: true };
 }
 
 /** Partial update for inline drag/status changes. */
