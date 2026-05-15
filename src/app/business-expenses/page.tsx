@@ -11,6 +11,8 @@ import {
   ExpenseProfile,
 } from "@/lib/business-expenses/profiles";
 import { cn } from "@/lib/utils";
+import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
+import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 
 export default function BusinessExpensesPage() {
   const router = useRouter();
@@ -93,17 +95,11 @@ export default function BusinessExpensesPage() {
           </div>
         </div>
 
-        {/* Osek Zeir banner */}
-        {persona.business.isOsekZeir && (
-          <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-5 py-4 mb-6 text-[13px] text-amber-900">
-            <p className="font-bold mb-1">⚡ את במסלול עוסק זעיר</p>
-            <p>
-              30% מהמחזור שלך מוכרים אוטומטית כהוצאות (כולל ב״ל), ואת לא צריכה
-              לעקוב אחרי קבלות בודדות לצורכי דו״ח 1301. עדיין כדאי לדעת אילו הוצאות
-              קיימות בעסק שלך — לתכנון תזרים, וכדי להחליט אם משתלם לך לצאת מהמסלול.
-            </p>
-          </div>
-        )}
+        {/* Expense ratio insight — shows the zeir 30% rule live based on
+            actual reported numbers, even when the user is not (yet) on זעיר. */}
+        <div className="mb-6">
+          <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
+        </div>
 
         {/* Categories */}
         <div className="grid gap-4">

@@ -14,6 +14,8 @@ import {
   PLSummary,
 } from "@/lib/p-and-l/index";
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
+import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
+import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -243,6 +245,11 @@ export default function DashboardPage() {
             sub="הערכה בלבד"
             color="text-stone-500"
           />
+        </div>
+
+        {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
+        <div className="mb-8">
+          <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
         </div>
 
         {/* Charts + Eitan in a 2-col layout on large screens */}
