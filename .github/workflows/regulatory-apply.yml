@@ -1,0 +1,97 @@
+name: regulatory-apply
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  apply:
+    # Only fire when the freshly-added label is `approved` AND the issue already
+    # carries `regulatory-update` + `mechanical`.
+    if: |
+      github.event.label.name == 'approved' &&
+      contains(github.event.issue.labels.*.name, 'regulatory-update') &&
+      contains(github.event.issue.labels.*.name, 'mechanical')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install tsx
+        run: npm install --no-save tsx
+
+      - name: Refresh baseline edge-case snapshot
+        run: npx tsx scripts/regulatory-watch/edge-cases.ts --refresh-baseline
+
+      - name: Apply approved diff
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: npx tsx scripts/regulatory-watch/apply.ts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Edge-case diff
+        id: edge
+        run: |
+          {
+            echo 'report<<EOF'
+            npx tsx scripts/regulatory-watch/edge-cases.ts --diff
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -e
+          BRANCH="regulatory/issue-${ISSUE_NUMBER}"
+          git config user.name "regulatory-watch[bot]"
+          git config user.email "regulatory-watch@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add src/lib/calculators/types.ts .regulatory-watch/baseline.json
+          git commit -m "chore(regulatory): apply approved changes from #${ISSUE_NUMBER}"
+          git push -u origin "$BRANCH"
+          BODY=$(cat <<EOF
+          Closes #${ISSUE_NUMBER}
+
+          ה-PR הזה נוצר אוטומטית על-ידי workflow \`regulatory-apply\` לאחר אישור של ה-Issue.
+
+          ${{ steps.edge.outputs.report }}
+
+          ⚠️ נדרשת סקירה אנושית סופית לפני merge.
+          EOF
+          )
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "regulatory: apply changes from #${ISSUE_NUMBER}" \
+            --body "$BODY" \
+            --label needs-final-approval \
+            --label regulatory-update
+
+      - name: On failure — comment and remove approval
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "⚠️ ניסיון להחיל את השינוי אוטומטית נכשל. בודקים: לוג ב-Actions. הוסר ה-label \`approved\`."
+          gh issue edit "$ISSUE_NUMBER" --remove-label approved

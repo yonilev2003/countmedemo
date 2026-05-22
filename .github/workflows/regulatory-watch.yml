@@ -1,0 +1,51 @@
+name: regulatory-watch
+
+on:
+  schedule:
+    # 06:00 UTC every day. Israel is UTC+2/+3 so this is early morning local.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: 'Dry-run (print issues, do not open)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install tsx
+        run: npm install --no-save tsx
+
+      - name: Run regulatory-watch
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx tsx scripts/regulatory-watch/run.ts ${{ inputs.dryRun && '--dry-run' || '' }}
+
+      - name: Commit updated seen.json
+        if: ${{ !inputs.dryRun }}
+        run: |
+          if [[ -n "$(git status --porcelain .regulatory-watch)" ]]; then
+            git config user.name "regulatory-watch[bot]"
+            git config user.email "regulatory-watch@users.noreply.github.com"
+            git add .regulatory-watch/seen.json
+            git commit -m "chore(regulatory-watch): update seen state"
+            git push origin HEAD:main || git push origin HEAD
+          fi

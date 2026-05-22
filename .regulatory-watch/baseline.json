@@ -1,0 +1,40 @@
+{
+  "dana-cohen.json": {
+    "estimate": {
+      "businessIncome": 200700,
+      "kerenDeduction": 9032,
+      "blDeduction": 11617,
+      "pensionDeduction": 9000,
+      "taxableIncome": 171051,
+      "grossTax": 23602,
+      "creditPointsValue": 7986,
+      "blCredit": 10723,
+      "excessCredits": 0,
+      "taxAfterCredits": 4893,
+      "mikdamot": 16000,
+      "balance": -11107
+    },
+    "calculators": {
+      "field-150-business-income": 200700,
+      "field-238-turnover": 248500,
+      "field-030-bituach-leumi": 11617,
+      "field-032-financial-institution": 0,
+      "field-042-mikdamot": 16000,
+      "field-046-donations-credit": 630,
+      "field-048-bituach-leumi-credit": 10723,
+      "field-037-donations-current": 1800,
+      "field-045-donations": 630,
+      "field-072-life-insurance": false,
+      "field-112-loss-of-work-capacity": 0,
+      "field-115-tax-withheld": 0,
+      "field-135-kupat-gemel": 11000,
+      "field-137-keren-hishtalmut": 9032,
+      "field-181-academic-degree": 0,
+      "field-020-resident": true,
+      "field-044-oleh-hadash": false,
+      "field-068-soldier": false,
+      "field-297-form-6111": "לא חייב",
+      "field-364-donations-carried": 0
+    }
+  }
+}
