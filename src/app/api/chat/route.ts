@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
 import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { calculators } from "@/lib/calculators";
 
 const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
 אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה, בצורה ידידותית ומקצועית.
@@ -150,6 +151,50 @@ function buildPersonaContext(persona: Persona): string {
 נקודות זיכוי: ${creditLines.join(", ")}`;
 }
 
+/**
+ * Run every star-field calculator over the persona and surface the formula +
+ * confidence behind each value. This is what lets the agent explain "how did
+ * you get 030" with the same precision as the clickable tooltip — not just the
+ * number, but the math and the sources. Fields that don't apply (value false/0)
+ * are skipped to keep the context focused. Each calculator is wrapped so a
+ * malformed persona can never crash the request.
+ */
+function buildFieldBreakdown(persona: Persona): string {
+  const lines: string[] = [];
+
+  for (const [id, fn] of Object.entries(calculators)) {
+    let result;
+    try {
+      result = fn(persona);
+    } catch {
+      continue; // skip fields this persona can't compute
+    }
+    if (!result) continue;
+
+    const { value, formula, confidence, notes } = result;
+    // Skip fields that don't apply or carry no value
+    if (value === false || value === null || value === 0 || value === "") {
+      continue;
+    }
+
+    const code = id.match(/field-(\d+)/)?.[1];
+    const label = code ? `שדה ${code}` : id;
+    const valueStr =
+      typeof value === "number" ? value.toLocaleString("he-IL") : String(value);
+
+    let line = `${label}: ${valueStr} — ${formula} (ביטחון: ${confidence})`;
+    if (notes && notes.length > 0) {
+      line += ` הערות: ${notes.join("; ")}`;
+    }
+    lines.push(line);
+  }
+
+  if (lines.length === 0) return "";
+  return `פירוט החישוב לכל שדה (הנוסחה, הערך ורמת הביטחון — השתמש בזה כדי להסביר במדויק איך כל מספר חושב):\n${lines.join(
+    "\n",
+  )}`;
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey.trim() === "") {
@@ -194,7 +239,10 @@ export async function POST(request: Request) {
   ];
 
   const anthropic = new Anthropic({ apiKey });
-  const personaContext = buildPersonaContext(persona);
+  const fieldBreakdown = buildFieldBreakdown(persona);
+  const personaContext = fieldBreakdown
+    ? `${buildPersonaContext(persona)}\n\n${fieldBreakdown}`
+    : buildPersonaContext(persona);
 
   // Build a ReadableStream that pipes Anthropic SSE deltas as our own SSE
   const stream = new ReadableStream({
