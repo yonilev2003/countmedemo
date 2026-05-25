@@ -19,11 +19,21 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { fetchAllSources, type RawPublication } from "../../src/lib/regulatory/sources";
+import {
+  fetchAllSources,
+  SOURCES,
+  type RawPublication,
+} from "../../src/lib/regulatory/sources";
 import {
   classifyPublication,
   type Classification,
 } from "../../src/lib/regulatory/classify";
+import {
+  writeReport,
+  type RunSummary,
+  type ReportFinding,
+  type ReportSkipped,
+} from "./report";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..", "..");
@@ -166,6 +176,35 @@ function renderIssue(
   };
 }
 
+function toFinding(
+  pub: RawPublication,
+  cls: Classification,
+  filingYear: number,
+  repo: string | undefined,
+  issueNumber?: number,
+): ReportFinding {
+  return {
+    title: pub.title,
+    sourceUrl: pub.url,
+    issuer: pub.issuer,
+    publishedAt: pub.publishedAt ?? "",
+    summaryHe: cls.summaryHe,
+    changeType: cls.changeType,
+    confidence: cls.confidence,
+    affectedConstants: cls.proposedChanges.map((p) => ({
+      name: p.constant,
+      from: p.from,
+      to: p.to,
+    })),
+    relevantToCurrentFiling: cls.effectiveTaxYears.includes(filingYear),
+    issueNumber,
+    issueUrl:
+      issueNumber && repo
+        ? `https://github.com/${repo}/issues/${issueNumber}`
+        : undefined,
+  };
+}
+
 async function openIssue(draft: IssueDraft): Promise<number> {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
@@ -212,6 +251,10 @@ async function main() {
   }
   console.log(`[regulatory-watch] ${candidates.length} new or changed items`);
 
+  const repo = process.env.GITHUB_REPOSITORY;
+  const relevantFindings: ReportFinding[] = [];
+  const irrelevantPublications: ReportSkipped[] = [];
+
   let processed = 0;
   for (const pub of candidates) {
     if (processed >= limit) {
@@ -232,6 +275,11 @@ async function main() {
 
     if (!classification.relevant) {
       console.log(`[regulatory-watch] skip irrelevant: ${pub.title}`);
+      irrelevantPublications.push({
+        title: pub.title,
+        issuer: pub.issuer,
+        reason: classification.summaryHe || "סווג כלא רלוונטי לטופס 1301",
+      });
       if (!dryRun) {
         seen.publications[pub.id] = {
           firstSeenAt: seen.publications[pub.id]?.firstSeenAt ?? new Date().toISOString(),
@@ -247,12 +295,16 @@ async function main() {
     if (dryRun) {
       console.log(draft.body);
       console.log("---");
+      relevantFindings.push(toFinding(pub, classification, filingYear, repo));
       continue;
     }
 
     try {
       const issueNumber = await openIssue(draft);
       console.log(`[regulatory-watch] opened #${issueNumber}: ${draft.title}`);
+      relevantFindings.push(
+        toFinding(pub, classification, filingYear, repo, issueNumber),
+      );
       seen.publications[pub.id] = {
         firstSeenAt: seen.publications[pub.id]?.firstSeenAt ?? new Date().toISOString(),
         bodyHash: h,
@@ -261,10 +313,25 @@ async function main() {
       };
     } catch (e) {
       console.error(`[regulatory-watch] open issue failed for ${pub.id}: ${e}`);
+      relevantFindings.push(toFinding(pub, classification, filingYear, repo));
     }
   }
 
   if (!dryRun) writeSeen(seen);
+
+  const summary: RunSummary = {
+    runDate: new Date().toISOString(),
+    filingYear,
+    dryRun,
+    sourcesScanned: SOURCES.length,
+    rawPublications: publications.length,
+    newPublications: candidates.length,
+    relevantFindings,
+    irrelevantPublications,
+  };
+  const reportPath = writeReport(summary);
+  console.log(`[regulatory-watch] report written: ${reportPath}`);
+
   console.log(`[regulatory-watch] done, processed ${processed} candidates`);
 }
 

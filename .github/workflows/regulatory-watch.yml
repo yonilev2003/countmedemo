@@ -32,12 +32,61 @@ jobs:
       - name: Install tsx
         run: npm install --no-save tsx
 
+      - name: Set run date
+        run: echo "RUN_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+
       - name: Run regulatory-watch
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npx tsx scripts/regulatory-watch/run.ts ${{ inputs.dryRun && '--dry-run' || '' }}
+
+      - name: Convert HTML report to PDF
+        if: success()
+        run: |
+          REPORT_HTML=$(ls -t .regulatory-watch/reports/*.html 2>/dev/null | head -1)
+          if [ -n "$REPORT_HTML" ]; then
+            REPORT_PDF="${REPORT_HTML%.html}.pdf"
+
+            # הפעלת Puppeteer דרך Node בצורה בטוחה באמצעות משתני סביבה
+            REPORT_HTML=$REPORT_HTML REPORT_PDF=$REPORT_PDF node -e "
+            const puppeteer = require('puppeteer');
+            const path = require('path');
+            (async () => {
+              try {
+                const browser = await puppeteer.launch({
+                  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                });
+                const page = await browser.newPage();
+                const fileUrl = 'file://' + path.resolve(process.env.REPORT_HTML);
+
+                await page.goto(fileUrl, { waitUntil: 'networkidle0' });
+                await page.pdf({
+                  path: process.env.REPORT_PDF,
+                  format: 'A4',
+                  margin: { top: '15mm', bottom: '15mm', left: '12mm', right: '12mm' },
+                  printBackground: true
+                });
+
+                await browser.close();
+                console.log('Successfully generated PDF: ' + process.env.REPORT_PDF);
+              } catch (error) {
+                console.error('Failed to generate PDF:', error);
+                process.exit(1);
+              }
+            })();"
+          else
+            echo "No HTML report found to convert."
+          fi
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regulatory-report-${{ env.RUN_DATE }}
+          path: .regulatory-watch/reports/
+          retention-days: 90
 
       - name: Commit updated seen.json
         if: ${{ !inputs.dryRun }}

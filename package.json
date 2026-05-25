@@ -25,6 +25,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "puppeteer": "^25.0.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

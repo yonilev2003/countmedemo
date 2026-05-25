@@ -44,6 +44,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# regulatory-watch generated reports (ephemeral artifacts; seen.json IS committed)
+.regulatory-watch/reports/*.html
+.regulatory-watch/reports/*.pdf
+
 # claude code agent worktrees
 .claude/
 

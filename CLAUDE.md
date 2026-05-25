@@ -27,6 +27,7 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Fonts | Heebo (body), Rubik (display) | Both have native Hebrew |
 | Form approach | Visual reference, not 1:1 React rebuild | User's call — saves time, demo's purpose is "show what to fill" |
 | Persona format | Single JSON file at `personas/dana-cohen.json` | Swappable; replace fields when running with real data |
+| Regulatory-watch PDF | `puppeteer` (devDependency) renders the agent's HTML report → PDF inside CI | Headless Chromium is the most reliable way to render RTL Hebrew to PDF; bundled Chromium installs with `npm ci`, no extra runner setup |
 
 ## Skills installed (Tier 1 + Tier 2)
 
