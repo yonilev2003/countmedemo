@@ -1,0 +1,62 @@
+name: Regulatory Watch
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # npm ci installs puppeteer (devDependency) and fetches its bundled,
+      # version-matched Chromium binary automatically.
+      - name: Install dependencies
+        run: npm ci
+
+      # The orchestrator runs the fetch/classify/issue loop and emits the run
+      # summary JSON. Node 22 strips TS types natively, so the .ts runs as-is.
+      - name: Run regulatory-watch
+        env:
+          REGWATCH_SUMMARY_PATH: ${{ github.workspace }}/.regulatory-watch/last-run.json
+        run: node --experimental-strip-types scripts/regulatory-watch/run.ts
+
+      # Render the HTML/PDF report. Paths are injected via env (never inlined
+      # into the JS) so there is no YAML-escaping hazard. The single-quoted
+      # bash literal keeps the inline script intact; puppeteer/Chromium only
+      # spins up here, isolated from the agent loop above.
+      - name: Render HTML/PDF report
+        env:
+          REGWATCH_REPORT_MODULE: ${{ github.workspace }}/scripts/regulatory-watch/report.ts
+          REGWATCH_SUMMARY_PATH: ${{ github.workspace }}/.regulatory-watch/last-run.json
+          REGWATCH_REPORT_DIR: ${{ github.workspace }}/.regulatory-watch/reports
+        run: |
+          node --experimental-strip-types --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            const { writeReport } = await import(process.env.REGWATCH_REPORT_MODULE);
+            const summary = JSON.parse(await readFile(process.env.REGWATCH_SUMMARY_PATH, "utf8"));
+            const pdfPath = await writeReport(summary);
+            console.log("[regulatory-watch] report written:", pdfPath);
+          '
+
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: regulatory-watch-report
+          path: |
+            .regulatory-watch/reports/*.html
+            .regulatory-watch/reports/*.pdf
+          if-no-files-found: warn
+          retention-days: 30
