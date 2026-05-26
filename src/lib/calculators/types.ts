@@ -117,3 +117,146 @@ export const TAX_YEAR_2024 = {
     { from: 721560, to: Infinity, rate: 0.50 }, // 47% + 3% surtax
   ] as TaxBracket[],
 };
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Regulatory-Watch metadata layer.
+ *
+ * The values above stay a plain numeric record so the calculators keep reading
+ * `TAX_YEAR_2024.kerenHishtalmutCap` etc. unchanged. This *additive* registry
+ * gives the regulatory-watch agent the provenance it needs: which official
+ * source each constant comes from, who published it, which tax years it applies
+ * to, and when we last verified it. `apply.ts` bumps `lastVerified` (and the
+ * value) when an approved change lands.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export interface TaxConstantMeta {
+  /** Hebrew description of what the constant is — fed to the classifier. */
+  description: string;
+  sourceUrl: string;
+  publisher: string;
+  effectiveTaxYears: number[];
+  /** ISO timestamp of the last time a human/agent confirmed this value. */
+  lastVerified: string;
+}
+
+/** A constant plus its live value and provenance. */
+export interface TaxConstantEntry {
+  name: string;
+  value: number;
+  meta: TaxConstantMeta;
+}
+
+const ITA = "רשות המסים בישראל";
+const ITA_HOME = "https://www.gov.il/he/departments/israel_tax_authority";
+
+/** Provenance for every agent-watchable scalar in TAX_YEAR_2024. */
+export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
+  kerenHishtalmutCap: {
+    description: "תקרת ההפקדה השנתית המוכרת לקרן השתלמות לעצמאי",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  kerenHishtalmutIncomeCeiling: {
+    description: "תקרת ההכנסה לחישוב ההפקדה המוכרת לקרן השתלמות",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  kerenHishtalmutRate: {
+    description: "שיעור ההפקדה המוכר לקרן השתלמות לעצמאי (4.5%)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  bituachLeumiDeductibleRate: {
+    description: "שיעור דמי ביטוח לאומי לעצמאי המוכרים כהוצאה (52%)",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  form6111Threshold: {
+    description: "מחזור שמעליו חלה חובת צירוף טופס 6111 לדוח",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  osekPaturThreshold: {
+    description: "תקרת מחזור שנתי לעוסק פטור ממע״מ",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  osekZeirExpenseRate: {
+    description: "שיעור הוצאות מוכר אוטומטית במסלול עוסק זעיר (30%)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  osekZeirThreshold: {
+    description: "תקרת מחזור למסלול עוסק זעיר",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  residentCreditPoints: {
+    description: "נקודות זיכוי בסיס לתושב ישראל",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  pointValueAnnual: {
+    description: "שווי שנתי של נקודת זיכוי אחת (₪)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026, 2027],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  surtaxThreshold: {
+    description: "סף הכנסה שמעליו חל מס יסף",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  surtaxRate: {
+    description: "שיעור מס יסף (3%)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+  pensionDeductionCap: {
+    description: "תקרת ניכוי בגין הפקדות לפנסיה (סעיף 47)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+  },
+};
+
+/**
+ * List every tracked constant with its current numeric value and provenance.
+ * Skips non-scalar members of TAX_YEAR_2024 (e.g. taxBrackets).
+ */
+export function listTaxConstants(): TaxConstantEntry[] {
+  const bag = TAX_YEAR_2024 as Record<string, unknown>;
+  return Object.entries(TAX_CONSTANT_META).map(([name, meta]) => {
+    const value = bag[name];
+    return {
+      name,
+      value: typeof value === "number" ? value : Number.NaN,
+      meta,
+    };
+  });
+}
+

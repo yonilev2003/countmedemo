@@ -50,3 +50,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# regulatory-watch — reports + runtime state are ephemeral (keep the dir, not its output)
+/.regulatory-watch/reports/*.html
+/.regulatory-watch/reports/*.pdf
+/.regulatory-watch/*.json
