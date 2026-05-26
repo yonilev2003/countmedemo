@@ -21,7 +21,9 @@ import { dirname, join } from "node:path";
 import { fetchAllSources, SOURCES } from "../../src/lib/regulatory/sources.ts";
 import { classifyAll } from "../../src/lib/regulatory/classify.ts";
 import { loadSeen, saveSeen } from "./seen.ts";
-import { buildIssueBody, canOpenIssues, openIssue } from "./issues.ts";
+import { buildIssueBody, canOpenIssues, ensureLabel, openIssue } from "./issues.ts";
+
+const ISSUE_LABEL = "regulatory-watch";
 import type { Finding, RunSummary } from "./report.ts";
 
 async function main(): Promise<void> {
@@ -30,6 +32,13 @@ async function main(): Promise<void> {
   // 1. Fetch every source (fetchAllSources never rejects).
   const items = await fetchAllSources();
   console.log(`[regulatory-watch] fetched ${items.length} item(s) from ${SOURCES.length} source(s)`);
+  // Per-source visibility: a source returning 0 is the silent-failure mode
+  // (wrong URL / changed markup), so surface it explicitly rather than hiding it.
+  for (const s of SOURCES) {
+    const n = items.filter((it) => it.source === s.id).length;
+    if (n === 0) console.warn(`[regulatory-watch]   ⚠ ${s.id}: 0 items — check endpoint/parser`);
+    else console.log(`[regulatory-watch]   ${s.id}: ${n} item(s)`);
+  }
 
   // 2. Dedup against prior runs.
   const seen = await loadSeen();
@@ -43,7 +52,9 @@ async function main(): Promise<void> {
   const relevantFindings: Finding[] = [];
   const irrelevantPublications: RunSummary["irrelevantPublications"] = [];
   const issuesEnabled = canOpenIssues();
-  if (!issuesEnabled) {
+  if (issuesEnabled) {
+    await ensureLabel(ISSUE_LABEL);
+  } else {
     console.log("[regulatory-watch] GITHUB_TOKEN/REPOSITORY absent — dry run, not opening issues");
   }
 
