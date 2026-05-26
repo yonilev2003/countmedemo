@@ -428,8 +428,10 @@ export async function writeReport(summary: RunSummary): Promise<string> {
   });
   try {
     const page = await browser.newPage();
-    // networkidle0 so the Heebo webfont finishes loading before we paint the PDF.
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "load" });
+    // Wait for the Heebo webfont to actually finish loading before painting,
+    // otherwise the PDF can render in a fallback font.
+    await page.evaluate(() => document.fonts.ready);
     await page.pdf({
       path: pdfPath,
       format: "A4",
