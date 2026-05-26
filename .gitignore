@@ -51,7 +51,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# regulatory-watch — reports are ephemeral artifacts (keep the dir, not its output)
+# regulatory-watch — reports + runtime state are ephemeral (keep the dir, not its output)
 /.regulatory-watch/reports/*.html
 /.regulatory-watch/reports/*.pdf
-/.regulatory-watch/last-run.json
+/.regulatory-watch/*.json

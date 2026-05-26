@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   watch:
@@ -31,6 +32,9 @@ jobs:
       - name: Run regulatory-watch
         env:
           REGWATCH_SUMMARY_PATH: ${{ github.workspace }}/.regulatory-watch/last-run.json
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: node --experimental-strip-types scripts/regulatory-watch/run.ts
 
       # Render the HTML/PDF report. Paths are injected via env (never inlined

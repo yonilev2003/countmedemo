@@ -248,8 +248,21 @@ export async function classifyAll(
   items: RegulatoryItem[],
   deps?: ClassifyDeps,
 ): Promise<Classification[]> {
-  // Resolve the client once so a missing key fails fast and is shared across items.
-  const client = resolveClient(deps);
+  if (items.length === 0) return [];
+
+  // Resolve the client once and share it across items. A missing key does NOT
+  // crash the daily run — every item degrades to the safe "unclassified"
+  // fallback (run.ts then reports them as skipped publications).
+  let client: Anthropic;
+  try {
+    client = resolveClient(deps);
+  } catch (err) {
+    console.error(
+      "[classify] no Anthropic client — skipping classification:",
+      (err as Error).message,
+    );
+    return items.map(() => safeFallback());
+  }
   const constants = deps?.constants ?? listTaxConstants();
   const sharedDeps: ClassifyDeps = { client, constants };
 

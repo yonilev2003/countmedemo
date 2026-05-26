@@ -148,7 +148,6 @@ export interface TaxConstantEntry {
 
 const ITA = "רשות המסים בישראל";
 const ITA_HOME = "https://www.gov.il/he/departments/israel_tax_authority";
-const VERIFIED = "2024-01-01T00:00:00.000Z";
 
 /** Provenance for every agent-watchable scalar in TAX_YEAR_2024. */
 export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
@@ -157,91 +156,91 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   kerenHishtalmutIncomeCeiling: {
     description: "תקרת ההכנסה לחישוב ההפקדה המוכרת לקרן השתלמות",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   kerenHishtalmutRate: {
     description: "שיעור ההפקדה המוכר לקרן השתלמות לעצמאי (4.5%)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   bituachLeumiDeductibleRate: {
     description: "שיעור דמי ביטוח לאומי לעצמאי המוכרים כהוצאה (52%)",
     sourceUrl: "https://www.btl.gov.il/",
     publisher: "המוסד לביטוח לאומי",
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   form6111Threshold: {
     description: "מחזור שמעליו חלה חובת צירוף טופס 6111 לדוח",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   osekPaturThreshold: {
     description: "תקרת מחזור שנתי לעוסק פטור ממע״מ",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   osekZeirExpenseRate: {
     description: "שיעור הוצאות מוכר אוטומטית במסלול עוסק זעיר (30%)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   osekZeirThreshold: {
     description: "תקרת מחזור למסלול עוסק זעיר",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   residentCreditPoints: {
     description: "נקודות זיכוי בסיס לתושב ישראל",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   pointValueAnnual: {
     description: "שווי שנתי של נקודת זיכוי אחת (₪)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024, 2025, 2026, 2027],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   surtaxThreshold: {
     description: "סף הכנסה שמעליו חל מס יסף",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   surtaxRate: {
     description: "שיעור מס יסף (3%)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
   pensionDeductionCap: {
     description: "תקרת ניכוי בגין הפקדות לפנסיה (סעיף 47)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
     effectiveTaxYears: [2024],
-    lastVerified: VERIFIED,
+    lastVerified: "2024-01-01T00:00:00.000Z",
   },
 };
 
