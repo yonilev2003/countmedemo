@@ -16,7 +16,7 @@
  *   REGWATCH_INLINE_REPORT — if set, also render the HTML/PDF in-process.
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fetchAllSources, SOURCES } from "../../src/lib/regulatory/sources.ts";
 import { classifyAll } from "../../src/lib/regulatory/classify.ts";
@@ -34,8 +34,10 @@ async function main(): Promise<void> {
   console.log(`[regulatory-watch] fetched ${items.length} item(s) from ${SOURCES.length} source(s)`);
   // Per-source visibility: a source returning 0 is the silent-failure mode
   // (wrong URL / changed markup), so surface it explicitly rather than hiding it.
+  const perSourceCounts: { id: string; label: string; count: number }[] = [];
   for (const s of SOURCES) {
     const n = items.filter((it) => it.source === s.id).length;
+    perSourceCounts.push({ id: s.id, label: s.label, count: n });
     if (n === 0) console.warn(`[regulatory-watch]   ⚠ ${s.id}: 0 items — check endpoint/parser`);
     else console.log(`[regulatory-watch]   ${s.id}: ${n} item(s)`);
   }
@@ -118,10 +120,65 @@ async function main(): Promise<void> {
       `(${relevantFindings.length} finding(s), ${irrelevantPublications.length} skipped)`,
   );
 
+  // 7. Write a GitHub Step Summary so the run's main page shows per-source
+  // counts + findings at a glance — no digging into the step log to learn
+  // which source returned 0 (the silent-failure signal).
+  await writeStepSummary({
+    runDate,
+    perSourceCounts,
+    newPublications: unseen.length,
+    findings: relevantFindings.length,
+    skipped: irrelevantPublications.length,
+    issuesEnabled,
+  });
+
   if (process.env.REGWATCH_INLINE_REPORT) {
     const { writeReport } = await import("./report.ts");
     const pdfPath = await writeReport(summary);
     console.log(`[regulatory-watch] report → ${pdfPath}`);
+  }
+}
+
+/**
+ * Append a Markdown block to $GITHUB_STEP_SUMMARY (GitHub Actions). Shows up on
+ * the run's Summary page. No-op when the env var is unset (e.g. local runs).
+ */
+async function writeStepSummary(s: {
+  runDate: string;
+  perSourceCounts: { id: string; label: string; count: number }[];
+  newPublications: number;
+  findings: number;
+  skipped: number;
+  issuesEnabled: boolean;
+}): Promise<void> {
+  const path = process.env.GITHUB_STEP_SUMMARY;
+  if (!path) return;
+  const rows = s.perSourceCounts
+    .map((c) => `| ${c.label} | \`${c.id}\` | ${c.count === 0 ? "⚠️ 0" : c.count} |`)
+    .join("\n");
+  const md = [
+    `## 📋 Regulatory-Watch — ${s.runDate}`,
+    "",
+    `**Sources scanned:** ${s.perSourceCounts.length} · ` +
+      `**New (after dedup):** ${s.newPublications} · ` +
+      `**Findings:** ${s.findings} · ` +
+      `**Skipped:** ${s.skipped}`,
+    s.issuesEnabled ? "" : "_Dry run — GITHUB_TOKEN absent, no issues opened._",
+    "",
+    "### Items fetched per source",
+    "",
+    "| Source | id | Items |",
+    "| --- | --- | --- |",
+    rows,
+    "",
+    "> A source showing **⚠️ 0** returned nothing — its endpoint/URL likely needs " +
+      "fixing (override via the matching `REGWATCH_SRC_*` repo Variable).",
+    "",
+  ].join("\n");
+  try {
+    await appendFile(path, md, "utf8");
+  } catch (err) {
+    console.warn("[regulatory-watch] could not write step summary:", (err as Error).message);
   }
 }
 
