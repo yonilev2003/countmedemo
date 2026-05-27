@@ -49,17 +49,19 @@ const DEFAULT_URLS: Record<RegSourceId, string> = {
 };
 
 function urlFor(id: RegSourceId): string {
+  // `||` (not `??`) so an empty env value — e.g. an unset GitHub Actions
+  // variable, which expands to "" — still falls back to the default URL.
   switch (id) {
     case "taxes-gov":
-      return process.env.REGWATCH_SRC_TAXES_GOV ?? DEFAULT_URLS["taxes-gov"];
+      return process.env.REGWATCH_SRC_TAXES_GOV || DEFAULT_URLS["taxes-gov"];
     case "gov-il-rss":
-      return process.env.REGWATCH_SRC_GOV_IL_RSS ?? DEFAULT_URLS["gov-il-rss"];
+      return process.env.REGWATCH_SRC_GOV_IL_RSS || DEFAULT_URLS["gov-il-rss"];
     case "shituf":
-      return process.env.REGWATCH_SRC_SHITUF ?? DEFAULT_URLS.shituf;
+      return process.env.REGWATCH_SRC_SHITUF || DEFAULT_URLS.shituf;
     case "icpas":
-      return process.env.REGWATCH_SRC_ICPAS ?? DEFAULT_URLS.icpas;
+      return process.env.REGWATCH_SRC_ICPAS || DEFAULT_URLS.icpas;
     case "knesset":
-      return process.env.REGWATCH_SRC_KNESSET ?? DEFAULT_URLS.knesset;
+      return process.env.REGWATCH_SRC_KNESSET || DEFAULT_URLS.knesset;
   }
 }
 

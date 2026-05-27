@@ -49,6 +49,14 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          # Override any source URL without code changes: set a repo Variable
+          # (Settings → Secrets and variables → Actions → Variables) of the same
+          # name. Unset ⇒ empty ⇒ the code default is used.
+          REGWATCH_SRC_TAXES_GOV: ${{ vars.REGWATCH_SRC_TAXES_GOV }}
+          REGWATCH_SRC_GOV_IL_RSS: ${{ vars.REGWATCH_SRC_GOV_IL_RSS }}
+          REGWATCH_SRC_SHITUF: ${{ vars.REGWATCH_SRC_SHITUF }}
+          REGWATCH_SRC_ICPAS: ${{ vars.REGWATCH_SRC_ICPAS }}
+          REGWATCH_SRC_KNESSET: ${{ vars.REGWATCH_SRC_KNESSET }}
         run: node --experimental-strip-types scripts/regulatory-watch/run.ts
 
       # Render the HTML/PDF report. Paths are injected via env (never inlined
