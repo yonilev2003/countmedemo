@@ -56,6 +56,13 @@ export interface TaxEstimate {
   balance: number; // negative = refund, positive = additional payment due
 }
 
+/**
+ * עוסק פטור annual revenue ceiling for 2024.
+ * Invariant (per product decision): the עוסק פטור ceiling ALWAYS equals the
+ * עוסק זעיר ceiling, so both fields below read from this single constant.
+ */
+const OSEK_EXEMPT_CEILING_2024 = 120000;
+
 /** Tax-year constants used by the calculators. Update yearly. */
 export const TAX_YEAR_2024 = {
   // Keren Hishtalmut: 4.5% of income up to income ceiling 293,397 = max 13,203 NIS deductible
@@ -82,12 +89,12 @@ export const TAX_YEAR_2024 = {
   // Form 6111 obligation threshold
   form6111Threshold: 256410,
 
-  // VAT-exempt (עוסק פטור) ceiling 2024
-  osekPaturThreshold: 120000,
+  // VAT-exempt (עוסק פטור) ceiling — tied to the עוסק זעיר ceiling (always equal)
+  osekPaturThreshold: OSEK_EXEMPT_CEILING_2024,
 
   // עוסק זעיר: automatic 30% expense recognition (income tax simplified track)
   osekZeirExpenseRate: 0.30,   // 30% of turnover treated as expenses automatically
-  osekZeirThreshold: 120000,   // same as VAT-exempt ceiling for 2024
+  osekZeirThreshold: OSEK_EXEMPT_CEILING_2024,   // same ceiling as עוסק פטור
 
   // Credit points
   residentCreditPoints: 2.25,
@@ -121,19 +128,98 @@ export const TAX_YEAR_2024 = {
 export type TaxYearConstants = typeof TAX_YEAR_2024;
 
 /**
- * 2025 constants — placeholder values identical to 2024.
- * TODO(Roy): Update with indexed 2025 values once confirmed.
- * Known: pointValueAnnual stays frozen at 2,904 through 2027.
+ * עוסק פטור / עוסק זעיר ceiling for 2025.
+ * Same invariant as 2024 — one constant feeds both fields so they cannot drift.
+ * TODO(Roy): confirm the 2025 indexed value (carried 2024 figure for now).
+ */
+const OSEK_EXEMPT_CEILING_2025 = 120000;
+
+/**
+ * Tax year 2025 — every value is set explicitly (no blind spread of 2024) so
+ * each constant is a deliberate per-year decision.
+ *
+ * FROZEN: Israel did not index income-tax brackets or credit-point values for
+ * 2025 (budget freeze, no inflation linkage) — those are intentionally equal to
+ * 2024. STABLE: statutory rates (4.5% keren, 52/48% B"L, 30% zeir, 35% pension
+ * credit) don't move year to year. CARRIED: index-linked caps/thresholds that
+ * normally change annually are kept at the 2024 figure with a TODO until Roy
+ * confirms the official 2025 numbers — so we never silently show a wrong value.
  */
 export const TAX_YEAR_2025: TaxYearConstants = {
-  ...TAX_YEAR_2024,
-  taxBrackets: [...TAX_YEAR_2024.taxBrackets],
+  // Keren Hishtalmut — rate stable; caps index-linked
+  kerenHishtalmutCap: 13203,            // TODO(Roy): confirm 2025
+  kerenHishtalmutIncomeCeiling: 293397, // TODO(Roy): confirm 2025
+  kerenHishtalmutRate: 0.045,           // stable
+
+  // Bituach Leumi — rates stable; thresholds index-linked
+  bituachLeumiDeductibleRate: 0.52,     // stable
+  bituachLeumiCreditRate: 0.48,         // stable
+  blMonthlyThreshold1: 7522,            // TODO(Roy): confirm 2025 (avg-wage linked)
+  blMonthlyMax: 49030,                  // TODO(Roy): confirm 2025 contribution ceiling
+  blRate1: 0.0597,                      // stable
+  blRate2: 0.1783,                      // stable
+
+  // Pension — rates stable; caps index-linked
+  pensionDeductionRate: 0.11,           // stable
+  pensionDeductionCap: 25608,           // TODO(Roy): confirm 2025
+  pensionCreditRate: 0.055,             // stable
+  pensionCreditCap: 12804,              // TODO(Roy): confirm 2025
+  pensionCreditPercent: 0.35,           // stable
+
+  // Form 6111 obligation threshold — index-linked
+  form6111Threshold: 256410,            // TODO(Roy): confirm 2025
+
+  // עוסק פטור / עוסק זעיר ceiling — tied (always equal)
+  osekPaturThreshold: OSEK_EXEMPT_CEILING_2025,
+  osekZeirExpenseRate: 0.30,            // statutory 30% (תיקון 257)
+  osekZeirThreshold: OSEK_EXEMPT_CEILING_2025,
+
+  // Credit points — FROZEN for 2025 (no linkage)
+  residentCreditPoints: 2.25,           // frozen
+  pointValueAnnual: 2904,               // frozen 2024–2027
+
+  // Oleh / returning resident — statutory, stable
+  newOlehCreditYear1: 3.0,
+  newOlehCreditYear2: 2.0,
+  newOlehCreditYear3: 1.0,
+
+  // Soldier discharge — statutory, stable
+  soldierMonthsCredit: 36,
+  soldierFractionPerMonth: 1 / 6 / 36,
+
+  // Surtax — FROZEN for 2025
+  surtaxThreshold: 721560,              // TODO(Roy): confirm 2025 (freeze likely)
+  surtaxRate: 0.03,                     // stable
+
+  // Income tax brackets — FROZEN for 2025 (identical to 2024 per budget freeze)
+  taxBrackets: [
+    { from: 0,      to: 84120,  rate: 0.10 },
+    { from: 84120,  to: 120720, rate: 0.14 },
+    { from: 120720, to: 193800, rate: 0.20 },
+    { from: 193800, to: 269280, rate: 0.31 },
+    { from: 269280, to: 560280, rate: 0.35 },
+    { from: 560280, to: 721560, rate: 0.47 },
+    { from: 721560, to: Infinity, rate: 0.50 },
+  ],
 };
 
-/** Returns the tax-year constants for the given filing year, falling back to 2024. */
+/** Registry of every defined tax year. Add a new year here once confirmed. */
+const TAX_YEAR_REGISTRY: Record<number, TaxYearConstants> = {
+  2024: TAX_YEAR_2024,
+  2025: TAX_YEAR_2025,
+};
+
+/** Most recent tax year we have an explicit definition for. */
+const LATEST_TAX_YEAR = 2025;
+
+/**
+ * Returns the constants for a filing year. Exact match wins; future years fall
+ * back to the latest defined set, earlier years to 2024.
+ */
 export function getTaxYearConstants(year: number): TaxYearConstants {
-  if (year >= 2025) return TAX_YEAR_2025;
-  return TAX_YEAR_2024;
+  const exact = TAX_YEAR_REGISTRY[year];
+  if (exact) return exact;
+  return year > LATEST_TAX_YEAR ? TAX_YEAR_2025 : TAX_YEAR_2024;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
