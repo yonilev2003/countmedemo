@@ -16,6 +16,8 @@ import {
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
+import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -254,6 +256,16 @@ export default function DashboardPage() {
             color="text-stone-500"
           />
         </div>
+
+        {/* עוסק פטור ceiling alert — only for patur */}
+        {(() => {
+          const ceilingAlert = computeCeilingAlert(persona);
+          return ceilingAlert ? (
+            <div className="mb-6">
+              <CeilingAlertCard alert={ceilingAlert} />
+            </div>
+          ) : null;
+        })()}
 
         {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
         <div className="mb-8">
