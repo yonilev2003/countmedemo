@@ -37,7 +37,11 @@ export default function InvoicePrintPage() {
   const docTitle = docType === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
   // SHAAM allocation number — required for invoices > 25K from 2024+. Mock for demo.
   const showAllocation = docType === "tax-invoice-receipt" && invoice.total > 25000;
-  const mockAllocation = showAllocation ? `IL${invoice.invoiceNumber.replace("-", "")}${Math.floor(Math.random() * 1000)}` : null;
+  const mockAllocation = showAllocation
+    ? `IL${invoice.invoiceNumber.replace(/\D/g, "")}${String(
+        invoice.invoiceNumber.replace(/\D/g, "").split("").reduce((a, c) => (a + Number(c)) % 900, 1) + 100
+      ).padStart(3, "0")}`
+    : null;
 
   return (
     <>
