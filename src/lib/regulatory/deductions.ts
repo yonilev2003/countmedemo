@@ -115,6 +115,50 @@ export function getDeduction(id: string, year: number): DeductionDef | undefined
   return getDeductionsTable(year).find((d) => d.id === id);
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Expense-category → P&L routing.
+ *
+ * The P&L report (lib/p-and-l/israeli-report.ts) needs to know where each
+ * expense lands: a direct cost, operating overhead, or a personal deduction
+ * applied below the business result. That destination is the item's plImpact,
+ * so the registry is the authority. A free-text expense category is matched to
+ * a registered deduction via a short alias list, and the matched item's
+ * declared plImpact wins. Categories the registry doesn't own fall back to the
+ * cost-vs-operating heuristic for a service business.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** Free-text expense-category nouns → a registered deduction id. */
+const CATEGORY_DEDUCTION_ALIASES: { id: string; match: string[] }[] = [
+  { id: "bituach-leumi", match: ["ביטוח לאומי", "בטוח לאומי"] },
+  { id: "keren-hishtalmut", match: ["קרן השתלמות", "השתלמות לעצמאי"] },
+  { id: "pension", match: ["פנסיה", "קופת גמל", "קופ״ג", "גמל"] },
+  { id: "internet-phone", match: ["אינטרנט", "טלפון", "סלולר", "תקשורת"] },
+  { id: "professional-services", match: ["ייעוץ", "רואה חשבון", "עורך דין", "יועץ מס", "רו״ח"] },
+];
+
+/** Category nouns that mark a direct cost of revenue (capital / equipment). */
+const COST_OF_REVENUE_HINTS = ["ציוד ומחשוב", "ציוד", "מחשוב", "equipment"];
+
+/**
+ * Resolve how an expense category flows through the P&L. Registry-owned items
+ * inherit their declared plImpact; everything else uses the service-business
+ * heuristic (equipment = direct cost, otherwise operating overhead).
+ */
+export function classifyExpensePLImpact(category: string, year: number): PLImpact {
+  const alias = CATEGORY_DEDUCTION_ALIASES.find((a) =>
+    a.match.some((m) => category.includes(m)),
+  );
+  if (alias) {
+    const def = getDeduction(alias.id, year);
+    if (def) return def.plImpact;
+  }
+  const lower = category.toLowerCase();
+  if (COST_OF_REVENUE_HINTS.some((h) => lower.includes(h.toLowerCase()))) {
+    return "cost-of-revenue";
+  }
+  return "operating-expense";
+}
+
 /** Hebrew label for a P&L impact — used by the expense guide. */
 export const PL_IMPACT_LABEL: Record<PLImpact, string> = {
   "cost-of-revenue": "עלות המכר",
