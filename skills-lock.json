@@ -1,10 +1,737 @@
 {
   "version": 1,
   "skills": {
+    "ai-agents-for-everyone": {
+      "source": "skills-il/courses",
+      "sourceType": "github",
+      "skillPath": "ai-agents-for-everyone/SKILL.md",
+      "computedHash": "2085b2e14728c542796a634d8550aefc9d5c0668b0205914ef73bbb2781c7013"
+    },
+    "boi-economic-data": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "boi-economic-data/SKILL.md",
+      "computedHash": "ac590ced29641970355c69bf3ef87130715ccf3b0581f6f1526738cb0878d842"
+    },
+    "cardcom-payment-gateway": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "cardcom-payment-gateway/SKILL.md",
+      "computedHash": "ebd250dbfadfd4e96879368e34ede0fbbde98686a56deb70f7e815e254b4bb3b"
+    },
+    "cloudinary-assets": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "cloudinary-assets/SKILL.md",
+      "computedHash": "233031741ce9a1991aac365067214d486a21a2a57815e5e9b048c05ba236e2c9"
+    },
+    "green-invoice": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "green-invoice/SKILL.md",
+      "computedHash": "826cfe0caa16827b469ccc3a76093392e2ea390563afb252c030db0b94ab5a3b"
+    },
+    "grow-payment-gateway": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "grow-payment-gateway/SKILL.md",
+      "computedHash": "10fdf2973e4497a4c14ef5b44dbcbeb0bb8f6caeffe110d63734bafdb4579249"
+    },
+    "gws-hebrew-email-automation": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "gws-hebrew-email-automation/SKILL.md",
+      "computedHash": "5dcf9823a11f29c3b8737b99499c2584b66fe9ab673d8703fd2661a96eaf09f8"
+    },
+    "gws-israeli-business-sheets": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "gws-israeli-business-sheets/SKILL.md",
+      "computedHash": "3eb53fa2d0dbd1b4dfc055db71ec292618daeaa0323b3d260f9bf354a7014e92"
+    },
+    "hashavshevet-data-tools": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "hashavshevet-data-tools/SKILL.md",
+      "computedHash": "479b3600066600eab8b60d2e0b24099cc0757cf4f0bc96323357e5b637ca7568"
+    },
+    "hebrew-content-writer": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-content-writer/SKILL.md",
+      "computedHash": "a96c9a8b28c2fc75ca3b8395e712de6811b5d7d30d64774ac7bd491b6287c289"
+    },
+    "hebrew-document-generator": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-document-generator/SKILL.md",
+      "computedHash": "a8cfd7ad8fc6e14f8bb89b6b899eab4201ca7a7d4d05d49668fbd038424785a8"
+    },
+    "hebrew-i18n": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-i18n/SKILL.md",
+      "computedHash": "224831880df4565a0b60e8ffe5a0f6bc3b60feb35a0bc3c88e83424c5c84a0f8"
+    },
+    "hebrew-legal-research": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "hebrew-legal-research/SKILL.md",
+      "computedHash": "0052dff56d4cb0e4c77ff3ac9ee30a535a756e16eece59657715f664f145ce31"
+    },
+    "hebrew-nlp-toolkit": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-nlp-toolkit/SKILL.md",
+      "computedHash": "512b9ef78870bb323f7fcfd7391d513ec42a310e1d372811e81b2077f6b243b3"
+    },
+    "hebrew-ocr-forms": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-ocr-forms/SKILL.md",
+      "computedHash": "26e8a185c8901238f4f95da61700cfb52283898f233d2306cb8cf87b3788f2f0"
+    },
+    "hebrew-podcast-postproduction": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "hebrew-podcast-postproduction/SKILL.md",
+      "computedHash": "bcd969a751090fc8006cf68a0f5b106eca4cedf8b560732b4496f76c5fecdd61"
+    },
+    "hebrew-rtl-best-practices": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-rtl-best-practices/SKILL.md",
+      "computedHash": "e960bcb984eab68ec2ba4abe1cc21d847b6384be04b91d7e05b6eda1b2359fff"
+    },
+    "hebrew-seo-geo-toolkit": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "hebrew-seo-geo-toolkit/SKILL.md",
+      "computedHash": "00bfe0a64438fb4fc618aec1008c392065de89f8a2f7462b93dd5592026a7086"
+    },
+    "hebrew-survey-builder": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "hebrew-survey-builder/SKILL.md",
+      "computedHash": "1be698fa847c4bc503b96e7bcdafc1a497071a8d20a175cdc59e8a3784ab5760"
+    },
+    "hebrew-tailwind-preset": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "hebrew-tailwind-preset/SKILL.md",
+      "computedHash": "4ac410d51395c33c446b88d8677f8fd0d7a69d06b394fe09f7b06c85bbedcf27"
+    },
+    "idf-date-converter": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "idf-date-converter/SKILL.md",
+      "computedHash": "4b83d03d278e6952c25582859f912ebd5a6b4c6bee8fece125ee74987712eb75"
+    },
+    "il-invoice-organizer": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "il-invoice-organizer/SKILL.md",
+      "computedHash": "d53359406ef60682b7c1348e57b0cef7e0b036755662905bdfd3cb18cff91dab"
+    },
+    "israel-gov-api": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israel-gov-api/SKILL.md",
+      "computedHash": "e9d0be58cc8e3ce0634ccf3137f49056b30cef60616536027e80c6a2d6cb445c"
+    },
+    "israeli-accessibility-compliance": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "israeli-accessibility-compliance/SKILL.md",
+      "computedHash": "475cd751ec731a8ed2917bf611661a95690cb10fd59a2bd7e62b0133c0437b97"
+    },
+    "israeli-address-autocomplete": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-address-autocomplete/SKILL.md",
+      "computedHash": "b4fbbece6a0f63fb22b732df5364fbc738264b805860998db6befa735f43d96c"
+    },
+    "israeli-ai-compliance-kit": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-ai-compliance-kit/SKILL.md",
+      "computedHash": "396dd919940bc643898b298dc08cc2e8d825c213f1ad557d04fb0341c33766d9"
+    },
+    "israeli-aliyah-navigator": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-aliyah-navigator/SKILL.md",
+      "computedHash": "faebe6b3ac99a4d74dc1f4f9cef8577730814519bd78f81f7cc41806101081e9"
+    },
+    "israeli-annual-reports": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-annual-reports/SKILL.md",
+      "computedHash": "1e9255efa1607f511ae043e0ff68da9f14072b693c57b9c825e6430a37b61775"
+    },
+    "israeli-appsec-scanner": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-appsec-scanner/SKILL.md",
+      "computedHash": "7d604c27c4b979929a6001c5090e9bc26c4dff83bb85c10370ae7e292847924a"
+    },
+    "israeli-arnona-optimizer": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-arnona-optimizer/SKILL.md",
+      "computedHash": "e0f3c08de3775bb07e8e69b8c7b51da08e6104c805b9735a4859b36d6f97d61c"
+    },
+    "israeli-aso": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-aso/SKILL.md",
+      "computedHash": "3c5b16e83d5a6954d96a22557f4d0d6cce8d883036f583b1bfe438c599d65325"
+    },
+    "israeli-bank-connector": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-bank-connector/SKILL.md",
+      "computedHash": "ba45ebd02b44b0a5b0988b97167afcfbdcafa9af42dcdce0690d3b6f88389e3f"
+    },
+    "israeli-bank-reconciliation": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-bank-reconciliation/SKILL.md",
+      "computedHash": "8125cbfc9e19142c8f2e9161433365bd09900eb14a5da1e6c06e6f9ed4a794e7"
+    },
+    "israeli-bituach-leumi": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-bituach-leumi/SKILL.md",
+      "computedHash": "ee1c2a007b9ca031834b3034e5a10c2017024aca41f2d09cb9db3d3da118d01e"
+    },
+    "israeli-bookkeeping-automation": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-bookkeeping-automation/SKILL.md",
+      "computedHash": "dbe4de5671397144b6a704a241edfd8fa3fdc885a9ae10fa68d8e83ad3775195"
+    },
+    "israeli-budget-planner": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-budget-planner/SKILL.md",
+      "computedHash": "b6fe27bc64a4d8c105bb641aaf5b73339d8e78bdb8dde7dd5fb52cd2ee5cfac4"
+    },
+    "israeli-bureaucracy-decoder": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-bureaucracy-decoder/SKILL.md",
+      "computedHash": "0349661f18298323417bbf7e05eedf3774568cec79078648ba21051107689104"
+    },
+    "israeli-business-war-compensation": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-business-war-compensation/SKILL.md",
+      "computedHash": "fb5080d8707d43f2a3db2a0a39e624e13dfb7dd1a68a7dd80063df78d3be74e2"
+    },
+    "israeli-client-payment-chaser": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-client-payment-chaser/SKILL.md",
+      "computedHash": "d1cec11075309592f264e8a5ab2725385a5cbeecb754bafe075a404aa7bfa131"
+    },
+    "israeli-company-lookup": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-company-lookup/SKILL.md",
+      "computedHash": "133ed26601f2b0aa2a6731ecdd8698dd89ffe07b572352d0bac338adc5375515"
+    },
+    "israeli-content-marketing": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-content-marketing/SKILL.md",
+      "computedHash": "f444e0c05e9fc3329bc5166a330fa47abbc2c0890afb8863801b67b12b5d726b"
+    },
+    "israeli-corporate-tax-strategy": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-corporate-tax-strategy/SKILL.md",
+      "computedHash": "8e0628fd24254f3bc7790ba5615ac4f4b97f0d78f9ceaca7e8b059afffd667e9"
+    },
+    "israeli-crypto-tax-reporter": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-crypto-tax-reporter/SKILL.md",
+      "computedHash": "d1f1e9b85a362f7cafcb62d14f0be47185168489fd3611728b58256bf461f23a"
+    },
+    "israeli-customer-support-automator": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-customer-support-automator/SKILL.md",
+      "computedHash": "be47fd3b38813def188c80bd5e331d45b498dcfa0c773eb4cdc2756014a7340b"
+    },
+    "israeli-customs-duty-calculator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-customs-duty-calculator/SKILL.md",
+      "computedHash": "918a3df060c67b37baef7c03264da0e3310ea374af37e1f0a92ac21cfded5bec"
+    },
+    "israeli-cv-builder": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-cv-builder/SKILL.md",
+      "computedHash": "bc2ca7833f74c7c0db288bc146fceece6fa4fb8d3a317849a5f62ec375d6bc20"
+    },
+    "israeli-cyber-regulations": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-cyber-regulations/SKILL.md",
+      "computedHash": "e3b58b975a5ef39f3a1f7a4e325c2463261c59c348c55c7131ef57af0f2c5dab"
+    },
+    "israeli-cybersecurity-ops": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-cybersecurity-ops/SKILL.md",
+      "computedHash": "80b0c621d71c9f2556dcd806346c48fc77b0bb48d9629867d28ca62078b1ff38"
+    },
+    "israeli-discharged-soldier-navigator": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-discharged-soldier-navigator/SKILL.md",
+      "computedHash": "03ceb175441a9ca8a8300f916f7aa42c19a693a01e3e819575ac03a5dcadc327"
+    },
+    "israeli-e-invoice": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-e-invoice/SKILL.md",
+      "computedHash": "183f8330d63a22dd498e01c85aa0bd01afc8f42c5b3712eeddcfddd8bc34b976"
+    },
+    "israeli-ecommerce-compliance": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-ecommerce-compliance/SKILL.md",
+      "computedHash": "3fc691a6a053d8ad30fe2152f41ddb19e485923367f319e319ca151462723b67"
+    },
+    "israeli-email-sequences": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-email-sequences/SKILL.md",
+      "computedHash": "083de57354149814192b71724e9d116005a72e15a6a36bfbaf59dc92fe9019ec"
+    },
+    "israeli-employee-tax-refund": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-employee-tax-refund/SKILL.md",
+      "computedHash": "d910f71b2cc18921eb944d5c412f0dafb254fbf5c08bb6dc07baa79bb408e265"
+    },
+    "israeli-employment-contract-reviewer": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-employment-contract-reviewer/SKILL.md",
+      "computedHash": "8c450124aa6a2eb4e05fcf9e65632699a0fc7913a8549b9736ea7187ade2fadd"
+    },
+    "israeli-employment-contracts": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-employment-contracts/SKILL.md",
+      "computedHash": "d3a9d774823f53c82347228adfff38521f2126f334212f06c3eea8a756ed0c1e"
+    },
+    "israeli-expense-categorizer": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-expense-categorizer/SKILL.md",
+      "computedHash": "cd57d832e4458cf74f7bec2c19537f7cdb4b754b32573d8f537ffce13a3f95fa"
+    },
+    "israeli-export-shipping-kit": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-export-shipping-kit/SKILL.md",
+      "computedHash": "45fb9f0b1ddf15b3c00c0304556cf677009073069620d1266f4606e3e3c7ab81"
+    },
     "israeli-financial-reports": {
       "source": "skills-il/accounting",
       "sourceType": "github",
+      "skillPath": "israeli-financial-reports/SKILL.md",
       "computedHash": "13fb3d57fbf5c1602ba45857b9dae6092af7b6e2162f549cbed9a41ba114dda8"
+    },
+    "israeli-fines-fighter": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-fines-fighter/SKILL.md",
+      "computedHash": "f77faac0f69e2ab69aec969b81f83fc57d257ac2396d984e00fa002d3e1662bd"
+    },
+    "israeli-food-business-compliance": {
+      "source": "skills-il/food-and-dining",
+      "sourceType": "github",
+      "skillPath": "israeli-food-business-compliance/SKILL.md",
+      "computedHash": "732e773569282e2ae0b46fe9e4555e58829db393d68f1eb87fe49f9a282ea981"
+    },
+    "israeli-freelancer-ops": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-freelancer-ops/SKILL.md",
+      "computedHash": "30d052daf45b541a513e28700b3591eb85af4ea5278fb36fd391d2516148fb80"
+    },
+    "israeli-freelancer-year": {
+      "source": "skills-il/courses",
+      "sourceType": "github",
+      "skillPath": "israeli-freelancer-year/SKILL.md",
+      "computedHash": "0a722135f1f473bcfad763cc515b6a44021778bdbf3129296ba7c88b173ebd52"
+    },
+    "israeli-gov-form-automator": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-gov-form-automator/SKILL.md",
+      "computedHash": "c69e2b88b4c449b3d917569875a37159f92c907538890ab65a5a401974d39971"
+    },
+    "israeli-hr-recruitment-automator": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-hr-recruitment-automator/SKILL.md",
+      "computedHash": "b15d8d0b3de663fc56ec0e7e753149f49763075746c8990fdb5b4d90d0f5f57a"
+    },
+    "israeli-id-validator": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "israeli-id-validator/SKILL.md",
+      "computedHash": "8d495995b67e270fb3fe49ed47b155ecdf3c4d0eaf06d09f8240c2a42759071b"
+    },
+    "israeli-insurance-comparator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-insurance-comparator/SKILL.md",
+      "computedHash": "43c7867fbcb84cf08b5a2180560a7290d34f63d2822b146ef1e3e869224be8b9"
+    },
+    "israeli-job-market": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-job-market/SKILL.md",
+      "computedHash": "0907d2c4dbea180d6e4c0be3e74d889faf08a614bca9e8f5687a7acf03e62990"
+    },
+    "israeli-land-tenders": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-land-tenders/SKILL.md",
+      "computedHash": "d2f4993bbc9e33a74d0379eb77ecf8b3064b382b9137b3c3f2aa97b83ec547ca"
+    },
+    "israeli-linkedin-strategy": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-linkedin-strategy/SKILL.md",
+      "computedHash": "b33ec5b2920cfbb0c3f69954e66d82a8665a7dce6d3e0bcafa34d7e58066c6d3"
+    },
+    "israeli-marketplace-seller": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "israeli-marketplace-seller/SKILL.md",
+      "computedHash": "4209efe4da09ccf906475cac8cf742bc1984fd034c264dd0dff0381d0f7f111f"
+    },
+    "israeli-miluim-manager": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-miluim-manager/SKILL.md",
+      "computedHash": "a9b30d9a74adb9229b9aa73b60a8a220f61e3dd623d4372c71b041734f8aaedb"
+    },
+    "israeli-mortgage-comparator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-mortgage-comparator/SKILL.md",
+      "computedHash": "2f53360d82cbe765b3abd9dc4ff0610cab2e3a20e9b799aa0844c9c5d10740cf"
+    },
+    "israeli-paid-ads": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-paid-ads/SKILL.md",
+      "computedHash": "058cab6a8025821c9d5bb85b8723e737451ff48d818efd4d192850919383435f"
+    },
+    "israeli-patent-guide": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-patent-guide/SKILL.md",
+      "computedHash": "f6ae2cbe753d37fbad6ba48013fa81e9074800eb28ebe34fe4aa0ad2a610ed0f"
+    },
+    "israeli-payment-orchestrator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-payment-orchestrator/SKILL.md",
+      "computedHash": "a28c3f43f848f217e6fbfc58a3984653dfb71f974788b5e73bdc470ef953cb63"
+    },
+    "israeli-payroll-calculator": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-payroll-calculator/SKILL.md",
+      "computedHash": "be177f9cd4856a3861d1cba0f93bf4dd09a2c081117707a4198fd443904394f2"
+    },
+    "israeli-pension-advisor": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-pension-advisor/SKILL.md",
+      "computedHash": "61448bf8570c3b666e829660b2714a2feb6cf72847a918988e29aac025045ecb"
+    },
+    "israeli-pension-decoded": {
+      "source": "skills-il/courses",
+      "sourceType": "github",
+      "skillPath": "israeli-pension-decoded/SKILL.md",
+      "computedHash": "b8178a04caa044423cfbcb1dcf013bfd447163f6dfd7e487024de291b17a017a"
+    },
+    "israeli-personal-assistant": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-personal-assistant/SKILL.md",
+      "computedHash": "e4a08af4e0765cd9b256a64793bc57a628c2f4c74f3f8fb9cd1267b50d568128"
+    },
+    "israeli-phone-formatter": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "israeli-phone-formatter/SKILL.md",
+      "computedHash": "afacf1b18e68606be97a3e6e0ca06313897efff84458155fef39df8355943d41"
+    },
+    "israeli-price-quote-generator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-price-quote-generator/SKILL.md",
+      "computedHash": "5cb9e850dcc91b8df8f471f8d50bc679b52775697e8d581d010859a0adc108fe"
+    },
+    "israeli-privacy-shield": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-privacy-shield/SKILL.md",
+      "computedHash": "6abffa414f3aa0406684cec01e61ef4ea0549b0e77cfc08f1ec236d1351dce78"
+    },
+    "israeli-product-launch": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-product-launch/SKILL.md",
+      "computedHash": "df31dc4185bb473f367ef0c3f3e21766bec12d7cf2e679c081372826c949b7cb"
+    },
+    "israeli-real-estate": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-real-estate/SKILL.md",
+      "computedHash": "d83bb7d520cfdef5ad6902d2c69f5747d4d74439066b9db98b3b55f629d76164"
+    },
+    "israeli-receipt-scanner": {
+      "source": "skills-il/accounting",
+      "sourceType": "github",
+      "skillPath": "israeli-receipt-scanner/SKILL.md",
+      "computedHash": "b253eae3fd6a044f21e2e1cfb4ced61fd476e9f033e3ac01f01545e0eab63311"
+    },
+    "israeli-rental-agreements": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-rental-agreements/SKILL.md",
+      "computedHash": "0abef1b13dbd6c0e3c6926681298e2eff076cd721b1640ac918d64c1dfa313ca"
+    },
+    "israeli-returning-resident-navigator": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-returning-resident-navigator/SKILL.md",
+      "computedHash": "7981889764ee67e5a839d0de5b9488225032ce39f82ca7df5d689dfe817cec0f"
+    },
+    "israeli-shipping-manager": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "israeli-shipping-manager/SKILL.md",
+      "computedHash": "33d0c3234ea836c06c4e6defdcbf3facb8d017354f7cae4fc070ea573bf14315"
+    },
+    "israeli-small-claims-court": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-small-claims-court/SKILL.md",
+      "computedHash": "b049daf449a13391bb4f0b18c5fb7249956c418218f986fc0b98543af4df572c"
+    },
+    "israeli-smart-saver": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-smart-saver/SKILL.md",
+      "computedHash": "6a3aed516eca914882155ba491a58bc0967a94ad335dd504450db0740e8383f1"
+    },
+    "israeli-sms-gateway": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-sms-gateway/SKILL.md",
+      "computedHash": "0e3aa54d3f033ca9b313ed3b9fc21b780ef245b69ce5dc69f49c7e797f0e3db1"
+    },
+    "israeli-social-content": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-social-content/SKILL.md",
+      "computedHash": "bbea527d6e55553dfa4a4eeae577bb625e52c8bc59cb7f174766cbad1110f436"
+    },
+    "israeli-standards-import-checker": {
+      "source": "skills-il/security-compliance",
+      "sourceType": "github",
+      "skillPath": "israeli-standards-import-checker/SKILL.md",
+      "computedHash": "7a3f71f682f49b20076e78ec704d580be49e0acb416afea1579256f5a9d36091"
+    },
+    "israeli-startup-toolkit": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "israeli-startup-toolkit/SKILL.md",
+      "computedHash": "d14cb1a20cdc6d590890521b8b978d9c68d8c8f0f9cd2c61af2dd50384d209df"
+    },
+    "israeli-statistics": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-statistics/SKILL.md",
+      "computedHash": "2f8972f8b3f6b92b202ad4e45df9f1ada552193578f76c75d81a674689687560"
+    },
+    "israeli-stock-options-tax": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-stock-options-tax/SKILL.md",
+      "computedHash": "152bbbc1d35e435a5e7da5c8af3a74936bc5b4cb93983e4da08ca2afdc30013d"
+    },
+    "israeli-tax-returns": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-tax-returns/SKILL.md",
+      "computedHash": "ea444217858cf8566ebac5b5fc2503849278a3b1859c1ae929667db4d7a160eb"
+    },
+    "israeli-tax-withholding": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-tax-withholding/SKILL.md",
+      "computedHash": "7bf704ef39a331f21a7dad333198b58204847f6a5449f59e6ea95ded56b26e22"
+    },
+    "israeli-tech-interview-prep": {
+      "source": "skills-il/education",
+      "sourceType": "github",
+      "skillPath": "israeli-tech-interview-prep/SKILL.md",
+      "computedHash": "12a514612d7a6b0c1d1bba483053187efa47030e06a8cf83efe900819ce25535"
+    },
+    "israeli-tech-salary-negotiator": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "israeli-tech-salary-negotiator/SKILL.md",
+      "computedHash": "593ebc7751b0fa30133c37b0d278b6e1abad03152699a7ffb168155c78d3d6e3"
+    },
+    "israeli-telecom-comparator": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-telecom-comparator/SKILL.md",
+      "computedHash": "6fc80588317df4c7e24f54f4c108051091130dae895a94438895227075fced79"
+    },
+    "israeli-telegram-business-bot": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-telegram-business-bot/SKILL.md",
+      "computedHash": "0ca194dac1ded52eb6f4758b711ce1ca5fa1ddde7463c512d54ba9a81d70bcc5"
+    },
+    "israeli-tender-proposal-builder": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-tender-proposal-builder/SKILL.md",
+      "computedHash": "72d9854de605ecf61e239d3ab46bd3bc293b10c8f2430ff47fdf42ccd04687b4"
+    },
+    "israeli-toshav-chozer-vatik-tax-planner": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-toshav-chozer-vatik-tax-planner/SKILL.md",
+      "computedHash": "d125ef3da966216cd310486ce60b74dba42c03edb9fcb4c4ff79825fbf1b6322"
+    },
+    "israeli-ui-design-system": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "israeli-ui-design-system/SKILL.md",
+      "computedHash": "a214af20238423de7e4b34ac23244a0c7bc50f592961752ddeb355450a5718f2"
+    },
+    "israeli-unemployment-benefits-navigator": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-unemployment-benefits-navigator/SKILL.md",
+      "computedHash": "bf57e992cc27540df27af1b4fb6602937f79ab23179bb1d44755c115f4d7e3f6"
+    },
+    "israeli-utility-rates-comparator": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-utility-rates-comparator/SKILL.md",
+      "computedHash": "7236d35bf8d3c54d90022e6cf5f16411a92e7862e0eb840d0ce88869624b995c"
+    },
+    "israeli-vat-reporting": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "israeli-vat-reporting/SKILL.md",
+      "computedHash": "8dfa20e5931cee18e1d91663ef78768ac8beb11e34cd1491002e4da519c28624"
+    },
+    "israeli-vehicle-manager": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-vehicle-manager/SKILL.md",
+      "computedHash": "464a9cb73292b3932b51989f1d1b3f79f9bfbd12808d4cb5386400a8eb5f8222"
+    },
+    "israeli-war-damage-claims": {
+      "source": "skills-il/government-services",
+      "sourceType": "github",
+      "skillPath": "israeli-war-damage-claims/SKILL.md",
+      "computedHash": "31ec605d046f6abd814827dc1f3c1869bbd13019ee8693071ff99beaaaea338a"
+    },
+    "israeli-whatsapp-business": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "israeli-whatsapp-business/SKILL.md",
+      "computedHash": "169aa109f86c7c6c049c84e7bc254fb55e1301d107b8549c37da4d6157f52195"
+    },
+    "israeli-workplace-rights-navigator": {
+      "source": "skills-il/legal-tech",
+      "sourceType": "github",
+      "skillPath": "israeli-workplace-rights-navigator/SKILL.md",
+      "computedHash": "7980a3181e7da923e6a92c4877e8a6ec90141a348669db1756caee80baee3b98"
+    },
+    "jfrog-devops": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "jfrog-devops/SKILL.md",
+      "computedHash": "1d3c2ef4866d70ef5264089cbbc605187e7e4a413b5a07d4d9093149338a7735"
+    },
+    "monday-com-workflows": {
+      "source": "skills-il/communication",
+      "sourceType": "github",
+      "skillPath": "monday-com-workflows/SKILL.md",
+      "computedHash": "5da3592cb5b7ea843735c0ddbf403e3d0c8b528b06d128b435fab5b17485a0a0"
+    },
+    "pelecard-payment-gateway": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "pelecard-payment-gateway/SKILL.md",
+      "computedHash": "3666112559c48083a8f8632c09765576ced27d77cb07b52dd846c6ef86f64a1c"
+    },
+    "presentation-generator": {
+      "source": "skills-il/marketing-growth",
+      "sourceType": "github",
+      "skillPath": "presentation-generator/SKILL.md",
+      "computedHash": "048017479282a244b1875e86e5637641e7b57b4909b1f703c1cc94eac4f5c996"
+    },
+    "shabbat-aware-scheduler": {
+      "source": "skills-il/localization",
+      "sourceType": "github",
+      "skillPath": "shabbat-aware-scheduler/SKILL.md",
+      "computedHash": "6b397b1832d1b9854ee9ad359b4f85b0cd39bcd5c59bf614705feee7da6022c6"
+    },
+    "shekel-currency-converter": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "shekel-currency-converter/SKILL.md",
+      "computedHash": "f0f88be86e36a2742a1e5319da75b1d7d9fe5d661422e792d3e8905a8d6505ec"
+    },
+    "skills-il-skill-creator": {
+      "source": "skills-il/developer-tools",
+      "sourceType": "github",
+      "skillPath": "skills-il-skill-creator/SKILL.md",
+      "computedHash": "61984d4a6ee0a1f06f0e676133544b12b6032cebf67ca4f1806402ce5cdafc9c"
+    },
+    "tase-stock-analysis": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "tase-stock-analysis/SKILL.md",
+      "computedHash": "47222d372cfc99f6d6b861f28c852dffa500409872bf2f039fd556d94b21e0cc"
+    },
+    "tranzila-payment-gateway": {
+      "source": "skills-il/tax-and-finance",
+      "sourceType": "github",
+      "skillPath": "tranzila-payment-gateway/SKILL.md",
+      "computedHash": "885ee7d53b6c1160335738becce1443247af0380a7e2922820f588ae8e170943"
+    },
+    "writing-your-first-agent-skill": {
+      "source": "skills-il/courses",
+      "sourceType": "github",
+      "skillPath": "writing-your-first-agent-skill/SKILL.md",
+      "computedHash": "11b306e1b2be42178b2b524aa81fb5dd55a5e88d6e54982e2f9ad6430d56ad49"
     }
   }
 }
