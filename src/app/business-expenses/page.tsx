@@ -8,8 +8,8 @@ import { loadPersona } from "@/lib/setup-storage";
 import {
   pickProfile,
   ExpenseCategory,
-  ExpenseProfile,
 } from "@/lib/business-expenses/profiles";
+import { PL_IMPACT_LABEL } from "@/lib/regulatory/deductions";
 import { cn } from "@/lib/utils";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
@@ -35,7 +35,10 @@ export default function BusinessExpensesPage() {
     );
   }
 
-  const profile = pickProfile(persona.business.primaryOccupation);
+  const profile = pickProfile(
+    persona.business.primaryOccupation,
+    persona.income.year,
+  );
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -90,7 +93,7 @@ export default function BusinessExpensesPage() {
           <div className="mt-5 rounded-xl bg-white border border-info px-4 py-3 text-[12px] text-stone-700 leading-relaxed">
             <span className="font-bold text-brand-navy">💡 איך להשתמש: </span>
             הקטגוריות למטה מותאמות לעיסוק <strong>{persona.business.primaryOccupation}</strong>.
-            כל הוצאה מוגדרת לפי כללי פקודת מס הכנסה 2024 — מה מוכר במלואו, מה חלקית,
+            כל הוצאה מוגדרת לפי כללי פקודת מס הכנסה {persona.income.year} — מה מוכר במלואו, מה חלקית,
             ומה כפחת לאורך שנים. שמרי קבלות, ובסוף השנה — הזיני לדו״ח 1301 שלך.
           </div>
         </div>
@@ -108,7 +111,7 @@ export default function BusinessExpensesPage() {
           ))}
         </div>
 
-        <FooterDisclaimer />
+        <FooterDisclaimer year={persona.income.year} />
       </main>
     </div>
   );
@@ -148,6 +151,13 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
         ? "bg-info text-brand-navy border-info"
         : "bg-purple-100 text-purple-800 border-purple-300";
 
+  // Every business expense ultimately reduces business income (field 150);
+  // universal items carry their explicit field(s) from the deductions registry.
+  const fields = category.formFields ?? ["150"];
+  const impactLabel = category.plImpact
+    ? PL_IMPACT_LABEL[category.plImpact]
+    : PL_IMPACT_LABEL["operating-expense"];
+
   return (
     <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-stone-100">
@@ -156,6 +166,20 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
           <p className="text-[12px] text-stone-600 mt-1 leading-relaxed">
             {category.description}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {fields.map((f) => (
+              <span
+                key={f}
+                className="inline-flex items-center rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-600"
+                title="שדה בטופס 1301 שהסכום מוזן אליו"
+              >
+                שדה {f}
+              </span>
+            ))}
+            <span className="inline-flex items-center rounded-md bg-brand-navy/5 px-1.5 py-0.5 text-[10px] text-brand-navy/70">
+              {impactLabel}
+            </span>
+          </div>
         </div>
         <span
           className={cn(
@@ -197,11 +221,11 @@ function ruleDisplayLabel(c: ExpenseCategory): string {
   return "";
 }
 
-function FooterDisclaimer() {
+function FooterDisclaimer({ year }: { year: number }) {
   return (
     <div className="mt-8 text-center text-[11px] text-stone-400 leading-relaxed">
       <p>
-        המידע המוצג מבוסס על פקודת מס הכנסה (2024) ופרסומים פומביים של רשות המסים.
+        המידע המוצג מבוסס על פקודת מס הכנסה ({year}) ופרסומים פומביים של רשות המסים.
         קטגוריות והכרה ספציפית עשויות להשתנות לפי מצב העסק. לפני הגשת הדו״ח —
         התייעצי עם רואה חשבון.
       </p>
