@@ -90,29 +90,36 @@ function estimateIncomeTax(profitBeforeTax: number, year: number): number {
  * gross profit; operating-expense is overhead below it; deduction-from-income
  * items (ביטוח לאומי, קרן השתלמות, פנסיה) are NOT business expenses — they reduce
  * the taxable base below the operating result, so they get their own group.
+ *
+ * Cost and operating lines are recorded gross (conventional P&L presentation).
+ * Personal deductions are netted to their statutorily recognised amount via
+ * recognizedRate — ביטוח לאומי is only 52% deductible, so reducing the taxable
+ * base by 100% of it would understate the tax.
  */
 type ExpenseLine = { category: string; amount: number };
+type DeductionLine = { category: string; amount: number; recognizedRate: number };
 function groupExpensesByImpact(expenseBreakdown: PLSummary["expenseBreakdown"]): {
   costOfRevenue: number;
   operatingExpenses: number;
   personalDeductions: number;
   costLines: ExpenseLine[];
   operatingLines: ExpenseLine[];
-  deductionLines: ExpenseLine[];
+  deductionLines: DeductionLine[];
 } {
   let costOfRevenue = 0;
   let operatingExpenses = 0;
   let personalDeductions = 0;
   const costLines: ExpenseLine[] = [];
   const operatingLines: ExpenseLine[] = [];
-  const deductionLines: ExpenseLine[] = [];
+  const deductionLines: DeductionLine[] = [];
   for (const e of expenseBreakdown) {
     if (e.plImpact === "cost-of-revenue") {
       costOfRevenue += e.amount;
       costLines.push(e);
     } else if (e.plImpact === "deduction-from-income") {
-      personalDeductions += e.amount;
-      deductionLines.push(e);
+      const recognized = Math.round(e.amount * e.recognizedRate);
+      personalDeductions += recognized;
+      deductionLines.push({ category: e.category, amount: recognized, recognizedRate: e.recognizedRate });
     } else {
       operatingExpenses += e.amount;
       operatingLines.push(e);
@@ -252,8 +259,9 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
   // identical to a pure business P&L.
   if (personalDeductions > 0) {
     for (const d of split.deductionLines) {
+      const pctLabel = d.recognizedRate < 1 ? ` (${Math.round(d.recognizedRate * 100)}% מוכר)` : "";
       lines.push({
-        he: d.category,
+        he: `${d.category}${pctLabel}`,
         en: CATEGORY_EN[d.category] ?? d.category,
         amount: d.amount,
         kind: "outflow",

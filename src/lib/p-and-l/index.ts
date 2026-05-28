@@ -27,8 +27,8 @@ export interface PLSummary {
   totalRevenue: number;
   totalExpenses: number;
   netProfit: number;
-  /** Each category carries the P&L destination it routes to (from the deductions registry). */
-  expenseBreakdown: { category: string; amount: number; plImpact: PLImpact }[];
+  /** Each category carries its P&L destination + deductible fraction (from the deductions registry). */
+  expenseBreakdown: { category: string; amount: number; plImpact: PLImpact; recognizedRate: number }[];
   monthlyData: MonthlyPL[];
   /** True iff month-level data came from real dated line items (invoices/expenses). */
   hasDatedData: boolean;
@@ -164,12 +164,13 @@ export function calculatePL(persona: Persona): PLSummary {
     ];
   }
 
-  // Tag each category with where it lands in the P&L — the registry is the authority.
+  // Tag each category with where it lands in the P&L and its deductible
+  // fraction — the registry is the authority for both.
   const year = persona.income.year ?? new Date().getFullYear() - 1;
-  const expenseBreakdown = rawBreakdown.map((e) => ({
-    ...e,
-    plImpact: classifyExpensePLImpact(e.category, year),
-  }));
+  const expenseBreakdown = rawBreakdown.map((e) => {
+    const routing = classifyExpensePLImpact(e.category, year);
+    return { ...e, plImpact: routing.plImpact, recognizedRate: routing.recognizedRate };
+  });
 
   return {
     totalRevenue,

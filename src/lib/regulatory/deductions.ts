@@ -139,24 +139,43 @@ const CATEGORY_DEDUCTION_ALIASES: { id: string; match: string[] }[] = [
 /** Category nouns that mark a direct cost of revenue (capital / equipment). */
 const COST_OF_REVENUE_HINTS = ["ציוד ומחשוב", "ציוד", "מחשוב", "equipment"];
 
+export interface ExpensePLRouting {
+  plImpact: PLImpact;
+  /**
+   * Statutorily recognised fraction of the recorded amount, taken from the
+   * matched deduction's rule/ratePercent (1 for full or unmatched categories).
+   * The P&L uses this so a partial deduction-from-income item reduces the
+   * taxable base only by its deductible portion — e.g. ביטוח לאומי לעצמאי is
+   * 52% deductible, not 100%.
+   */
+  recognizedRate: number;
+}
+
 /**
  * Resolve how an expense category flows through the P&L. Registry-owned items
- * inherit their declared plImpact; everything else uses the service-business
- * heuristic (equipment = direct cost, otherwise operating overhead).
+ * inherit their declared plImpact and deductible fraction; everything else uses
+ * the service-business heuristic (equipment = direct cost, otherwise operating
+ * overhead) at full recognition.
  */
-export function classifyExpensePLImpact(category: string, year: number): PLImpact {
+export function classifyExpensePLImpact(category: string, year: number): ExpensePLRouting {
   const alias = CATEGORY_DEDUCTION_ALIASES.find((a) =>
     a.match.some((m) => category.includes(m)),
   );
   if (alias) {
     const def = getDeduction(alias.id, year);
-    if (def) return def.plImpact;
+    if (def) {
+      const recognizedRate =
+        def.rule === "partial" && def.ratePercent != null ? def.ratePercent / 100 : 1;
+      return { plImpact: def.plImpact, recognizedRate };
+    }
   }
   const lower = category.toLowerCase();
-  if (COST_OF_REVENUE_HINTS.some((h) => lower.includes(h.toLowerCase()))) {
-    return "cost-of-revenue";
-  }
-  return "operating-expense";
+  const plImpact: PLImpact = COST_OF_REVENUE_HINTS.some((h) =>
+    lower.includes(h.toLowerCase()),
+  )
+    ? "cost-of-revenue"
+    : "operating-expense";
+  return { plImpact, recognizedRate: 1 };
 }
 
 /** Hebrew label for a P&L impact — used by the expense guide. */
