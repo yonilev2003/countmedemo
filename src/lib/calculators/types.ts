@@ -118,6 +118,24 @@ export const TAX_YEAR_2024 = {
   ] as TaxBracket[],
 };
 
+export type TaxYearConstants = typeof TAX_YEAR_2024;
+
+/**
+ * 2025 constants — placeholder values identical to 2024.
+ * TODO(Roy): Update with indexed 2025 values once confirmed.
+ * Known: pointValueAnnual stays frozen at 2,904 through 2027.
+ */
+export const TAX_YEAR_2025: TaxYearConstants = {
+  ...TAX_YEAR_2024,
+  taxBrackets: [...TAX_YEAR_2024.taxBrackets],
+};
+
+/** Returns the tax-year constants for the given filing year, falling back to 2024. */
+export function getTaxYearConstants(year: number): TaxYearConstants {
+  if (year >= 2025) return TAX_YEAR_2025;
+  return TAX_YEAR_2024;
+}
+
 /* ──────────────────────────────────────────────────────────────────────────
  * Regulatory-Watch metadata layer.
  *

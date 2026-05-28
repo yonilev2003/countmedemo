@@ -151,6 +151,14 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      <div className="mx-auto max-w-screen-xl px-6 pt-4">
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-[11px] text-stone-500 leading-relaxed">
+          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
+          הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
+          לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
+        </div>
+      </div>
+
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Title + filter */}
         <div className="flex items-center justify-between mb-6">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
 import { savePersona, loadPersona } from "@/lib/setup-storage";
-import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
@@ -523,7 +523,7 @@ export default function SetupPage() {
       },
       vatAndTurnover: {
         annualTurnoverWithoutVat: totalRevenue,
-        isAbove6111Threshold: totalRevenue > TAX_YEAR_2024.form6111Threshold,
+        isAbove6111Threshold: totalRevenue > getTaxYearConstants(2024).form6111Threshold,
       },
     };
   }
@@ -1302,7 +1302,7 @@ export default function SetupPage() {
                       </span>
                       <span className="text-sm font-semibold">
                         {Number(s4.totalRevenue) >
-                        TAX_YEAR_2024.form6111Threshold
+                        getTaxYearConstants(2024).form6111Threshold
                           ? "חייבת בהגשה"
                           : "פטורה"}
                       </span>

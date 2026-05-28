@@ -22,7 +22,7 @@
 
 import { Persona } from "@/lib/persona";
 import { PLSummary } from "./index";
-import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
 export interface PLLine {
   /** Hebrew label */
@@ -68,9 +68,9 @@ export interface IsraeliPLReport {
  * Brackets per the calculators/types module; this is a rough estimate for the
  * report (not the official liability).
  */
-function estimateIncomeTax(profitBeforeTax: number): number {
+function estimateIncomeTax(profitBeforeTax: number, year: number): number {
   if (profitBeforeTax <= 0) return 0;
-  const brackets = TAX_YEAR_2024.taxBrackets;
+  const brackets = getTaxYearConstants(year).taxBrackets;
   let tax = 0;
   for (const b of brackets) {
     if (profitBeforeTax <= b.from) break;
@@ -134,7 +134,7 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
   // so the line shows 0 but the row exists per Israeli format.
   const financialExpenses = 0;
   const profitBeforeTax = operatingProfit - financialExpenses;
-  const incomeTax = estimateIncomeTax(profitBeforeTax);
+  const incomeTax = estimateIncomeTax(profitBeforeTax, persona.income.year);
   const netProfit = profitBeforeTax - incomeTax;
 
   const year = persona.income.year ?? new Date().getFullYear() - 1;
