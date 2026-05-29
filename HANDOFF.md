@@ -1,143 +1,81 @@
 # Handoff — לסשן הבא
 
-> מסמך מסירה בין סשנים. נכתב כי סשן ענן (Claude Code on the web) מקבל **רק את הריפו** —
-> לא את היסטוריית השיחה הקודמת. כל מה שצריך כדי להמשיך נמצא כאן ובקוד.
+> מסמך מסירה בין סשנים. סשן ענן (Claude Code on the web) מקבל **רק את הריפו** — לא את היסטוריית
+> השיחה. כל מה שצריך כדי להמשיך נמצא כאן, בקוד, ובמעקב המשימות החי.
 >
-> ענף עבודה: `claude/dazzling-keller-aHGGa` · HEAD בזמן הכתיבה: `b521a2b` · תאריך: 2026-05-28
+> מצב: הסבב הנוכחי מוזג ל-`main`. מקור-אמת למשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
+> עודכן: 2026-05-29.
 
 ---
 
-## 1. מטרת הסשן
+## 1. מטרת-העל
 
-**המטרה העל:** countme — מוצר fin-ops מבוסס-AI לעצמאים ישראלים מתחת לגיל 35. היעד הקרוב הוא
-ה-**דמו ל-EY** דרך מאיץ Momentum: טופס 1301 עם כל הערכים מחושבים מראש, כל ערך לחיץ (נוסחה +
-מקור), וצ'אט חופשי. מעבר לדמו — בניית ה-MVP לפי תוכנית העבודה.
-
-**מטרת הסשן הבא (קונקרטית), לפי סדר עדיפויות:**
-
-1. **להכריע ולפעול על פער הסקילים** (ראו §4) — זה משפיע על נכונות *כל* לוגיקת המס.
-2. **`Setup: בורר שנת מס`** — כרגע `income.year` קשיח ל-2024 (`src/app/setup/page.tsx:497`), כך
-   שכל תשתית 2025 שבנינו לא נגישה למשתמש בפועל. שינוי קטן שמפעיל הרבה.
-3. להמשיך את שאר ה-worktrees (§5) לפי עדיפות.
+countme — מוצר fin-ops מבוסס-AI לעצמאים ישראלים מתחת לגיל 35. היעד הקרוב: **דמו ל-EY** דרך מאיץ
+Momentum — טופס 1301 עם כל הערכים מחושבים מראש, כל ערך לחיץ (נוסחה + מקור), וצ'אט חופשי. מעבר
+לדמו — בניית ה-MVP לפי 11 משימות הפ"ע (ראו טבלת המעקב).
 
 ---
 
-## 2. מה עשינו (הסשנים האחרונים)
+## 2. מה הושלם בסבב הזה (אינטגרציה + בנייה)
 
-**תשתית רגולטורית year-keyed (הליבה הארכיטקטונית):**
-- `src/lib/calculators/types.ts` — קבועים per-year, `TAX_YEAR_2024` + `TAX_YEAR_2025`,
-  `getTaxYearConstants(year)` עם registry. כל ערך ב-2025 הוגדר במפורש (FROZEN/STABLE/CARRIED→`TODO(Roy)`).
-  תקרת עוסק פטור === עוסק זעיר מובטחת מבנית (קבוע משותף לכל שנה).
-- `src/lib/regulatory/deductions.ts` — מרשם ניכויים year-keyed. כל פריט מצהיר: `formFields`
-  (קודי 1301), `plImpact` (איך זורם בדו"ח), `skill` (הסקיל שבבעלותו הכלל).
-- כל ה-calculators + chat/coach routes + setup + P&L קוראים כעת שנה מהפרסונה, לא קשיח.
+**שחזור ענפים תקועים** (במקום בנייה מאפס):
+- `dazzling-keller-aHGGa` → **PWA** (manifest+SW), **ceiling-alert** (תקרת ₪120K), **`TAX_YEAR_2025`** +
+  `getTaxYearConstants()`, ומרשם הניכויים year-keyed. מיזוג נקי.
+- `funny-maxwell-K7dK2` → 5 סקילי Tier-1 (כולל `israeli-freelancer-ops` עם `deadline-calendar`).
+- `build-crm-system-KcTPb` → CRM כ-`crm-snapshot/` תוספתי בלבד (sub-app עצמאי, מבודד מה-build).
 
-**הסשן הנוכחי — `pl-deductions-connect`:**
-- חיברתי את `plImpact` מהמרשם לתוך דו"ח הרווח-וההפסד (`src/lib/p-and-l/israeli-report.ts`).
-- `classifyExpensePLImpact(category, year)` ב-`deductions.ts` ממפה קטגוריית הוצאה → `plImpact`
-  + שיעור הכרה (`recognizedRate`), מהמרשם.
-- `expenseBreakdown` (ב-`src/lib/p-and-l/index.ts`) נושא כעת `plImpact` + `recognizedRate`.
-- הדו"ח מנתב לפי impact: עלות-המכר מעל הרווח הגולמי, תפעולי מתחת, ו**ניכויים מההכנסה**
-  (ב"ל/קרן/פנסיה) יורדים לסעיף "ניכויים אישיים" מתחת לרווח התפעולי ומקטינים את ההכנסה החייבת.
-- **self-audit תפס באג**: הניתוב הוריד 100% מהכנסה חייבת, אבל ביטוח לאומי מוכר רק 52% (המרשם
-  עצמו מצהיר `rule:"partial"`/`ratePercent:52`). תוקן — מיישמים את שיעור ההכרה; השורה מסומנת "52% מוכר".
+**פיצ'רים שנבנו:**
+- **#4 בורר שנת מס** (2024/2025) ב-`setup`, מחליף את הקיבוע ל-2024; ברירת מחדל 2024 (ערכי 2025 = `TODO(Roy)`).
+- **#3 תיבת התראות `/alerts`** — תקרת זעיר + מקדמות מע"מ (לפי מחזור/תדירות) + תזכורת הוצאות חודשית + התראות מועדים.
+- **#5 לוח מועדים** — `src/lib/deadlines/calendar.ts` (9 מועדים) + דף `/deadlines` + חיבור ל-`/alerts`.
+- **#8 פולו-אפ/הערות (v1)** — `src/lib/crm/notes.ts` (localStorage), הערות על מועדים ב-`/deadlines`.
+- **#9 תחזית מקדמות** — `src/lib/forecast/` + `ForecastCard` בדשבורד: הקרנה לפי חודש חזק/ממוצע/חלש + תכנון-מול-ביצוע.
 
-**מה שהתברר כבר-בוצע:** `wt/api-hardening` — rate limiting (12/דק' per-IP), ולידציה + ניקוי
-control chars (`src/app/api/chat/route.ts`), ו-error boundaries (`error.tsx`, `global-error.tsx`).
-
-**חקירת סקילים:** גיליתי שהסקילים ה-`israeli-*` **לא מותקנים בסביבת הענן** (ראו §4).
-
-קומיטים מרכזיים: `b521a2b` (fix 52%), `3fcb019` (pl-deductions-connect), `54f9fe6` (מרשם + מדריך
-סקילים), `4ee642d` (קבועי שנה), `4014095` (פילטרי חשבוניות), `7d7fc06` (PWA + ceiling).
+**בדיקה עצמית (תוקן):** תוויות שנה דינמיות בדשבורד/דמו (היו קשיחות 2024) · הסרת כפילות מע"מ בין #3 ל-#5
+(התראות-מועד מדלגות `maam`) · ריצת מס יחידה לכל תרחיש ב-#9.
 
 ---
 
-## 3. מה הצלחנו
+## 3. אחוזי ביצוע (11 משימות הפ"ע)
 
-- **`pl-deductions-connect` סגור מקצה לקצה** + תיקון הנכונות, מקומפל (build exit 0) ומאומת
-  בריצה אמיתית על שתי פרסונות: דנה (ללא ניכויים אישיים → זהה לקודם, הדמו יציב) ו-fallback
-  (ב"ל 10,000 → 5,200 מוכר → מס על 154,800). נדחף לענף.
-- **התשתית הקשה הושלמה** — backbone רגולטורי year-keyed, ה-seam של P&L, וחיזוק ה-API.
-  אלה החלקים הארכיטקטוניים; מה שנשאר הוא בעיקר רוחב-UI ופריטים חסומים על אנשים.
-- **אבחון חד-משמעי של פער הסקילים** — לא ניחוש, נבדק על כל ה-filesystem.
+| מצב | משימות | % |
+|---|---|---|
+| ✅ מוגמר/כמעט | #7 (100%), #4 (90%), #3 (90%), #9 (85%), #5 (90%) | — |
+| 🟡 חלקי | #8 (70% — הליבה עובדת) | — |
+| ⛔ חסום על פגישות | #1, #2, #6, #10, #11 (0%) | — |
 
-### אחוזי ביצוע
-
-| Worktree / רכיב | מצב | % מספרי | הערכת מאמץ/משאבים |
-|---|---|---|---|
-| תשתית year-keyed + 2025 | ✅ קוד | 100% | ערכי 2025 חסומים על רוי (CARRIED) |
-| מרשם ניכויים + מדריך סקילים | ✅ | 100% | — |
-| PWA | ✅ | ~90% | אולי חסרים אייקונים — לאמת |
-| התראת תקרת ₪120K | ✅ | 100% | — |
-| פילטרי חשבוניות + הקצאה יציבה | ✅ | 100% | — |
-| `api-hardening` | ✅ | 100% | — |
-| `pl-deductions-connect` | ✅ | 100% | הסשן הזה |
-| `onboarding-tos` | ⬜ | 0% | בורר שנה+שדות בר-ביצוע; TOS חסום על תומי |
-| `alerts-inbox` | 🟨 | ~20% | `CeilingAlertCard` קיים; אין route/inbox/תזכורת |
-| `tax-coordination-shells` | ⬜ | 0% | shells בר-ביצוע; נוסחאות חסומות על רוי |
-| `landing-waitlist` | ⬜ | 0% | — |
-
-**סיכום:** ~7/13 משימות ≈ **54% מספרית**. מבחינת מאמץ — החלקים הקשים (תשתית) גמורים, כך
-שמהעבודה ה*עצמאית* (לא חסומה) הושלמו ~60%; הנותר מפוזר על הרבה פיסות UI קטנות + 2 מסלולים
-חסומים על רוי/תומי.
+**סיכום: ≈48% כולל · ≈100% מהסקופ הלא-חסום.** כל מה שאינו חסום על רוי/תומי הושלם.
 
 ---
 
-## 4. מה לא הצלחנו (פערים פתוחים)
+## 4. מה נותר — הכל חסום על אנשים
 
-**א. פער הסקילים — הקריטי ביותר.**
-הסקילים ה-`israeli-*` המתועדים ב-CLAUDE.md (israeli-tax-returns, israeli-bituach-leumi וכו')
-**לא קיימים בסביבת הענן הזו** — לא בריפו, לא ברמת המשתמש, בשום מקום. נבדק על כל ה-filesystem;
-קיימים רק סקילים גנריים (`/mnt/skills/public/`: pdf/docx/xlsx/frontend-design) ו-`financial-calculator`
-גנרי שאינו ישראלי.
+| משימה | חסום על | מה צריך |
+|---|---|---|
+| #1 גבול רו"ח↔AI | פ"ע שלושתנו | מיפוי מה מחייב רו"ח מול מה ש-AI מכסה |
+| #2 תיאום מס + מקדמות ב"ל | רוי | נוסחאות → ואז shell UI |
+| #6 מעבר לגוגל קלאוד | רוי | פגישת בירור עלות (כיום Vercel) |
+| #10 תכנון↔ביצוע 1301 | רוי | פגישת אפיון פערים |
+| #11 מסמך MVP | רוי + תומי (נפרד) | ליצור `MVP.md` + פגישות |
 
-*למה:* סשן ענן משכפל רק את הריפו. הסקילים שהותקנו מקומית עם `npx skills-il add` יושבים ב-
-`~/.claude/skills/` **על המכונה של יוני** ומעולם לא נוקמטו לריפו, אז הם לא הגיעו לכאן.
-
-*ההשלכה (כנה):* לוגיקת המס לא הוצלבה מול סקיל אוטוריטטיבי — היא נשענת על הקבועים בקוד + ידע
-האימון של המודל (שה-CLAUDE.md עצמו מזהיר לא לסמוך עליו למספרים שנתיים). בדיוק בגלל זה באג ה-52%
-חמק בהתחלה. ההפניות ב-CLAUDE.md (טבלת "מתי להתייעץ" + שדה `skill:`) הן **תיעוד כוונה, לא הזרקת
-קונטקסט חיה** בסביבה הזו.
-
-**ב. ערכי 2025 לא מאומתים** — כל `TODO(Roy)` ב-`TAX_YEAR_2025` (תקרות, סף 6111, סף ב"ל) נושאים
-את ערך 2024 עד אישור רוי.
-
-**ג. שנת המס קשיחה ב-setup** — `src/app/setup/page.tsx:497` עדיין `year: 2024`, כך שמסלול 2025
-לא נגיש דרך ה-UI.
-
-**ד. worktrees שלא התחילו** — onboarding-tos, alerts-inbox (חלקי), tax-coordination-shells,
-landing-waitlist.
+**חסום משני:** ערכי 2025 (#4) ומבנה משימות CRM (#8) ← רוי/תומי · חיבור Supabase (#3 persist, #8 מלא) = "יום 2+".
 
 ---
 
-## 5. מה נותר כדי להצליח
-
-**החלטה ופעולה על סקילים (עדיפות #1):** לבחור אחת —
-1. **לנקמט את הסקילים לריפו** (`.claude/skills/israeli-*`) → כל סשן ענן יקבל אותם. הפתרון העמיד.
-2. **Setup script לסביבה** שירוץ `npx skills-il add ...` באתחול ([docs](https://code.claude.com/docs/en/claude-code-on-the-web)).
-3. להשאיר כפי שהוא ולסמוך על המרשם + אימות אנושי מול המקורות הרשמיים.
-   *המלצה: #1.* כדי להחליט — להריץ מקומית `ls ~/.claude/skills/` ולראות מה קיים.
-
-**worktrees עצמאיים (ניתן במקביל — קבצים נפרדים):**
-- `wt/onboarding-tos` — בורר שנת מס (תיקון `setup/page.tsx:497`) + שדות (מילואים/ילדים/עלייה/בן-זוג). TOS חסום על תומי.
-- `wt/alerts-inbox` — route `/alerts` + תזכורת הוצאות חודשית + חיבור `CeilingAlertCard` לתיבה.
-- `wt/tax-coordination-shells` — shells לתיאום מס + מקדמות ב"ל ("ממתין רוי") + שדות 1301 חדשים (UI בלבד).
-- `wt/landing-waitlist` — עיצוב דף נחיתה + הטמעת Typeform/Google Form + mobile responsive.
-
-**חסום על רוי:** אישור ערכי 2025; נוסחאות תיאום מס; לוגיקת מקדמות ב"ל.
-**חסום על תומי:** טקסט TOS; מסמך UX/UI.
-
----
-
-## נקודות כניסה מהירות (ramp-up)
+## 5. נקודות כניסה מהירות (ramp-up)
 
 | נושא | קבצים |
 |---|---|
-| קבועי מס per-year | `src/lib/calculators/types.ts` |
+| מעקב משימות חי (מקור-אמת) | `docs/meeting-records/yoni-tasks-27032026.md` |
+| קבועי מס per-year + בורר שנה | `src/lib/calculators/types.ts`, `src/app/setup/page.tsx` |
 | מרשם ניכויים (rate/cap/formFields/plImpact/skill) | `src/lib/regulatory/deductions.ts` |
-| 8 ה-calculators של הדמו | `src/lib/calculators/index.ts` |
-| דו"ח רווח-והפסד (ה-seam של plImpact) | `src/lib/p-and-l/{index,israeli-report}.ts` + `src/app/dashboard/pl-report/page.tsx` |
-| מדריך הוצאות per-occupation | `src/lib/business-expenses/profiles.ts` + `src/app/business-expenses/page.tsx` |
-| מדריך "מתי להתייעץ עם איזה סקיל" + דיאגרמת זרימה | `CLAUDE.md` |
+| 8 ה-calculators + הערכת מס | `src/lib/calculators/index.ts` |
+| התראות (תקרה/מע"מ/הוצאות/מועדים) | `src/lib/alerts/index.ts`, `src/app/alerts/page.tsx` |
+| לוח מועדים + פולו-אפ | `src/lib/deadlines/calendar.ts`, `src/lib/crm/notes.ts`, `src/app/deadlines/page.tsx` |
+| תחזית מקדמות | `src/lib/forecast/index.ts`, `src/components/dashboard/forecast-card.tsx` |
+| דו"ח רווח-והפסד (seam של plImpact) | `src/lib/p-and-l/{index,israeli-report}.ts`, `src/app/dashboard/pl-report/page.tsx` |
+| CRM עצמאי (sub-app) | `crm-snapshot/`, `docs/crm-architecture.md` |
+| מודל התקנת סקילים + קטלוג | `CLAUDE.md` ("Skills — install model"), `skills-lock.json`, `.claude/skills/` |
 
 **להרצה:** `npm install && npm run dev` → `localhost:3000`. **לפני push:** `npm run build`.
+**סקיל on-demand:** `npx skills add skills-il/<category> --skill <name> --agent claude-code --copy -y`.
