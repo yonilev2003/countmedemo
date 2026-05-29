@@ -224,7 +224,7 @@ function TaxEstimateGate({
         <div className="border-t border-amber-300 pt-2 mt-2">
           <EstimateRow label="הכנסה חייבת (בקירוב)" value={est.taxableIncome} bold />
         </div>
-        <EstimateRow label="מס גולמי (לפי מדרגות 2024)" value={est.grossTax} />
+        <EstimateRow label={`מס גולמי (לפי מדרגות ${persona.income.year})`} value={est.grossTax} />
         <EstimateRow label="זיכוי נקודות (×2,904 ₪)" value={est.creditPointsValue} deduct />
         <EstimateRow label="זיכוי ביטוח לאומי — 48% (שדה 048)" value={est.blCredit} deduct />
 

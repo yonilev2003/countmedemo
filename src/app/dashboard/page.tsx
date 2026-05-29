@@ -182,7 +182,7 @@ export default function DashboardPage() {
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">שנת מס 2024</p>
+            <p className="text-sm text-stone-500 mt-0.5">שנת מס {persona.income.year}</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
             {/* Granularity toggle */}

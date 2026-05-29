@@ -54,12 +54,12 @@ export interface ForecastResult {
 
 const clamp0 = (n: number) => (n > 0 ? n : 0);
 
-/** Project tax for a hypothetical annual revenue by cloning the persona and
- *  scaling deductible expenses to keep the same expense ratio. */
-function projectAdvancesDue(persona: Persona, projectedRevenue: number): number {
+/** Clone the persona with a hypothetical annual revenue, scaling deductible
+ *  expenses to keep the same expense ratio. */
+function withProjectedRevenue(persona: Persona, projectedRevenue: number): Persona {
   const actualRevenue = persona.income.totalRevenue || 1;
   const expenseRatio = persona.income.totalDeductibleExpenses / actualRevenue;
-  const projected: Persona = {
+  return {
     ...persona,
     income: {
       ...persona.income,
@@ -67,7 +67,6 @@ function projectAdvancesDue(persona: Persona, projectedRevenue: number): number 
       totalDeductibleExpenses: Math.round(projectedRevenue * expenseRatio),
     },
   };
-  return estimateTaxLiability(projected).taxAfterCredits;
 }
 
 function mean(xs: number[]): number {
@@ -76,24 +75,15 @@ function mean(xs: number[]): number {
 
 function makeScenario(persona: Persona, basis: ForecastBasis, runRate: number): ForecastScenario {
   const projectedAnnualRevenue = Math.round(runRate * 12);
-  const projectedAdvancesDue = projectAdvancesDue(persona, projectedAnnualRevenue);
-  const est = estimateTaxLiability({
-    ...persona,
-    income: {
-      ...persona.income,
-      totalRevenue: projectedAnnualRevenue,
-      totalDeductibleExpenses: Math.round(
-        projectedAnnualRevenue * (persona.income.totalDeductibleExpenses / (persona.income.totalRevenue || 1)),
-      ),
-    },
-  });
+  // Single tax-engine run on the projected persona (reused for both figures).
+  const est = estimateTaxLiability(withProjectedRevenue(persona, projectedAnnualRevenue));
   return {
     basis,
     monthlyRunRate: Math.round(runRate),
     projectedAnnualRevenue,
     projectedTaxableIncome: est.taxableIncome,
-    projectedAdvancesDue,
-    recommendedMonthlyMikdama: Math.round(projectedAdvancesDue / 12),
+    projectedAdvancesDue: est.taxAfterCredits,
+    recommendedMonthlyMikdama: Math.round(est.taxAfterCredits / 12),
   };
 }
 

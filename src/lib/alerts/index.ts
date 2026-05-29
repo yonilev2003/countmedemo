@@ -276,7 +276,10 @@ export function generateDeadlineAlerts(
   now: Date = new Date(),
   withinDays = 21,
 ): Alert[] {
-  const imminent = getImminentDeadlines(withinDays, now, filerTypeFor(persona));
+  const imminent = getImminentDeadlines(withinDays, now, filerTypeFor(persona))
+    // VAT (מע"מ) is already handled by the richer generateVatAdvancesAlert —
+    // skip maam here so the inbox doesn't show the same obligation twice.
+    .filter((d) => d.authority !== "maam");
   return imminent.map((d) => {
     const severity: AlertSeverity =
       d.daysUntilDue <= 3 ? "alert" : d.daysUntilDue <= 7 ? "warn" : "info";
