@@ -16,6 +16,8 @@ import {
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
+import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -151,6 +153,14 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      <div className="mx-auto max-w-screen-xl px-6 pt-4">
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-[11px] text-stone-500 leading-relaxed">
+          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
+          הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
+          לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
+        </div>
+      </div>
+
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Title + filter */}
         <div className="flex items-center justify-between mb-6">
@@ -246,6 +256,16 @@ export default function DashboardPage() {
             color="text-stone-500"
           />
         </div>
+
+        {/* עוסק פטור ceiling alert — only for patur */}
+        {(() => {
+          const ceilingAlert = computeCeilingAlert(persona);
+          return ceilingAlert ? (
+            <div className="mb-6">
+              <CeilingAlertCard alert={ceilingAlert} />
+            </div>
+          ) : null;
+        })()}
 
         {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
         <div className="mb-8">

@@ -22,7 +22,7 @@
 
 import { Persona } from "@/lib/persona";
 import { PLSummary } from "./index";
-import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
 export interface PLLine {
   /** Hebrew label */
@@ -58,6 +58,10 @@ export interface IsraeliPLReport {
     operatingProfit: number;
     financialExpenses: number;
     profitBeforeTax: number;
+    /** ניכויים אישיים (ב"ל / קרן / פנסיה) — reduce the taxable base, not the business result. */
+    personalDeductions: number;
+    /** profitBeforeTax − personalDeductions; the base income tax is estimated on. */
+    taxableIncome: number;
     incomeTax: number;
     netProfit: number;
   };
@@ -68,9 +72,9 @@ export interface IsraeliPLReport {
  * Brackets per the calculators/types module; this is a rough estimate for the
  * report (not the official liability).
  */
-function estimateIncomeTax(profitBeforeTax: number): number {
+function estimateIncomeTax(profitBeforeTax: number, year: number): number {
   if (profitBeforeTax <= 0) return 0;
-  const brackets = TAX_YEAR_2024.taxBrackets;
+  const brackets = getTaxYearConstants(year).taxBrackets;
   let tax = 0;
   for (const b of brackets) {
     if (profitBeforeTax <= b.from) break;
@@ -81,34 +85,54 @@ function estimateIncomeTax(profitBeforeTax: number): number {
 }
 
 /**
- * Split operating expenses from the PL summary into "cost of revenue" (direct)
- * vs "operating expenses" (indirect). The expense categories from
- * persona.income.expenses (or the demo fallback) don't carry that flag, so we
- * use a simple heuristic: equipment/computing is the direct cost line for a
- * service business; everything else is operating overhead. Real accounting
- * would split this per the chart of accounts.
+ * Route expenses to their P&L destination using the plImpact each category
+ * carries (resolved from the deductions registry). cost-of-revenue lands above
+ * gross profit; operating-expense is overhead below it; deduction-from-income
+ * items (ביטוח לאומי, קרן השתלמות, פנסיה) are NOT business expenses — they reduce
+ * the taxable base below the operating result, so they get their own group.
+ *
+ * Cost and operating lines are recorded gross (conventional P&L presentation).
+ * Personal deductions are netted to their statutorily recognised amount via
+ * recognizedRate — ביטוח לאומי is only 52% deductible, so reducing the taxable
+ * base by 100% of it would understate the tax.
  */
-function splitExpenses(expenseBreakdown: { category: string; amount: number }[]): {
+type ExpenseLine = { category: string; amount: number };
+type DeductionLine = { category: string; amount: number; recognizedRate: number };
+function groupExpensesByImpact(expenseBreakdown: PLSummary["expenseBreakdown"]): {
   costOfRevenue: number;
   operatingExpenses: number;
-  operatingLines: { category: string; amount: number }[];
-  costLines: { category: string; amount: number }[];
+  personalDeductions: number;
+  costLines: ExpenseLine[];
+  operatingLines: ExpenseLine[];
+  deductionLines: DeductionLine[];
 } {
-  const COST_CATEGORIES = new Set(["ציוד ומחשוב", "ציוד", "מחשוב", "Equipment"]);
   let costOfRevenue = 0;
   let operatingExpenses = 0;
-  const operatingLines: { category: string; amount: number }[] = [];
-  const costLines: { category: string; amount: number }[] = [];
+  let personalDeductions = 0;
+  const costLines: ExpenseLine[] = [];
+  const operatingLines: ExpenseLine[] = [];
+  const deductionLines: DeductionLine[] = [];
   for (const e of expenseBreakdown) {
-    if (COST_CATEGORIES.has(e.category)) {
+    if (e.plImpact === "cost-of-revenue") {
       costOfRevenue += e.amount;
       costLines.push(e);
+    } else if (e.plImpact === "deduction-from-income") {
+      const recognized = Math.round(e.amount * e.recognizedRate);
+      personalDeductions += recognized;
+      deductionLines.push({ category: e.category, amount: recognized, recognizedRate: e.recognizedRate });
     } else {
       operatingExpenses += e.amount;
       operatingLines.push(e);
     }
   }
-  return { costOfRevenue, operatingExpenses, operatingLines, costLines };
+  return {
+    costOfRevenue,
+    operatingExpenses,
+    personalDeductions,
+    costLines,
+    operatingLines,
+    deductionLines,
+  };
 }
 
 const CATEGORY_EN: Record<string, string> = {
@@ -124,7 +148,7 @@ const CATEGORY_EN: Record<string, string> = {
 };
 
 export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPLReport {
-  const split = splitExpenses(pl.expenseBreakdown);
+  const split = groupExpensesByImpact(pl.expenseBreakdown);
 
   const grossProfit = pl.totalRevenue - split.costOfRevenue;
   const operatingProfit = grossProfit - split.operatingExpenses;
@@ -134,8 +158,14 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
   // so the line shows 0 but the row exists per Israeli format.
   const financialExpenses = 0;
   const profitBeforeTax = operatingProfit - financialExpenses;
-  const incomeTax = estimateIncomeTax(profitBeforeTax);
-  const netProfit = profitBeforeTax - incomeTax;
+
+  // Personal deductions (ניכויים אישיים) sit below the business result and
+  // reduce the taxable base — so income tax is estimated on the post-deduction
+  // income, not on the operating profit.
+  const personalDeductions = split.personalDeductions;
+  const taxableIncome = profitBeforeTax - personalDeductions;
+  const incomeTax = estimateIncomeTax(taxableIncome, persona.income.year);
+  const netProfit = profitBeforeTax - personalDeductions - incomeTax;
 
   const year = persona.income.year ?? new Date().getFullYear() - 1;
 
@@ -224,6 +254,35 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
     isSubtotal: true,
   });
 
+  // Personal deductions — only shown when the registry routed an expense here
+  // (deduction-from-income). When absent, the report flows straight to tax,
+  // identical to a pure business P&L.
+  if (personalDeductions > 0) {
+    for (const d of split.deductionLines) {
+      const pctLabel = d.recognizedRate < 1 ? ` (${Math.round(d.recognizedRate * 100)}% מוכר)` : "";
+      lines.push({
+        he: `${d.category}${pctLabel}`,
+        en: CATEGORY_EN[d.category] ?? d.category,
+        amount: d.amount,
+        kind: "outflow",
+      });
+    }
+    lines.push({
+      he: "סך ניכויים אישיים",
+      en: "Total Personal Deductions",
+      amount: personalDeductions,
+      kind: "outflow",
+      isSubtotal: true,
+    });
+    lines.push({
+      he: "הכנסה חייבת במס",
+      en: "Taxable Income",
+      amount: taxableIncome,
+      kind: "inflow",
+      isSubtotal: true,
+    });
+  }
+
   lines.push({
     he: "מס הכנסה (הערכה)",
     en: "Income Tax (estimate)",
@@ -260,6 +319,8 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
       operatingProfit,
       financialExpenses,
       profitBeforeTax,
+      personalDeductions,
+      taxableIncome,
       incomeTax,
       netProfit,
     },

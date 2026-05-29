@@ -1,16 +1,22 @@
 /**
  * Expense profiles per occupation type — feeds the /business-expenses page.
  *
- * Rules are based on the israeli-expense-categorizer skill (Israeli Tax Ordinance,
- * 2024 deduction percentages). Source: `pkudat-mas` rules + tax-authority guidance.
+ * Occupation-specific categories (creative / tech / consultant) are qualitative
+ * and live here. The UNIVERSAL categories (B"L, keren hishtalmut, pension, …)
+ * carry real percentages and ceilings, so they are derived per tax year from
+ * the deductions registry (lib/regulatory/deductions.ts) — which in turn reads
+ * the year's constants. Nothing here hardcodes a rate or a cap.
  *
  * If you add a new profile, also add it to the `pickProfile()` matcher.
  */
 
-export type DeductionRule =
-  | "full" // 100% recognized expense
-  | "partial" // partial recognition (specify partialPercent)
-  | "depreciation"; // capital expenditure, depreciated over years
+import {
+  getDeductionsTable,
+  DeductionRule,
+  PLImpact,
+} from "@/lib/regulatory/deductions";
+
+export type { DeductionRule };
 
 export interface ExpenseCategory {
   name: string;
@@ -25,6 +31,10 @@ export interface ExpenseCategory {
   examples: string[];
   /** Optional gotcha / warning. */
   warning?: string;
+  /** Form 1301 field code(s) this expense feeds (from the deductions registry). */
+  formFields?: string[];
+  /** How it flows through the annual reports. */
+  plImpact?: PLImpact;
 }
 
 export interface ExpenseProfile {
@@ -39,47 +49,75 @@ export interface ExpenseProfile {
 
 /* ──────────────────────────────────────────────────────────
    Universal categories — apply to almost any self-employed.
+   Rates & caps are resolved per year from the deductions registry.
    ────────────────────────────────────────────────────────── */
-const UNIVERSAL: ExpenseCategory[] = [
-  {
-    name: "ביטוח לאומי לעצמאי",
-    description: "תשלומי המקדמות לבטוח לאומי שמשולמים מדי חודש או רבעון.",
-    rule: "partial",
-    partialPercent: 52,
-    examples: ["מקדמות חודשיות לבטל", "השלמות בסוף שנה"],
-  },
-  {
-    name: "קרן השתלמות לעצמאי",
-    description:
-      "הפקדה לקרן השתלמות — מוכרת עד 4.5% מהמחזור / תקרה שנתית 19,920 ₪ ל-2024.",
-    rule: "full",
-    examples: ["הפקדה חודשית קבועה", "הפקדה חד-פעמית בסוף שנה"],
-    warning: "מעל 11% מהמחזור — החלק המעל לא מוכר.",
-  },
-  {
-    name: "הפקדות לפנסיה",
-    description: "פנסיה לעצמאי — חובה לפי חוק. מוכרת לזיכוי בסעיף 47.",
-    rule: "full",
-    examples: ["הפקדה לקופ״ג של מבטחים/הראל/כלל"],
-  },
-  {
-    name: "הוצאות אינטרנט וטלפון נייד",
-    description: 'בית/משרד — מוכרים חלקית בהנחה שזה בשימוש מעורב (עסקי+פרטי).',
-    rule: "partial",
-    partialPercent: 80,
-    examples: ["חבילת סלולר", "אינטרנט ביתי", "טלפון קווי"],
-  },
-  {
-    name: "ייעוץ מקצועי",
-    description: "רואה חשבון, יועץ מס, עורך דין — 100% הוצאה.",
-    rule: "full",
-    examples: [
-      "שכר טרחה לרו״ח",
-      "ייעוץ משפטי לחוזה לקוח",
-      "ייעוץ עסקי או שיווקי",
-    ],
-  },
-];
+function universalCategories(year: number): ExpenseCategory[] {
+  const table = getDeductionsTable(year);
+  const byId = (id: string) => {
+    const d = table.find((x) => x.id === id);
+    if (!d) throw new Error(`unknown deduction id: ${id}`);
+    return d;
+  };
+
+  const bl = byId("bituach-leumi");
+  const keren = byId("keren-hishtalmut");
+  const pension = byId("pension");
+  const net = byId("internet-phone");
+  const prof = byId("professional-services");
+
+  return [
+    {
+      name: bl.he,
+      description: "תשלומי המקדמות לביטוח לאומי שמשולמים מדי חודש או רבעון.",
+      rule: bl.rule,
+      partialPercent: bl.ratePercent,
+      formFields: bl.formFields,
+      plImpact: bl.plImpact,
+      examples: ["מקדמות חודשיות לביטוח לאומי", "השלמות בסוף שנה"],
+    },
+    {
+      name: keren.he,
+      description: `הפקדה לקרן השתלמות — מוכרת עד ${keren.ratePercent}% מהמחזור, עד תקרה שנתית של ${keren.capNis!.toLocaleString("he-IL")} ₪ (${year}).`,
+      rule: keren.rule,
+      partialPercent: keren.ratePercent,
+      formFields: keren.formFields,
+      plImpact: keren.plImpact,
+      examples: ["הפקדה חודשית קבועה", "הפקדה חד-פעמית בסוף שנה"],
+      warning:
+        "הפקדה מעבר לתקרה אינה מוכרת כהוצאה (אך עשויה לזכות בפטור ממס על רווחי הון).",
+    },
+    {
+      name: pension.he,
+      description: "פנסיה לעצמאי — חובה לפי חוק. מוכרת לניכוי/זיכוי בסעיף 47.",
+      rule: pension.rule,
+      formFields: pension.formFields,
+      plImpact: pension.plImpact,
+      examples: ["הפקדה לקופ״ג של מבטחים/הראל/כלל"],
+    },
+    {
+      name: "הוצאות אינטרנט וטלפון נייד",
+      description:
+        "בית/משרד — מוכרים חלקית בהנחה שזה בשימוש מעורב (עסקי+פרטי).",
+      rule: net.rule,
+      partialPercent: net.ratePercent,
+      formFields: net.formFields,
+      plImpact: net.plImpact,
+      examples: ["חבילת סלולר", "אינטרנט ביתי", "טלפון קווי"],
+    },
+    {
+      name: "ייעוץ מקצועי",
+      description: "רואה חשבון, יועץ מס, עורך דין — 100% הוצאה.",
+      rule: prof.rule,
+      formFields: prof.formFields,
+      plImpact: prof.plImpact,
+      examples: [
+        "שכר טרחה לרו״ח",
+        "ייעוץ משפטי לחוזה לקוח",
+        "ייעוץ עסקי או שיווקי",
+      ],
+    },
+  ];
+}
 
 /* ──────────────────────────────────────────────────────────
    Profile: Designer / Creative / Influencer
@@ -157,7 +195,6 @@ const CREATIVE: ExpenseProfile = {
       rule: "full",
       examples: ["קורס Skillshare", "כנסים מקצועיים", "ספרי מקצוע"],
     },
-    ...UNIVERSAL,
   ],
 };
 
@@ -214,7 +251,6 @@ const TECH: ExpenseProfile = {
       rule: "full",
       examples: ["Frontend Masters", "Pluralsight", "כנסים — DevCon, ReactConf"],
     },
-    ...UNIVERSAL,
   ],
 };
 
@@ -252,11 +288,7 @@ const CONSULTANT: ExpenseProfile = {
       name: "השתלמות מקצועית והכשרות",
       description: "סופרוויזיה, סדנאות, הכשרות מתמשכות — 100%.",
       rule: "full",
-      examples: [
-        "סופרוויזיה אצל מטפל בכיר",
-        "כנס מקצועי",
-        "קורסים והכשרות",
-      ],
+      examples: ["סופרוויזיה אצל מטפל בכיר", "כנס מקצועי", "קורסים והכשרות"],
     },
     {
       name: "פלטפורמות לתאום ותשלום",
@@ -270,7 +302,6 @@ const CONSULTANT: ExpenseProfile = {
       rule: "full",
       examples: ["ביטוח אחריות מקצועית"],
     },
-    ...UNIVERSAL,
   ],
 };
 
@@ -295,22 +326,27 @@ const DEFAULT_PROFILE: ExpenseProfile = {
       rule: "full",
       examples: ["תוכנות עבודה", "שירותי ענן", "כלים מקצועיים"],
     },
-    ...UNIVERSAL,
   ],
 };
 
 const ALL_PROFILES = [CREATIVE, TECH, CONSULTANT];
 
 /**
- * Pick the best-matching expense profile for a given primary occupation string.
- * Falls back to the default profile if no profile matches.
+ * Pick the best-matching expense profile for an occupation, resolved for a tax
+ * year. The occupation-specific categories are static; the universal ones
+ * (rates/caps) are derived for `year` and appended.
  */
-export function pickProfile(primaryOccupation: string): ExpenseProfile {
+export function pickProfile(
+  primaryOccupation: string,
+  year: number,
+): ExpenseProfile {
   const lower = primaryOccupation.toLowerCase();
-  for (const p of ALL_PROFILES) {
-    if (p.matchKeywords.some((k) => lower.includes(k.toLowerCase()))) {
-      return p;
-    }
-  }
-  return DEFAULT_PROFILE;
+  const base =
+    ALL_PROFILES.find((p) =>
+      p.matchKeywords.some((k) => lower.includes(k.toLowerCase())),
+    ) ?? DEFAULT_PROFILE;
+  return {
+    ...base,
+    categories: [...base.categories, ...universalCategories(year)],
+  };
 }

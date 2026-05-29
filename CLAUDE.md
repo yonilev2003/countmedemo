@@ -65,6 +65,48 @@ First use costs ~3–5s + network; then it's local for the session. **Do not** r
 
 **Planned (post-EY-demo, not yet installed):** [`openai/skills`](https://github.com/openai/skills) — Codex-side skills catalog for second-opinion code review. Plan: hook in `.claude/settings.json` runs Codex audit on `npm test` / `npm run build` events. Requires Codex CLI install + separate `OPENAI_API_KEY`. Don't install before demo (cost + iteration friction). Document the hook here when wired.
 
+### When to consult which skill
+
+The `israeli-*` skills are the **domain authority** for the rules behind our numbers. Before adding or changing any tax/benefit rule, consult the owning skill — don't reason from memory, and don't trust training-era figures for amounts that change yearly. Match the task to the skill:
+
+| When you're working on… | Consult skill | Key files |
+|---|---|---|
+| Form 1301 fields, income classification, credit points, tax brackets | `israeli-tax-returns` | `lib/calculators/*`, `lib/form-1301/schema.ts` |
+| National insurance — deduction (030) + credit (048), benefits | `israeli-bituach-leumi` | `lib/calculators/index.ts`, `lib/regulatory/deductions.ts` |
+| VAT, עוסק פטור/זעיר ceiling, Doch Maam | `israeli-vat-reporting` | `lib/alerts/ceiling.ts`, `lib/calculators/types.ts` |
+| Withholding at source (field 115) | `israeli-tax-withholding` | `lib/calculators/index.ts` |
+| Expense categories & deduction rules (full/partial/depreciation) | `israeli-expense-categorizer` | `lib/regulatory/deductions.ts`, `lib/business-expenses/profiles.ts` |
+| Invoices / receipts (hashbonit, allocation number) | `israeli-e-invoice` | `lib/invoice-generator/*`, `app/invoices/*` |
+| Teudat Zehut validation | `israeli-id-validator` | `app/setup/page.tsx` |
+| Receipt / document OCR upload | `israeli-receipt-scanner` | `app/api/upload/route.ts` |
+| Hebrew chat UX / NLP | `hebrew-chatbot-builder` | `components/agent/*`, `app/api/chat`, `app/api/coach` |
+| RTL, number/date/currency formatting, plurals | `hebrew-i18n` | `lib/utils.ts` (used everywhere) |
+| Accessibility (IS 5568 / WCAG 2.1 AA) | `israeli-accessibility-compliance` | all pages/components |
+| Privacy / personal-data handling (Tikun 13) | `israeli-privacy-shield` | storage, Supabase (Day 2) |
+| Pulling official rates / deadlines from gov sources | `israel-gov-api` | `lib/regulatory/sources.ts` |
+| Hebrew PDF / DOCX output | `hebrew-document-generator` | future invoice/report export |
+
+### Year-versioned regulatory data (single source)
+
+Every rate, cap, and rule is **year-keyed and flows from one place** — so when the regulator updates a year (e.g. the 2025 bracket + credit-point freeze), the change propagates to the forms, the calculations, and every annual report at once. Never hardcode a rate/cap in a component, a description string, or a report.
+
+```
+lib/calculators/types.ts   ← per-year constants (TAX_YEAR_2024, TAX_YEAR_2025, getTaxYearConstants)
+        │                     • brackets/points marked FROZEN, caps marked CARRIED→TODO(Roy)
+        │                     • עוסק פטור ceiling === עוסק זעיר ceiling (one shared const)
+        ▼
+lib/regulatory/deductions.ts ← getDeductionsTable(year): each deduction/benefit resolves its
+        │                       rate/cap from the constants, and declares:
+        │                         · formFields → which 1301 codes it feeds
+        │                         · plImpact   → how it flows through the P&L report
+        │                         · skill      → the domain skill that owns the rule
+        ├──────────────► lib/calculators/index.ts  (calculations — read constants by year)
+        ├──────────────► lib/business-expenses/profiles.ts  (expense guide — %/caps per year)
+        └──────────────► lib/p-and-l/israeli-report.ts  (P&L — brackets by year; plImpact is the seam)
+```
+
+To add a tax year: define it in `types.ts` (every value explicit), and the downstream consumers follow automatically.
+
 ## Architecture
 
 ```
@@ -90,9 +132,13 @@ src/
 └── lib/
     ├── form-1301/schema.ts       # Form structure (3 tabs, sections, fields, codes)
     ├── calculators/              # Pure functions per "star field"
-    │   ├── types.ts              # CalcResult, tax-year constants
+    │   ├── types.ts              # CalcResult, per-year tax constants (getTaxYearConstants)
     │   └── index.ts              # 8 calculators + dispatcher
-    ├── business-expenses/profiles.ts # Per-occupation expense category lists
+    ├── regulatory/
+    │   ├── deductions.ts         # Year-keyed deductions/benefits → formFields + plImpact + skill
+    │   └── sources.ts            # Live regulatory-watch fetch layer (gov sources)
+    ├── business-expenses/profiles.ts # Per-occupation expense guide (universal cats from deductions.ts)
+    ├── alerts/ceiling.ts         # עוסק פטור/זעיר turnover-ceiling alert (per year)
     ├── persona.ts                # Types + default persona loader
     └── utils.ts                  # cn(), formatters
 

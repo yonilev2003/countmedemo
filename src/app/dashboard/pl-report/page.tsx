@@ -128,11 +128,11 @@ export default function PLReportPage() {
           <footer className="mt-6 text-[11px] text-stone-500 space-y-1 leading-relaxed">
             <p>
               <strong className="text-stone-700">הערות:</strong> סכומים נוקבים בשקלים חדשים. סכומים שליליים בסוגריים.
-              מס ההכנסה הוא הערכה לפי מדרגות 2024 ואינו כולל ניכויים אישיים, נקודות זיכוי וכדומה — לחישוב מדויק עיין/י ב-/file.
+              מס ההכנסה הוא הערכה לפי מדרגות {report.period.year}. ניכויים אישיים (ב&quot;ל, קרן השתלמות, פנסיה) מוצגים בנפרד כשהם זמינים; נקודות זיכוי אינן כלולות — לחישוב מדויק עיין/י ב-/file.
             </p>
             <p dir="ltr">
               <strong>Notes:</strong> Amounts in New Israeli Shekel (NIS). Negative amounts shown in parentheses.
-              Income tax is an estimate per 2024 brackets and does not include personal deductions or credits — refer to /file for the full calculation.
+              Income tax is an estimate per {report.period.year} brackets. Personal deductions (NI, study fund, pension) are shown separately when available; credit points are not included — refer to /file for the full calculation.
             </p>
             <p className="text-stone-400 mt-3 text-center">
               הופק באמצעות CountMe · {new Date().toLocaleDateString("he-IL")}
