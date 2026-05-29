@@ -28,27 +28,38 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Form approach | Visual reference, not 1:1 React rebuild | User's call — saves time, demo's purpose is "show what to fill" |
 | Persona format | Single JSON file at `personas/dana-cohen.json` | Swappable; replace fields when running with real data |
 
-## Skills installed (Tier 1 + Tier 2)
+## Skills — install model (read before adding/removing skills)
 
-These come from the [skills-il](https://github.com/skills-il) GitHub org via `npx skills-il add`:
+Skills come from the [skills-il](https://github.com/skills-il) org (the `agentskills.co.il` catalog) via `npx skills`. We use a **three-tier model** tuned for token hygiene + reliability on ephemeral web containers. Only what's committed to the repo survives a container reset — `~/.claude/` and `node_modules` do not.
 
-**Tier 1 (demo-critical):**
-- `israeli-tax-returns` — Form 1301 rules, income classification, credits
-- `hebrew-document-generator` — Hebrew PDF/DOCX generation (future)
-- `israeli-id-validator` — Teudat Zehut validation
+**Tier 1 — Core (committed, always loaded).** 13 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
 
-**Tier 2 (product foundations):**
-- `hebrew-i18n` — RTL, Hebrew formatting, plurals
-- `israeli-accessibility-compliance` — IS 5568 + WCAG 2.1 AA
-- `israeli-vat-reporting` — Doch Maam preparation
-- `israeli-tax-withholding` — Nikui mas bemakor
-- `israeli-bituach-leumi` — National insurance benefits
-- `israeli-expense-categorizer` — Auto-categorization with current Pkudat Mas rules
-- `israeli-receipt-scanner` — Hebrew/English OCR for receipts
-- `israeli-e-invoice` — Hashbonit electronit (mandatory 2024+)
-- `hebrew-chatbot-builder` — Hebrew NLP, RTL chat UI
-- `israeli-privacy-shield` — Tikun 13 compliance (effective Aug 2025)
-- `israel-gov-api` — data.gov.il integration
+| Skill | Why core |
+|---|---|
+| `israeli-tax-returns` | Form 1301 — the product |
+| `israeli-vat-reporting` | Doch Maam |
+| `israeli-tax-withholding` | Nikui mas bemakor |
+| `israeli-bituach-leumi` | National insurance (field 030) |
+| `israeli-financial-reports` | Israeli-standard reports |
+| `israeli-expense-categorizer` | Pkudat Mas categorization |
+| `israeli-receipt-scanner` | Upload flow OCR |
+| `israeli-e-invoice` | Hashbonit electronit / SHAAM (mandatory 2024+) |
+| `israeli-id-validator` | Teudat Zehut |
+| `hebrew-i18n` | RTL / Hebrew formatting |
+| `hebrew-tailwind-preset` | Tailwind 4 RTL — our stack |
+| `israeli-accessibility-compliance` | IS 5568 + WCAG 2.1 AA |
+| `israeli-ui-design-system` | gov.il patterns for `/demo` |
+
+**Tier 2 — Vetted catalog (recorded, NOT loaded).** ~110 more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file.
+
+**On-demand use:** when a task needs a Tier-2 capability (payments, payroll, legal, marketing, gov forms, etc.), discover and pull it for the session:
+```
+npx skills find <query>                                          # search the org
+npx skills add skills-il/<category> --skill <name> --agent claude-code --copy -y
+```
+First use costs ~3–5s + network; then it's local for the session. **Do not** run `npx skills experimental_install` routinely — it would materialize all ~110 at once and dilute every session. If a Tier-2 skill proves frequently needed, promote it to Tier 1 (keep its folder, commit it) and add a row above.
+
+**Tier 3 — Excluded (do not install).** Personal/consumer life-admin categories with no accountant/startup relevance: most of `health-services`, `food-and-dining` (except `israeli-food-business-compliance`), `education` (except `israeli-tech-interview-prep`), and consumer `government-services` (transit, vehicle-personal, relocation, aliyah-moving, drug-database, elections, civil-defense). Don't re-litigate these per session.
 
 **Pending:** [`mksglu/context-mode`](https://github.com/mksglu/context-mode) — MCP server for context/token saving. Install Day 2 (requires hook config).
 

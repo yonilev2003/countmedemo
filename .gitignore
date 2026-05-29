@@ -44,8 +44,9 @@ yarn-error.log*
 # vercel
 .vercel
 
-# claude code agent worktrees
-.claude/
+# claude code: ignore local agent state/worktrees, but TRACK committed skills
+.claude/*
+!.claude/skills/
 
 # typescript
 *.tsbuildinfo
