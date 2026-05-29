@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
-import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
 /**
  * /api/coach — Eitan, the unified digital partner for countme.
@@ -248,9 +248,10 @@ function validateBody(
 
 function buildPersonaContext(persona: Persona): string {
   const p = persona;
+  const TC = getTaxYearConstants(p.income.year);
   const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
   const bituachDeductible = Math.round(
-    bituachPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate,
+    bituachPaid * TC.bituachLeumiDeductibleRate,
   );
   const gender = p.personal.gender === "male" ? "זכר" : "נקבה";
   return `נתוני המשתמש/ת מהדוח שלהם:

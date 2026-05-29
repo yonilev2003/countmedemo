@@ -21,7 +21,7 @@ export function FormPreview({ persona, onContinue }: Props) {
       className="overflow-hidden border border-stone-400 shadow-sm bg-white"
       style={{ borderRadius: 2 }}
     >
-      <GovTopBar />
+      <GovTopBar year={persona.income.year} />
       <GovTitleBar />
       <GovNavBar
         tabs={form1301}
@@ -58,11 +58,11 @@ export function FormPreview({ persona, onContinue }: Props) {
 /* ───────────────────────────────────────────────────────────
    Gov.il chrome — top bar, title bar, tab strip, file info.
    ─────────────────────────────────────────────────────────── */
-function GovTopBar() {
+function GovTopBar({ year }: { year: number }) {
   return (
     <div className="bg-[#1a3f6a] text-white px-4 py-1.5 flex items-center justify-between text-[11px]">
       <div className="font-extrabold tracking-wider">gov.il</div>
-      <div className="text-blue-300 text-[10px]">C11 · שנת מס 2024</div>
+      <div className="text-blue-300 text-[10px]">C11 · שנת מס {year}</div>
       <div className="flex items-center gap-2">
         <div className="text-right">
           <div className="font-bold leading-tight text-[11px]">

@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
-import { TAX_YEAR_2024 } from "@/lib/calculators/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
 const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
 אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה, בצורה ידידותית ומקצועית.
@@ -123,16 +123,17 @@ function validateBody(raw: unknown): { ok: true; body: ValidatedBody } | { ok: f
 
 function buildPersonaContext(persona: Persona): string {
   const p = persona;
+  const TC = getTaxYearConstants(p.income.year);
   const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
   const bituachDeductible = Math.round(
-    bituachPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate,
+    bituachPaid * TC.bituachLeumiDeductibleRate,
   );
 
   const creditLines: string[] = ["תושב (2.25)"];
   if (p.personal.isNewResident) creditLines.push("עולה חדש");
   if (p.personal.isSoldierDischarged) creditLines.push("חייל משוחרר");
 
-  const form6111 = p.vatAndTurnover.annualTurnoverWithoutVat > TAX_YEAR_2024.form6111Threshold
+  const form6111 = p.vatAndTurnover.annualTurnoverWithoutVat > TC.form6111Threshold
     ? "חייב בטופס 6111"
     : "לא חייב";
 

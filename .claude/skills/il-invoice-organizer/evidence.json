@@ -1,0 +1,150 @@
+{
+  "skill": "il-invoice-organizer",
+  "version": "1.2.0",
+  "audit_date": "2026-05-20",
+  "auditor": "claude-opus-4-7",
+  "claims": [
+    {
+      "id": "vat-rate-18",
+      "claim": "Israeli standard VAT rate is 18% in 2026 (raised from 17% on 1 January 2025)",
+      "source": "https://www.vatcalc.com/vat/israel-vat-rise-to-19-jan-2026-proposal/",
+      "verified": true,
+      "notes": "Proposal to raise to 19% in Jan 2026 was rejected; rate remains 18%"
+    },
+    {
+      "id": "vat-rate-19-rejected",
+      "claim": "Ministry of Finance 2026 budget proposal to raise VAT from 18% to 19% was rejected; rate stays at 18% through 2026",
+      "source": "https://www.vatcalc.com/vat/israel-vat-rise-to-19-jan-2026-proposal/",
+      "verified": true
+    },
+    {
+      "id": "allocation-threshold-2025",
+      "claim": "SHAAM allocation number required for B2B tax invoices above NIS 20,000 (pre-VAT) throughout 2025",
+      "source": "https://www.greeninvoice.co.il/magazine/israel-invoice/",
+      "verified": true
+    },
+    {
+      "id": "allocation-threshold-jan-2026",
+      "claim": "SHAAM allocation threshold drops to NIS 10,000 (pre-VAT) from 1 January 2026",
+      "source": "https://www.efraty.com/רפורמת-חשבוניות-ישראל-מ-1-1-26-חובת-הקצאה-ל/",
+      "verified": true
+    },
+    {
+      "id": "allocation-threshold-jun-2026",
+      "claim": "SHAAM allocation threshold drops further to NIS 5,000 (pre-VAT) from 1 June 2026 (permanent floor)",
+      "source": "https://www.cpa.co.il/2026-allocation-number/",
+      "verified": true
+    },
+    {
+      "id": "allocation-effect",
+      "claim": "B2B tax invoices above the active SHAAM threshold without a valid allocation number are not eligible for VAT input deduction by the buyer",
+      "source": "https://www.greeninvoice.co.il/magazine/israel-invoice/",
+      "verified": true
+    },
+    {
+      "id": "vat-extract-formula",
+      "claim": "Correct formula to extract VAT from a VAT-inclusive amount at 18%: VAT = total * 18 / 118",
+      "source": "https://invoicedataextraction.com/blog/israel-vat-invoice-requirements",
+      "verified": true,
+      "notes": "Math identity, also confirmed in script DECIMAL implementation"
+    },
+    {
+      "id": "vehicle-2-3-rule",
+      "claim": "Non-commercial vehicle expenses: only 2/3 of input VAT is deductible (1/3 permanently non-deductible)",
+      "source": "https://www.gov.il/he/departments/guides/income-tax-allowed-expenses",
+      "verified": true,
+      "notes": "Long-standing rule under VAT regulations, unchanged for 2026"
+    },
+    {
+      "id": "entertainment-80pct",
+      "claim": "Entertainment / hosting / meals expenses: only 80% deductible for income tax (irrespective of full VAT deduction)",
+      "source": "https://www.gov.il/he/departments/guides/income-tax-allowed-expenses",
+      "verified": true
+    },
+    {
+      "id": "osek-patur-threshold-2026",
+      "claim": "Osek Patur annual turnover ceiling is NIS 122,833 starting 2026 (raised from NIS 120,000 used in 2024-2025)",
+      "source": "https://www.cwsisrael.com/freelancer-tax-compliance-in-israel-2026/",
+      "verified": true
+    },
+    {
+      "id": "osek-patur-restricted-professions",
+      "claim": "Lawyers, doctors, architects, engineers, accountants (and a few others) cannot register as Osek Patur regardless of turnover",
+      "source": "https://cpa-dray.com/en/blog/osek-patur-guide/",
+      "verified": true
+    },
+    {
+      "id": "osek-zair-flat-30pct",
+      "claim": "Osek Zair (Small Dealer) election allows 30% flat expense deduction for self-employed with annual revenue up to NIS 122,833",
+      "source": "https://taxsummaries.pwc.com/israel/individual/deductions",
+      "verified": true
+    },
+    {
+      "id": "invoice-14-day-rule",
+      "claim": "Tax invoice (Heshbonit Mas) must be issued within 14 days of the taxable supply or payment, whichever comes first",
+      "source": "https://invoicedataextraction.com/blog/israel-vat-invoice-requirements",
+      "verified": true
+    },
+    {
+      "id": "vat-filing-bimonthly-threshold",
+      "claim": "VAT returns are filed bi-monthly if annual turnover is at or below NIS 1.51M; monthly above that threshold",
+      "source": "https://www.avalara.com/vatlive/en/vat-news/israel-bi-monthly-vat-threshold.html",
+      "verified": true
+    },
+    {
+      "id": "vat-filing-deadline",
+      "claim": "VAT periodic return deadline is the 15th of the month following the reporting period",
+      "source": "https://taxsummaries.pwc.com/israel/corporate/other-taxes",
+      "verified": true
+    },
+    {
+      "id": "income-tax-annual-deadline",
+      "claim": "Individual income tax annual return (Doch Shnati) deadline: 30 April (paper) or 31 May (online); via מייצג (representative) can extend to November-December",
+      "source": "https://taxsummaries.pwc.com/israel/individual/tax-administration",
+      "verified": true
+    },
+    {
+      "id": "record-retention-7-years",
+      "claim": "Business records and invoices must be retained for 7 years per Israeli tax law; digital storage is allowed",
+      "source": "https://www.filerskeepers.co/product/israel-data-retention-schedule/",
+      "verified": true
+    },
+    {
+      "id": "business-number-9-digits",
+      "claim": "Israeli business numbers are 9 digits and use a Luhn-like check-digit algorithm",
+      "source": "https://lookuptax.com/docs/tax-identification-number/israel-tax-id-guide",
+      "verified": true,
+      "notes": "Implementation in scripts/categorize_invoices.py validate_business_number()"
+    },
+    {
+      "id": "hp-prefix-51-52",
+      "claim": "Israeli private company (Hevra Peratit / ח\"פ) business numbers begin with 51 or 52",
+      "source": "https://lookuptax.com/docs/tax-identification-number/israel-tax-id-guide",
+      "verified": true
+    },
+    {
+      "id": "amuta-prefix-58",
+      "claim": "Israeli non-profit association (Amuta) business numbers begin with 58",
+      "source": "https://lookuptax.com/docs/tax-identification-number/israel-tax-id-guide",
+      "verified": true
+    },
+    {
+      "id": "invoice-types-300-305-320",
+      "claim": "Israeli invoice document codes: 300 = Tax Invoice, 305 = Tax Invoice/Receipt combined, 310 = Credit Invoice, 320 = Receipt only, 330 = Proforma",
+      "source": "https://www.gov.il/he/pages/invoices-format",
+      "verified": true
+    },
+    {
+      "id": "shaam-clearance-model",
+      "claim": "Israel uses a clearance model: invoices above threshold are submitted to SHAAM (Israeli Tax Authority Computerized Processing System) via API or web portal, which validates and returns a unique allocation number",
+      "source": "https://edicomgroup.com/electronic-invoicing/israel",
+      "verified": true
+    },
+    {
+      "id": "depreciation-rates",
+      "claim": "Common Israeli depreciation rates: computers 33%, software 33%, office furniture 6%, vehicles 15%, industrial equipment 7-20%",
+      "source": "https://taxsummaries.pwc.com/israel/individual/deductions",
+      "verified": true
+    }
+  ]
+}

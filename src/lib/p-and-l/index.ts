@@ -13,6 +13,7 @@
  */
 
 import { Persona } from "@/lib/persona";
+import { classifyExpensePLImpact, type PLImpact } from "@/lib/regulatory/deductions";
 
 export interface MonthlyPL {
   month: number; // 1-12
@@ -26,7 +27,8 @@ export interface PLSummary {
   totalRevenue: number;
   totalExpenses: number;
   netProfit: number;
-  expenseBreakdown: { category: string; amount: number }[];
+  /** Each category carries its P&L destination + deductible fraction (from the deductions registry). */
+  expenseBreakdown: { category: string; amount: number; plImpact: PLImpact; recognizedRate: number }[];
   monthlyData: MonthlyPL[];
   /** True iff month-level data came from real dated line items (invoices/expenses). */
   hasDatedData: boolean;
@@ -142,18 +144,18 @@ export function calculatePL(persona: Persona): PLSummary {
   }
 
   // Expense breakdown by category — line items if any, else rough demo split.
-  let expenseBreakdown: { category: string; amount: number }[] = [];
+  let rawBreakdown: { category: string; amount: number }[] = [];
   if (expensesLines.length > 0) {
     const byCategory: Record<string, number> = {};
     for (const exp of expensesLines) {
       byCategory[exp.category] = (byCategory[exp.category] ?? 0) + exp.amount;
     }
-    expenseBreakdown = Object.entries(byCategory).map(([category, amount]) => ({
+    rawBreakdown = Object.entries(byCategory).map(([category, amount]) => ({
       category,
       amount,
     }));
   } else {
-    expenseBreakdown = [
+    rawBreakdown = [
       { category: "תוכנות ומנויים", amount: Math.round(totalExpenses * 0.25) },
       { category: "השתלמות ולמידה", amount: Math.round(totalExpenses * 0.15) },
       { category: "ציוד ומחשוב", amount: Math.round(totalExpenses * 0.3) },
@@ -161,6 +163,14 @@ export function calculatePL(persona: Persona): PLSummary {
       { category: "אחר", amount: Math.round(totalExpenses * 0.1) },
     ];
   }
+
+  // Tag each category with where it lands in the P&L and its deductible
+  // fraction — the registry is the authority for both.
+  const year = persona.income.year ?? new Date().getFullYear() - 1;
+  const expenseBreakdown = rawBreakdown.map((e) => {
+    const routing = classifyExpensePLImpact(e.category, year);
+    return { ...e, plImpact: routing.plImpact, recognizedRate: routing.recognizedRate };
+  });
 
   return {
     totalRevenue,

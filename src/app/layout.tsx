@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo, Rubik } from "next/font/google";
 import "./globals.css";
+import { ServiceWorkerRegistration } from "@/components/service-worker";
 
 const heebo = Heebo({
   variable: "--font-heebo",
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
   title: "countme — המלווה לדו״ח שלך",
   description:
     "המוצר שמלווה עצמאים בישראל במילוי דו״חות מס בלי רואה חשבון. מבוסס על AI שלוקח את כל הנתונים שלך ומציג בדיוק מה למלא בכל שדה.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -32,6 +34,7 @@ export default function RootLayout({
       className={`${heebo.variable} ${rubik.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-stone-900 font-sans">
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>

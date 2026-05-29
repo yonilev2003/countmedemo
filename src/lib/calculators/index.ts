@@ -7,7 +7,7 @@
  */
 
 import { Persona } from "@/lib/persona";
-import { Calculator, CalcResult, TaxEstimate, TAX_YEAR_2024 } from "./types";
+import { Calculator, CalcResult, TaxEstimate, TAX_YEAR_2024, getTaxYearConstants } from "./types";
 
 export type { CalcResult, TaxEstimate } from "./types";
 
@@ -19,12 +19,13 @@ const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
  * רגיל: מחזור פחות הוצאות מוכרות
  * ============================================================ */
 export const field150BusinessIncome: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   if (p.business.isOsekZeir) {
     const revenue = p.income.totalRevenue;
-    const value = Math.round(revenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate));
+    const value = Math.round(revenue * (1 - TC.osekZeirExpenseRate));
     return {
       value,
-      formula: `מסלול עוסק זעיר: מחזור ${ils(revenue)} × 70% = ${ils(value)}`,
+      formula: `מסלול עוסק זעיר: מחזור ${ils(revenue)} × ${Math.round((1 - TC.osekZeirExpenseRate) * 100)}% = ${ils(value)}`,
       sources: [
         {
           label: `${p.income.invoiceCount} חשבוניות בשנת ${p.income.year}`,
@@ -86,6 +87,7 @@ export const field238Turnover: Calculator = (p) => {
  * עוסק זעיר: לא ניתן — כלול ב-30% ההוצאות האוטומטיות
  * ============================================================ */
 export const field030BituachLeumi: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   if (p.business.isOsekZeir) {
     return {
       value: false,
@@ -97,7 +99,7 @@ export const field030BituachLeumi: Calculator = (p) => {
   }
 
   const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const deductible = Math.round(paid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
+  const deductible = Math.round(paid * TC.bituachLeumiDeductibleRate);
   return {
     value: deductible,
     formula: `${ils(paid)} (סה"כ ב"ל ששולם) × 52% = ${ils(deductible)} (חלק מותר בניכוי)`,
@@ -119,18 +121,19 @@ export const field030BituachLeumi: Calculator = (p) => {
  * ניכוי עד 4.5% מההכנסה החייבת, תקרה 19,920 ₪ (2024)
  * ============================================================ */
 export const field137KerenHishtalmut: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   const contribution = p.deductionsAndCredits.kerenHishtalmut.annualContribution;
   const income = p.business.isOsekZeir
-    ? Math.round(p.income.totalRevenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate))
+    ? Math.round(p.income.totalRevenue * (1 - TC.osekZeirExpenseRate))
     : p.income.totalRevenue - p.income.totalDeductibleExpenses;
   const incomeBased = Math.round(
-    Math.min(income, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) *
-      TAX_YEAR_2024.kerenHishtalmutRate,
+    Math.min(income, TC.kerenHishtalmutIncomeCeiling) *
+      TC.kerenHishtalmutRate,
   );
-  const allowed = Math.min(contribution, incomeBased, TAX_YEAR_2024.kerenHishtalmutCap);
+  const allowed = Math.min(contribution, incomeBased, TC.kerenHishtalmutCap);
   return {
     value: allowed,
-    formula: `min(הפקדה ${ils(contribution)}, 4.5% × min(הכנסה, תקרה ${ils(TAX_YEAR_2024.kerenHishtalmutIncomeCeiling)}) = ${ils(incomeBased)}, תקרת ניכוי ${ils(TAX_YEAR_2024.kerenHishtalmutCap)}) = ${ils(allowed)}`,
+    formula: `min(הפקדה ${ils(contribution)}, ${Math.round(TC.kerenHishtalmutRate * 100)}% × min(הכנסה, תקרה ${ils(TC.kerenHishtalmutIncomeCeiling)}) = ${ils(incomeBased)}, תקרת ניכוי ${ils(TC.kerenHishtalmutCap)}) = ${ils(allowed)}`,
     sources: [{ label: "אישור הפקדה שנתי מקרן ההשתלמות" }],
     confidence: "high",
     notes: [
@@ -145,11 +148,12 @@ export const field137KerenHishtalmut: Calculator = (p) => {
  * אישה: 2.75 נקודות, גבר: 2.25 נקודות
  * ============================================================ */
 export const field020Resident: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   const points = p.personal.gender === "female" ? 2.75 : 2.25;
   return {
     value: true,
-    formula: `${points} נקודות זיכוי × ${ils(TAX_YEAR_2024.pointValueAnnual)} = ${ils(
-      Math.round(points * TAX_YEAR_2024.pointValueAnnual),
+    formula: `${points} נקודות זיכוי × ${ils(TC.pointValueAnnual)} = ${ils(
+      Math.round(points * TC.pointValueAnnual),
     )} זיכוי שנתי`,
     sources: [
       {
@@ -209,12 +213,13 @@ export const field068Soldier: Calculator = (p) => {
  * ============================================================ */
 export const field297Form6111: Calculator = (p) => {
   const turnover = p.income.totalRevenue;
-  const required = turnover > TAX_YEAR_2024.form6111Threshold;
+  const TC = getTaxYearConstants(p.income.year);
+  const required = turnover > TC.form6111Threshold;
   return {
     value: required ? "חייב בטופס 6111" : "לא חייב",
     formula: `מחזור ${ils(turnover)} ${
       required ? ">" : "<"
-    } סף ${ils(TAX_YEAR_2024.form6111Threshold)} → ${
+    } סף ${ils(TC.form6111Threshold)} → ${
       required ? "חייב" : "לא חייב"
     }`,
     sources: [{ label: "מחזור שנתי כפי שחושב בשדה 238" }],
@@ -222,7 +227,7 @@ export const field297Form6111: Calculator = (p) => {
     notes: required
       ? ["טופס 6111 דורש דוח מאזן ורווח-והפסד מסודר. יידרש מסמך נוסף."]
       : [`חיסכון: לא תידרש להגיש טופס 6111 השנה. שמור מרווח של ${ils(
-          TAX_YEAR_2024.form6111Threshold - turnover,
+          TC.form6111Threshold - turnover,
         )} עד הסף.`],
   };
 };
@@ -232,8 +237,9 @@ export const field297Form6111: Calculator = (p) => {
  * 52% ניכוי כבר נדרש בשדה 030; הנותר נכנס כזיכוי ישיר מהמס
  * ============================================================ */
 export const field048BituachLeumiCredit: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const credit = Math.round(paid * TAX_YEAR_2024.bituachLeumiCreditRate);
+  const credit = Math.round(paid * TC.bituachLeumiCreditRate);
   return {
     value: credit,
     formula: `${ils(paid)} (סה"כ ב"ל ששולם) × 48% = ${ils(credit)} (חלק הזיכוי)`,
@@ -348,8 +354,9 @@ export const field135KupatGemel: Calculator = (p) => {
  * שדה 181 — נקודת זיכוי בגין תואר אקדמי
  * ============================================================ */
 export const field181AcademicDegree: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   const year = p.personal.academicDegreeYear;
-  const creditValue = TAX_YEAR_2024.pointValueAnnual;
+  const creditValue = TC.pointValueAnnual;
   const value = year ? creditValue : 0;
   return {
     value,
@@ -475,34 +482,35 @@ export function calculate(
  * This is NOT part of Form 1301; shown as a bonus card with a disclaimer.
  */
 export function estimateTaxLiability(persona: Persona): TaxEstimate {
+  const TC = getTaxYearConstants(persona.income.year);
   const isOsekZeir = persona.business.isOsekZeir;
 
   // עוסק זעיר: 70% of revenue is taxable; 30% auto-deducted as expenses (includes BL)
   const businessIncome = isOsekZeir
-    ? Math.round(persona.income.totalRevenue * (1 - TAX_YEAR_2024.osekZeirExpenseRate))
+    ? Math.round(persona.income.totalRevenue * (1 - TC.osekZeirExpenseRate))
     : persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
 
   // Deductions from taxable income
   const kerenDeduction = Math.min(
     persona.deductionsAndCredits.kerenHishtalmut.annualContribution,
-    Math.round(Math.min(businessIncome, TAX_YEAR_2024.kerenHishtalmutIncomeCeiling) * TAX_YEAR_2024.kerenHishtalmutRate),
-    TAX_YEAR_2024.kerenHishtalmutCap,
+    Math.round(Math.min(businessIncome, TC.kerenHishtalmutIncomeCeiling) * TC.kerenHishtalmutRate),
+    TC.kerenHishtalmutCap,
   );
   // BL 52% deduction is bundled into the 30% auto-expense for עוסק זעיר
   const blDeduction = isOsekZeir
     ? 0
-    : Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiDeductibleRate);
+    : Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TC.bituachLeumiDeductibleRate);
   const pensionDeduction = Math.min(
     persona.deductionsAndCredits.pensionContributions.annualContribution,
-    Math.round(businessIncome * TAX_YEAR_2024.pensionDeductionRate),
-    TAX_YEAR_2024.pensionDeductionCap,
+    Math.round(businessIncome * TC.pensionDeductionRate),
+    TC.pensionDeductionCap,
   );
 
   const taxableIncome = Math.max(0, businessIncome - kerenDeduction - blDeduction - pensionDeduction);
 
   // Progressive tax brackets
   let grossTax = 0;
-  for (const bracket of TAX_YEAR_2024.taxBrackets) {
+  for (const bracket of TC.taxBrackets) {
     if (taxableIncome <= bracket.from) break;
     const inBracket = Math.min(taxableIncome, bracket.to === Infinity ? taxableIncome : bracket.to) - bracket.from;
     grossTax += inBracket * bracket.rate;
@@ -518,8 +526,8 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
     return age >= 1 && age <= 5;
   }) ? 2.5 : 1.0);
 
-  const creditPointsValue = Math.round(creditPoints * TAX_YEAR_2024.pointValueAnnual);
-  const blCredit = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TAX_YEAR_2024.bituachLeumiCreditRate);
+  const creditPointsValue = Math.round(creditPoints * TC.pointValueAnnual);
+  const blCredit = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TC.bituachLeumiCreditRate);
 
   const totalCredits = creditPointsValue + blCredit;
   const excessCredits = Math.max(0, totalCredits - grossTax);

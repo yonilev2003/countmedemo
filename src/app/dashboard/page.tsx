@@ -16,6 +16,9 @@ import {
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
+import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { ForecastCard } from "@/components/dashboard/forecast-card";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -129,6 +132,18 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Link
+              href="/alerts"
+              className="rounded-full border border-amber-300 px-3 py-1 text-xs text-amber-800 hover:bg-amber-50 transition-colors"
+            >
+              🔔 התראות
+            </Link>
+            <Link
+              href="/deadlines"
+              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20 transition-colors"
+            >
+              🗓️ מועדים
+            </Link>
+            <Link
               href="/dashboard/pl-report"
               className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20"
               title="דוח רווח והפסד בפורמט ישראלי תקני, מוכן להדפסה / שמירה כ-PDF"
@@ -151,6 +166,14 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      <div className="mx-auto max-w-screen-xl px-6 pt-4">
+        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-[11px] text-stone-500 leading-relaxed">
+          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
+          הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
+          לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
+        </div>
+      </div>
+
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Title + filter */}
         <div className="flex items-center justify-between mb-6">
@@ -159,7 +182,7 @@ export default function DashboardPage() {
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">שנת מס 2024</p>
+            <p className="text-sm text-stone-500 mt-0.5">שנת מס {persona.income.year}</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
             {/* Granularity toggle */}
@@ -247,9 +270,24 @@ export default function DashboardPage() {
           />
         </div>
 
+        {/* עוסק פטור ceiling alert — only for patur */}
+        {(() => {
+          const ceilingAlert = computeCeilingAlert(persona);
+          return ceilingAlert ? (
+            <div className="mb-6">
+              <CeilingAlertCard alert={ceilingAlert} />
+            </div>
+          ) : null;
+        })()}
+
         {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
         <div className="mb-8">
           <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
+        </div>
+
+        {/* Forward-looking advances forecast — plan vs actual, strong/weak basis */}
+        <div className="mb-8">
+          <ForecastCard persona={persona} />
         </div>
 
         {/* Charts + Eitan in a 2-col layout on large screens */}
