@@ -8,6 +8,7 @@
 
 import { Persona } from "@/lib/persona";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { getImminentDeadlines, type FilerType } from "@/lib/deadlines/calendar";
 
 // ─── Common shape ──────────────────────────────────────────────────────────────
 
@@ -258,6 +259,45 @@ export function generateMonthlyExpenseReminder(
   };
 }
 
+// ─── 4. Upcoming-deadline alerts (לוח מועדים) ──────────────────────────────
+
+/** Maps the persona's osek type to the deadline-calendar filer type. */
+function filerTypeFor(persona: Persona): FilerType {
+  return persona.business.osekType === "patur" ? "osek-patur" : "osek-murshe";
+}
+
+/**
+ * Surfaces deadlines from the structured calendar (lib/deadlines) that fall
+ * within the next `withinDays` days. One Alert per imminent deadline.
+ * Severity scales with proximity: ≤3d → alert, ≤7d → warn, else info.
+ */
+export function generateDeadlineAlerts(
+  persona: Persona,
+  now: Date = new Date(),
+  withinDays = 21,
+): Alert[] {
+  const imminent = getImminentDeadlines(withinDays, now, filerTypeFor(persona));
+  return imminent.map((d) => {
+    const severity: AlertSeverity =
+      d.daysUntilDue <= 3 ? "alert" : d.daysUntilDue <= 7 ? "warn" : "info";
+    const dueLabel = d.nextDueDate.toLocaleDateString("he-IL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    return {
+      id: `deadline-${d.id}`,
+      severity,
+      headlineHe:
+        d.daysUntilDue === 0
+          ? `היום: ${d.titleHe}`
+          : `בעוד ${d.daysUntilDue} ימים: ${d.titleHe}`,
+      detailHe: `מועד הגשה: ${dueLabel} (${d.dueRule}).${d.notesHe ? " " + d.notesHe : ""}`,
+      cta: { labelHe: "ללוח המועדים ←", href: "/deadlines" },
+    };
+  });
+}
+
 // ─── Aggregator ─────────────────────────────────────────────────────────────
 
 /**
@@ -272,6 +312,7 @@ export function generateAllAlerts(
     generateCeilingAlert(persona),
     generateVatAdvancesAlert(persona, now),
     generateMonthlyExpenseReminder(persona, now),
+    ...generateDeadlineAlerts(persona, now),
   ];
 
   const alerts = candidates.filter((a): a is Alert => a !== null);

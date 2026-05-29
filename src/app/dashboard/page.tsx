@@ -138,6 +138,12 @@ export default function DashboardPage() {
               🔔 התראות
             </Link>
             <Link
+              href="/deadlines"
+              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20 transition-colors"
+            >
+              🗓️ מועדים
+            </Link>
+            <Link
               href="/dashboard/pl-report"
               className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20"
               title="דוח רווח והפסד בפורמט ישראלי תקני, מוכן להדפסה / שמירה כ-PDF"

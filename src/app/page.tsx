@@ -14,6 +14,7 @@ export default function Home() {
           <nav className="hidden items-center gap-1 sm:flex">
             <NavLink href="/dashboard">דשבורד</NavLink>
             <NavLink href="/alerts">🔔 התראות</NavLink>
+            <NavLink href="/deadlines">🗓️ מועדים</NavLink>
             <NavLink href="/file">מילוי 1301</NavLink>
             <NavLink href="/business-expenses">הוצאות</NavLink>
             <NavLink href="/invoices">חשבוניות</NavLink>
