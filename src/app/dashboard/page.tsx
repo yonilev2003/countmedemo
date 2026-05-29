@@ -18,6 +18,7 @@ import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { ForecastCard } from "@/components/dashboard/forecast-card";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -276,6 +277,11 @@ export default function DashboardPage() {
         {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
         <div className="mb-8">
           <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
+        </div>
+
+        {/* Forward-looking advances forecast — plan vs actual, strong/weak basis */}
+        <div className="mb-8">
+          <ForecastCard persona={persona} />
         </div>
 
         {/* Charts + Eitan in a 2-col layout on large screens */}
