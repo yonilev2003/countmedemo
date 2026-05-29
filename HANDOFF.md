@@ -141,4 +141,3 @@ landing-waitlist.
 | מדריך "מתי להתייעץ עם איזה סקיל" + דיאגרמת זרימה | `CLAUDE.md` |
 
 **להרצה:** `npm install && npm run dev` → `localhost:3000`. **לפני push:** `npm run build`.
-`NEXT_STEPS.md` הוא תוכנית Day-1 ישנה (חלקה לא רלוונטי) — המסמך הזה גובר.
