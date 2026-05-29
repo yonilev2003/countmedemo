@@ -32,7 +32,7 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 
 Skills come from the [skills-il](https://github.com/skills-il) org (the `agentskills.co.il` catalog) via `npx skills`. We use a **three-tier model** tuned for token hygiene + reliability on ephemeral web containers. Only what's committed to the repo survives a container reset — `~/.claude/` and `node_modules` do not.
 
-**Tier 1 — Core (committed, always loaded).** 13 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
+**Tier 1 — Core (committed, always loaded).** 18 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
 
 | Skill | Why core |
 |---|---|
@@ -42,15 +42,20 @@ Skills come from the [skills-il](https://github.com/skills-il) org (the `agentsk
 | `israeli-bituach-leumi` | National insurance (field 030) |
 | `israeli-financial-reports` | Israeli-standard reports |
 | `israeli-expense-categorizer` | Pkudat Mas categorization |
-| `israeli-receipt-scanner` | Upload flow OCR |
+| `israeli-receipt-scanner` | Upload flow OCR for receipts |
+| `hebrew-ocr-forms` | OCR for Hebrew tax forms (106, 1301) — complements receipt-scanner for structured gov forms |
 | `israeli-e-invoice` | Hashbonit electronit / SHAAM (mandatory 2024+) |
 | `israeli-id-validator` | Teudat Zehut |
 | `hebrew-i18n` | RTL / Hebrew formatting |
 | `hebrew-tailwind-preset` | Tailwind 4 RTL — our stack |
 | `israeli-accessibility-compliance` | IS 5568 + WCAG 2.1 AA |
 | `israeli-ui-design-system` | gov.il patterns for `/demo` |
+| `israeli-freelancer-ops` | Core target user: עצמאי ישראלי — מקדמות, תזרים, תאריכים קריטיים; this IS our persona |
+| `il-invoice-organizer` | Organizes invoice data into the raw inputs that feed Form 1301 calculators |
+| `israeli-privacy-shield` | Israeli Privacy Law + GDPR — mandatory for any fintech product holding tax data |
+| `israeli-ai-compliance-kit` | Israeli AI regulation compliance — mandatory for an AI product with sensitive financial data |
 
-**Tier 2 — Vetted catalog (recorded, NOT loaded).** ~110 more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file.
+**Tier 2 — Vetted catalog (recorded, NOT loaded).** ~85 more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file. Skills promoted from Tier 2 to Tier 1 on 2026-05-29: `israeli-freelancer-ops`, `il-invoice-organizer`, `hebrew-ocr-forms`, `israeli-privacy-shield`, `israeli-ai-compliance-kit`.
 
 **On-demand use:** when a task needs a Tier-2 capability (payments, payroll, legal, marketing, gov forms, etc.), discover and pull it for the session:
 ```
