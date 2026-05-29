@@ -30,14 +30,19 @@ const STEP_TITLES = [
   "הוצאות וניכויים",
   "בנק וסיכום",
 ];
-const STEP_SUBTITLES = [
-  "כמה פרטים בסיסיים כדי לזהות אותך",
-  "מעמדים מיוחדים שמשפיעים על נקודות זיכוי",
-  "ספרי לנו על העסק שלך",
-  "נתוני הכנסות לשנת המס 2024",
-  "הוצאות מוכרות, ביטוחים ותרומות",
-  "פרטי בנק לזיכוי, וסיכום מהיר",
-];
+function getStepSubtitles(year: number): string[] {
+  return [
+    "כמה פרטים בסיסיים כדי לזהות אותך",
+    "מעמדים מיוחדים שמשפיעים על נקודות זיכוי",
+    "ספרי לנו על העסק שלך",
+    `נתוני הכנסות לשנת המס ${year}`,
+    "הוצאות מוכרות, ביטוחים ותרומות",
+    "פרטי בנק לזיכוי, וסיכום מהיר",
+  ];
+}
+
+/** Tax years available in the selector. Add future years here when constants are confirmed. */
+const AVAILABLE_TAX_YEARS: number[] = [2024, 2025];
 
 interface Step1Data {
   firstName: string;
@@ -170,6 +175,15 @@ export default function SetupPage() {
   const router = useRouter();
   const [step, setStep] = useState(0); // 0 = optional fast-track upload, 1-6 = wizard steps
   const currentYear = new Date().getFullYear();
+
+  /**
+   * The tax year the user is filing for.
+   * Default: 2024 — because 2025 indexed values are provisional (TODO(Roy) markers).
+   */
+  const [selectedYear, setSelectedYear] = useState<number>(2024);
+
+  // Derive step subtitles dynamically so they always show the current selected year
+  const STEP_SUBTITLES = getStepSubtitles(selectedYear);
 
   const [s1, setS1] = useState<Step1Data>({
     firstName: "",
@@ -494,7 +508,7 @@ export default function SetupPage() {
         accountOwnerName: `${s1.firstName} ${s1.lastName}`.trim(),
       },
       income: {
-        year: 2024,
+        year: selectedYear,
         totalRevenue,
         totalDeductibleExpenses,
         netIncome,
@@ -523,7 +537,7 @@ export default function SetupPage() {
       },
       vatAndTurnover: {
         annualTurnoverWithoutVat: totalRevenue,
-        isAbove6111Threshold: totalRevenue > getTaxYearConstants(2024).form6111Threshold,
+        isAbove6111Threshold: totalRevenue > getTaxYearConstants(selectedYear).form6111Threshold,
       },
     };
   }
@@ -1003,8 +1017,37 @@ export default function SetupPage() {
 
             {step === 4 && (
               <div className="space-y-4">
-                <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800 font-medium">
-                  שנת המס: 2024
+                {/* ── Tax-year selector ─────────────────────────────────── */}
+                <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-blue-800">
+                      שנת המס
+                    </span>
+                    <div className="flex gap-2">
+                      {AVAILABLE_TAX_YEARS.map((yr) => (
+                        <button
+                          key={yr}
+                          type="button"
+                          onClick={() => setSelectedYear(yr)}
+                          className={cn(
+                            "rounded-full px-4 py-1 text-sm font-semibold transition-colors border",
+                            selectedYear === yr
+                              ? "bg-blue-700 text-white border-blue-700 shadow-sm"
+                              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100",
+                          )}
+                        >
+                          {yr}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedYear === 2025 && (
+                    <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5 leading-relaxed">
+                      חלק מנתוני 2025 (תקרות קרן השתלמות, ביטוח לאומי ופנסיה)
+                      הם ערכים זמניים הממתינים לאישור רשמי — יעודכנו עם פרסום
+                      נתוני האינדקס הסופיים.
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1302,7 +1345,7 @@ export default function SetupPage() {
                       </span>
                       <span className="text-sm font-semibold">
                         {Number(s4.totalRevenue) >
-                        getTaxYearConstants(2024).form6111Threshold
+                        getTaxYearConstants(selectedYear).form6111Threshold
                           ? "חייבת בהגשה"
                           : "פטורה"}
                       </span>
