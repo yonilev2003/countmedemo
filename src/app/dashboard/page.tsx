@@ -131,6 +131,12 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Link
+              href="/alerts"
+              className="rounded-full border border-amber-300 px-3 py-1 text-xs text-amber-800 hover:bg-amber-50 transition-colors"
+            >
+              🔔 התראות
+            </Link>
+            <Link
               href="/dashboard/pl-report"
               className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20"
               title="דוח רווח והפסד בפורמט ישראלי תקני, מוכן להדפסה / שמירה כ-PDF"
