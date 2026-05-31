@@ -3,8 +3,9 @@
 > מסמך מסירה בין סשנים. סשן ענן (Claude Code on the web) מקבל **רק את הריפו** — לא את היסטוריית
 > השיחה. כל מה שצריך כדי להמשיך נמצא כאן, בקוד, ובמעקב המשימות החי.
 >
-> מצב: הסבב הנוכחי מוזג ל-`main`. מקור-אמת למשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
-> עודכן: 2026-05-29.
+> מצב: סבב 31/05 על `claude/great-sagan-eqzCH`, נדחף ל-origin (טרם מוזג ל-main). מקור-אמת
+> למשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
+> עודכן: 2026-05-31.
 
 ---
 
@@ -17,6 +18,35 @@ Momentum — טופס 1301 עם כל הערכים מחושבים מראש, כל 
 ---
 
 ## 2. מה הושלם בסבב הזה (אינטגרציה + בנייה)
+
+### סבב 31/05/2026 — מודל מחזור-החיים של שנות המס + ליטוש (8 קומיטים)
+
+**מודל שלוש-השנים (2024 הוגש · 2025 פתוח · 2026 עתידי) — הליבה של משימה #4:**
+- `TAX_YEAR_2026` חדש ב-`types.ts`, **מקורו בסקיל `israeli-tax-returns`**: מדרגות 3–5 הורחבו
+  (חוק ההתייעלות 2026 — 228K / 301,200), סף ב"ל 60%-שכר-ממוצע עלה ל-7,703. **כל ערך שהשתנה
+  ל-2026 מסומן `TODO(Roy)`** עד אישור מול המקור הרשמי. ה-dispatcher תוקן (2026 נפל בטעות ל-2025).
+- מודל סטטוס: `ACTIVE_FILING_YEAR=2025`, `DEFAULT_VIEW_YEAR=2024` (נעול ליציבות EY),
+  `getYearStatus()` → `filed|open|future`, `FILING_STATUS_META` (תוויות עברית). רכיב
+  `<YearStatusBadge>` מציג את הפיל בדשבורד, דו"ח רווה"ס, ו-/demo.
+- **פרסונה רב-שנתית:** `dana-cohen.json` נושאת עכשיו 2024 *וגם* 2025 (אותם 248,500/47,800).
+  הסקלרים נשארו על 2024 → `/demo` ו-`/file` byte-for-byte ללא שינוי; דשבורד/דו"ח משתמשים
+  ב-`personaForYear()`. `taxYearsForUI()` חושף את שלישיית 24/25/26 בבורר; 2026 ריק עם empty-state.
+
+**הפרדת-זמן (תשתית למודל לעיל):** חשבוניות/הוצאות מתויגות לפי שנת מס — רשומה מחוץ-לשנה לא
+מנפחת את סכומי 2024 (`personaForYear`/`availableTaxYears` ב-`lib/p-and-l`).
+
+**ליטוש (4 אצוות worktree עצמאיות):**
+- **fix-ui:** פסיק בכתובת תוקן ב-`format-value.ts`; הוסרה תווית "מבוסס על הסקיל"; ברכת הצ'אט
+  מציגה סכום הוצאות אמיתי (47,800 ₪) במקום "0".
+- **assistant:** `/api/chat` + `/api/coach` עונים על שאלות מוצר, מסגרת "היום 2026 / הדו"ח 2024 /
+  לא להמציא נתוני 2026", ואיחוד שם הסוכן ל**איתן**.
+- **voice:** הקלטת קול ב-`/invoices/new` רציפה (he-IL, auto-restart) — לא נעצרת אחרי כמה מילים.
+- **invoices:** מספור חשבונית לפי שנת-התאריך (2025-xxxx); `/invoices` ברירת-מחדל לשנה הפתוחה (2025).
+
+> סתירה שהוצפה לרוי: הסקילים מעודכנים ל-**2026** בעוד הקוד עוגן ל-2024; שינויי חקיקת 2026
+> (מדרגות 3–5 + תיקון 252 לב"ל) הוטמעו כ-`TODO(Roy)`. ערכי 2025 *וגם* 2026 ממתינים לאישור רוי.
+
+### סבב 29/05/2026 — אינטגרציה + בנייה
 
 **שחזור ענפים תקועים** (במקום בנייה מאפס):
 - `dazzling-keller-aHGGa` → **PWA** (manifest+SW), **ceiling-alert** (תקרת ₪120K), **`TAX_YEAR_2025`** +
@@ -68,6 +98,7 @@ Momentum — טופס 1301 עם כל הערכים מחושבים מראש, כל 
 |---|---|
 | מעקב משימות חי (מקור-אמת) | `docs/meeting-records/yoni-tasks-27032026.md` |
 | קבועי מס per-year + בורר שנה | `src/lib/calculators/types.ts`, `src/app/setup/page.tsx` |
+| מחזור-חיים של שנת מס (filed/open/future) | `types.ts` (`ACTIVE_FILING_YEAR`/`getYearStatus`), `components/year-status-badge.tsx`, `lib/p-and-l` (`taxYearsForUI`/`personaForYear`) |
 | מרשם ניכויים (rate/cap/formFields/plImpact/skill) | `src/lib/regulatory/deductions.ts` |
 | 8 ה-calculators + הערכת מס | `src/lib/calculators/index.ts` |
 | התראות (תקרה/מע"מ/הוצאות/מועדים) | `src/lib/alerts/index.ts`, `src/app/alerts/page.tsx` |

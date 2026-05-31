@@ -144,6 +144,8 @@ src/components/form-1301/form-preview.tsx
 
 כל הנתונים חיים ב-`localStorage` (מפתח `countme_persona`). אין DB, אין auth — זה קונספט דמו.
 
+פרסונת הדמו היא **רב-שנתית**: אותם נתונים תחת 2024 (`הוגש`) ו-2025 (`פתוח להגשה`); 2026 `עתידי`/בצבירה. `/demo` ו-`/file` נוחתים על 2024 (נעול ליציבות EY); דשבורד ודו"ח רווה"ס מסננים לפי השנה הנבחרת דרך `personaForYear()`. מודל הסטטוס חי ב-`lib/calculators/types.ts` (`ACTIVE_FILING_YEAR`, `getYearStatus`).
+
 ```typescript
 import { loadPersona, savePersona } from "@/lib/setup-storage";
 
@@ -182,7 +184,7 @@ data: [DONE]
 `/invoices/[invoiceNumber]` מציג חשבונית מס בפורמט חוקי עם `@media print` מלא — הדפסה ישירה מהדפדפן → PDF.
 
 כללים ישראלים מיושמים:
-- מספור רץ `YYYY-NNNN` (e.g. `2024-0042`)
+- מספור רץ `YYYY-NNNN` (e.g. `2025-0042`) — שנת הקידומת נגזרת מ**שנת תאריך החשבונית**
 - עוסק מורשה: מע״מ 17% + שורת מע״מ
 - עוסק פטור: ״עוסק פטור — אין חיוב מע״מ״
 - חשבונית > 5,000₪ → שדה ת.ז. / ח.פ. לקוח חובה
