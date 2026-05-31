@@ -1,5 +1,30 @@
 @AGENTS.md
 
+# 🧠 Project memory (read first)
+
+This repo carries a portable "brain" in `memory/` (Obsidian-compatible). Skim it at the start of a session to know where things stand without scrolling old chats:
+
+- `memory/README.md` — stable overview (what/who/why, links, how AI should help)
+- `memory/STATUS.md` — current snapshot: done / open / next action / blockers
+- `memory/progress.md` — dated diary of what changed over time
+- `memory/decisions.md` — locked decisions + why (don't reopen these)
+
+`CLAUDE.md` (this file) remains the canonical, detailed AI-context. `memory/` is the lightweight, frequently-updated layer on top.
+
+## 🔚 Session wrap-up routine
+
+When the user says **"let's finish the session"**, **"let's wrap up the session"**, **"let's wrap up"**, **"בוא נסיים את הסשן"**, or anything clearly meaning end-of-session, run this routine before signing off (no need to ask permission — just do it, then summarize what changed):
+
+1. **Gather what happened this session** — review the conversation + run `git log --oneline` / `git status` / `git diff --stat` to see actual changes made.
+2. **Update `memory/STATUS.md`** — refresh "Last updated" date + branch, move finished items to ✅, update "Next best action", blockers, and "Needs review".
+3. **Append to `memory/progress.md`** — add a new dated entry at the top: what was worked on, what changed, what was tried, what worked / didn't.
+4. **Update `memory/decisions.md`** — if any decision was made this session, add a row with the why + whether it's final or revisitable. Resolve any "Open questions" that got answered.
+5. **Update `memory/README.md`** — only if the bigger project direction changed (new product surface, stack change, audience shift). Otherwise leave it.
+6. **Keep it concise and practical** — these are for fast future-AI handoff, not prose. Convert relative dates to absolute (today's date is in the environment).
+7. **Report** a 3-bullet summary of what you updated, and remind the user to commit (`git add memory/ && git commit`).
+
+A `/wrap-up` slash command (`.claude/commands/wrap-up.md`) triggers the same routine explicitly.
+
 # countme — Project Context
 
 countme is an AI-native financial-ops product for Israeli self-employed people (≈352K under-35 freelancers in Israel). The product accompanies users through tax filings, beginning with **Form 1301 (annual income tax return)**.
