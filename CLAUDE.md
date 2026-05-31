@@ -96,9 +96,11 @@ The `israeli-*` skills are the **domain authority** for the rules behind our num
 Every rate, cap, and rule is **year-keyed and flows from one place** — so when the regulator updates a year (e.g. the 2025 bracket + credit-point freeze), the change propagates to the forms, the calculations, and every annual report at once. Never hardcode a rate/cap in a component, a description string, or a report.
 
 ```
-lib/calculators/types.ts   ← per-year constants (TAX_YEAR_2024, TAX_YEAR_2025, getTaxYearConstants)
+lib/calculators/types.ts   ← per-year constants (TAX_YEAR_2024/2025/2026, getTaxYearConstants)
         │                     • brackets/points marked FROZEN, caps marked CARRIED→TODO(Roy)
         │                     • עוסק פטור ceiling === עוסק זעיר ceiling (one shared const)
+        │                     • 2026 brackets 3–5 EXPANDED (Economic Efficiency Law 2026),
+        │                       BL boundary 7,703 — sourced from israeli-tax-returns skill, TODO(Roy)
         ▼
 lib/regulatory/deductions.ts ← getDeductionsTable(year): each deduction/benefit resolves its
         │                       rate/cap from the constants, and declares:
@@ -111,6 +113,19 @@ lib/regulatory/deductions.ts ← getDeductionsTable(year): each deduction/benefi
 ```
 
 To add a tax year: define it in `types.ts` (every value explicit), and the downstream consumers follow automatically.
+
+### Tax-year lifecycle (filed / open / future)
+
+The product treats years by their **filing status**, not just their data:
+
+- **2024 — `הוגש` (filed):** the return is already submitted; read-only history.
+- **2025 — `פתוח להגשה` (open):** the active return being prepared now. This is `ACTIVE_FILING_YEAR`.
+- **2026 — `עתידי` (future):** still accruing; not yet filable.
+
+All of this is single-sourced in `lib/calculators/types.ts`:
+`ACTIVE_FILING_YEAR` (2025), `DEFAULT_VIEW_YEAR` (2024 — where `/demo` & `/file` land, locked for EY stability), `getYearStatus(year)` → `filed|open|future`, and `FILING_STATUS_META` (Hebrew labels + read-only flag). The `<YearStatusBadge>` component (`components/year-status-badge.tsx`) renders the pill anywhere a year is shown (dashboard, P&L report, `/demo`). `taxYearsForUI(persona)` (in `lib/p-and-l`) unions data-years with the 2024/2025/2026 trio so the year-selector always exposes all three.
+
+**Demo persona is multi-year.** `personas/dana-cohen.json` now carries the same headline totals (248,500 / 47,800) under **both 2024 and 2025** (invoices, expenses, monthlyBreakdown duplicated with shifted dates). The scalar `income.year`/totals stay pinned to 2024 so `/demo` and `/file` are byte-for-byte unchanged; the dashboard & P&L use `personaForYear(persona, year)` to scope per year. 2026 has no data yet (future/accruing).
 
 ## Architecture
 
