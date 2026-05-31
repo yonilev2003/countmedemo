@@ -186,7 +186,7 @@ export function ChatPanel({ persona }: Props) {
           c
         </div>
         <div>
-          <div className="text-sm font-semibold">המלווה של countme</div>
+          <div className="text-sm font-semibold">איתן · המלווה של countme</div>
         </div>
       </div>
 
