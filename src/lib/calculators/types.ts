@@ -203,14 +203,97 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   ],
 };
 
+/**
+ * עוסק פטור / עוסק זעיר ceiling for 2026.
+ * TODO(Roy): confirm the 2026 indexed value (carried 2025 figure for now).
+ */
+const OSEK_EXEMPT_CEILING_2026 = 120000;
+
+/**
+ * Tax year 2026 — the FUTURE/accruing year (filed in 2027). Values sourced from
+ * the `israeli-tax-returns` skill's 2026 reference, NOT yet confirmed by Roy.
+ *
+ * CHANGED for 2026 (vs the 2024/2025 freeze):
+ *  • Income-tax brackets 3–5 were EXPANDED by the Economic Efficiency Law 2026
+ *    (approved 2026-03-30, retroactive to 2026-01-01). Brackets 1–2 and 6 stay
+ *    frozen at 2025 values. We use the skill's 2026 boundaries here because the
+ *    2025 brackets are now *known-wrong* for 2026 — and the project rule is to
+ *    never silently show a wrong value. TODO(Roy): confirm against the official
+ *    pkudat-mas tables before relying on 2026 numbers in production.
+ *  • Bituach Leumi: the 60%-of-average-wage tier boundary rose to ~7,703/month
+ *    (skill 2026). Self-employed rate tiers may shift under Amendment 252
+ *    (תיקון 252, CPI-indexed 2026–2028) — kept at the 2025 values with a TODO
+ *    until Roy confirms the official 2026 self-employed rates.
+ * FROZEN: credit-point value (2,904, frozen 2025–2027) and resident points.
+ * CARRIED w/ TODO(Roy): index-linked caps (keren, pension, 6111, osek ceiling).
+ */
+export const TAX_YEAR_2026: TaxYearConstants = {
+  // Keren Hishtalmut — rate stable; caps index-linked
+  kerenHishtalmutCap: 13203,            // TODO(Roy): confirm 2026
+  kerenHishtalmutIncomeCeiling: 293397, // TODO(Roy): confirm 2026
+  kerenHishtalmutRate: 0.045,           // stable
+
+  // Bituach Leumi — 60%-avg-wage boundary rose for 2026 (skill); rates per תיקון 252
+  bituachLeumiDeductibleRate: 0.52,     // stable
+  bituachLeumiCreditRate: 0.48,         // stable
+  blMonthlyThreshold1: 7703,            // skill 2026 (60% avg wage) — TODO(Roy): confirm
+  blMonthlyMax: 49030,                  // TODO(Roy): confirm 2026 contribution ceiling
+  blRate1: 0.0597,                      // TODO(Roy): confirm 2026 (תיקון 252 may change)
+  blRate2: 0.1783,                      // TODO(Roy): confirm 2026 (תיקון 252 may change)
+
+  // Pension — rates stable; caps index-linked
+  pensionDeductionRate: 0.11,           // stable
+  pensionDeductionCap: 25608,           // TODO(Roy): confirm 2026
+  pensionCreditRate: 0.055,             // stable
+  pensionCreditCap: 12804,              // TODO(Roy): confirm 2026
+  pensionCreditPercent: 0.35,           // stable
+
+  // Form 6111 obligation threshold — index-linked
+  form6111Threshold: 256410,            // TODO(Roy): confirm 2026
+
+  // עוסק פטור / עוסק זעיר ceiling — tied (always equal)
+  osekPaturThreshold: OSEK_EXEMPT_CEILING_2026,
+  osekZeirExpenseRate: 0.30,            // statutory 30% (תיקון 257)
+  osekZeirThreshold: OSEK_EXEMPT_CEILING_2026,
+
+  // Credit points — FROZEN 2025–2027
+  residentCreditPoints: 2.25,           // frozen
+  pointValueAnnual: 2904,               // frozen 2024–2027
+
+  // Oleh / returning resident — statutory, stable
+  newOlehCreditYear1: 3.0,
+  newOlehCreditYear2: 2.0,
+  newOlehCreditYear3: 1.0,
+
+  // Soldier discharge — statutory, stable
+  soldierMonthsCredit: 36,
+  soldierFractionPerMonth: 1 / 6 / 36,
+
+  // Surtax — FROZEN (brackets 6 + surtax not indexed)
+  surtaxThreshold: 721560,              // TODO(Roy): confirm 2026
+  surtaxRate: 0.03,                     // stable
+
+  // Income tax brackets — brackets 3–5 EXPANDED for 2026 (Economic Efficiency Law 2026)
+  taxBrackets: [
+    { from: 0,      to: 84120,  rate: 0.10 }, // frozen
+    { from: 84120,  to: 120720, rate: 0.14 }, // frozen
+    { from: 120720, to: 228000, rate: 0.20 }, // expanded (was →193,800 in 2024/25)
+    { from: 228000, to: 301200, rate: 0.31 }, // expanded (was 193,800→269,280)
+    { from: 301200, to: 560280, rate: 0.35 }, // expanded lower bound (was 269,280)
+    { from: 560280, to: 721560, rate: 0.47 }, // frozen
+    { from: 721560, to: Infinity, rate: 0.50 },
+  ],
+};
+
 /** Registry of every defined tax year. Add a new year here once confirmed. */
 const TAX_YEAR_REGISTRY: Record<number, TaxYearConstants> = {
   2024: TAX_YEAR_2024,
   2025: TAX_YEAR_2025,
+  2026: TAX_YEAR_2026,
 };
 
 /** Most recent tax year we have an explicit definition for. */
-const LATEST_TAX_YEAR = 2025;
+const LATEST_TAX_YEAR = 2026;
 
 /**
  * Returns the constants for a filing year. Exact match wins; future years fall
@@ -219,8 +302,52 @@ const LATEST_TAX_YEAR = 2025;
 export function getTaxYearConstants(year: number): TaxYearConstants {
   const exact = TAX_YEAR_REGISTRY[year];
   if (exact) return exact;
-  return year > LATEST_TAX_YEAR ? TAX_YEAR_2025 : TAX_YEAR_2024;
+  return year > LATEST_TAX_YEAR ? TAX_YEAR_2026 : TAX_YEAR_2024;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Tax-year lifecycle: which year is being filed *now*, and each year's status.
+ *
+ * A given calendar moment has exactly one "open" filing year — the annual return
+ * you submit now. Today (2026) that return is for tax year 2025. Earlier years
+ * are already filed; later years are still accruing and not yet filable.
+ *
+ * DEFAULT_VIEW_YEAR is where the demo lands (kept at 2024 for EY stability — a
+ * locked product decision), independent of which year is currently "open".
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/** The tax year whose annual return is open for filing right now. */
+export const ACTIVE_FILING_YEAR = 2025;
+
+/** Where /demo and /file land by default (locked: 2024 for the EY demo). */
+export const DEFAULT_VIEW_YEAR = 2024;
+
+export type FilingStatus = "filed" | "open" | "future";
+
+/**
+ * Filing status of a tax year relative to the year currently open for filing.
+ * filed  — return already submitted (read-only history)
+ * open   — the active return being prepared now
+ * future — year still accruing; not yet filable
+ */
+export function getYearStatus(
+  year: number,
+  activeFilingYear: number = ACTIVE_FILING_YEAR,
+): FilingStatus {
+  if (year < activeFilingYear) return "filed";
+  if (year === activeFilingYear) return "open";
+  return "future";
+}
+
+/** Hebrew label + read-only flag for each filing status (UI badges). */
+export const FILING_STATUS_META: Record<
+  FilingStatus,
+  { label: string; readOnly: boolean }
+> = {
+  filed: { label: "הוגש", readOnly: true },
+  open: { label: "פתוח להגשה", readOnly: false },
+  future: { label: "עתידי", readOnly: true },
+};
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Regulatory-Watch metadata layer.
