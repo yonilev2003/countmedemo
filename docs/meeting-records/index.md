@@ -10,7 +10,7 @@ tags: [moc, meeting-records, countme]
 כל מסמך נושא frontmatter עם `type: meeting-record`, `date`, `attendees`, `tags`, `status`.
 
 ## מסמכים
-- [[yoni-tasks-27032026]] — משימות יוני מהפ"ע · 27/03/2026 · `status: open`
+- [yoni-tasks-27032026](yoni-tasks-27032026.md) — משימות יוני מהפ"ע · 27/03/2026 · `status: open`
 
 ## שליפה אוטומטית (Obsidian + Dataview)
 ```dataview
@@ -20,5 +20,5 @@ WHERE type = "meeting-record"
 SORT date DESC
 ```
 
-> דורש את תוסף **Dataview** באובסידיאן. ללא התוסף — רשימת ה-wikilinks למעלה משמשת כניווט,
-> וה-tags (`#meeting-record`) מאפשרים שליפה דרך חיפוש/גרף.
+> דורש את תוסף **Dataview** באובסידיאן. ללא התוסף — רשימת הקישורים למעלה משמשת כניווט
+> (markdown רגיל, עובד גם ב-GitHub), וה-tags (`#meeting-record`) מאפשרים שליפה דרך חיפוש/גרף.

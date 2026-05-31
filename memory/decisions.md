@@ -31,6 +31,15 @@
 - **`CLAUDE.md`** נשאר ייעודי ל-Claude Code (הקשר ארכיטקטוני), לא לסטטוס-סשן.
 - **טראקר המשימות** (`docs/meeting-records/yoni-tasks-27032026.md`) נשאר מקור-אמת ל-11 המשימות.
 
+## סביבת עבודה — Obsidian + Claude Code + GitHub
+
+- **GitHub הוא החוזה.** Claude Code (דסקטופ/ענן) ו-Obsidian הם שני עורכים מעל אותו עותק-עבודה;
+  הסנכרון היחיד ביניהם הוא git. סשן ענן רואה **רק** את מה ש-pushed.
+- ה-vault של Obsidian מצביע על תיקיית הריפו הלוקאלית (`memory/` + `docs/` הם הליבה הנקראת).
+- **קונבנציות שנשמרות לתאימות-כפולה (Obsidian + GitHub):** markdown רגיל בלבד — **לא** `[[wikilinks]]`
+  (`[טקסט](file.md)` עובד בשניהם). `.obsidian/` ב-`.gitignore` (קונפיג פר-מכונה).
+- לפני עריכה לוקאלית: `git pull` (גם אני וגם המשתמש עלולים לגעת ב-`memory/`).
+
 ## רקע (מ-CLAUDE.md, לא לפתוח מחדש)
 
 Stack: Next.js 16 + React 19 + TS + Tailwind 4 + Anthropic SDK · Vercel · Supabase (יום 2+) ·
