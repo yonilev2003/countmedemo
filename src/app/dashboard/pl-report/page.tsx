@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
-import { calculatePL, personaForYear, availableTaxYears } from "@/lib/p-and-l/index";
+import { calculatePL, personaForYear, taxYearsForUI } from "@/lib/p-and-l/index";
+import { YearStatusBadge } from "@/components/year-status-badge";
 import { buildIsraeliPLReport, formatNIS, IsraeliPLReport } from "@/lib/p-and-l/israeli-report";
 
 const OSEK_LABEL_HE: Record<"patur" | "morshe", string> = {
@@ -40,7 +41,7 @@ export default function PLReportPage() {
   const report: IsraeliPLReport | null = yearPersona
     ? buildIsraeliPLReport(yearPersona, calculatePL(yearPersona))
     : null;
-  const taxYears = persona ? availableTaxYears(persona) : [];
+  const taxYears = persona ? taxYearsForUI(persona) : [];
 
   if (!persona || !report || activeYear === null) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -67,13 +68,14 @@ export default function PLReportPage() {
                   <button
                     key={y}
                     onClick={() => setActiveYear(y)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       activeYear === y
                         ? "bg-brand-navy text-white"
                         : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
                     }`}
                   >
                     {y}
+                    {activeYear !== y && <YearStatusBadge year={y} />}
                   </button>
                 ))}
               </div>

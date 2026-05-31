@@ -4,7 +4,6 @@
   "id": "dana-cohen",
   "displayName": "דנה כהן",
   "invoiceCounter": 39,
-
   "personal": {
     "firstName": "דנה",
     "lastName": "כהן",
@@ -23,7 +22,6 @@
     "aliyahDate": null,
     "children": []
   },
-
   "contact": {
     "mailingAddress": {
       "street": "ארלוזורוב",
@@ -39,7 +37,6 @@
     "phoneHome": null,
     "consentDigitalNotices": true
   },
-
   "business": {
     "tradeName": "דנה כהן — עיצוב חוויית משתמש",
     "primaryOccupation": "מעצבת חוויית משתמש (UX)",
@@ -60,7 +57,6 @@
     "hasEmployees": false,
     "employerNames": []
   },
-
   "bank": {
     "bankCode": "12",
     "bankName": "בנק הפועלים",
@@ -68,7 +64,6 @@
     "accountNumber": "489203",
     "accountOwnerName": "דנה כהן"
   },
-
   "income": {
     "year": 2024,
     "totalRevenue": 248500,
@@ -81,33 +76,278 @@
     "financialInstitutionsIncome": 0,
     "taxWithheldAtSource": 0,
     "invoices": [
-      { "invoiceNumber": "2024-0001", "date": "2024-01-15", "customerName": "סטארטאפ אורבן טק", "description": "עיצוב UX — ינואר 2024", "amount": 12000, "vat": 0, "total": 12000, "category": "עיצוב" },
-      { "invoiceNumber": "2024-0002", "date": "2024-01-28", "customerName": "חברת ביוטק ישראל", "description": "ייעוץ חוויית משתמש", "amount": 9500, "vat": 0, "total": 9500, "category": "ייעוץ" },
-      { "invoiceNumber": "2024-0003", "date": "2024-02-10", "customerName": "גרין קפיטל", "description": "עיצוב מוצר — שלב א׳", "amount": 18000, "vat": 0, "total": 18000, "category": "עיצוב" },
-      { "invoiceNumber": "2024-0038", "date": "2024-12-20", "customerName": "מדיה פלוס", "description": "עיצוב קמפיין דצמבר", "amount": 8500, "vat": 0, "total": 8500, "category": "עיצוב" }
+      {
+        "invoiceNumber": "2024-0001",
+        "date": "2024-01-15",
+        "customerName": "סטארטאפ אורבן טק",
+        "description": "עיצוב UX — ינואר 2024",
+        "amount": 12000,
+        "vat": 0,
+        "total": 12000,
+        "category": "עיצוב"
+      },
+      {
+        "invoiceNumber": "2024-0002",
+        "date": "2024-01-28",
+        "customerName": "חברת ביוטק ישראל",
+        "description": "ייעוץ חוויית משתמש",
+        "amount": 9500,
+        "vat": 0,
+        "total": 9500,
+        "category": "ייעוץ"
+      },
+      {
+        "invoiceNumber": "2024-0003",
+        "date": "2024-02-10",
+        "customerName": "גרין קפיטל",
+        "description": "עיצוב מוצר — שלב א׳",
+        "amount": 18000,
+        "vat": 0,
+        "total": 18000,
+        "category": "עיצוב"
+      },
+      {
+        "invoiceNumber": "2024-0038",
+        "date": "2024-12-20",
+        "customerName": "מדיה פלוס",
+        "description": "עיצוב קמפיין דצמבר",
+        "amount": 8500,
+        "vat": 0,
+        "total": 8500,
+        "category": "עיצוב"
+      },
+      {
+        "invoiceNumber": "2025-0001",
+        "date": "2025-01-15",
+        "customerName": "סטארטאפ אורבן טק",
+        "description": "עיצוב UX — ינואר 2025",
+        "amount": 12000,
+        "vat": 0,
+        "total": 12000,
+        "category": "עיצוב"
+      },
+      {
+        "invoiceNumber": "2025-0002",
+        "date": "2025-01-28",
+        "customerName": "חברת ביוטק ישראל",
+        "description": "ייעוץ חוויית משתמש",
+        "amount": 9500,
+        "vat": 0,
+        "total": 9500,
+        "category": "ייעוץ"
+      },
+      {
+        "invoiceNumber": "2025-0003",
+        "date": "2025-02-10",
+        "customerName": "גרין קפיטל",
+        "description": "עיצוב מוצר — שלב א׳",
+        "amount": 18000,
+        "vat": 0,
+        "total": 18000,
+        "category": "עיצוב"
+      },
+      {
+        "invoiceNumber": "2025-0038",
+        "date": "2025-12-20",
+        "customerName": "מדיה פלוס",
+        "description": "עיצוב קמפיין דצמבר",
+        "amount": 8500,
+        "vat": 0,
+        "total": 8500,
+        "category": "עיצוב"
+      }
     ],
     "expenses": [
-      { "date": "2024-01-05", "vendorName": "Adobe", "description": "Adobe Creative Cloud — ינואר", "amount": 280, "category": "תוכנות ומנויים מקצועיים", "deductionRule": "full" },
-      { "date": "2024-01-12", "vendorName": "Figma", "description": "Figma Pro — ינואר", "amount": 150, "category": "תוכנות ומנויים מקצועיים", "deductionRule": "full" },
-      { "date": "2024-03-01", "vendorName": "Skillshare", "description": "קורס עיצוב מותגים", "amount": 450, "category": "השתלמות ולמידה", "deductionRule": "full" },
-      { "date": "2024-06-15", "vendorName": "Apple", "description": "MacBook Pro M3", "amount": 9800, "category": "מחשב, מסך, טאבלט", "deductionRule": "depreciation", "partialPercent": 33 }
+      {
+        "date": "2024-01-05",
+        "vendorName": "Adobe",
+        "description": "Adobe Creative Cloud — ינואר",
+        "amount": 280,
+        "category": "תוכנות ומנויים מקצועיים",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2024-01-12",
+        "vendorName": "Figma",
+        "description": "Figma Pro — ינואר",
+        "amount": 150,
+        "category": "תוכנות ומנויים מקצועיים",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2024-03-01",
+        "vendorName": "Skillshare",
+        "description": "קורס עיצוב מותגים",
+        "amount": 450,
+        "category": "השתלמות ולמידה",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2024-06-15",
+        "vendorName": "Apple",
+        "description": "MacBook Pro M3",
+        "amount": 9800,
+        "category": "מחשב, מסך, טאבלט",
+        "deductionRule": "depreciation",
+        "partialPercent": 33
+      },
+      {
+        "date": "2025-01-05",
+        "vendorName": "Adobe",
+        "description": "Adobe Creative Cloud — ינואר",
+        "amount": 280,
+        "category": "תוכנות ומנויים מקצועיים",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2025-01-12",
+        "vendorName": "Figma",
+        "description": "Figma Pro — ינואר",
+        "amount": 150,
+        "category": "תוכנות ומנויים מקצועיים",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2025-03-01",
+        "vendorName": "Skillshare",
+        "description": "קורס עיצוב מותגים",
+        "amount": 450,
+        "category": "השתלמות ולמידה",
+        "deductionRule": "full"
+      },
+      {
+        "date": "2025-06-15",
+        "vendorName": "Apple",
+        "description": "MacBook Pro M3",
+        "amount": 9800,
+        "category": "מחשב, מסך, טאבלט",
+        "deductionRule": "depreciation",
+        "partialPercent": 33
+      }
     ],
     "monthlyBreakdown": [
-      { "month": "2024-01", "revenue": 18500, "expenses": 3800 },
-      { "month": "2024-02", "revenue": 21000, "expenses": 4100 },
-      { "month": "2024-03", "revenue": 19800, "expenses": 3950 },
-      { "month": "2024-04", "revenue": 22400, "expenses": 4250 },
-      { "month": "2024-05", "revenue": 20100, "expenses": 3700 },
-      { "month": "2024-06", "revenue": 19400, "expenses": 4050 },
-      { "month": "2024-07", "revenue": 21300, "expenses": 4200 },
-      { "month": "2024-08", "revenue": 18900, "expenses": 3650 },
-      { "month": "2024-09", "revenue": 22800, "expenses": 4400 },
-      { "month": "2024-10", "revenue": 19700, "expenses": 3850 },
-      { "month": "2024-11", "revenue": 22100, "expenses": 4150 },
-      { "month": "2024-12", "revenue": 22500, "expenses": 3700 }
+      {
+        "month": "2024-01",
+        "revenue": 18500,
+        "expenses": 3800
+      },
+      {
+        "month": "2024-02",
+        "revenue": 21000,
+        "expenses": 4100
+      },
+      {
+        "month": "2024-03",
+        "revenue": 19800,
+        "expenses": 3950
+      },
+      {
+        "month": "2024-04",
+        "revenue": 22400,
+        "expenses": 4250
+      },
+      {
+        "month": "2024-05",
+        "revenue": 20100,
+        "expenses": 3700
+      },
+      {
+        "month": "2024-06",
+        "revenue": 19400,
+        "expenses": 4050
+      },
+      {
+        "month": "2024-07",
+        "revenue": 21300,
+        "expenses": 4200
+      },
+      {
+        "month": "2024-08",
+        "revenue": 18900,
+        "expenses": 3650
+      },
+      {
+        "month": "2024-09",
+        "revenue": 22800,
+        "expenses": 4400
+      },
+      {
+        "month": "2024-10",
+        "revenue": 19700,
+        "expenses": 3850
+      },
+      {
+        "month": "2024-11",
+        "revenue": 22100,
+        "expenses": 4150
+      },
+      {
+        "month": "2024-12",
+        "revenue": 22500,
+        "expenses": 3700
+      },
+      {
+        "month": "2025-01",
+        "revenue": 18500,
+        "expenses": 3800
+      },
+      {
+        "month": "2025-02",
+        "revenue": 21000,
+        "expenses": 4100
+      },
+      {
+        "month": "2025-03",
+        "revenue": 19800,
+        "expenses": 3950
+      },
+      {
+        "month": "2025-04",
+        "revenue": 22400,
+        "expenses": 4250
+      },
+      {
+        "month": "2025-05",
+        "revenue": 20100,
+        "expenses": 3700
+      },
+      {
+        "month": "2025-06",
+        "revenue": 19400,
+        "expenses": 4050
+      },
+      {
+        "month": "2025-07",
+        "revenue": 21300,
+        "expenses": 4200
+      },
+      {
+        "month": "2025-08",
+        "revenue": 18900,
+        "expenses": 3650
+      },
+      {
+        "month": "2025-09",
+        "revenue": 22800,
+        "expenses": 4400
+      },
+      {
+        "month": "2025-10",
+        "revenue": 19700,
+        "expenses": 3850
+      },
+      {
+        "month": "2025-11",
+        "revenue": 22100,
+        "expenses": 4150
+      },
+      {
+        "month": "2025-12",
+        "revenue": 22500,
+        "expenses": 3700
+      }
     ]
   },
-
   "deductionsAndCredits": {
     "kerenHishtalmut": {
       "annualContribution": 18375,
@@ -134,7 +374,6 @@
     "academicDegreeCredit": false,
     "lossOfWorkCapacityPremium": 0
   },
-
   "vatAndTurnover": {
     "annualTurnoverWithoutVat": 248500,
     "isAbove6111Threshold": false,

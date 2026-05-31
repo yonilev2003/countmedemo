@@ -14,6 +14,10 @@
 
 import { Persona } from "@/lib/persona";
 import { classifyExpensePLImpact, type PLImpact } from "@/lib/regulatory/deductions";
+import {
+  ACTIVE_FILING_YEAR,
+  DEFAULT_VIEW_YEAR,
+} from "@/lib/calculators/types";
 
 export interface MonthlyPL {
   month: number; // 1-12
@@ -91,6 +95,22 @@ export function availableTaxYears(persona: Persona): number[] {
       if (y !== null) years.add(y);
     }
   }
+  return [...years].sort((a, b) => b - a);
+}
+
+/**
+ * Years to offer in the UI year-selector. Unions the years that actually have
+ * data (`availableTaxYears`) with the lifecycle years the product always knows
+ * about — the default view year (2024), the year open for filing now (2025) and
+ * the next/future year (2026) — so the selector always exposes the full
+ * filed / open / future trio even before a year has any records. Sorted newest
+ * first.
+ */
+export function taxYearsForUI(persona: Persona): number[] {
+  const years = new Set<number>(availableTaxYears(persona));
+  years.add(DEFAULT_VIEW_YEAR);
+  years.add(ACTIVE_FILING_YEAR);
+  years.add(ACTIVE_FILING_YEAR + 1);
   return [...years].sort((a, b) => b - a);
 }
 

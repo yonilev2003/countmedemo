@@ -10,6 +10,7 @@ import { ChatPanel } from "@/components/agent/chat-panel";
 import { estimateTaxLiability, TaxEstimate } from "@/lib/calculators";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { YearStatusBadge } from "@/components/year-status-badge";
 
 type Phase = "form" | "estimate";
 
@@ -174,8 +175,9 @@ function TaxEstimateGate({
             <div className="text-[11px] font-bold text-amber-900 uppercase tracking-wider mb-0.5">
               סיכום שנתי — מה זה אומר על המס שלך
             </div>
-            <h2 className="text-lg font-extrabold text-amber-950">
+            <h2 className="text-lg font-extrabold text-amber-950 flex items-center gap-2">
               הערכת מס שנתית · {persona.income.year}
+              <YearStatusBadge year={persona.income.year} />
             </h2>
             <p className="text-[12px] text-amber-800 mt-1">
               לפי הנתונים והערכים בדו״ח — ההערכה אינה מחייבת ואינה מהווה ייעוץ מס

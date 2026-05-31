@@ -11,10 +11,12 @@ import {
   filterByQuarter,
   filterByMonth,
   personaForYear,
-  availableTaxYears,
+  taxYearsForUI,
   MonthlyPL,
   PLSummary,
 } from "@/lib/p-and-l/index";
+import { YearStatusBadge } from "@/components/year-status-badge";
+import { getYearStatus } from "@/lib/calculators/types";
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
@@ -83,7 +85,7 @@ export default function DashboardPage() {
   const yearPersona =
     persona && activeYear !== null ? personaForYear(persona, activeYear) : null;
   const pl: PLSummary | null = yearPersona ? calculatePL(yearPersona) : null;
-  const taxYears = persona ? availableTaxYears(persona) : [];
+  const taxYears = persona ? taxYearsForUI(persona) : [];
 
   if (!persona || !pl || !yearPersona || activeYear === null) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -194,10 +196,13 @@ export default function DashboardPage() {
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">שנת מס {activeYear}</p>
+            <p className="text-sm text-stone-500 mt-0.5 flex items-center gap-2">
+              שנת מס {activeYear}
+              <YearStatusBadge year={activeYear} />
+            </p>
           </div>
           <div className="flex flex-col gap-2 items-end">
-            {/* Tax-year selector — shown only when data spans more than one year */}
+            {/* Tax-year selector — filed (2024) / open (2025) / future (2026) */}
             {taxYears.length > 1 && (
               <div className="flex gap-1 items-center">
                 <span className="text-xs text-stone-500 font-medium">שנת מס:</span>
@@ -209,13 +214,14 @@ export default function DashboardPage() {
                       setGranularity("year");
                       setFilter({ kind: "year" });
                     }}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       activeYear === y
                         ? "bg-brand-navy text-white"
                         : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
                     }`}
                   >
                     {y}
+                    {activeYear !== y && <YearStatusBadge year={y} />}
                   </button>
                 ))}
               </div>
@@ -283,6 +289,14 @@ export default function DashboardPage() {
             <span className="text-stone-500"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
           )}
         </div>
+
+        {/* Future-year empty state — 2026 is still accruing, nothing filed yet */}
+        {getYearStatus(activeYear) === "future" && pl.totalRevenue === 0 && (
+          <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+            שנת המס {activeYear} עדיין בצבירה — הדוח השנתי עליה יוגש בשנה הבאה.
+            חשבוניות והוצאות שתזין עם תאריך {activeYear} יופיעו כאן.
+          </div>
+        )}
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
