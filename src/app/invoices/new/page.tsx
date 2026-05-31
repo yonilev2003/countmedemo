@@ -243,7 +243,9 @@ export default function NewInvoicePage() {
 
     // Sync: also push the revenue into monthlyBreakdown so the dashboard
     // chart reflects the new invoice immediately (it currently uses
-    // monthlyBreakdown as authoritative when ≥ 6 months exist).
+    // monthlyBreakdown as authoritative when ≥ 6 months exist). monthlyBreakdown
+    // is keyed by "YYYY-MM", so this entry is automatically tax-year-tagged and
+    // personaForYear() can scope it to the correct year.
     const monthKey = monthFromIsoDate(form.date);
     const mb = [...(persona.income.monthlyBreakdown ?? [])];
     if (monthKey) {
@@ -255,14 +257,29 @@ export default function NewInvoicePage() {
       }
     }
 
+    // Year separation: the invoice belongs to the tax year derived from its
+    // date — NOT necessarily the persona's declared year. The persona-level
+    // scalar totals (totalRevenue / invoiceCount) describe ONLY the declared
+    // year and feed the /file form-1301 + /demo calculators directly, so we
+    // must only fold this invoice into them when its year matches. An invoice
+    // for another year is still recorded in invoices[] (date-tagged) and in
+    // monthlyBreakdown (YYYY-MM key); the dashboard / P&L surface it per year
+    // via personaForYear(). This keeps a 2026 invoice out of the 2024 totals.
+    const invoiceYear = new Date(form.date).getFullYear();
+    const isDeclaredYear = invoiceYear === persona.income.year;
+
     const updatedPersona: Persona = {
       ...persona,
       invoiceCounter: (persona.invoiceCounter ?? 1) + 1,
       income: {
         ...persona.income,
         invoices: [...(persona.income.invoices ?? []), newInvoice],
-        totalRevenue: persona.income.totalRevenue + totals.total,
-        invoiceCount: (persona.income.invoiceCount ?? 0) + 1,
+        totalRevenue: isDeclaredYear
+          ? persona.income.totalRevenue + totals.total
+          : persona.income.totalRevenue,
+        invoiceCount: isDeclaredYear
+          ? (persona.income.invoiceCount ?? 0) + 1
+          : (persona.income.invoiceCount ?? 0),
         monthlyBreakdown: mb,
       },
     };

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
-import { calculatePL } from "@/lib/p-and-l/index";
+import { calculatePL, personaForYear, availableTaxYears } from "@/lib/p-and-l/index";
 import { buildIsraeliPLReport, formatNIS, IsraeliPLReport } from "@/lib/p-and-l/israeli-report";
 
 const OSEK_LABEL_HE: Record<"patur" | "morshe", string> = {
@@ -20,16 +20,29 @@ const OSEK_LABEL_EN: Record<"patur" | "morshe", string> = {
 export default function PLReportPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
-  const [report, setReport] = useState<IsraeliPLReport | null>(null);
+  const [activeYear, setActiveYear] = useState<number | null>(null);
 
   useEffect(() => {
     const p = loadPersona();
     if (!p) { router.push("/setup"); return; }
     setPersona(p);
-    setReport(buildIsraeliPLReport(p, calculatePL(p)));
+    // Default to the persona's declared tax year (2024 for the demo). For a
+    // single-year persona this is the only year; for multi-year data it scopes
+    // the report so a 2026 invoice never bleeds into the 2024 report.
+    setActiveYear(p.income.year);
   }, [router]);
 
-  if (!persona || !report) return (
+  // Project the persona onto the selected tax year before building the report.
+  // For the single-year demo persona personaForYear is a no-op, so the numbers
+  // are byte-for-byte identical to before.
+  const yearPersona =
+    persona && activeYear !== null ? personaForYear(persona, activeYear) : null;
+  const report: IsraeliPLReport | null = yearPersona
+    ? buildIsraeliPLReport(yearPersona, calculatePL(yearPersona))
+    : null;
+  const taxYears = persona ? availableTaxYears(persona) : [];
+
+  if (!persona || !report || activeYear === null) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="w-[700px] space-y-3 animate-pulse">
         <div className="h-8 rounded-lg bg-stone-200 w-1/2 mx-auto" />
@@ -45,12 +58,33 @@ export default function PLReportPage() {
         <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
           <Link href="/dashboard" className="text-sm text-stone-600 hover:text-brand-navy">&#x2190; חזרה לדשבורד</Link>
           <span className="font-bold text-brand-navy">דוח רווח והפסד · פורמט ישראלי תקני</span>
-          <button
-            onClick={() => window.print()}
-            className="rounded-full bg-brand-navy text-white px-4 py-2 text-sm font-medium hover:bg-brand-navy/90"
-          >
-            🖨 הדפס / שמור כ-PDF
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Tax-year selector — shown only when data spans more than one year */}
+            {taxYears.length > 1 && (
+              <div className="flex gap-1 items-center">
+                <span className="text-xs text-stone-500 font-medium">שנת מס:</span>
+                {taxYears.map((y) => (
+                  <button
+                    key={y}
+                    onClick={() => setActiveYear(y)}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      activeYear === y
+                        ? "bg-brand-navy text-white"
+                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => window.print()}
+              className="rounded-full bg-brand-navy text-white px-4 py-2 text-sm font-medium hover:bg-brand-navy/90"
+            >
+              🖨 הדפס / שמור כ-PDF
+            </button>
+          </div>
         </div>
       </header>
 

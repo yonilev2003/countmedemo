@@ -10,6 +10,8 @@ import {
   calculatePL,
   filterByQuarter,
   filterByMonth,
+  personaForYear,
+  availableTaxYears,
   MonthlyPL,
   PLSummary,
 } from "@/lib/p-and-l/index";
@@ -59,9 +61,9 @@ const MONTH_LABELS = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יונ
 export default function DashboardPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
+  const [activeYear, setActiveYear] = useState<number | null>(null);
   const [granularity, setGranularity] = useState<Granularity>("year");
   const [filter, setFilter] = useState<Filter>({ kind: "year" });
-  const [pl, setPL] = useState<PLSummary | null>(null);
 
   useEffect(() => {
     const p = loadPersona();
@@ -70,10 +72,20 @@ export default function DashboardPage() {
       return;
     }
     setPersona(p);
-    setPL(calculatePL(p));
+    // Default to the persona's declared tax year (2024 for the demo) so the
+    // existing demo lands on the same year it always has.
+    setActiveYear(p.income.year);
   }, [router]);
 
-  if (!persona || !pl) return (
+  // Project the persona onto the selected tax year, then derive the P&L from
+  // that. For the single-year demo persona this is a no-op and numbers are
+  // identical to before.
+  const yearPersona =
+    persona && activeYear !== null ? personaForYear(persona, activeYear) : null;
+  const pl: PLSummary | null = yearPersona ? calculatePL(yearPersona) : null;
+  const taxYears = persona ? availableTaxYears(persona) : [];
+
+  if (!persona || !pl || !yearPersona || activeYear === null) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-4 w-full max-w-screen-xl px-6 animate-pulse">
         <div className="h-8 rounded-lg bg-stone-200 w-64" />
@@ -182,9 +194,32 @@ export default function DashboardPage() {
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">שנת מס {persona.income.year}</p>
+            <p className="text-sm text-stone-500 mt-0.5">שנת מס {activeYear}</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
+            {/* Tax-year selector — shown only when data spans more than one year */}
+            {taxYears.length > 1 && (
+              <div className="flex gap-1 items-center">
+                <span className="text-xs text-stone-500 font-medium">שנת מס:</span>
+                {taxYears.map((y) => (
+                  <button
+                    key={y}
+                    onClick={() => {
+                      setActiveYear(y);
+                      setGranularity("year");
+                      setFilter({ kind: "year" });
+                    }}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      activeYear === y
+                        ? "bg-brand-navy text-white"
+                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            )}
             {/* Granularity toggle */}
             <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
               {(["year", "quarter", "month"] as Granularity[]).map((g) => (
@@ -272,7 +307,7 @@ export default function DashboardPage() {
 
         {/* עוסק פטור ceiling alert — only for patur */}
         {(() => {
-          const ceilingAlert = computeCeilingAlert(persona);
+          const ceilingAlert = computeCeilingAlert(yearPersona);
           return ceilingAlert ? (
             <div className="mb-6">
               <CeilingAlertCard alert={ceilingAlert} />
@@ -282,12 +317,12 @@ export default function DashboardPage() {
 
         {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
         <div className="mb-8">
-          <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
+          <ExpenseRatioCard insight={computeExpenseRatio(yearPersona)} />
         </div>
 
         {/* Forward-looking advances forecast — plan vs actual, strong/weak basis */}
         <div className="mb-8">
-          <ForecastCard persona={persona} />
+          <ForecastCard persona={yearPersona} />
         </div>
 
         {/* Charts + Eitan in a 2-col layout on large screens */}
@@ -299,7 +334,7 @@ export default function DashboardPage() {
             />
           </div>
           <div className="space-y-4">
-            <EitanInsights persona={persona} pl={pl} />
+            <EitanInsights persona={yearPersona} pl={pl} />
             <div className="rounded-xl border border-stone-200 bg-white p-4">
               <h3 className="text-xs font-semibold text-stone-500 mb-2">
                 סיכום שנתי

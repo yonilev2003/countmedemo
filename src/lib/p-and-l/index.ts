@@ -60,6 +60,103 @@ function monthFromIso(iso: string): number | null {
   return m;
 }
 
+function yearFromIso(iso: string): number | null {
+  // Accepts "YYYY-MM-DD" or "YYYY-MM"
+  const y = parseInt(String(iso).split("-")[0], 10);
+  return Number.isNaN(y) ? null : y;
+}
+
+/**
+ * Return the distinct tax years that have any data attached to this persona —
+ * derived from dated invoices, dated expenses, and monthlyBreakdown keys, plus
+ * the persona's declared `income.year`. Sorted descending (latest first).
+ *
+ * Used to drive a year selector. For the default demo persona (all 2024) this
+ * is just `[2024]`, so no selector appears and nothing changes.
+ */
+export function availableTaxYears(persona: Persona): number[] {
+  const years = new Set<number>();
+  if (persona.income.year) years.add(persona.income.year);
+  for (const inv of persona.income.invoices ?? []) {
+    const y = yearFromIso(inv.date);
+    if (y !== null) years.add(y);
+  }
+  for (const exp of persona.income.expenses ?? []) {
+    const y = yearFromIso(exp.date);
+    if (y !== null) years.add(y);
+  }
+  for (const row of persona.income.monthlyBreakdown ?? []) {
+    if (typeof row.month === "string") {
+      const y = yearFromIso(row.month);
+      if (y !== null) years.add(y);
+    }
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
+/**
+ * Project a persona onto a single tax year.
+ *
+ * Invoices, expenses and monthlyBreakdown are filtered to records whose date/key
+ * belongs to `year`. The scalar income totals (totalRevenue / totalDeductible-
+ * Expenses / counts) are RECOMPUTED from the year's records *only when there is
+ * year-tagged data that crosses more than one year* — i.e. only when the raw
+ * scalar totals can no longer be trusted to describe a single year. When all of
+ * the persona's data lives in one year (the default demo: everything 2024), the
+ * scalar totals are kept verbatim so existing numbers are byte-for-byte unchanged.
+ *
+ * This is the single seam that gives the dashboard, P&L report and every insight
+ * card (expense-ratio, forecast, ceiling, Eitan) per-year separation: feed them
+ * `personaForYear(persona, activeYear)` instead of the raw persona.
+ */
+export function personaForYear(persona: Persona, year: number): Persona {
+  const allYears = availableTaxYears(persona);
+  const isSingleYear = allYears.length <= 1;
+
+  // Single-year persona (the demo): nothing to separate — return as-is so the
+  // 2024 path is identical to before.
+  if (isSingleYear) return persona;
+
+  const invoices = (persona.income.invoices ?? []).filter(
+    (inv) => yearFromIso(inv.date) === year,
+  );
+  const expenses = (persona.income.expenses ?? []).filter(
+    (exp) => yearFromIso(exp.date) === year,
+  );
+  const monthlyBreakdown = (persona.income.monthlyBreakdown ?? []).filter(
+    (row) => typeof row.month !== "string" || yearFromIso(row.month) === year,
+  );
+
+  // Recompute the year's headline totals. Prefer monthlyBreakdown (the
+  // authoritative monthly summary the new-invoice flow keeps in sync); fall
+  // back to summing dated line items.
+  let totalRevenue: number;
+  let totalExpenses: number;
+  if (monthlyBreakdown.length > 0) {
+    totalRevenue = monthlyBreakdown.reduce((s, r) => s + (r.revenue || 0), 0);
+    totalExpenses = monthlyBreakdown.reduce((s, r) => s + (r.expenses || 0), 0);
+  } else {
+    totalRevenue = invoices.reduce((s, i) => s + i.total, 0);
+    totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  }
+
+  return {
+    ...persona,
+    income: {
+      ...persona.income,
+      year,
+      totalRevenue,
+      totalDeductibleExpenses: totalExpenses,
+      netIncome: totalRevenue - totalExpenses,
+      invoiceCount: invoices.length,
+      expenseCount: expenses.length,
+      invoices,
+      expenses,
+      monthlyBreakdown,
+    },
+  };
+}
+
 export function calculatePL(persona: Persona): PLSummary {
   const totalRevenue = persona.income.totalRevenue;
   const totalExpenses = persona.income.totalDeductibleExpenses;
