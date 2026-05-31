@@ -227,7 +227,7 @@ export default function NewInvoicePage() {
     const errs = validateInvoice({ ...form, amount });
     if (errs.length > 0) { setErrors(errs); return; }
 
-    const invoiceNumber = nextInvoiceNumber(persona);
+    const invoiceNumber = nextInvoiceNumber(persona, form.date);
     const newInvoice: InvoiceLine = {
       invoiceNumber,
       date: form.date,

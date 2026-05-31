@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona, InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate } from "@/lib/invoice-generator/index";
+import { ACTIVE_FILING_YEAR } from "@/lib/calculators/types";
 
 const MONTH_LABELS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 
@@ -23,11 +24,12 @@ export default function InvoicesPage() {
     const p = loadPersona();
     if (!p) { router.push("/setup"); return; }
     setPersona(p);
-    // Default to the latest year
+    // Default to the year open for filing now (2025); fall back to the latest
+    // year that actually has invoices if the active year has none yet.
     const invoices = p.income.invoices ?? [];
     if (invoices.length > 0) {
       const years = [...new Set(invoices.map(invoiceYear))].sort((a, b) => b - a);
-      setFilterYear(years[0]);
+      setFilterYear(years.includes(ACTIVE_FILING_YEAR) ? ACTIVE_FILING_YEAR : years[0]);
     }
   }, [router]);
 

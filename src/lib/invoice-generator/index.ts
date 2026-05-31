@@ -1,9 +1,12 @@
 import { Persona, InvoiceLine } from "@/lib/persona";
 
-/** Returns next sequential invoice number string like "2024-0042" */
-export function nextInvoiceNumber(persona: Persona): string {
+/** Returns next sequential invoice number string like "2025-0042" */
+export function nextInvoiceNumber(persona: Persona, dateIso?: string): string {
   const counter = (persona.invoiceCounter ?? 1);
-  return `${new Date().getFullYear()}-${String(counter).padStart(4, "0")}`;
+  // Prefix with the invoice's own tax year (from its date), not the calendar
+  // year — a 2025-dated invoice should read 2025-xxxx even if created in 2026.
+  const year = dateIso ? new Date(dateIso).getFullYear() : new Date().getFullYear();
+  return `${year}-${String(counter).padStart(4, "0")}`;
 }
 
 /** Validates the invoice fields — returns array of error strings */
