@@ -73,11 +73,14 @@ export default function InvoicePrintPage() {
             <p className="text-sm text-stone-600">
               {isPatur ? "עוסק פטור" : "עוסק מורשה"} · ח.פ./ע.פ.: {persona.business.osekFileNumber}
             </p>
-            {persona.contact?.mailingAddress && (
-              <p className="text-xs text-stone-500">
-                {persona.contact.mailingAddress.street} {persona.contact.mailingAddress.houseNumber}, {persona.contact.mailingAddress.city}
-              </p>
-            )}
+            {persona.contact?.mailingAddress && (() => {
+              const a = persona.contact.mailingAddress;
+              const streetLine = [a.street, a.houseNumber].filter(Boolean).join(" ").trim();
+              const addressLine = [streetLine, a.city].filter(Boolean).join(", ");
+              return addressLine ? (
+                <p className="text-xs text-stone-500">{addressLine}</p>
+              ) : null;
+            })()}
             {persona.contact?.phoneMobile && <p className="text-xs text-stone-500">{persona.contact.phoneMobile}</p>}
             {persona.contact?.email && <p className="text-xs text-stone-500">{persona.contact.email}</p>}
           </div>

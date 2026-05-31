@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Persona } from "@/lib/persona";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type Message = {
   role: "agent" | "user";
@@ -15,10 +15,15 @@ interface Props {
 
 const initialMessages = (p: Persona): Message[] => {
   const f = p.personal.gender === "female";
+  const expenseAmount = p.income.totalDeductibleExpenses;
+  const expensesClause =
+    expenseAmount > 0
+      ? ` ועל הוצאות מוכרות בסך ${formatCurrency(expenseAmount)}`
+      : "";
   return [
     {
       role: "agent",
-      text: `שלום ${p.personal.firstName}! ${f ? "עברתי" : "עברתי"} על כל ${p.income.invoiceCount} החשבוניות ${f ? "שלך" : "שלך"} משנת ${p.income.year} ועל ${p.income.expenseCount} ההוצאות. אספתי את כל הנתונים שצריך לדו"ח השנתי.`,
+      text: `שלום ${p.personal.firstName}! עברתי על כל ${p.income.invoiceCount} החשבוניות שלך משנת ${p.income.year}${expensesClause}. אספתי את כל הנתונים שצריך לדו"ח השנתי.`,
     },
     {
       role: "agent",
@@ -182,9 +187,6 @@ export function ChatPanel({ persona }: Props) {
         </div>
         <div>
           <div className="text-sm font-semibold">המלווה של countme</div>
-          <div className="text-xs text-stone-500">
-            מבוסס על הסקיל israeli-tax-returns
-          </div>
         </div>
       </div>
 

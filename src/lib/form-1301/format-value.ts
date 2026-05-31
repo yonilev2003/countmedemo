@@ -49,7 +49,14 @@ export function formatFieldValue(
   if (typeof value === "object") {
     const o = value as Record<string, unknown>;
     if ("street" in o) {
-      return `${o.street ?? ""} ${o.houseNumber ?? ""}, ${o.city ?? ""}`.trim();
+      const streetLine = [o.street, o.houseNumber]
+        .filter((part) => typeof part === "string" && part.trim() !== "")
+        .join(" ")
+        .trim();
+      const joined = [streetLine, o.city]
+        .filter((part) => typeof part === "string" && part.trim() !== "")
+        .join(", ");
+      return joined || "—";
     }
     return JSON.stringify(value);
   }
