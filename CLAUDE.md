@@ -309,8 +309,8 @@ Pages:
 
 ## What's NOT done yet
 
-See `HANDOFF.md` (the between-sessions handoff) and the live task tracker
-`docs/meeting-records/yoni-tasks-27032026.md` for the prioritized list. High-level:
+See `memory/status.md` (current state) and `memory/progress.md` (build log), plus
+the live task tracker `docs/meeting-records/yoni-tasks-27032026.md`. High-level:
 
 1. Wire `app/api/chat/route.ts` to Anthropic SDK with prompt caching
 2. Build the **input flow** — page where the user enters their persona data via calculators
