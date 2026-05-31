@@ -77,6 +77,12 @@ export default function NewInvoicePage() {
   const [transcript, setTranscript] = useState("");
   const [voiceMsg, setVoiceMsg] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  // True while the user intends to keep recording. Lets onend auto-restart
+  // recognition (the Web Speech API ends a session on its own after a pause)
+  // and lets the stop button / fatal errors cleanly prevent the restart.
+  const isRecordingRef = useRef(false);
+  // Finalized transcript text accumulated across result events.
+  const finalTranscriptRef = useRef("");
 
   useEffect(() => {
     const p = loadPersona();
@@ -87,7 +93,8 @@ export default function NewInvoicePage() {
 
   useEffect(() => {
     return () => {
-      // Stop recognition on unmount
+      // Stop recognition on unmount (and prevent any onend auto-restart).
+      isRecordingRef.current = false;
       recognitionRef.current?.stop();
     };
   }, []);
@@ -113,32 +120,68 @@ export default function NewInvoicePage() {
     }
     const rec = new Ctor();
     rec.lang = "he-IL";
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = true;
+
+    // Reset accumulated text for a fresh session.
+    finalTranscriptRef.current = "";
     setTranscript("");
     setVoiceMsg(null);
 
     rec.onresult = (e) => {
-      let text = "";
+      // Append only the newly finalized segments to the durable transcript;
+      // show interim (not-yet-final) text live on top of it.
+      let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        text += e.results[i][0].transcript;
+        const result = e.results[i];
+        const chunk = result[0].transcript;
+        if (result.isFinal) {
+          finalTranscriptRef.current += chunk;
+        } else {
+          interim += chunk;
+        }
       }
-      setTranscript(text);
+      setTranscript((finalTranscriptRef.current + interim).trim());
     };
+
     rec.onerror = (e) => {
+      const err = e.error ?? "unknown";
+      // Transient errors: let onend restart the session naturally.
+      if (err === "no-speech" || err === "aborted") return;
+      // Fatal errors (e.g. not-allowed, service-not-allowed, audio-capture):
+      // stop for good and surface the message.
+      isRecordingRef.current = false;
       setListening(false);
-      setVoiceMsg(`שגיאת הקלטה: ${e.error ?? "לא ידוע"}`);
+      setVoiceMsg(
+        err === "not-allowed" || err === "service-not-allowed"
+          ? "אין הרשאת מיקרופון — אשרי גישה למיקרופון בדפדפן ונסי שוב."
+          : `שגיאת הקלטה: ${err}`,
+      );
     };
+
     rec.onend = () => {
+      // The Web Speech API ends a session on its own after a pause. While the
+      // user still intends to record, restart it for continuous transcription.
+      if (isRecordingRef.current) {
+        try {
+          rec.start();
+        } catch {
+          // start() throws if called too soon / already started — ignore.
+        }
+        return;
+      }
       setListening(false);
     };
 
     recognitionRef.current = rec;
+    isRecordingRef.current = true;
     rec.start();
     setListening(true);
   }
 
   function stopListening() {
+    // Flag down first so onend does NOT auto-restart.
+    isRecordingRef.current = false;
     recognitionRef.current?.stop();
     setListening(false);
   }
