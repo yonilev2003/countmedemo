@@ -1,50 +1,46 @@
-# STATUS — where countme stands now
+# status — איפה אנחנו עכשיו
 
-> **Current snapshot.** Update at the end of every work session. For the dated history see [[progress]].
+> עודכן: 2026-05-31 · ענף עבודה: `claude/great-sagan-eqzCH` (נדחף ל-origin, טרם מוזג ל-main).
 
-**Last updated:** 2026-05-31
-**Current branch:** `claude/dazzling-lovelace-oNCxH` (main is the trunk)
-**Live:** https://countmedemo.vercel.app
+## מצב הקוד
 
----
+- ✅ עץ עבודה נקי, מסונכרן מלא עם origin, אין שינויים לא-דחופים.
+- ✅ `npm run build` עובר · `tsc --noEmit` נקי · smoke-test HTTP (8 מסלולים → 200).
 
-## One-line status
+## אחוזי ביצוע (11 משימות הפ"ע)
 
-The demo has grown well past its original "show the form" scope: it's now a multi-page product (form mirror + dashboard + invoices + Eitan chat + three filing tracks) with the Anthropic chat **already wired and streaming**. Core demo flow is functional. Supabase is provisioned but **not yet connected** to the app.
+| מצב | משימות | הערה |
+|---|---|---|
+| ✅ מוגמר/כמעט | #7 (100%), **#4 (95%)**, #3 (90%), #5 (90%), #9 (85%) | כל הסקופ הלא-חסום |
+| 🟡 חלקי | #8 (70% — הליבה עובדת) | חסום DB (יום 2+) |
+| ⛔ חסום על פגישות | #1, #2, #6, #10, #11 (0%) | רוי / פ"ע שלושתם |
 
-## What's done ✅
+**≈100% מהסקופ הלא-חסום הושלם.** מקור-אמת מלא: `docs/meeting-records/yoni-tasks-27032026.md`.
 
-- **Form 1301 mirror** (`/demo`) — gov.il-faithful form, clickable calculated values with formula+source tooltips, copy buttons.
-- **Calculators** — ~20 pure calculator functions in `src/lib/calculators/index.ts` (the 8 original "star fields" plus financial-institution, loss-of-work-capacity, donations, mikdamot, etc.).
-- **Eitan AI agent** — wired and streaming. `/api/coach` (SSE + prompt caching) and `/api/chat` (rate-limited, 12 req/min/IP). Modes: `eitan` and `dashboard-insights`. *(This was the big "TODO" in old CLAUDE.md — it's now done.)*
-- **Setup wizard** (`/setup`) — 7 stages incl. step-0 fast-track upload (XLSX via exceljs, PDF via Claude vision), persists to `localStorage`.
-- **P&L dashboard** (`/dashboard`, `/dashboard/pl-report`) — Israeli-standard Doch Revach VeHefsed, Recharts, expense-to-revenue ratio insight, osek-zeir 30% rule.
-- **Invoices** (`/invoices`, `/new`, `/[invoiceNumber]`) — Israeli legal format, voice-driven creation, print→PDF, running numbering, VAT rules.
-- **Eitan character** — 5 poses, transparent backgrounds, logo applied across all page headers.
-- **Filing tracks** (`/file`) — gateway + `expert`, `guided` (12-step), and `companion` tracks.
-- **Regulatory-watch agent** — monitors official tax publications, emits a Hebrew PDF report each run (Puppeteer, in CI).
-- **Vercel** — connected, auto-deploy, first deploys live.
-- **Supabase** — project "CountMe" created (Data API + RLS auto-enabled).
+## חסום — ממתין לאנשים
 
-## Open / not done yet
+| נושא | חסום על | מה צריך |
+|---|---|---|
+| **ערכי מס 2025 + 2026** (#4) | רוי | אישור כל ה-`TODO(Roy)` ב-`types.ts`: מדרגות 3–5 ל-2026 (228K/301,200), סף/שיעורי ב"ל (7,703 + תיקון 252), תקרות קרן/פנסיה/6111/עוסק-פטור |
+| #1 גבול רו"ח↔AI | פ"ע שלושתם | מיפוי מה מחייב רו"ח מול מה ש-AI מכסה |
+| #2 תיאום מס + מקדמות ב"ל | רוי | נוסחאות → ואז shell UI |
+| #6 מעבר לגוגל קלאוד | רוי | פגישת בירור עלות (כיום Vercel) |
+| #10 תכנון↔ביצוע 1301 | רוי | פגישת אפיון פערים |
+| #11 מסמך MVP | רוי + תומי | ליצור `MVP.md` + פגישות |
 
-- **Supabase not wired into the app** — still 100% `localStorage`, no auth, no DB reads/writes. Security rules in `CLAUDE.md` must be honored before any real data goes in.
-- **`context-mode` MCP** (`mksglu/context-mode`) — planned for token savings, needs hook config. Not installed.
-- **Codex review hook** — planned post-demo (`.claude/settings.json` hook running Codex audit on build/test). Not wired.
-- **Doc drift** — root `README.md` says `/file` has 2 tracks (expert/guided) but the code also has `companion`. `CLAUDE.md` still describes the older, narrower demo scope. Worth a reconciliation pass.
-- **Stray file** — empty `env.local` (no dot) sitting in repo root alongside the real `.env.local`; likely should be deleted.
+## פתוח ידנית (לא חוסם, לא דורש פגישה)
 
-## Next best action
+- 👁️ **אימות ויזואלי** של מודל שנות-המס: באדג'י סטטוס (הוגש/פתוח/עתידי) ב-/demo ובדשבורד, מעבר
+  שנים (2025 → 248,500), empty-state של 2026. לא ניתן headless בסביבת הענן (אין דפדפן, חסימת רשת).
+- 📋 אפשר לפתוח **PR** מ-`claude/great-sagan-eqzCH` למעבר מסודר על ה-diff.
 
-Decide the post-demo priority: **(a)** wire Supabase + auth so personas persist server-side, or **(b)** reconcile docs (`CLAUDE.md` + root README) with the now-broader product, or **(c)** install `context-mode` for cheaper long sessions. Pick based on whether the next milestone is "real users" (→ a) or "another demo / handoff" (→ b).
+## נקודות כניסה מהירות
 
-## Blockers / waiting on Yoni
-
-- Confirm whether `ANTHROPIC_API_KEY` + Supabase env vars are set in **Vercel** (not just local `.env.local`).
-- Confirm the EY demo date / whether it has already happened (drives whether we're in pre-demo polish or post-demo build mode).
-
-## Needs review
-
-- Uncommitted change: `package-lock.json` modified, untracked `env.local`.
-- Many stale remote `claude/*` branches — candidates for cleanup.
-- Old `NEXT_STEPS.md` describes "wire Claude API" as a future task, but it's done — that file is now partly historical.
+| נושא | קבצים |
+|---|---|
+| קבועי מס per-year + מחזור-חיים | `src/lib/calculators/types.ts` (`getTaxYearConstants`, `ACTIVE_FILING_YEAR`, `getYearStatus`) |
+| באדג' סטטוס שנה + בורר | `src/components/year-status-badge.tsx`, `src/lib/p-and-l/index.ts` (`taxYearsForUI`/`personaForYear`) |
+| מרשם ניכויים (rate/cap/formFields/plImpact/skill) | `src/lib/regulatory/deductions.ts` |
+| 8 ה-calculators + הערכת מס | `src/lib/calculators/index.ts` |
+| התראות / מועדים / תחזית | `src/lib/alerts/index.ts`, `src/lib/deadlines/calendar.ts`, `src/lib/forecast/index.ts` |
+| דו"ח רווח-והפסד | `src/lib/p-and-l/{index,israeli-report}.ts`, `src/app/dashboard/pl-report/page.tsx` |

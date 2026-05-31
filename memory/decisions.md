@@ -1,59 +1,38 @@
-# decisions — countme decision log
+# decisions — יומן החלטות נעולות
 
-> Decisions already made, **why**, what was rejected, and whether they're final or revisitable.
-> Purpose: stop re-litigating settled questions across chats. Snapshot = [[STATUS]] · Timeline = [[progress]].
-> `CLAUDE.md` holds the full detail; this is the quick-reference log.
+> החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
+> ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
----
+## מודל שנות-המס (נעול 31/05/2026)
 
-## Architecture & stack
+| החלטה | ערך | הנמקה |
+|---|---|---|
+| ברירת-מחדל לתצוגה | **2024** (`DEFAULT_VIEW_YEAR`) | יציבות לדמו EY — `/demo` ו-`/file` נוחתים על שנה מוכרת |
+| שנה פתוחה להגשה | **2025** (`ACTIVE_FILING_YEAR`) | הדו"ח שמגישים *עכשיו* (היום 2026) הוא לשנת 2025 |
+| מודל סטטוס | filed / open / future | 2024 הוגש (קריאה בלבד) · 2025 פתוח · 2026 עתידי/בצבירה |
+| נתוני דמו ל-2025 | מיחזור 2024 (אותם 248,500/47,800) | להראות שנה פעילה מאוכלסת בלי נתונים חדשים |
+| `TAX_YEAR_2026` | מהסקיל `israeli-tax-returns`, עם `TODO(Roy)` | מדרגות 2025 *שגויות* ל-2026 (חוק ההתייעלות) — עדיף ערך-סקיל מסומן מאשר ערך-שגוי שקט |
 
-| # | Decision | Why | Rejected | Status |
-|---|----------|-----|----------|--------|
-| 1 | **Next.js 16 (App Router) + React 19 + TS + Tailwind 4** | Latest, fast, Vercel-native | — | Final |
-| 2 | **Anthropic SDK**, `claude-sonnet-4-6` default, `claude-haiku-4-5` for cheap ops, with prompt caching | Cost + quality balance; caching saves ~90% tokens/msg | — | Final |
-| 3 | **Hosting on Vercel** under project email `countme5555@gmail.com` | Free tier, auto-deploy, not Yoni's personal account | — | Final |
-| 4 | **Supabase** as the DB | Postpone wiring until Day 2+; RLS on every table before real data | — | Final (pending wiring) |
-| 5 | **Hebrew / RTL only** | Target market | — | Final |
-| 6 | **Heebo (body) + Rubik (display)** fonts | Native Hebrew support | — | Final |
-| 7 | **exceljs** for Excel parsing | `xlsx` has unpatched prototype-pollution + ReDoS CVEs | `xlsx` | Final |
-| 8 | **Recharts** for charts | React-native, RTL-friendly | — | Final |
-| 9 | **Puppeteer** to render regulatory-watch HTML → Hebrew PDF in CI | Headless Chromium is the most reliable RTL-Hebrew→PDF path | — | Final |
+## עקרונות עבודה
 
-## Product & demo scope
+- **לא משנים מספרי מס בשקט.** כל ערך שנתי-משתנה שאינו ודאי → `TODO(Roy)` עד אישור מול המקור
+  הרשמי. הסקילים ה-`israeli-*` הם סמכות-הדומיין; לא להסתמך על ידע training לסכומים שמתעדכנים שנתית.
+- **single-source לשנים:** כל rate/cap/rule זורם מ-`lib/calculators/types.ts` → אסור לקודד ערך
+  בקומפוננטה/מחרוזת/דוח.
+- **worktrees לאצוות עצמאיות בלבד.** פיצ'ר מצומד (קבועים→פרסונה→schema→UI) נעשה במסלול יחיד —
+  worktrees מקבילים עליו רק ייצרו קונפליקטים.
+- **חתימת commit:** נכשלת בתוך worktrees (שרת החתימה דורש את ה-checkout הראשי) → סוגרים קומיטים
+  מהמאגר הראשי (cherry-pick), או `--no-gpg-sign` ב-worktree ואז cherry-pick.
 
-| # | Decision | Why | Status |
-|---|----------|-----|--------|
-| 10 | **Visual form reference, not a 1:1 React rebuild** of gov.il | Saves time; demo's job is "show what to fill", we don't submit | Final |
-| 11 | **`/demo` form must look exactly like gov.il** — never restyle `form-preview.tsx` (hardcoded gov.il palette) | The whole pitch is "this is the real form, pre-filled" | Final (locked) |
-| 12 | **No auto-submit** — viewer copy-pastes values into the real form | Submitting is a future feature, out of demo scope | Final for demo |
-| 13 | **`/demo` requires `/setup` first** (redirects if no persona in localStorage) | "Everyone goes through 'update data', no exceptions" | Final (locked) |
-| 14 | **Persona as a single swappable JSON** (`personas/dana-cohen.json`) | Replace fields to run with real data; all calcs re-run | Final |
-| 15 | **Eitan = "smart older brother", never deflects to an accountant** | Differentiation vs. the 1,200₪ accountant | Final |
-| 16 | Conscious **gov.il design diffs** (yellow countme frame, pastel calc boxes, removed action buttons, individuals-only — no "חברה בע״מ", useful file-info fields) | Each is a deliberate UX improvement or honesty signal — see `CLAUDE.md` table. Call these out when comparing to the real form. | Final |
+## החלטות תיעוד (31/05/2026)
 
-## Integrations explicitly NOT pursued (for now)
+- **זיכרון הפרויקט = `memory/`** עם 4 מסמכים: `readme` · `status` · `progress` · `decisions`.
+- **`HANDOFF.md` נמחק** — הוחלף ע"י `memory/STATUS.md` + `memory/progress.md`.
+- **`CLAUDE.md`** נשאר ייעודי ל-Claude Code (הקשר ארכיטקטוני), לא לסטטוס-סשן.
+- **טראקר המשימות** (`docs/meeting-records/yoni-tasks-27032026.md`) נשאר מקור-אמת ל-11 המשימות.
 
-| # | Rejected | Why | Revisit? |
-|---|----------|-----|----------|
-| 17 | Anthropic creative connectors (Blender/Adobe/Ableton/etc.) | Zero relevance to a Hebrew tax demo | No |
-| 18 | Google Stitch (AI design-language UIs) | Conflicts with "look exactly like gov.il" | Only for `/` and `/setup`, not `/demo` |
-| 19 | TurboTax connector | US tax, irrelevant to Israel | No |
-| 20 | Codex review hook | Cost + iteration friction before demo | **Yes — post-demo** |
-| 21 | `context-mode` MCP | Needs hook config | **Yes — Day 2** |
+## רקע (מ-CLAUDE.md, לא לפתוח מחדש)
 
-## Process & conventions
-
-| # | Decision | Status |
-|---|----------|--------|
-| 22 | Branch naming: `claude/<name>` (AI), `feat/<name>` (manual), `fix/<desc>` | Final |
-| 23 | **`npm run build` before every push** | Final |
-| 24 | Secrets only in `.env.local` (gitignored) + Vercel env vars; every new var also added empty to `.env.template` | Final |
-| 25 | No new framework/library/DB without recording it in `CLAUDE.md` first | Final |
-| 26 | **Memory files live in `memory/` and are committed to git** (versioned, travel with repo for team handoff) | Final (2026-05-31) |
-
-## Open questions (not yet decided)
-
-- Should the demo chat address Dana in feminine 2nd person, or stay neutral?
-- Show confidence levels (high/medium/low) at EY, or only high?
-- Post-demo priority order: Supabase+auth vs. doc reconciliation vs. `context-mode`.
+Stack: Next.js 16 + React 19 + TS + Tailwind 4 + Anthropic SDK · Vercel · Supabase (יום 2+) ·
+מודל AI ברירת-מחדל `claude-sonnet-4-6` · עברית RTL בלבד · הטופס = רפרנס ויזואלי (לא rebuild 1:1) ·
+פרסונה כ-JSON יחיד ב-`personas/dana-cohen.json`.

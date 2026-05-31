@@ -1,41 +1,50 @@
-# progress — countme project diary
+# progress — יומן התקדמות לפי סבבים
 
-> **Dated log** of what happened, what changed, what was tried. Newest at the top.
-> Reconstructed from git history on 2026-05-31; future entries are added at session wrap-up.
-> Snapshot = [[STATUS]] · Locked choices = [[decisions]].
+> החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
----
+## סבב 31/05/2026 — מחזור-החיים של שנות המס + ליטוש (9 קומיטים)
 
-## 2026-05-31 — Memory system set up
-- Created this Obsidian "brain": `memory/{README,STATUS,progress,decisions}.md`.
-- Wired a session wrap-up routine (see `CLAUDE.md`) triggered by "let's wrap up the session".
-- Audited current repo state — confirmed the product is now far broader than original CLAUDE.md scope.
+ענף `claude/great-sagan-eqzCH`. בנוי משני שלבים.
 
-## 2026-05-25 — Regulatory-watch agent
-- `feat: regulatory-watch agent emits a Hebrew PDF report each run` — Puppeteer renders the agent's HTML report → RTL Hebrew PDF inside CI.
-- `feat: enrich chat agent context with per-field calc breakdown + align Haiku model id` — Eitan now gets per-field calculation context; Haiku model id corrected.
+**שלב 1 — 4 אצוות עצמאיות ב-git worktrees (במקביל):**
+- `10cf95b` **fix-ui** — פסיק בכתובת תוקן ב-`format-value.ts` (+כותרת חשבונית); הוסרה תווית "מבוסס
+  על הסקיל"; ברכת הצ'אט מציגה סכום הוצאות אמיתי (47,800 ₪) במקום "0".
+- `3b90546` **assistant** — `/api/chat` + `/api/coach` עונים על שאלות מוצר; מסגרת "היום 2026 /
+  הדו"ח 2024 / לא להמציא נתוני 2026"; איחוד שם הסוכן ל**איתן**.
+- `ba14275` **voice** — הקלטת קול ב-`/invoices/new` רציפה (he-IL, auto-restart) — לא נעצרת.
+- `991ea50` **time-separation** — חשבוניות/הוצאות מתויגות לפי שנת מס; רשומה מחוץ-לשנה לא מנפחת 2024.
 
-## 2026-05-22 — Regulatory monitoring
-- `feat: regulatory-watch agent — monitor official tax publications` — first version of the agent that watches official tax sources (`src/lib/regulatory/`, `scripts/regulatory-watch/`).
+**שלב 2 — מודל שלוש-השנים (מסלול יחיד, על בסיס 991ea50):**
+- `a39ba9a` — `TAX_YEAR_2026` **מהסקיל `israeli-tax-returns`**: מדרגות 3–5 הורחבו (חוק ההתייעלות
+  2026: 228K/301,200), סף ב"ל 60%-שכר-ממוצע → 7,703; **כל ערך שהשתנה ל-2026 = `TODO(Roy)`**.
+  dispatcher תוקן (2026 נפל בטעות ל-2025). מודל סטטוס: `ACTIVE_FILING_YEAR=2025`,
+  `DEFAULT_VIEW_YEAR=2024`, `getYearStatus` → filed/open/future, `FILING_STATUS_META`.
+- `c79e2fb` — פרסונה רב-שנתית (`dana-cohen.json` נושאת 2024 *וגם* 2025, אותם 248,500/47,800;
+  הסקלרים נשארו 2024 → `/demo` ו-`/file` ללא שינוי). `taxYearsForUI` חושף 24/25/26 בבורר;
+  `<YearStatusBadge>` בדשבורד+דו"ח+/demo; empty-state ל-2026.
+- `021e193` — מספור חשבונית לפי שנת-התאריך (2025-xxxx); `/invoices` ברירת-מחדל לשנה הפתוחה (2025).
+- `f50f485` + `e148013` — תיעוד (CLAUDE.md מחזור-חיים; README; טראקר; ובסוף מעבר ל-memory/).
 
-## 2026-05-14/15 — Dashboard depth
-- `feat: Israeli-standard P&L report (Doch Revach VeHefsed) on /dashboard`.
-- `feat: voice-driven invoice creation + dashboard sync`.
-- `feat: expense-to-revenue ratio insight + zeir 30% rule on dashboard & business-expenses`.
+**אומת:** `tsc` נקי · `npm run build` עבר · smoke-test HTTP (8 מסלולים → 200). אימות ויזואלי
+ממתין (אין דפדפן headless בענן).
 
-## 2026-05-11/13 — Phase 2: Eitan, dashboard, invoices, branding
-- `feat: Phase 2 — Eitan guide, P&L dashboard, invoice generator, full nav`.
-- `feat: CountMe logo + transparent-background Eitan poses`; logo applied to all page headers.
-- Eitan character poses 1–5 created and wired per-module; fixed image format issues (real binary JPEGs, `.jpg` extension).
+**הוצף לרוי:** הסקילים מעודכנים ל-2026 בעוד הקוד עוגן ל-2024; שינויי חקיקת 2026 (מדרגות 3–5 +
+תיקון 252 לב"ל) הוטמעו כ-`TODO(Roy)`. ערכי 2025 *וגם* 2026 ממתינים לאישור.
 
-## Earlier — Companion track & foundations
-- `feat: ליווי צמוד track` — companion filing path added to `/file` (gateway 3rd card + companion page + Hebrew TTS + embedded gov.il section).
-- `feat: unified report (demo+copy), auto-period dashboard, osek-zeir warning, guided edit, /about`.
-- `feat: redesign landing page + write technical README`.
-- `feat: Stage 3 integration — full nav, features grid, setup→dashboard redirect`.
-- Foundation stages: persona JSON + calculators + Form 1301 schema + the split-screen demo + chat panel scaffolding.
+## סבב 29/05/2026 — אינטגרציה + בנייה
 
----
+**שחזור ענפים תקועים** (במקום בנייה מאפס):
+- `dazzling-keller-aHGGa` → PWA (manifest+SW), ceiling-alert (תקרת ₪120K), `TAX_YEAR_2025` +
+  `getTaxYearConstants()`, מרשם ניכויים year-keyed. מיזוג נקי.
+- `funny-maxwell-K7dK2` → 5 סקילי Tier-1 (כולל `israeli-freelancer-ops` עם `deadline-calendar`).
+- `build-crm-system-KcTPb` → CRM כ-`crm-snapshot/` תוספתי בלבד (sub-app מבודד).
 
-### How to read this log
-Entries are grouped by date from `git log`. The genuinely important shift to capture: the project moved from a **single-screen Form 1301 demo** (original CLAUDE.md vision) to a **multi-surface product** — adding the Eitan agent, a P&L dashboard, an invoice generator, three filing tracks, and a regulatory-watch agent. Future sessions: add a dated entry here at wrap-up.
+**פיצ'רים:**
+- **#4** בורר שנת מס (2024/2025) ב-`setup`, מחליף את הקיבוע ל-2024.
+- **#3** תיבת התראות `/alerts` — תקרת זעיר + מקדמות מע"מ + תזכורת הוצאות + מועדים.
+- **#5** לוח מועדים — `lib/deadlines/calendar.ts` (9 מועדים) + `/deadlines` + חיבור ל-`/alerts`.
+- **#8** פולו-אפ/הערות v1 — `lib/crm/notes.ts` (localStorage).
+- **#9** תחזית מקדמות — `lib/forecast/` + `ForecastCard` (חזק/ממוצע/חלש + תכנון-מול-ביצוע).
+
+**תיקוני בדיקה-עצמית:** תוויות שנה דינמיות (היו קשיחות 2024) · הסרת כפילות מע"מ בין #3 ל-#5 ·
+ריצת מס יחידה לכל תרחיש ב-#9.
