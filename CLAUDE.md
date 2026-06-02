@@ -57,7 +57,7 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 
 Skills come from the [skills-il](https://github.com/skills-il) org (the `agentskills.co.il` catalog) via `npx skills`. We use a **three-tier model** tuned for token hygiene + reliability on ephemeral web containers. Only what's committed to the repo survives a container reset — `~/.claude/` and `node_modules` do not.
 
-**Tier 1 — Core (committed, always loaded).** 18 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
+**Tier 1 — Core (committed, always loaded).** 21 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
 
 | Skill | Why core |
 |---|---|
@@ -66,7 +66,10 @@ Skills come from the [skills-il](https://github.com/skills-il) org (the `agentsk
 | `israeli-tax-withholding` | Nikui mas bemakor |
 | `israeli-bituach-leumi` | National insurance (field 030) |
 | `israeli-financial-reports` | Israeli-standard reports |
-| `israeli-expense-categorizer` | Pkudat Mas categorization |
+| `israeli-expense-categorizer` | Pkudat Mas categorization — הוצאות מוכרות (all three osek types defer here for specific expense questions) |
+| `israeli-osek-patur` | עוסק פטור rules — income tax only, actual-expense tracking, ceiling monitoring; hooks to zeir/murshe on transition |
+| `israeli-osek-zeir` | עוסק זעיר rules — 30% automatic expense track (תיקון 257); break-even vs. actual; `isOsekZeir === true` |
+| `israeli-osek-murshe` | עוסק מורשה rules — VAT registration, 17% charging, periodic VAT reports; hooks to vat-reporting + e-invoice |
 | `israeli-receipt-scanner` | Upload flow OCR for receipts |
 | `hebrew-ocr-forms` | OCR for Hebrew tax forms (106, 1301) — complements receipt-scanner for structured gov forms |
 | `israeli-e-invoice` | Hashbonit electronit / SHAAM (mandatory 2024+) |
@@ -103,7 +106,10 @@ The `israeli-*` skills are the **domain authority** for the rules behind our num
 |---|---|---|
 | Form 1301 fields, income classification, credit points, tax brackets | `israeli-tax-returns` | `lib/calculators/*`, `lib/form-1301/schema.ts` |
 | National insurance — deduction (030) + credit (048), benefits | `israeli-bituach-leumi` | `lib/calculators/index.ts`, `lib/regulatory/deductions.ts` |
-| VAT, עוסק פטור/זעיר ceiling, Doch Maam | `israeli-vat-reporting` | `lib/alerts/ceiling.ts`, `lib/calculators/types.ts` |
+| VAT report (874), עוסק פטור ceiling, Doch Maam | `israeli-vat-reporting` | `lib/alerts/ceiling.ts`, `lib/calculators/types.ts` |
+| עוסק פטור rules, annual filing, actual-expense tracking | `israeli-osek-patur` | `lib/persona.ts`, `lib/alerts/ceiling.ts` |
+| עוסק זעיר 30% track, break-even vs. actual, `isOsekZeir` | `israeli-osek-zeir` | `lib/calculators/types.ts` (`osekZeirExpenseRate`), `lib/p-and-l/expense-ratio.ts` |
+| עוסק מורשה — VAT charging, periodic reports, transition from פטור | `israeli-osek-murshe` | `lib/invoice-generator/index.ts`, `lib/alerts/index.ts` |
 | Withholding at source (field 115) | `israeli-tax-withholding` | `lib/calculators/index.ts` |
 | Expense categories & deduction rules (full/partial/depreciation) | `israeli-expense-categorizer` | `lib/regulatory/deductions.ts`, `lib/business-expenses/profiles.ts` |
 | Invoices / receipts (hashbonit, allocation number) | `israeli-e-invoice` | `lib/invoice-generator/*`, `app/invoices/*` |
@@ -115,6 +121,17 @@ The `israeli-*` skills are the **domain authority** for the rules behind our num
 | Privacy / personal-data handling (Tikun 13) | `israeli-privacy-shield` | storage, Supabase (Day 2) |
 | Pulling official rates / deadlines from gov sources | `israel-gov-api` | `lib/regulatory/sources.ts` |
 | Hebrew PDF / DOCX output | `hebrew-document-generator` | future invoice/report export |
+
+**Osek-type skill routing — quick reference:**
+
+```
+persona.business.osekType === "patur" && isOsekZeir === false  →  israeli-osek-patur
+persona.business.osekType === "patur" && isOsekZeir === true   →  israeli-osek-zeir
+persona.business.osekType === "morshe"                         →  israeli-osek-murshe
+expense category question (any osek type)                      →  israeli-expense-categorizer
+crossing patur ceiling upward                                  →  israeli-osek-murshe
+crossing patur ceiling downward (rare)                         →  israeli-osek-patur
+```
 
 ### Year-versioned regulatory data (single source)
 
