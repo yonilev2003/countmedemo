@@ -7,10 +7,10 @@ export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
   const bar = Math.min(alert.percent, 100);
 
   const colors = {
-    ok:   { card: "bg-emerald-50 border-emerald-200",   text: "text-emerald-900",   bar: "bg-emerald-500",  badge: "bg-emerald-100 text-emerald-800" },
-    info: { card: "bg-blue-50   border-blue-200",       text: "text-blue-900",     bar: "bg-blue-500",     badge: "bg-blue-100 text-blue-800" },
-    warn: { card: "bg-amber-50  border-amber-300",      text: "text-amber-900",    bar: "bg-amber-500",    badge: "bg-amber-100 text-amber-800" },
-    alert:{ card: "bg-red-50    border-red-300",        text: "text-red-900",      bar: "bg-red-600",      badge: "bg-red-100 text-red-800" },
+    ok:   { card: "bg-success-light border-success/30", text: "text-ink",        bar: "bg-success",    badge: "bg-success-light text-success" },
+    info: { card: "bg-info border-line",                text: "text-brand-navy", bar: "bg-brand-deep", badge: "bg-teal-100 text-teal-600" },
+    warn: { card: "bg-due-bg border-due/40",            text: "text-ink",        bar: "bg-due",        badge: "bg-due-bg text-[#7d6422]" },
+    alert:{ card: "bg-overdue-bg border-alert/40",      text: "text-ink",        bar: "bg-alert",      badge: "bg-overdue-bg text-[#9c3826]" },
   }[alert.tone];
 
   return (
@@ -30,14 +30,14 @@ export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 w-full rounded-full bg-stone-200 overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-sand overflow-hidden">
         <div
           className={cn("h-2 rounded-full transition-all", colors.bar)}
           style={{ width: `${bar}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-[10px] text-stone-500">
+      <div className="flex justify-between text-[10px] text-muted">
         <span>₪0</span>
         <span className="font-medium">תקרה {alert.threshold.toLocaleString("he-IL")} ₪</span>
       </div>

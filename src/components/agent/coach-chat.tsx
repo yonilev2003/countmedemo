@@ -4,6 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  PaperclipIcon,
+  MicIcon,
+  SendIcon,
+  XIcon,
+  SparklesIcon,
+  FileTextIcon,
+  ArrowRightIcon,
+  ClipboardCheckIcon,
+} from "@/components/brand/icons";
 
 type Attachment = {
   name: string;
@@ -49,7 +61,7 @@ function eitanGreeting(persona: Persona | null | undefined): string {
   const suffix = female
     ? "ספרי לי בקצרה מה את צריכה היום?"
     : "ספר לי בקצרה מה אתה צריך היום?";
-  return `${prefix} 👋 אני איתן, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
+  return `${prefix} אני איתן, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
 }
 
 interface Props {
@@ -271,141 +283,222 @@ export function CoachChat({ persona }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="border-b border-stone-200 bg-gradient-to-l from-info/40 to-cream px-4 py-3 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-success to-brand-navy text-white font-bold shadow-sm">
-          ✦
+    <div className="flex h-full flex-col rounded-2xl border border-line bg-paper shadow-brand overflow-hidden">
+      {/* Chat header — Eitan avatar + name + verified badge + "מחובר" status */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-line bg-paper">
+        {/* Eitan avatar: branded placeholder — navy circle with beige LogoMark */}
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy shadow-brand-sm">
+          <LogoMark size={22} className="text-brand" />
         </div>
+
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold">איתן · שותף countme שלך</div>
-          <div className="text-xs text-stone-500 truncate">ייעוץ כספי אישי</div>
+          {/* Name + verified badge */}
+          <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-brand-navy leading-tight">
+            <span>איתן</span>
+            {/* Verified badge — teal check-circle */}
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-label="מאומת"
+              className="size-[15px] flex-shrink-0 text-brand-deep"
+            >
+              <circle cx="8" cy="8" r="7" fill="currentColor" opacity="0.15" />
+              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+              <path
+                d="M5 8l2 2 4-3.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          {/* Status line */}
+          <div className="flex items-center gap-1.5 mt-0.5 text-[12px] font-semibold text-teal-600 leading-none">
+            <span className="inline-block h-[7px] w-[7px] rounded-full bg-success flex-shrink-0" />
+            מחובר
+          </div>
         </div>
+
         <button
           onClick={reset}
-          className="rounded-full border border-stone-300 px-3 py-1 text-[11px] text-stone-600 hover:bg-stone-100 transition-colors shrink-0"
+          className={btn("ghost", "sm")}
+          type="button"
         >
           שיחה חדשה
         </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      {/* Messages list */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-gradient-to-b from-paper to-cream">
         {messages.map((m, i) => (
           <div
             key={i}
             className={cn(
-              "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap",
-              m.role === "agent"
-                ? "bg-info text-brand-navy"
-                : "ml-auto bg-brand-navy text-white",
+              "flex gap-2 max-w-[84%]",
+              m.role === "agent" ? "self-start" : "self-end flex-row-reverse",
             )}
           >
-            {m.attachment && (
-              <div className="mb-2">
-                {m.attachment.previewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.attachment.previewUrl}
-                    alt={m.attachment.name}
-                    className="max-h-40 rounded-lg border border-emerald-300"
-                  />
-                ) : (
-                  <div className="rounded-lg bg-white/20 border border-white/40 px-2 py-1 text-[11px] inline-flex items-center gap-1.5">
-                    📄 <span className="truncate max-w-[180px]">{m.attachment.name}</span>
-                  </div>
-                )}
+            {/* Mini avatar for bot messages */}
+            {m.role === "agent" && (
+              <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+                <LogoMark size={14} className="text-brand" />
               </div>
             )}
-            {m.text}
+
+            <div
+              className={cn(
+                "rounded-[18px] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                m.role === "agent"
+                  /* bot bubble: white/paper, left cut corner, branded border */
+                  ? "bg-paper border border-line text-ink rounded-es-[5px]"
+                  /* user bubble: navy, right cut corner */
+                  : "bg-brand-navy text-white rounded-ee-[5px]",
+              )}
+            >
+              {m.attachment && (
+                <div className="mb-2">
+                  {m.attachment.previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={m.attachment.previewUrl}
+                      alt={m.attachment.name}
+                      className="max-h-40 rounded-lg border border-line"
+                    />
+                  ) : (
+                    <div className="rounded-lg bg-white/20 border border-white/30 px-2 py-1 text-[11px] inline-flex items-center gap-1.5">
+                      <FileTextIcon className="size-3.5 flex-shrink-0" />
+                      <span className="truncate max-w-[180px]">{m.attachment.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {m.text}
+              {/* Timestamp faint */}
+              {/* (omitted — no real timestamp data, but structure is here if needed) */}
+            </div>
           </div>
         ))}
 
+        {/* Streaming bubble */}
         {streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-info text-brand-navy whitespace-pre-wrap">
-            {streamingText}
-            <span className="inline-block w-1.5 h-3.5 bg-brand-navy/40 animate-pulse ml-0.5 align-middle" />
+          <div className="flex gap-2 max-w-[84%] self-start">
+            <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+              <LogoMark size={14} className="text-brand" />
+            </div>
+            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-3.5 py-2.5 text-sm leading-relaxed text-ink whitespace-pre-wrap">
+              {streamingText}
+              <span className="inline-block w-1.5 h-3.5 bg-brand-deep/40 animate-pulse ms-0.5 align-middle" />
+            </div>
           </div>
         )}
 
+        {/* Typing indicator */}
         {isLoading && !streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-info text-brand-navy/50">
-            <span className="inline-flex gap-1">
-              <span className="animate-bounce [animation-delay:0ms]">•</span>
-              <span className="animate-bounce [animation-delay:150ms]">•</span>
-              <span className="animate-bounce [animation-delay:300ms]">•</span>
-            </span>
+          <div className="flex gap-2 max-w-[84%] self-start">
+            <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+              <LogoMark size={14} className="text-brand" />
+            </div>
+            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-4 py-3 w-fit">
+              <span className="inline-flex gap-1">
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:0ms]" />
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:200ms]" />
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:400ms]" />
+              </span>
+            </div>
           </div>
         )}
+
         <div ref={messagesEndRef} />
       </div>
 
-      {/* CTA bar — links to form and expense guide */}
+      {/* Quick-reply chips — summary shortcut */}
+      {messages.length >= 2 && !isLoading && (
+        <div className="px-4 pt-3 pb-1 flex gap-2 flex-wrap bg-cream border-t border-line-soft">
+          <button
+            type="button"
+            onClick={sendSummary}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-paper px-3.5 py-2 text-[13px] font-semibold text-teal-600 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <SparklesIcon className="size-3.5" />
+            סיכום השיחה
+          </button>
+        </div>
+      )}
+
+      {/* CTA bar — contextual links */}
       {persona && (
-        <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
+        <div className="border-t border-line bg-success-light/60 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>סיימת? אפשר לחזור לטופס המלא</span>
           <Link
             href="/demo"
-            className="rounded-full bg-success hover:bg-success/90 text-white font-bold px-3 py-1 text-[11px] transition-colors"
+            className={btn("primary", "sm", "gap-1")}
           >
-            לטופס 1301 ←
+            לטופס 1301
+            <ArrowRightIcon className="size-3.5" />
           </Link>
         </div>
       )}
       {!persona && (
-        <div className="border-t border-stone-200 bg-success/10 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
+        <div className="border-t border-line bg-beige-100/60 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
           <span>רוצה לראות מדריך מלא להוצאות לעיסוק שלך?</span>
           <Link
             href="/business-expenses"
-            className="rounded-full bg-success hover:bg-success/90 text-white font-bold px-3 py-1 text-[11px] transition-colors"
+            className={btn("gold", "sm", "gap-1")}
           >
-            המדריך המלא ←
+            <ClipboardCheckIcon className="size-3.5" />
+            המדריך המלא
           </Link>
         </div>
       )}
 
-      {/* Input */}
-      <div className="border-t border-stone-200 p-3">
+      {/* Input bar */}
+      <div className="flex-shrink-0 border-t border-line bg-paper px-4 pt-2.5 pb-6">
         {/* Attachment preview chip */}
         {attachment && (
-          <div className="mb-2 flex items-center gap-2 rounded-xl border border-success/30 bg-success/10 px-2.5 py-1.5">
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-teal-100 bg-teal-100/50 px-2.5 py-1.5">
             {attachment.previewUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={attachment.previewUrl}
                 alt={attachment.name}
-                className="h-10 w-10 rounded-md object-cover border border-success/40"
+                className="h-10 w-10 rounded-md object-cover border border-line"
               />
             ) : (
-              <div className="h-10 w-10 rounded-md bg-white border border-success/40 flex items-center justify-center text-lg">
-                📄
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-paper border border-line text-brand-deep">
+                <FileTextIcon className="size-5" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-brand-navy truncate">
+              <div className="text-xs font-semibold text-brand-navy truncate">
                 {attachment.name}
               </div>
-              <div className="text-[10px] text-success">
+              <div className="text-[10px] text-teal-600">
                 מצורף — ישלח עם ההודעה הבאה
               </div>
             </div>
             <button
               onClick={clearAttachment}
-              className="text-stone-500 hover:text-stone-800 text-lg leading-none"
+              className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-sand transition-colors"
               aria-label="הסר קובץ"
               type="button"
             >
-              ×
+              <XIcon className="size-3.5" />
             </button>
           </div>
         )}
+
+        {/* Attachment error */}
         {attachError && (
-          <div className="mb-2 rounded-lg bg-red-50 border border-red-200 px-3 py-1.5 text-[11px] text-red-700">
+          <div className="mb-2 rounded-lg bg-overdue-bg border border-line px-3 py-1.5 text-[11px] text-ink">
             {attachError}
           </div>
         )}
 
-        <div className="flex gap-2">
+        {/* Input row */}
+        <div className="flex items-center gap-2.5">
+          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -413,52 +506,62 @@ export function CoachChat({ persona }: Props) {
             onChange={onFilePicked}
             className="hidden"
           />
+
+          {/* Input field with inline paperclip */}
+          <div className="flex flex-1 items-center gap-2.5 rounded-full border border-line bg-cream px-4 py-2.5">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder={
+                attachment
+                  ? "הוסיפי שאלה (אופציונלי) ושלחי..."
+                  : "כתוב/י הודעה לאיתן..."
+              }
+              disabled={isLoading}
+              className="flex-1 bg-transparent border-none outline-none text-[14.5px] text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+            {/* Paperclip inside field */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              type="button"
+              className="flex-shrink-0 text-faint hover:text-brand-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="צרף קבלה (JPG/PNG) או PDF"
+              aria-label="צרף קובץ"
+            >
+              <PaperclipIcon className="size-[19px]" />
+            </button>
+          </div>
+
+          {/* Mic button — beige */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
             type="button"
-            className="rounded-full border border-stone-300 bg-white px-3 py-2 text-stone-600 hover:bg-success/10 hover:border-success/50 hover:text-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="צרף קבלה (JPG/PNG) או PDF"
-            aria-label="צרף קובץ"
-          >
-            📎
-          </button>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder={
-              attachment
-                ? "הוסיפי שאלה (אופציונלי) ושלחי..."
-                : "כתוב/י הודעה לאיתן..."
-            }
             disabled={isLoading}
-            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info disabled:opacity-60 disabled:cursor-not-allowed"
-          />
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand text-brand-navy hover:bg-beige-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-brand-sm"
+            aria-label="הקלטה קולית"
+            title="הקלטה קולית"
+          >
+            <MicIcon className="size-[21px]" />
+          </button>
+
+          {/* Send button — navy */}
           <button
             onClick={send}
             disabled={isLoading || (!input.trim() && !attachment)}
-            className="rounded-full bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy text-white hover:bg-navy-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-brand-sm"
+            aria-label="שלח"
           >
-            {isLoading ? "..." : "שלח"}
+            <SendIcon className="size-[21px]" />
           </button>
         </div>
 
-        {/* Summary shortcut */}
-        <div className="mt-2 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={sendSummary}
-            disabled={isLoading || messages.length < 2}
-            className="text-xs text-success/80 hover:text-success underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
-          >
-            סיכום השיחה ✦
-          </button>
-          <div className="text-[10px] text-stone-400">
-            {isLoading
-              ? "מחובר ל-Claude Sonnet — מעבד..."
-              : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
-          </div>
+        {/* Status line */}
+        <div className="mt-2 text-end text-[10px] text-faint">
+          {isLoading
+            ? "מחובר ל-Claude Sonnet — מעבד..."
+            : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
         </div>
       </div>
     </div>

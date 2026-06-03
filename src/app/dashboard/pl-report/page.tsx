@@ -7,6 +7,9 @@ import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { buildIsraeliPLReport, formatNIS, IsraeliPLReport } from "@/lib/p-and-l/israeli-report";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import { ArrowLeftIcon, DownloadIcon } from "@/components/brand/icons";
 
 const OSEK_LABEL_HE: Record<"patur" | "morshe", string> = {
   patur: "עוסק פטור",
@@ -32,8 +35,8 @@ export default function PLReportPage() {
   if (!persona || !report) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="w-[700px] space-y-3 animate-pulse">
-        <div className="h-8 rounded-lg bg-stone-200 w-1/2 mx-auto" />
-        <div className="h-96 rounded-2xl bg-stone-200" />
+        <div className="h-8 rounded-lg bg-sand w-1/2 mx-auto" />
+        <div className="h-96 rounded-2xl bg-sand" />
       </div>
     </div>
   );
@@ -41,28 +44,32 @@ export default function PLReportPage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Top toolbar — hidden in print */}
-      <header className="bg-white border-b border-stone-200 print:hidden">
+      <header className="bg-paper border-b border-line print:hidden">
         <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
-          <Link href="/dashboard" className="text-sm text-stone-600 hover:text-brand-navy">&#x2190; חזרה לדשבורד</Link>
-          <span className="font-bold text-brand-navy">דוח רווח והפסד · פורמט ישראלי תקני</span>
+          <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-brand-navy">
+            <ArrowLeftIcon className="size-4" /> חזרה לדשבורד
+          </Link>
+          <span className="flex items-center gap-2 font-bold text-brand-navy">
+            <Logo size={22} showWordmark={false} /> דוח רווח והפסד · פורמט ישראלי תקני
+          </span>
           <button
             onClick={() => window.print()}
-            className="rounded-full bg-brand-navy text-white px-4 py-2 text-sm font-medium hover:bg-brand-navy/90"
+            className={btn("primary", "sm")}
           >
-            🖨 הדפס / שמור כ-PDF
+            <DownloadIcon className="size-4" /> הדפס / שמור כ-PDF
           </button>
         </div>
       </header>
 
       {/* The printable area */}
       <main className="mx-auto max-w-[820px] px-8 py-10 print:py-0 print:px-0">
-        <article className="bg-white rounded-2xl border border-stone-200 p-10 print:rounded-none print:border-none print:shadow-none shadow-sm">
+        <article className="bg-paper rounded-2xl border border-line p-10 print:rounded-none print:border-none print:shadow-none shadow-brand">
           {/* Title block */}
           <header className="text-center border-b-2 border-brand-navy pb-5 mb-6">
             <h1 className="font-display text-3xl font-bold text-brand-navy">דוח רווח והפסד</h1>
-            <p className="text-sm text-stone-500 mt-1" dir="ltr">Profit and Loss Statement (Doch Revach VeHefsed)</p>
-            <p className="text-sm font-medium text-stone-700 mt-3">{report.period.label}</p>
-            <p className="text-xs text-stone-500" dir="ltr">For the year ended December 31, {report.period.year}</p>
+            <p className="text-sm text-muted mt-1" dir="ltr">Profit and Loss Statement (Doch Revach VeHefsed)</p>
+            <p className="text-sm font-medium text-ink mt-3">{report.period.label}</p>
+            <p className="text-xs text-muted" dir="ltr">For the year ended December 31, {report.period.year}</p>
           </header>
 
           {/* Business header */}
@@ -84,13 +91,13 @@ export default function PLReportPage() {
           </section>
 
           {/* P&L table */}
-          <section className="border border-stone-300">
+          <section className="border border-line rounded-lg overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-stone-100 border-b border-stone-300">
-                  <th className="text-right px-4 py-2 font-bold text-brand-navy">תיאור</th>
-                  <th className="text-right px-4 py-2 font-bold text-brand-navy text-xs text-stone-500" dir="ltr">Description</th>
-                  <th className="text-left px-4 py-2 font-bold text-brand-navy w-40">סכום (ש&quot;ח)</th>
+                <tr className="bg-cream border-b border-line">
+                  <th className="text-start px-4 py-2 font-bold text-brand-navy">תיאור</th>
+                  <th className="text-start px-4 py-2 font-bold text-xs text-muted" dir="ltr">Description</th>
+                  <th className="text-end px-4 py-2 font-bold text-brand-navy w-40">סכום (ש&quot;ח)</th>
                 </tr>
               </thead>
               <tbody>
@@ -100,13 +107,13 @@ export default function PLReportPage() {
                     <tr
                       key={idx}
                       className={[
-                        isSubtotal ? "bg-info/30 font-semibold border-t border-stone-300" : "",
-                        idx % 2 === 1 && !isSubtotal ? "bg-stone-50/50" : "",
+                        isSubtotal ? "bg-info font-semibold border-t border-line" : "",
+                        idx % 2 === 1 && !isSubtotal ? "bg-cream/50" : "",
                       ].join(" ")}
                     >
-                      <td className={`px-4 py-1.5 ${isSubtotal ? "text-brand-navy" : "text-stone-800"} ${!isSubtotal ? "pr-8" : ""}`}>{line.he}</td>
-                      <td className={`px-4 py-1.5 text-xs ${isSubtotal ? "text-brand-navy/80" : "text-stone-500"} ${!isSubtotal ? "pr-8" : ""}`} dir="ltr">{line.en}</td>
-                      <td className={`px-4 py-1.5 text-left ${isSubtotal ? "text-brand-navy" : "text-stone-700"}`} dir="ltr">
+                      <td className={`px-4 py-1.5 ${isSubtotal ? "text-brand-navy" : "text-ink"} ${!isSubtotal ? "pe-8" : ""}`}>{line.he}</td>
+                      <td className={`px-4 py-1.5 text-xs ${isSubtotal ? "text-brand-navy/80" : "text-muted"} ${!isSubtotal ? "pe-8" : ""}`} dir="ltr">{line.en}</td>
+                      <td className={`px-4 py-1.5 text-end ${isSubtotal ? "text-brand-navy" : "text-ink"}`} dir="ltr">
                         {formatNIS(line.amount, line.kind)}
                       </td>
                     </tr>
@@ -116,7 +123,7 @@ export default function PLReportPage() {
                 <tr className="bg-brand-navy text-white border-t-2 border-brand-navy">
                   <td className="px-4 py-2.5 font-bold">רווח נקי לשנה</td>
                   <td className="px-4 py-2.5 font-bold text-xs" dir="ltr">Net Profit for the Year</td>
-                  <td className="px-4 py-2.5 font-bold text-left" dir="ltr">
+                  <td className="px-4 py-2.5 font-bold text-end" dir="ltr">
                     {formatNIS(report.totals.netProfit, report.totals.netProfit < 0 ? "outflow" : "inflow")}
                   </td>
                 </tr>
@@ -125,16 +132,16 @@ export default function PLReportPage() {
           </section>
 
           {/* Footnotes */}
-          <footer className="mt-6 text-[11px] text-stone-500 space-y-1 leading-relaxed">
+          <footer className="mt-6 text-[11px] text-muted space-y-1 leading-relaxed">
             <p>
-              <strong className="text-stone-700">הערות:</strong> סכומים נוקבים בשקלים חדשים. סכומים שליליים בסוגריים.
+              <strong className="text-ink">הערות:</strong> סכומים נוקבים בשקלים חדשים. סכומים שליליים בסוגריים.
               מס ההכנסה הוא הערכה לפי מדרגות {report.period.year}. ניכויים אישיים (ב&quot;ל, קרן השתלמות, פנסיה) מוצגים בנפרד כשהם זמינים; נקודות זיכוי אינן כלולות — לחישוב מדויק עיין/י ב-/file.
             </p>
             <p dir="ltr">
               <strong>Notes:</strong> Amounts in New Israeli Shekel (NIS). Negative amounts shown in parentheses.
               Income tax is an estimate per {report.period.year} brackets. Personal deductions (NI, study fund, pension) are shown separately when available; credit points are not included — refer to /file for the full calculation.
             </p>
-            <p className="text-stone-400 mt-3 text-center">
+            <p className="text-faint mt-3 text-center">
               הופק באמצעות CountMe · {new Date().toLocaleDateString("he-IL")}
             </p>
           </footer>
@@ -164,11 +171,11 @@ export default function PLReportPage() {
 function Row({ labelHe, labelEn, valueHe, valueEn }: { labelHe: string; labelEn: string; valueHe: string; valueEn?: string }) {
   return (
     <div className="flex items-baseline gap-2">
-      <span className="text-stone-500 text-xs whitespace-nowrap">{labelHe}</span>
-      <span className="text-stone-300 text-[10px]" dir="ltr">/ {labelEn}:</span>
-      <span className="font-medium text-stone-800">{valueHe}</span>
+      <span className="text-muted text-xs whitespace-nowrap">{labelHe}</span>
+      <span className="text-faint text-[10px]" dir="ltr">/ {labelEn}:</span>
+      <span className="font-medium text-ink">{valueHe}</span>
       {valueEn && valueEn !== valueHe && (
-        <span className="text-stone-400 text-xs" dir="ltr">({valueEn})</span>
+        <span className="text-faint text-xs" dir="ltr">({valueEn})</span>
       )}
     </div>
   );

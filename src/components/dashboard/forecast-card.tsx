@@ -15,9 +15,9 @@ const BASIS_META: Record<ForecastBasis, { label: string; hint: string }> = {
 };
 
 const TONE_STYLES = {
-  ok: { box: "border-success/40 bg-success/10", text: "text-success" },
-  under: { box: "border-alert/40 bg-alert/10", text: "text-alert" },
-  over: { box: "border-brand-navy/30 bg-info/30", text: "text-brand-navy" },
+  ok: { box: "border-success/40 bg-success-light", text: "text-success" },
+  under: { box: "border-alert/40 bg-overdue-bg", text: "text-alert" },
+  over: { box: "border-teal-100 bg-info", text: "text-brand-navy" },
 } as const;
 
 const fmt = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
@@ -31,26 +31,26 @@ export function ForecastCard({ persona }: { persona: Persona }) {
   const tone = TONE_STYLES[pva.tone];
 
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5">
+    <section className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h3 className="font-display text-lg font-bold text-brand-navy">
             תכנון מול ביצוע — מקדמות
           </h3>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             תחזית קדימה על בסיס החודשים שכבר נרשמו. על איזה חודש לחשב?
           </p>
         </div>
         {/* Strong / average / weak basis toggle — the "ask strong or weak" dialog */}
-        <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
+        <div className="flex gap-1 rounded-full bg-cream p-1">
           {(["strong", "average", "weak"] as ForecastBasis[]).map((b) => (
             <button
               key={b}
               onClick={() => setBasis(b)}
-              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 basis === b
-                  ? "bg-white text-brand-navy shadow-sm"
-                  : "text-stone-500 hover:text-stone-700"
+                  ? "bg-paper text-brand-navy shadow-sm"
+                  : "text-muted hover:text-ink"
               }`}
             >
               {BASIS_META[b].label}
@@ -59,10 +59,10 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] text-stone-400">{BASIS_META[basis].hint}</p>
+      <p className="mt-2 text-[11px] text-faint">{BASIS_META[basis].hint}</p>
 
       {!forecast.hasEnoughData && (
-        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+        <div className="mt-3 rounded-xl border border-due/40 bg-due-bg px-3 py-2 text-[11px] text-[#7d6422]">
           אין עדיין מספיק פילוח חודשי אמיתי כדי להבדיל בין חודש חזק לחלש — התחזית מבוססת על
           פריסה אחידה של המחזור השנתי. העלאת חשבוניות מתוארכות תחדד אותה.
         </div>
@@ -79,10 +79,10 @@ export function ForecastCard({ persona }: { persona: Persona }) {
       {/* Plan vs actual */}
       <div className={`mt-4 rounded-xl border px-4 py-3 ${tone.box}`}>
         <div className={`text-sm font-bold ${tone.text}`}>{pva.headlineHe}</div>
-        <div className="mt-1 text-xs text-stone-600">{pva.detailHe}</div>
-        <div className="mt-2 flex items-center gap-4 text-[11px] text-stone-500">
-          <span>תחזית: <b className="text-stone-700">{fmt(pva.due)}</b></span>
-          <span>שולם בפועל: <b className="text-stone-700">{fmt(pva.paid)}</b></span>
+        <div className="mt-1 text-xs text-muted">{pva.detailHe}</div>
+        <div className="mt-2 flex items-center gap-4 text-[11px] text-muted">
+          <span>תחזית: <b className="text-ink">{fmt(pva.due)}</b></span>
+          <span>שולם בפועל: <b className="text-ink">{fmt(pva.paid)}</b></span>
           <span>
             פער: <b className={tone.text}>{pva.gap >= 0 ? "" : "−"}{fmt(Math.abs(pva.gap))}</b>
           </span>
@@ -91,23 +91,23 @@ export function ForecastCard({ persona }: { persona: Persona }) {
 
       {/* Strong / weak month context */}
       {forecast.hasEnoughData && (
-        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-stone-500">
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-muted">
           <span>
             חודשים חזקים:{" "}
-            <b className="text-stone-700">
+            <b className="text-ink">
               {forecast.strongMonths.map((m) => m.label).join(", ")}
             </b>
           </span>
           <span>
             חודשים חלשים:{" "}
-            <b className="text-stone-700">
+            <b className="text-ink">
               {forecast.weakMonths.map((m) => m.label).join(", ")}
             </b>
           </span>
         </div>
       )}
 
-      <p className="mt-3 text-[10px] text-stone-400 leading-relaxed">
+      <p className="mt-3 text-[10px] text-faint leading-relaxed">
         הערכה בלבד, לא ייעוץ מס. המקדמות בפועל נקבעות ע״י רשות המסים לפי שיעור מקדמה שנתי; התחזית כאן
         מבוססת על תכנון ההכנסה הצפויה.
       </p>
@@ -117,8 +117,8 @@ export function ForecastCard({ persona }: { persona: Persona }) {
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
-      <div className="text-[11px] text-stone-500 mb-0.5">{label}</div>
+    <div className="rounded-xl border border-line-soft bg-cream p-3">
+      <div className="text-[11px] text-muted mb-0.5">{label}</div>
       <div className="font-display text-base font-bold text-brand-navy">{value}</div>
     </div>
   );

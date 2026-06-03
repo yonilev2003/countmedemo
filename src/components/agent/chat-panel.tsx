@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/brand/logo";
+import { SendIcon } from "@/components/brand/icons";
 
 type Message = {
   role: "agent" | "user";
@@ -43,12 +45,17 @@ export function ChatPanel({ persona }: Props) {
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>(
     [],
   );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Reset greeting when persona switches (e.g. localStorage hydration on mount).
   useEffect(() => {
     setMessages(initialMessages(persona));
     historyRef.current = [];
   }, [persona.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streamingText]);
 
   async function send() {
     const trimmed = input.trim();
@@ -174,76 +181,107 @@ export function ChatPanel({ persona }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col rounded-xl border border-stone-200 bg-white">
+    <div className="flex h-full flex-col rounded-xl border border-line bg-paper shadow-brand overflow-hidden">
       {/* Header */}
-      <div className="border-b border-stone-200 bg-gradient-to-l from-blue-50 to-white px-4 py-3 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold shadow-sm">
-          c
+      <div className="flex-shrink-0 flex items-center gap-3 border-b border-line bg-paper px-4 py-3">
+        {/* Eitan avatar: navy circle with beige LogoMark */}
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy shadow-brand-sm">
+          <LogoMark size={18} className="text-brand" />
         </div>
         <div>
-          <div className="text-sm font-semibold">המלווה של countme</div>
-          <div className="text-xs text-stone-500">
+          <div className="text-sm font-bold text-brand-navy leading-tight">המלווה של countme</div>
+          <div className="text-xs text-muted leading-tight">
             מבוסס על הסקיל israeli-tax-returns
           </div>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gradient-to-b from-paper to-cream">
         {messages.map((m, i) => (
           <div
             key={i}
             className={cn(
-              "max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
-              m.role === "agent"
-                ? "bg-stone-100 text-stone-800"
-                : "ml-auto bg-brand-navy text-white",
+              "flex gap-2 max-w-[85%]",
+              m.role === "agent" ? "self-start" : "self-end flex-row-reverse",
             )}
           >
-            {m.text}
+            {/* Mini avatar for bot messages */}
+            {m.role === "agent" && (
+              <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+                <LogoMark size={13} className="text-brand" />
+              </div>
+            )}
+            <div
+              className={cn(
+                "rounded-[18px] px-3.5 py-2 text-sm leading-relaxed",
+                m.role === "agent"
+                  ? "bg-paper border border-line text-ink rounded-es-[5px]"
+                  : "bg-brand-navy text-white rounded-ee-[5px]",
+              )}
+            >
+              {m.text}
+            </div>
           </div>
         ))}
 
         {/* Live streaming bubble */}
         {streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-800">
-            {streamingText}
-            <span className="inline-block w-1.5 h-3.5 bg-stone-400 animate-pulse ml-0.5 align-middle" />
+          <div className="flex gap-2 max-w-[85%] self-start">
+            <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+              <LogoMark size={13} className="text-brand" />
+            </div>
+            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-3.5 py-2 text-sm leading-relaxed text-ink">
+              {streamingText}
+              <span className="inline-block w-1.5 h-3.5 bg-brand-deep/40 animate-pulse ms-0.5 align-middle" />
+            </div>
           </div>
         )}
 
-        {/* Loading indicator (before first token arrives) */}
+        {/* Typing indicator (before first token arrives) */}
         {isLoading && !streamingText && (
-          <div className="max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed bg-stone-100 text-stone-400">
-            <span className="inline-flex gap-1">
-              <span className="animate-bounce [animation-delay:0ms]">•</span>
-              <span className="animate-bounce [animation-delay:150ms]">•</span>
-              <span className="animate-bounce [animation-delay:300ms]">•</span>
-            </span>
+          <div className="flex gap-2 max-w-[85%] self-start">
+            <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
+              <LogoMark size={13} className="text-brand" />
+            </div>
+            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-4 py-3 w-fit">
+              <span className="inline-flex gap-1">
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:0ms]" />
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:150ms]" />
+                <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:300ms]" />
+              </span>
+            </div>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="border-t border-stone-200 p-3">
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
-            placeholder="שאלי שאלה על הדו״ח..."
-            disabled={isLoading}
-            className="flex-1 rounded-full border border-stone-300 bg-stone-50 px-4 py-2 text-sm placeholder:text-stone-400 focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info disabled:opacity-60 disabled:cursor-not-allowed"
-          />
+      <div className="flex-shrink-0 border-t border-line bg-paper px-3 pt-2.5 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex flex-1 items-center gap-2 rounded-full border border-line bg-cream px-4 py-2.5">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+              placeholder="שאלי שאלה על הדו״ח..."
+              disabled={isLoading}
+              className="flex-1 bg-transparent border-none outline-none text-sm text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+          {/* Send button — navy pill */}
           <button
             onClick={send}
             disabled={isLoading || !input.trim()}
-            className="rounded-full bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full bg-brand-navy text-white hover:bg-navy-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-brand-sm"
+            aria-label="שלח"
           >
-            {isLoading ? "..." : "שלח"}
+            <SendIcon className="size-[20px]" />
           </button>
         </div>
-        <div className="mt-2 text-center text-[10px] text-stone-400">
+        <div className="mt-2 text-center text-[10px] text-faint">
           {isLoading ? "מחובר ל-Claude Sonnet — מעבד..." : "מחובר ל-Claude Sonnet"}
         </div>
       </div>

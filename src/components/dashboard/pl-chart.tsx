@@ -15,7 +15,12 @@ import {
 } from "recharts";
 import { MonthlyPL, PLSummary } from "@/lib/p-and-l/index";
 
-const COLORS = ["#0D3B66", "#9FB878", "#D2E8FF", "#D5E79E", "#80181D"];
+// Brand palette for the pie slices (navy → teal → beige → aqua → terracotta).
+const COLORS = ["#083A4F", "#407E8C", "#C8B59A", "#C0D5D6", "#C05B45"];
+const GRID_STROKE = "#E7E2DA"; // --color-line
+const AXIS_TICK = "#6A7A80"; // --color-muted
+const REVENUE_FILL = "#083A4F"; // brand-navy
+const EXPENSE_FILL = "#407E8C"; // brand-deep (teal)
 
 interface Props {
   monthlyData: MonthlyPL[];
@@ -31,7 +36,7 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
     <div className="space-y-6">
       {/* Monthly bar chart */}
       <div>
-        <h3 className="text-sm font-semibold text-stone-600 mb-3">
+        <h3 className="text-sm font-semibold text-brand-navy mb-3">
           הכנסות והוצאות לפי חודש
         </h3>
         <ResponsiveContainer width="100%" height={220}>
@@ -39,16 +44,26 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
             data={monthlyData}
             margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 11, fill: "#78716c" }}
+              tick={{ fontSize: 11, fill: AXIS_TICK }}
+              stroke={GRID_STROKE}
             />
             <YAxis
               tickFormatter={formatShekels}
-              tick={{ fontSize: 11, fill: "#78716c" }}
+              tick={{ fontSize: 11, fill: AXIS_TICK }}
+              stroke={GRID_STROKE}
             />
             <Tooltip
+              cursor={{ fill: "rgba(8,40,55,.04)" }}
+              contentStyle={{
+                borderRadius: 12,
+                border: "1px solid #E7E2DA",
+                boxShadow: "0 12px 28px -16px rgba(8,40,55,.18)",
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "#083A4F", fontWeight: 700 }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(v: any) =>
                 typeof v === "number" ? `₪${v.toLocaleString("he-IL")}` : String(v ?? "")
@@ -58,14 +73,14 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
             <Bar
               dataKey="revenue"
               name="הכנסות"
-              fill="#0D3B66"
-              radius={[3, 3, 0, 0]}
+              fill={REVENUE_FILL}
+              radius={[7, 7, 0, 0]}
             />
             <Bar
               dataKey="expenses"
               name="הוצאות"
-              fill="#9FB878"
-              radius={[3, 3, 0, 0]}
+              fill={EXPENSE_FILL}
+              radius={[7, 7, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -73,7 +88,7 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
 
       {/* Expense pie chart */}
       <div>
-        <h3 className="text-sm font-semibold text-stone-600 mb-3">
+        <h3 className="text-sm font-semibold text-brand-navy mb-3">
           התפלגות הוצאות
         </h3>
         <div className="flex gap-6 items-center">
@@ -86,12 +101,21 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
                 cx="50%"
                 cy="50%"
                 outerRadius={70}
+                stroke="#FBFAF8"
+                strokeWidth={2}
               >
                 {expenseBreakdown.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip
+                contentStyle={{
+                  borderRadius: 12,
+                  border: "1px solid #E7E2DA",
+                  boxShadow: "0 12px 28px -16px rgba(8,40,55,.18)",
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: "#083A4F", fontWeight: 700 }}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) =>
                   typeof v === "number" ? `₪${v.toLocaleString("he-IL")}` : String(v ?? "")
@@ -106,7 +130,7 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
                   className="h-2.5 w-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: COLORS[i % COLORS.length] }}
                 />
-                <span className="text-stone-600">{item.category}</span>
+                <span className="text-muted">{item.category}</span>
                 <span className="font-medium text-brand-navy">
                   ₪{item.amount.toLocaleString("he-IL")}
                 </span>

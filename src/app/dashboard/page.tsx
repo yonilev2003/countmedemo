@@ -19,6 +19,17 @@ import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { ForecastCard } from "@/components/dashboard/forecast-card";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  BellIcon,
+  CalendarIcon,
+  FileTextIcon,
+  SparklesIcon,
+  AlertTriangleIcon,
+  DownloadIcon,
+  ArrowLeftIcon,
+} from "@/components/brand/icons";
 
 // Dynamic import to avoid SSR issues with Recharts
 const PLChart = dynamic(
@@ -44,12 +55,12 @@ function KPI({
   color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4">
-      <div className="text-xs text-stone-500 mb-1">{label}</div>
+    <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
+      <div className="text-xs text-muted mb-1">{label}</div>
       <div className={`font-display text-2xl font-bold ${color ?? "text-brand-navy"}`}>
         {value}
       </div>
-      {sub && <div className="text-xs text-stone-400 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-faint mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -76,11 +87,11 @@ export default function DashboardPage() {
   if (!persona || !pl) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-4 w-full max-w-screen-xl px-6 animate-pulse">
-        <div className="h-8 rounded-lg bg-stone-200 w-64" />
+        <div className="h-8 rounded-lg bg-sand w-64" />
         <div className="grid grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <div key={i} className="h-20 rounded-xl bg-stone-200" />)}
+          {[0,1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-sand" />)}
         </div>
-        <div className="h-64 rounded-2xl bg-stone-200" />
+        <div className="h-64 rounded-2xl bg-sand" />
       </div>
     </div>
   );
@@ -123,54 +134,44 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe · דשבורד</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={28} />
+            <span className="text-base font-semibold text-muted">· דשבורד</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link
-              href="/alerts"
-              className="rounded-full border border-amber-300 px-3 py-1 text-xs text-amber-800 hover:bg-amber-50 transition-colors"
-            >
-              🔔 התראות
+            <Link href="/alerts" className={btn("secondary", "sm")}>
+              <BellIcon className="size-4" /> התראות
             </Link>
-            <Link
-              href="/deadlines"
-              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20 transition-colors"
-            >
-              🗓️ מועדים
+            <Link href="/deadlines" className={btn("secondary", "sm")}>
+              <CalendarIcon className="size-4" /> מועדים
             </Link>
             <Link
               href="/dashboard/pl-report"
-              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20"
+              className={btn("secondary", "sm")}
               title="דוח רווח והפסד בפורמט ישראלי תקני, מוכן להדפסה / שמירה כ-PDF"
             >
-              📄 דוח רו&quot;ה תקני
+              <FileTextIcon className="size-4" /> דוח רו&quot;ה תקני
             </Link>
-            <Link
-              href="/file"
-              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20"
-            >
-              מילוי הדוח ←
+            <Link href="/file" className={btn("secondary", "sm")}>
+              מילוי הדוח <ArrowLeftIcon className="size-4" />
             </Link>
-            <Link
-              href="/coach"
-              className="rounded-full border border-success/30 px-3 py-1 text-xs text-success hover:bg-success/10"
-            >
-              ✦ שוחח עם איתן
+            <Link href="/coach" className={btn("gold", "sm")}>
+              <SparklesIcon className="size-4" /> שוחח עם איתן
             </Link>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-screen-xl px-6 pt-4">
-        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-[11px] text-stone-500 leading-relaxed">
-          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
-          הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
-          לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
+        <div className="flex items-start gap-2 rounded-2xl border border-line bg-sand px-5 py-2.5 text-[11px] text-muted leading-relaxed">
+          <AlertTriangleIcon className="size-4 shrink-0 text-due mt-px" />
+          <span>
+            <span className="font-semibold text-ink">הצהרת אחריות: </span>
+            הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
+            לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
+          </span>
         </div>
       </div>
 
@@ -182,19 +183,19 @@ export default function DashboardPage() {
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">שנת מס {persona.income.year}</p>
+            <p className="text-sm text-muted mt-0.5">שנת מס {persona.income.year}</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
             {/* Granularity toggle */}
-            <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
+            <div className="flex gap-1 rounded-full bg-cream p-1">
               {(["year", "quarter", "month"] as Granularity[]).map((g) => (
                 <button
                   key={g}
                   onClick={() => setGranularityAndFilter(g)}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     granularity === g
-                      ? "bg-white text-brand-navy shadow-sm"
-                      : "text-stone-500 hover:text-stone-700"
+                      ? "bg-paper text-brand-navy shadow-sm"
+                      : "text-muted hover:text-ink"
                   }`}
                 >
                   {g === "year" ? "שנה" : g === "quarter" ? "רבעון" : "חודש"}
@@ -208,10 +209,10 @@ export default function DashboardPage() {
                   <button
                     key={q}
                     onClick={() => setFilter({ kind: "quarter", q: q as 1 | 2 | 3 | 4 })}
-                    className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
                       filter.kind === "quarter" && filter.q === q
                         ? "bg-brand-navy text-white"
-                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                        : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
                     }`}
                   >
                     Q{q}
@@ -225,10 +226,10 @@ export default function DashboardPage() {
                   <button
                     key={m}
                     onClick={() => setFilter({ kind: "month", m })}
-                    className={`rounded-lg px-2 py-0.5 text-xs font-medium transition-colors ${
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
                       filter.kind === "month" && filter.m === m
                         ? "bg-brand-navy text-white"
-                        : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                        : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
                     }`}
                   >
                     {MONTH_LABELS[m - 1]}
@@ -240,22 +241,22 @@ export default function DashboardPage() {
         </div>
 
         {/* Period banner — explains what user is seeing */}
-        <div className="mb-4 rounded-lg bg-info/30 border border-brand-navy/10 px-4 py-2 text-xs text-brand-navy">
+        <div className="mb-4 rounded-2xl bg-info border border-teal-100 px-4 py-2 text-xs text-brand-navy">
           תצוגה: <span className="font-bold">{periodLabel}</span>
           {pl.hasDatedData ? (
-            <span className="text-stone-500"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
+            <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
           ) : (
-            <span className="text-stone-500"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
+            <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
           )}
         </div>
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
-          <KPI label="הכנסות" value={fmt(filteredRevenue)} />
+          <KPI label="הכנסות" value={fmt(filteredRevenue)} color="text-brand-deep" />
           <KPI
             label="הוצאות"
             value={fmt(filteredExpenses)}
-            color="text-stone-600"
+            color="text-ink"
           />
           <KPI
             label="רווח נקי"
@@ -266,7 +267,7 @@ export default function DashboardPage() {
             label="מס הכנסה משוער"
             value={fmt(Math.round(filteredNet * 0.2))}
             sub="הערכה בלבד"
-            color="text-stone-500"
+            color="text-muted"
           />
         </div>
 
@@ -292,7 +293,7 @@ export default function DashboardPage() {
 
         {/* Charts + Eitan in a 2-col layout on large screens */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-2xl bg-white border border-stone-200 p-5">
+          <div className="lg:col-span-2 rounded-2xl bg-paper border border-line p-5 shadow-brand">
             <PLChart
               monthlyData={filteredMonthly}
               expenseBreakdown={pl.expenseBreakdown}
@@ -300,8 +301,8 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-4">
             <EitanInsights persona={persona} pl={pl} />
-            <div className="rounded-xl border border-stone-200 bg-white p-4">
-              <h3 className="text-xs font-semibold text-stone-500 mb-2">
+            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
+              <h3 className="text-xs font-semibold text-muted mb-2">
                 סיכום שנתי
               </h3>
               <div className="space-y-2 text-sm">
@@ -313,7 +314,7 @@ export default function DashboardPage() {
                     key={row.label}
                     className="flex items-center justify-between"
                   >
-                    <span className="text-stone-600">{row.label}</span>
+                    <span className="text-muted">{row.label}</span>
                     <span className="font-semibold text-brand-navy">
                       {fmt(row.value)}
                     </span>
@@ -322,9 +323,9 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/file"
-                className="mt-3 block text-center rounded-lg bg-brand-navy/10 px-3 py-2 text-xs font-medium text-brand-navy hover:bg-brand-navy/20 transition-colors"
+                className={btn("primary", "sm", "mt-3 w-full")}
               >
-                עבור/י למילוי הדוח ←
+                עבור/י למילוי הדוח <ArrowLeftIcon className="size-4" />
               </Link>
             </div>
           </div>
@@ -334,9 +335,9 @@ export default function DashboardPage() {
         <div className="mt-6 text-center">
           <button
             onClick={() => window.print()}
-            className="rounded-full border border-stone-300 px-5 py-2 text-sm text-stone-600 hover:bg-stone-100 transition-colors"
+            className={btn("secondary", "md")}
           >
-            🖨️ הדפס / שמור כ-PDF
+            <DownloadIcon className="size-[18px]" /> הדפס / שמור כ-PDF
           </button>
         </div>
       </main>

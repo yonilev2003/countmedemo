@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Persona } from "@/lib/persona";
 import { PLSummary } from "@/lib/p-and-l/index";
+import { SparklesIcon } from "@/components/brand/icons";
 
 interface Props {
   persona: Persona;
@@ -71,20 +72,20 @@ export function EitanInsights({ persona, pl }: Props) {
   }, [persona, pl]);
 
   return (
-    <div className="rounded-xl border border-success/30 bg-success/5 p-4">
+    <div className="rounded-2xl border border-line bg-aqua-soft p-4 shadow-brand">
       <div className="flex items-center gap-2 mb-3">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-success text-white text-xs font-bold">
-          ✦
+        <div className="flex size-7 items-center justify-center rounded-full bg-brand-navy text-brand">
+          <SparklesIcon className="size-4" />
         </div>
         <span className="text-sm font-semibold text-brand-navy">איתן אומר</span>
       </div>
       {loading ? (
         <div className="space-y-2">
-          <div className="h-3 rounded bg-stone-200 animate-pulse w-4/5" />
-          <div className="h-3 rounded bg-stone-200 animate-pulse w-3/5" />
+          <div className="h-3 rounded bg-sand animate-pulse w-4/5" />
+          <div className="h-3 rounded bg-sand animate-pulse w-3/5" />
         </div>
       ) : (
-        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">
+        <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">
           {insights}
         </p>
       )}

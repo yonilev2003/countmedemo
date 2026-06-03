@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Persona } from "@/lib/persona";
 import { loadPersona } from "@/lib/setup-storage";
 import { CoachChat } from "@/components/agent/coach-chat";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
 
 export default function CoachPage() {
   const [persona, setPersona] = useState<Persona | null>(null);
@@ -16,16 +19,15 @@ export default function CoachPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-cream flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
+            <Logo size={28} />
             <div>
-              <div className="text-base font-bold leading-tight">CountMe</div>
-              <div className="text-[11px] text-stone-500 leading-tight">
+              <div className="text-sm font-bold text-brand-navy leading-tight">CountMe</div>
+              <div className="text-[11px] text-muted leading-tight">
                 איתן · ייעוץ כספי אישי
               </div>
             </div>
@@ -34,15 +36,17 @@ export default function CoachPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/demo"
-              className="rounded-full border border-info px-3 py-1 text-xs text-brand-navy hover:bg-info/30 transition-colors"
+              className={btn("ghost", "sm", "gap-1.5")}
             >
-              לדוח 1301 ←
+              <ArrowRightIcon className="size-3.5" />
+              לדוח 1301
             </Link>
             <Link
               href="/business-expenses"
-              className="rounded-full border border-success/50 px-3 py-1 text-xs text-success hover:bg-success/10 transition-colors"
+              className={btn("secondary", "sm", "gap-1.5")}
             >
-              מדריך הוצאות ←
+              <ClipboardCheckIcon className="size-3.5" />
+              מדריך הוצאות
             </Link>
           </div>
         </div>
@@ -57,7 +61,7 @@ export default function CoachPage() {
         )}
       </main>
 
-      <footer className="mx-auto w-full max-w-screen-md px-6 pb-4 text-center text-[10px] text-stone-400 leading-relaxed">
+      <footer className="mx-auto w-full max-w-screen-md px-6 pb-4 text-center text-[10px] text-faint leading-relaxed">
         <p>
           המידע אינו מהווה ייעוץ מס. countme מבוסס על מקורות פומביים ופקודת מס
           הכנסה 2024. לפני הגשה — התייעצי עם רואה חשבון.

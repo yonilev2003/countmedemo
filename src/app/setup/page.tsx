@@ -9,6 +9,16 @@ import { getTaxYearConstants } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  CheckIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  SparklesIcon,
+} from "@/components/brand/icons";
 
 function validateTeudatZehut(id: string): boolean {
   if (!/^\d{9}$/.test(id)) return false;
@@ -102,25 +112,25 @@ function FieldLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-sm font-medium text-stone-700 mb-1"
+      className="block text-sm font-medium text-ink mb-1"
     >
       {children}
-      {required && <span className="text-red-500 mr-1">*</span>}
+      {required && <span className="text-alert ms-1">*</span>}
     </label>
   );
 }
 
 function ErrorMsg({ msg }: { msg?: string }) {
   if (!msg) return null;
-  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
+  return <p className="mt-1 text-xs text-alert">{msg}</p>;
 }
 
 function inputCls(hasError: boolean) {
   return cn(
-    "w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 transition-colors",
+    "w-full rounded-xl border px-3 py-2 text-sm bg-paper focus:outline-none focus:ring-2 transition-colors",
     hasError
-      ? "border-red-400 focus:border-red-500 focus:ring-red-200"
-      : "border-stone-300 focus:border-blue-500 focus:ring-blue-200",
+      ? "border-alert focus:border-alert focus:ring-alert/20"
+      : "border-line focus:border-brand-deep focus:ring-brand-deep/15",
   );
 }
 
@@ -137,20 +147,24 @@ function ProgressBar({ step }: { step: number }) {
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors",
                 i + 1 < step
-                  ? "bg-blue-600 text-white"
+                  ? "bg-brand-deep text-white"
                   : i + 1 === step
-                    ? "bg-blue-600 text-white ring-4 ring-blue-100"
-                    : "bg-stone-200 text-stone-400",
+                    ? "bg-brand-navy text-white ring-4 ring-brand-navy/15"
+                    : "bg-sand text-muted",
               )}
             >
-              {i + 1 < step ? "✓" : i + 1}
+              {i + 1 < step ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                i + 1
+              )}
             </div>
             <span
               className={cn(
                 "hidden md:block text-[10px] text-center leading-tight truncate w-full",
                 i + 1 === step
-                  ? "text-blue-700 font-medium"
-                  : "text-stone-400",
+                  ? "text-brand-navy font-medium"
+                  : "text-faint",
               )}
             >
               {label}
@@ -158,13 +172,13 @@ function ProgressBar({ step }: { step: number }) {
           </div>
         ))}
       </div>
-      <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-sand rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-l from-blue-500 to-blue-700 rounded-full transition-all duration-500"
+          className="h-full bg-gradient-to-l from-brand-deep to-brand-navy rounded-full transition-all duration-500"
           style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%` }}
         />
       </div>
-      <div className="mt-2 text-left text-xs text-stone-400">
+      <div className="mt-2 text-start text-xs text-faint">
         {step}/{TOTAL_STEPS}
       </div>
     </div>
@@ -577,32 +591,34 @@ export default function SetupPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
-      <header className="bg-white border-b border-stone-200">
+    <div className="min-h-screen bg-cream flex flex-col">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe</span>
+            <Logo size={32} />
           </Link>
-          <div className="text-sm text-stone-500">הגדרת פרופיל</div>
+          <div className="text-sm text-muted">הגדרת פרופיל</div>
         </div>
       </header>
 
       <main className="flex flex-1 items-start justify-center px-4 py-10">
         <div className="w-full max-w-2xl">
-          <div className="rounded-2xl bg-white border border-stone-200 shadow-sm p-7 md:p-8">
+          <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white font-bold shadow-sm text-sm">
-                {step === 0 ? "⚡" : step}
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-navy text-white font-bold shadow-brand-sm text-sm shrink-0">
+                {step === 0 ? (
+                  <SparklesIcon className="size-4" />
+                ) : (
+                  step
+                )}
               </div>
               <div>
-                <h1 className="text-xl font-bold leading-tight">
+                <h1 className="text-xl font-bold text-brand-navy leading-tight">
                   {step === 0
                     ? "מסלול מהיר — אופציונלי"
                     : STEP_TITLES[step - 1]}
                 </h1>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   {step === 0
                     ? "העלי מסמכים שיש לך — אחלץ נתונים ואחסוך לך מילוי ידני"
                     : STEP_SUBTITLES[step - 1]}
@@ -705,10 +721,10 @@ export default function SetupPage() {
                   <div className="flex gap-3">
                     <label
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors text-sm",
+                        "flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors text-sm",
                         s1.gender === "female"
-                          ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                          : "border-stone-300 hover:bg-stone-50",
+                          ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
+                          : "border-line bg-paper hover:bg-cream",
                       )}
                     >
                       <input
@@ -723,10 +739,10 @@ export default function SetupPage() {
                     </label>
                     <label
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 cursor-pointer transition-colors text-sm",
+                        "flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors text-sm",
                         s1.gender === "male"
-                          ? "border-blue-500 bg-blue-50 text-blue-700 font-medium"
-                          : "border-stone-300 hover:bg-stone-50",
+                          ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
+                          : "border-line bg-paper hover:bg-cream",
                       )}
                     >
                       <input
@@ -767,7 +783,7 @@ export default function SetupPage() {
 
             {step === 2 && (
               <div className="space-y-5">
-                <div className="rounded-lg border border-stone-200 p-4">
+                <div className="rounded-xl border border-line bg-cream p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -778,19 +794,19 @@ export default function SetupPage() {
                           isSoldierDischarged: e.target.checked,
                         })
                       }
-                      className="h-4 w-4 mt-0.5 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 mt-0.5 rounded border-line accent-brand-navy"
                     />
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-stone-800">
+                      <span className="text-sm font-medium text-ink">
                         חייל/ת משוחרר/ת
                       </span>
-                      <p className="text-xs text-stone-500 mt-0.5">
+                      <p className="text-xs text-muted mt-0.5">
                         זכאות לנקודת זיכוי במשך 36 חודשים מהשחרור (שדה 068)
                       </p>
                     </div>
                   </label>
                   {s2.isSoldierDischarged && (
-                    <div className="mt-3 mr-7">
+                    <div className="mt-3 me-7">
                       <FieldLabel htmlFor="dischargeDate" required>
                         תאריך שחרור
                       </FieldLabel>
@@ -813,7 +829,7 @@ export default function SetupPage() {
                   )}
                 </div>
 
-                <div className="rounded-lg border border-stone-200 p-4">
+                <div className="rounded-xl border border-line bg-cream p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -821,19 +837,19 @@ export default function SetupPage() {
                       onChange={(e) =>
                         setS2({ ...s2, isNewResident: e.target.checked })
                       }
-                      className="h-4 w-4 mt-0.5 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 mt-0.5 rounded border-line accent-brand-navy"
                     />
                     <div className="flex-1">
-                      <span className="text-sm font-medium text-stone-800">
+                      <span className="text-sm font-medium text-ink">
                         עולה חדש/ה
                       </span>
-                      <p className="text-xs text-stone-500 mt-0.5">
+                      <p className="text-xs text-muted mt-0.5">
                         זכאות ל-3 נקודות זיכוי בשלוש השנים הראשונות (שדה 044)
                       </p>
                     </div>
                   </label>
                   {s2.isNewResident && (
-                    <div className="mt-3 mr-7">
+                    <div className="mt-3 me-7">
                       <FieldLabel htmlFor="aliyahDate" required>
                         תאריך עלייה
                       </FieldLabel>
@@ -846,7 +862,7 @@ export default function SetupPage() {
                         dir="ltr"
                         max={new Date().toISOString().split("T")[0]}
                       />
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-muted">
                         נדרש לחישוב מספר שנות הזכאות לנקודות עולה חדש/ה
                       </p>
                     </div>
@@ -871,7 +887,7 @@ export default function SetupPage() {
                     placeholder="לדוגמה: 2022"
                   />
                   <ErrorMsg msg={errors.academicDegreeYear} />
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-muted">
                     זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
                   </p>
                 </div>
@@ -882,13 +898,13 @@ export default function SetupPage() {
                     <button
                       type="button"
                       onClick={addChild}
-                      className="text-xs text-blue-600 hover:underline font-medium"
+                      className="text-xs text-brand-deep hover:underline font-medium"
                     >
                       + הוסיפי ילד/ה
                     </button>
                   </div>
                   {s2.children.length === 0 ? (
-                    <p className="text-xs text-stone-400 py-2">
+                    <p className="text-xs text-faint py-2">
                       אין ילדים. נקודות זיכוי לילדים תלויות בגיל
                     </p>
                   ) : (
@@ -908,7 +924,7 @@ export default function SetupPage() {
                           <button
                             type="button"
                             onClick={() => removeChild(i)}
-                            className="rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50"
+                            className="rounded-xl border border-line px-3 py-2 text-sm text-muted hover:bg-cream hover:text-ink transition-colors"
                           >
                             הסירי
                           </button>
@@ -984,7 +1000,7 @@ export default function SetupPage() {
                 </div>
 
                 {s3.osekType === "patur" && (
-                  <div className="rounded-lg border border-stone-200 p-4">
+                  <div className="rounded-xl border border-line bg-cream p-4">
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -992,13 +1008,13 @@ export default function SetupPage() {
                         onChange={(e) =>
                           setS3({ ...s3, isOsekZeir: e.target.checked })
                         }
-                        className="h-4 w-4 mt-0.5 rounded border-stone-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 mt-0.5 rounded border-line accent-brand-navy"
                       />
                       <div className="flex-1">
-                        <span className="text-sm font-medium text-stone-800">
+                        <span className="text-sm font-medium text-ink">
                           מסלול עוסק זעיר (ניכוי 30% אוטומטי)
                         </span>
-                        <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                        <p className="text-xs text-muted mt-0.5 leading-relaxed">
                           לעוסק פטור עם מחזור עד 120,000 ₪. 30% מהמחזור מוכרים אוטומטית כהוצאות
                           (כולל ביטוח לאומי). אין חובת מקדמות. יציאה מהמסלול חוסמת חזרה לשנתיים.
                         </p>
@@ -1018,9 +1034,9 @@ export default function SetupPage() {
             {step === 4 && (
               <div className="space-y-4">
                 {/* ── Tax-year selector ─────────────────────────────────── */}
-                <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3">
+                <div className="rounded-xl bg-info/30 border border-brand-deep/20 px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-blue-800">
+                    <span className="text-sm font-medium text-brand-navy">
                       שנת המס
                     </span>
                     <div className="flex gap-2">
@@ -1032,8 +1048,8 @@ export default function SetupPage() {
                           className={cn(
                             "rounded-full px-4 py-1 text-sm font-semibold transition-colors border",
                             selectedYear === yr
-                              ? "bg-blue-700 text-white border-blue-700 shadow-sm"
-                              : "bg-white text-blue-700 border-blue-300 hover:bg-blue-100",
+                              ? "bg-brand-navy text-white border-brand-navy shadow-brand-sm"
+                              : "bg-paper text-brand-navy border-line hover:bg-cream hover:border-brand-deep/40",
                           )}
                         >
                           {yr}
@@ -1042,7 +1058,7 @@ export default function SetupPage() {
                     </div>
                   </div>
                   {selectedYear === 2025 && (
-                    <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-1.5 leading-relaxed">
+                    <p className="mt-2 text-xs text-due bg-due-bg/60 border border-due/30 rounded-lg px-3 py-1.5 leading-relaxed">
                       חלק מנתוני 2025 (תקרות קרן השתלמות, ביטוח לאומי ופנסיה)
                       הם ערכים זמניים הממתינים לאישור רשמי — יעודכנו עם פרסום
                       נתוני האינדקס הסופיים.
@@ -1067,7 +1083,7 @@ export default function SetupPage() {
                     placeholder="248500"
                   />
                   <ErrorMsg msg={errors.totalRevenue} />
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-muted">
                     זה מה שייכנס לשדות 238 ו-294 בטופס
                   </p>
                 </div>
@@ -1077,8 +1093,8 @@ export default function SetupPage() {
 
             {step === 5 && (
               <div className="space-y-4">
-                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex gap-2 items-start">
-                  <span className="mt-0.5 shrink-0 text-base">ℹ️</span>
+                <div className="rounded-xl border border-brand-deep/20 bg-info/30 px-4 py-3 text-sm text-brand-navy flex gap-2 items-start">
+                  <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
                   <span>
                     <span className="font-medium">הוצאות במטבע זר?</span>{" "}
                     המר/י לשקלים לפי שער יציג של בנק ישראל בתאריך כל חשבונית בנפרד. אם
@@ -1108,15 +1124,15 @@ export default function SetupPage() {
                     placeholder="47800"
                   />
                   <ErrorMsg msg={errors.totalDeductibleExpenses} />
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-muted">
                     {s3.osekType === "morshe"
                       ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
                       : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
                   </p>
                 </div>
 
-                <div className="border-t border-stone-200 pt-4 mt-2">
-                  <h3 className="text-sm font-semibold text-stone-800 mb-3">
+                <div className="border-t border-line pt-4 mt-2">
+                  <h3 className="text-sm font-semibold text-ink mb-3">
                     ניכויים אישיים (אופציונלי)
                   </h3>
                   <div className="space-y-3">
@@ -1140,7 +1156,7 @@ export default function SetupPage() {
                         placeholder="22340"
                       />
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-muted">
                         52% מהסכום מוכר לניכוי
                       </p>
                     </div>
@@ -1209,19 +1225,19 @@ export default function SetupPage() {
 
                 {previewNet !== null && (
                   <div className="countme-frame px-4 py-3 mt-4">
-                    <div className="text-xs text-stone-500 mb-1">
+                    <div className="text-xs text-muted mb-1">
                       הכנסה חייבת (הערכה לשדה 150)
                     </div>
                     <div
                       className={cn(
                         "text-2xl font-bold font-display",
-                        previewNet >= 0 ? "text-blue-700" : "text-red-600",
+                        previewNet >= 0 ? "text-brand-navy" : "text-alert",
                       )}
                     >
                       {previewNet.toLocaleString("he-IL")} ₪
                     </div>
                     {previewNet < 0 && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-alert mt-1">
                         הוצאות גבוהות מההכנסות, ייתכן הפסד עסקי לצורכי מס
                       </p>
                     )}
@@ -1232,7 +1248,7 @@ export default function SetupPage() {
 
             {step === 6 && (
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-stone-800">
+                <h3 className="text-sm font-semibold text-ink">
                   פרטי בנק להחזר
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -1306,44 +1322,44 @@ export default function SetupPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-stone-200 pt-5 mt-4">
-                  <h3 className="text-sm font-semibold text-stone-800 mb-3">
+                <div className="border-t border-line pt-5 mt-4">
+                  <h3 className="text-sm font-semibold text-ink mb-3">
                     סיכום מהיר
                   </h3>
                   <div className="countme-frame px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-stone-600">
+                      <span className="text-xs text-muted">
                         הכנסה חייבת (שדה 150)
                       </span>
-                      <span className="text-lg font-bold font-display text-blue-700">
+                      <span className="text-lg font-bold font-display text-brand-navy">
                         {previewNet !== null
                           ? `${previewNet.toLocaleString("he-IL")} ₪`
                           : "—"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-stone-600">
+                      <span className="text-xs text-muted">
                         מחזור שנתי (שדות 238/294)
                       </span>
-                      <span className="text-sm font-semibold">
+                      <span className="text-sm font-semibold text-ink">
                         {s4.totalRevenue
                           ? `${Number(s4.totalRevenue).toLocaleString("he-IL")} ₪`
                           : "—"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-stone-600">
+                      <span className="text-xs text-muted">
                         נקודות זיכוי משוערות
                       </span>
-                      <span className="text-sm font-semibold">
+                      <span className="text-sm font-semibold text-ink">
                         {creditPoints.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-stone-600">
+                      <span className="text-xs text-muted">
                         טופס 6111
                       </span>
-                      <span className="text-sm font-semibold">
+                      <span className="text-sm font-semibold text-ink">
                         {Number(s4.totalRevenue) >
                         getTaxYearConstants(selectedYear).form6111Threshold
                           ? "חייבת בהגשה"
@@ -1351,7 +1367,7 @@ export default function SetupPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="mt-3 text-xs text-stone-500 text-center">
+                  <p className="mt-3 text-xs text-faint text-center">
                     הנתונים נשמרים מקומית בדפדפן שלך, אין שמירה בשרת
                   </p>
                 </div>
@@ -1365,9 +1381,10 @@ export default function SetupPage() {
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="rounded-full border border-stone-300 px-5 py-2 text-sm text-stone-700 hover:bg-stone-100 transition-colors"
+                    className={btn("secondary", "sm")}
                   >
-                    ← חזרה
+                    <ArrowRightIcon className="size-4" />
+                    חזרה
                   </button>
                 ) : (
                   <div />
@@ -1377,27 +1394,29 @@ export default function SetupPage() {
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-sm"
+                    className={btn("primary", "sm")}
                   >
-                    הבא →
+                    הבא
+                    <ArrowLeftIcon className="size-4" />
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="rounded-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-sm font-medium transition-colors shadow-md shadow-blue-600/20"
+                    className={btn("primary")}
                   >
-                    הציגי את הדוח שלי →
+                    הציגי את הדוח שלי
+                    <ArrowLeftIcon className="size-4" />
                   </button>
                 )}
               </div>
             )}
           </div>
 
-          <p className="mt-4 text-center text-xs text-stone-400">
+          <p className="mt-4 text-center text-xs text-faint">
             רוצה לראות דמו עם נתונים בדיוניים?{" "}
-            <Link href="/demo" className="text-blue-600 hover:underline">
-              דלגי לדמו ←
+            <Link href="/demo" className="text-brand-deep hover:underline">
+              דלגי לדמו
             </Link>
           </p>
         </div>
@@ -1433,11 +1452,11 @@ function OsekZeirWarning({
   const lostDeduction = Math.round(totalExpenses - totalRevenue * 0.3);
 
   return (
-    <div className="mt-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-3">
+    <div className="mt-3 rounded-xl border-2 border-due/40 bg-due-bg/60 p-3">
       <div className="flex items-start gap-2">
-        <span className="text-amber-700 text-base shrink-0 mt-0.5">⚠</span>
-        <div className="flex-1 text-xs leading-relaxed text-amber-900">
-          <p className="font-bold mb-1">
+        <AlertTriangleIcon className="size-4 text-due shrink-0 mt-0.5" />
+        <div className="flex-1 text-xs leading-relaxed text-ink">
+          <p className="font-bold mb-1 text-due">
             שימי לב — מסלול זעיר עשוי להפסיד לך הוצאות
           </p>
           <p>
@@ -1451,7 +1470,7 @@ function OsekZeirWarning({
             ב-<strong>{lostDeduction.toLocaleString("he-IL")} ₪</strong> של
             הוצאות אמיתיות.
           </p>
-          <p className="mt-1.5 text-amber-700">
+          <p className="mt-1.5 text-due">
             מומלץ לבטל את המסלול ולדווח בדרך הרגילה (עוסק פטור) כדי לקבל הכרה
             מלאה בכל ההוצאות.
           </p>
