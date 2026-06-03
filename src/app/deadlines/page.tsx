@@ -3,6 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
+import {
+  BellIcon,
+  ChevronDownIcon,
+  ClipboardCheckIcon,
+  FileTextIcon,
+  PercentIcon,
+  ShieldIcon,
+  XIcon,
+} from "@/components/brand/icons";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
 import {
@@ -26,16 +39,22 @@ const AUTHORITY_LABEL: Record<Authority, string> = {
 };
 
 const AUTHORITY_STYLE: Record<Authority, string> = {
-  "mas-hachnasa": "bg-info/40 text-brand-navy",
-  maam: "bg-amber-100 text-amber-800",
-  "bituach-leumi": "bg-emerald-100 text-emerald-800",
+  "mas-hachnasa": "bg-info text-brand-navy",
+  maam: "bg-due-bg text-[#7d6422]",
+  "bituach-leumi": "bg-success-light text-success",
 };
 
-function proximityStyle(days: number): { box: string; chip: string } {
-  if (days <= 3) return { box: "border-alert/40", chip: "bg-alert/10 text-alert" };
-  if (days <= 7) return { box: "border-amber-300", chip: "bg-amber-100 text-amber-800" };
-  if (days <= 21) return { box: "border-brand-navy/20", chip: "bg-info/40 text-brand-navy" };
-  return { box: "border-stone-200", chip: "bg-stone-100 text-stone-500" };
+function AuthorityIcon({ authority, className }: { authority: Authority; className?: string }) {
+  if (authority === "maam") return <PercentIcon className={className} />;
+  if (authority === "bituach-leumi") return <ShieldIcon className={className} />;
+  return <FileTextIcon className={className} />;
+}
+
+/** Map days-until-due to the kit's traffic-light status. */
+function deadlineStatus(days: number): Status {
+  if (days <= 3) return "overdue";
+  if (days <= 10) return "due";
+  return "plan";
 }
 
 export default function DeadlinesPage() {
@@ -57,25 +76,24 @@ export default function DeadlinesPage() {
   if (!persona) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="animate-pulse text-stone-400">טוען…</div>
+        <div className="animate-pulse text-faint">טוען…</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white border-b border-line">
         <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe · לוח מועדים</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={24} />
+            <span className="text-base font-semibold text-muted">· לוח מועדים</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/alerts" className="rounded-full border border-amber-300 px-3 py-1 text-xs text-amber-800 hover:bg-amber-50">
-              🔔 התראות
+            <Link href="/alerts" className={btn("secondary", "sm")}>
+              <BellIcon className="size-4" /> התראות
             </Link>
-            <Link href="/dashboard" className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20">
+            <Link href="/dashboard" className={btn("secondary", "sm")}>
               דשבורד ←
             </Link>
           </div>
@@ -86,7 +104,7 @@ export default function DeadlinesPage() {
         <h1 className="font-display text-2xl font-bold text-brand-navy mb-1">
           לוח מועדי הגשה
         </h1>
-        <p className="text-sm text-stone-500 mb-6">
+        <p className="text-sm text-muted mb-6">
           מועדים קרובים עבור {persona.business.osekType === "patur" ? "עוסק פטור" : "עוסק מורשה"} ·
           ניתן להוסיף הערה / פולו-אפ לכל מועד.
         </p>
@@ -97,7 +115,7 @@ export default function DeadlinesPage() {
           ))}
         </div>
 
-        <p className="mt-6 text-[10px] text-stone-400 leading-relaxed">
+        <p className="mt-6 text-[10px] text-faint leading-relaxed">
           המועדים מחושבים מתוך לוח מובנה (`lib/deadlines`) ואינם כוללים הזזת שבת/חג — לאימות סופי
           מול רשות המסים/ביטוח לאומי. הערות הפולו-אפ נשמרות מקומית בדפדפן (גרסה ראשונה, ללא שרת).
         </p>
@@ -110,7 +128,7 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
   const [notes, setNotes] = useState<FollowUpNote[]>([]);
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
-  const prox = proximityStyle(d.daysUntilDue);
+  const status = deadlineStatus(d.daysUntilDue);
 
   useEffect(() => {
     setNotes(getNotes(d.id));
@@ -125,32 +143,42 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
   const openCount = notes.filter((n) => !n.done).length;
 
   return (
-    <section className={`rounded-2xl border bg-white p-4 ${prox.box}`}>
+    <section className="relative overflow-hidden rounded-2xl border border-line bg-paper p-4 shadow-brand">
+      {/* status edge stripe on the inline-end (RTL-aware) */}
+      <span className={cn("absolute inset-y-0 end-0 w-1", statusStripe(status))} />
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${AUTHORITY_STYLE[d.authority]}`}>
-              {AUTHORITY_LABEL[d.authority]}
-            </span>
-            <h3 className="font-semibold text-brand-navy">{d.titleHe}</h3>
+        <div className="flex items-start gap-3 min-w-0">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sand text-teal-600">
+            <AuthorityIcon authority={d.authority} className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", AUTHORITY_STYLE[d.authority])}>
+                {AUTHORITY_LABEL[d.authority]}
+              </span>
+              <h3 className="font-bold text-brand-navy">{d.titleHe}</h3>
+            </div>
+            <div className="mt-1 text-xs text-muted">{dueLabel} · {d.dueRule}</div>
+            {d.notesHe && <div className="mt-1 text-[11px] text-faint">{d.notesHe}</div>}
           </div>
-          <div className="mt-1 text-xs text-stone-500">{dueLabel} · {d.dueRule}</div>
-          {d.notesHe && <div className="mt-1 text-[11px] text-stone-400">{d.notesHe}</div>}
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${prox.chip}`}>
+        <StatusBadge status={status} className="shrink-0">
           {d.daysUntilDue === 0 ? "היום" : `בעוד ${d.daysUntilDue} ימים`}
-        </span>
+        </StatusBadge>
       </div>
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="mt-3 text-xs text-brand-navy hover:underline"
+        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-deep hover:text-teal-600"
       >
-        📝 פולו-אפ / הערות{openCount > 0 ? ` (${openCount} פתוחות)` : ""} {open ? "▲" : "▼"}
+        <ClipboardCheckIcon className="size-4" />
+        פולו-אפ / הערות{openCount > 0 ? ` (${openCount} פתוחות)` : ""}
+        <ChevronDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="mt-2 rounded-xl bg-stone-50 border border-stone-200 p-3">
+        <div className="mt-2 rounded-xl bg-cream border border-line p-3">
           <div className="flex gap-2">
             <input
               value={draft}
@@ -162,14 +190,14 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
                 }
               }}
               placeholder="הוסף הערה / משימת המשך…"
-              className="flex-1 rounded-lg border border-stone-300 px-3 py-1.5 text-sm focus:border-brand-navy focus:outline-none"
+              className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm focus:border-brand-deep focus:outline-none"
             />
             <button
               onClick={() => {
                 setNotes(addNote(d.id, draft));
                 setDraft("");
               }}
-              className="rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy/90"
+              className={btn("primary", "sm")}
             >
               הוסף
             </button>
@@ -185,15 +213,15 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
                     onChange={() => setNotes(toggleNoteDone(d.id, n.id))}
                     className="accent-brand-navy"
                   />
-                  <span className={`flex-1 ${n.done ? "line-through text-stone-400" : "text-stone-700"}`}>
+                  <span className={cn("flex-1", n.done ? "line-through text-faint" : "text-ink")}>
                     {n.text}
                   </span>
                   <button
                     onClick={() => setNotes(deleteNote(d.id, n.id))}
-                    className="text-stone-300 hover:text-alert text-xs"
+                    className="text-faint hover:text-alert"
                     aria-label="מחק הערה"
                   >
-                    ✕
+                    <XIcon className="size-3.5" />
                   </button>
                 </li>
               ))}
