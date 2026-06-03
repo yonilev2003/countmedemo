@@ -2,6 +2,25 @@
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 03/06/2026 — Brand Kit + ריברנד מלא
+
+ענף `claude/adoring-brahmagupta-u8no8`. CommitHead: `fae935b`.
+
+**מה נעשה:**
+- **Brand Kit** הועלה לריפו כ-`Brand Kit/` (8 קבצי HTML + README.md) — הועלה מ-ZIP שסופק ישירות.
+- **טוקנים:** `src/app/globals.css` עודכן עם `@theme inline` — צבעי נייבי/בז'/טיל מחליפים את צבעי amber הישנים; טוקני gov.il נשמרו לצד הטוקנים החדשים.
+- **פונט:** `src/app/layout.tsx` עבר מ-Heebo/Rubik → `Assistant` (משתנה יחיד `--font-assistant`, Hebrew+Latin, Google Fonts).
+- **קומפוננטות brand חדשות:** `src/components/brand/logo.tsx` (LogoMark ¢ + לוגו), `button.tsx` (`btn()` עוזר), `icons.tsx` (35+ אייקוני קו, 1.75px stroke, ללא fill, ללא emoji), `status.tsx` (StatusBadge עם traffic-light: on-track/due/overdue/plan).
+- **ריברנד 6 דפים במקביל** (git worktrees): `/` (landing), `/setup`, `/dashboard`, `/coach`+chat, `/invoices`, `/deadlines`. + תיקון ידני של `ceiling-alert.tsx`.
+- **`/demo` לא נגע** — הפורם נשאר faithful ל-gov.il (החלטה נעולה).
+
+**בעיות שפתרנו:**
+- 3 worktrees היו על base ישן (לפני brand foundation) → פתרנו עם `git checkout <branch> -- <files>` סלקטיבי במקום מיזוג שהיה מוחק את `Brand Kit/` ו-`src/components/brand/`.
+- Hook גרסה של git commits (committer לא נכון) → תוקן עם `git rebase --exec "git commit --amend --no-edit --reset-author"`.
+- `ceiling-alert.tsx` לא היה בסקופ של אף agent → תוקן ידנית.
+
+**אומת:** build עבר, tsc נקי. אימות ויזואלי בדפדפן ממתין למשתמש.
+
 ## סבב 31/05/2026 — מחזור-החיים של שנות המס + ליטוש (9 קומיטים)
 
 ענף `claude/great-sagan-eqzCH`. בנוי משני שלבים.

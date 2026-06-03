@@ -49,7 +49,8 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Database | Supabase | Postponed — connecting Day 2+ |
 | AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
 | Lang/dir | Hebrew, RTL only | Target market |
-| Fonts | Heebo (body), Rubik (display) | Both have native Hebrew |
+| Fonts | Assistant (single variable, body + display) | Google Fonts, native Hebrew, replaced Heebo/Rubik (2026-06-03) |
+| Brand system | Navy `#083A4F` / beige `#C8B59A` / teal `#407E8C` — tokens in `globals.css`, primitives in `src/components/brand/` | Full kit at `Brand Kit/README.md`; see "Design system" section below |
 | Form approach | Visual reference, not 1:1 React rebuild | User's call — saves time, demo's purpose is "show what to fill" |
 | Persona format | Single JSON file at `personas/dana-cohen.json` | Swappable; replace fields when running with real data |
 
@@ -149,10 +150,15 @@ src/
 │   ├── api/chat/route.ts         # Anthropic chat (rate-limited, validated)
 │   ├── api/upload/route.ts       # Document parser: xlsx via exceljs + PDF via Claude vision
 │   ├── error.tsx, global-error.tsx # Hebrew error boundaries
-│   ├── layout.tsx                # RTL Hebrew + Heebo/Rubik fonts
-│   └── globals.css               # Tax-authority palette + countme brand
+│   ├── layout.tsx                # RTL Hebrew + Assistant font (variable --font-assistant)
+│   └── globals.css               # @theme inline: brand tokens (navy/beige/teal) + gov.il tokens KEPT
 ├── components/
-│   ├── form-1301/                # The form preview UI
+│   ├── brand/                    # Brand primitives (kit-compliant, no emoji, no gov.il styles)
+│   │   ├── logo.tsx              # LogoMark SVG (¢ cut-circle) + Logo lockup
+│   │   ├── button.tsx            # btn() class helper: primary/secondary/ghost/gold, pill shape
+│   │   ├── icons.tsx             # 35+ line icons: 24px grid, 1.75px stroke, currentColor, no fill
+│   │   └── status.tsx            # StatusBadge + statusStripe: on-track/due/overdue/plan
+│   ├── form-1301/                # The form preview UI (gov.il styles ONLY — untouched by rebrand)
 │   │   ├── form-preview.tsx      # Tabs + sections + fields (gov.il blue-grey palette)
 │   │   └── interactive-value.tsx # Clickable calculated number with tooltip
 │   ├── agent/
@@ -275,7 +281,7 @@ The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscio
 
 | Element | Real gov.il | countme | Why |
 |---|---|---|---|
-| Outer frame | None | Yellow dashed border + "✦ countme" branding | Visual signal "this is countme, not the real form" |
+| Outer frame | None | Beige dashed border (`#C8B59A`, 3px) + "countme" LogoMark branding | Visual signal "this is countme, not the real form" — updated to brand kit palette (2026-06-03) |
 | Calculated value boxes | Plain gray input | Pastel yellow with dashed gold border (`#fff8d6` / `#d4af37`) | Subtle highlight — the value is pre-computed; tooltip on click |
 | Section headers | Cream/gold band | Blue-grey gradient (`#cdddec` → `#dde7f0`) with navy text | Faithful match — gov.il uses blue-grey, never cream |
 | Filled persona inputs | White box | Light blue bg (`#eef3f8`) with navy border | Faithful match — gov.il highlights filled fields with blue tint |
@@ -296,6 +302,31 @@ The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscio
 - PDF parsed via **Claude Haiku 4.5 vision** with per-doc prompts that return JSON
 - Extracted fields auto-populate the wizard state (firstName/lastName, osekType, totalRevenue, totalDeductibleExpenses, donations)
 - Returning users with a persona in localStorage skip step 0 and land on step 1 directly
+
+## Brand Kit design system (added 2026-06-03)
+
+Full kit lives at `Brand Kit/README.md` (committed). Key rules for every AI session:
+
+- **No emoji anywhere** — the kit explicitly bans them. Use line icons from `src/components/brand/icons.tsx`.
+- **Font:** `Assistant` only (Google Fonts, Hebrew + Latin). Variable `--font-assistant`. No Heebo, no Rubik.
+- **Palette** (via Tailwind `@theme inline` in `globals.css`):
+  | Token | Hex | Use |
+  |---|---|---|
+  | `brand-navy` | `#083A4F` | Primary CTA, headings, dark surfaces |
+  | `brand` (beige) | `#C8B59A` | Accent, logo, borders |
+  | `brand-deep` (teal) | `#407E8C` | Interactive, links, focus |
+  | `cream` | `#F1EFEA` | Page background |
+  | `paper` | `#FBFAF8` | Card surface |
+  | `success` | `#3E8E78` | On-track / paid |
+  | `due` | `#A88A3F` | Deadline approaching |
+  | `alert` | `#C05B45` | Overdue / error |
+  | gov.il tokens | kept as-is | `tax-blue`, `tax-yellow`, etc. — for form-1301 only |
+
+- **Traffic-light status system:** `on-track` (green) · `due` (gold) · `overdue` (terracotta) · `plan` (teal). Always use `<StatusBadge>` from `src/components/brand/status.tsx`.
+- **`/demo` form is exempt** from brand tokens — all `gov-*` and tax-authority classes inside `form-preview.tsx` stay gov.il faithful.
+- **Buttons:** always use `btn(variant, size)` from `src/components/brand/button.tsx`. Variants: `primary` / `secondary` / `ghost` / `gold`. All are pill-shaped.
+- **Shadows:** `shadow-brand` (soft navy lift). No tailwind `shadow-md/lg` on countme surfaces.
+- **RTL:** use logical properties (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`) everywhere. Avoid `ml-`/`mr-`.
 
 ## Why we are NOT integrating these (right now)
 

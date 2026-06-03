@@ -3,6 +3,17 @@
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## Brand Kit (נעול 03/06/2026)
+
+| החלטה | ערך | הנמקה |
+|---|---|---|
+| פונט | **Assistant** בלבד (משתנה `--font-assistant`) | מחליף Heebo/Rubik — פונט יחיד לכל גופות האפליקציה, Hebrew+Latin, Google Fonts. סופי. |
+| פלטת צבעים | נייבי `#083A4F` / בז' `#C8B59A` / טיל `#407E8C` | מחליף את צבעי amber הישנים. טוקנים ב-`globals.css`, לא לשנות ישירות בקומפוננטות. סופי. |
+| Brand primitives | `src/components/brand/{logo,button,icons,status}.tsx` | מקור-אמת לכל UI מחוץ ל-`/demo`. אסור לכתוב כפתור/אייקון ישירות — רק דרך הפרימיטיבים. |
+| `/demo` exempt | הפורם ב-`/demo` לא עבר ריברנד | gov.il faithful — החלטה נעולה מהתחלה. כל `gov-*` class בפורם — לא לגעת. |
+| emoji = אסור | ללא emoji בכל האפליקציה | Brand Kit README אומר מפורשות "No emoji". רק אייקוני קו מ-`icons.tsx`. |
+| Brand Kit מיקום | `Brand Kit/README.md` | קנוני לכל AI session עתידי — לקרוא לפני עבודת UI. |
+
 ## מודל שנות-המס (נעול 31/05/2026)
 
 | החלטה | ערך | הנמקה |
