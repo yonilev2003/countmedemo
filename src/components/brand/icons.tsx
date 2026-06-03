@@ -136,3 +136,231 @@ export function ShieldIcon({ className }: IconProps) {
     </LineIcon>
   );
 }
+
+export function SearchIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.35-4.35" />
+    </LineIcon>
+  );
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </LineIcon>
+  );
+}
+
+export function Trash2Icon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+      <path d="M10 11v6M14 11v6" />
+    </LineIcon>
+  );
+}
+
+export function PencilIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </LineIcon>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M12 3v12M7 10l5 5 5-5" />
+      <path d="M5 21h14" />
+    </LineIcon>
+  );
+}
+
+export function CheckIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M20 6L9 17l-5-5" />
+    </LineIcon>
+  );
+}
+
+export function CheckCircleIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12.5l2.5 2.5L16 9" />
+    </LineIcon>
+  );
+}
+
+export function ArrowLeftIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M19 12H5M11 6l-6 6 6 6" />
+    </LineIcon>
+  );
+}
+
+export function ArrowRightIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </LineIcon>
+  );
+}
+
+export function UserIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+    </LineIcon>
+  );
+}
+
+export function WalletIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <rect x="3" y="6" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <circle cx="17" cy="14" r="1.3" />
+    </LineIcon>
+  );
+}
+
+export function ReceiptIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M5 3v18l2-1 2 1 2-1 2 1 2-1 2 1V3l-2 1-2-1-2 1-2-1-2 1z" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </LineIcon>
+  );
+}
+
+export function TrendingUpIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M3 17l6-6 4 4 7-7" />
+      <path d="M17 7h4v4" />
+    </LineIcon>
+  );
+}
+
+export function TrendingDownIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M3 7l6 6 4-4 7 7" />
+      <path d="M17 17h4v-4" />
+    </LineIcon>
+  );
+}
+
+export function PieChartIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M21 15.5A9 9 0 1 1 8.5 3" />
+      <path d="M21.5 12A9.5 9.5 0 0 0 12 2.5V12z" />
+    </LineIcon>
+  );
+}
+
+export function AlertTriangleIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </LineIcon>
+  );
+}
+
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 16v-4M12 8h.01" />
+    </LineIcon>
+  );
+}
+
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </LineIcon>
+  );
+}
+
+export function MailIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </LineIcon>
+  );
+}
+
+export function PhoneIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M5 4h4l2 5-3 2a14 14 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 3 6a2 2 0 0 1 2-2z" />
+    </LineIcon>
+  );
+}
+
+export function BuildingIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <rect x="4" y="3" width="16" height="18" rx="1" />
+      <path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
+    </LineIcon>
+  );
+}
+
+export function CreditCardIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </LineIcon>
+  );
+}
+
+export function PaperclipIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M21 11l-9 9a5 5 0 0 1-7-7l9-9a3.5 3.5 0 0 1 5 5l-9 9a2 2 0 0 1-3-3l8-8" />
+    </LineIcon>
+  );
+}
+
+export function MicIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </LineIcon>
+  );
+}
+
+export function SendIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+    </LineIcon>
+  );
+}
+
+export function HomeIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+    </LineIcon>
+  );
+}
