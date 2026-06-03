@@ -13,6 +13,15 @@ import { PL_IMPACT_LABEL } from "@/lib/regulatory/deductions";
 import { cn } from "@/lib/utils";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  ArrowLeftIcon,
+  SettingsIcon,
+  InfoIcon,
+  CheckCircleIcon,
+  AlertTriangleIcon,
+} from "@/components/brand/icons";
 
 export default function BusinessExpensesPage() {
   const router = useRouter();
@@ -29,8 +38,8 @@ export default function BusinessExpensesPage() {
 
   if (!persona) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <div className="text-sm text-stone-500">טוען...</div>
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="text-sm text-muted">טוען...</div>
       </div>
     );
   }
@@ -41,33 +50,25 @@ export default function BusinessExpensesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="bg-white border-b border-stone-200">
+    <div className="min-h-screen bg-cream">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
+              <Logo size={28} />
             </Link>
-            <div>
-              <div className="text-base font-bold leading-tight">CountMe</div>
-              <div className="text-[11px] text-stone-500 leading-tight">
-                מדריך הוצאות עסקיות
-              </div>
-            </div>
+            <span className="text-[11px] text-muted leading-tight">
+              מדריך הוצאות עסקיות
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/demo"
-              className="rounded-full border border-info px-3 py-1 text-xs text-brand-navy hover:bg-info/30 transition-colors"
-            >
-              ← חזור לדו״ח
+            <Link href="/demo" className={btn("secondary", "sm")}>
+              <ArrowLeftIcon className="size-3.5" />
+              חזור לדו״ח
             </Link>
-            <Link
-              href="/setup"
-              className="rounded-full border border-stone-300 px-3 py-1 text-xs text-stone-700 hover:bg-stone-100"
-            >
+            <Link href="/setup" className={btn("ghost", "sm")}>
+              <SettingsIcon className="size-3.5" />
               עדכן נתונים
             </Link>
           </div>
@@ -76,25 +77,28 @@ export default function BusinessExpensesPage() {
 
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {/* Hero */}
-        <div className="rounded-2xl border-2 border-info bg-gradient-to-l from-info/30 to-white p-6 mb-6">
+        <div className="rounded-2xl border border-line bg-paper shadow-brand p-6 mb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-[11px] font-bold text-brand-navy uppercase tracking-wider mb-1">
+              <div className="text-[11px] font-bold text-brand-deep uppercase tracking-wider mb-1">
                 מותאם לעסק שלך
               </div>
-              <h1 className="text-2xl font-extrabold text-stone-900 mb-1">
+              <h1 className="text-2xl font-extrabold text-brand-navy mb-1">
                 {profile.label}
               </h1>
-              <p className="text-sm text-stone-600">{profile.tagline}</p>
+              <p className="text-sm text-muted">{profile.tagline}</p>
             </div>
             <BusinessChip persona={persona} />
           </div>
 
-          <div className="mt-5 rounded-xl bg-white border border-info px-4 py-3 text-[12px] text-stone-700 leading-relaxed">
-            <span className="font-bold text-brand-navy">💡 איך להשתמש: </span>
-            הקטגוריות למטה מותאמות לעיסוק <strong>{persona.business.primaryOccupation}</strong>.
-            כל הוצאה מוגדרת לפי כללי פקודת מס הכנסה {persona.income.year} — מה מוכר במלואו, מה חלקית,
-            ומה כפחת לאורך שנים. שמרי קבלות, ובסוף השנה — הזיני לדו״ח 1301 שלך.
+          <div className="mt-5 rounded-xl bg-cream border border-line px-4 py-3 text-[12px] text-muted leading-relaxed flex items-start gap-2">
+            <InfoIcon className="size-4 shrink-0 mt-0.5 text-brand-deep" />
+            <span>
+              <span className="font-bold text-brand-navy">איך להשתמש: </span>
+              הקטגוריות למטה מותאמות לעיסוק <strong>{persona.business.primaryOccupation}</strong>.
+              כל הוצאה מוגדרת לפי כללי פקודת מס הכנסה {persona.income.year} — מה מוכר במלואו, מה חלקית,
+              ומה כפחת לאורך שנים. שמרי קבלות, ובסוף השנה — הזיני לדו״ח 1301 שלך.
+            </span>
           </div>
         </div>
 
@@ -121,19 +125,19 @@ function BusinessChip({ persona }: { persona: Persona }) {
   const osekLabel =
     persona.business.osekType === "patur" ? "עוסק פטור" : "עוסק מורשה";
   return (
-    <div className="rounded-xl bg-white border border-stone-200 px-4 py-3 text-[11px] shrink-0 max-w-[260px]">
-      <div className="font-bold text-stone-800 truncate">
+    <div className="rounded-2xl bg-cream border border-line px-4 py-3 text-[11px] shrink-0 max-w-[260px]">
+      <div className="font-bold text-ink truncate">
         {persona.business.tradeName}
       </div>
-      <div className="text-stone-500 truncate mt-0.5">
+      <div className="text-muted truncate mt-0.5">
         {persona.business.primaryOccupation}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="inline-block rounded-full bg-stone-100 px-2 py-0.5 text-[10px] text-stone-600">
+        <span className="inline-block rounded-full bg-sand px-2 py-0.5 text-[10px] text-muted">
           {osekLabel}
         </span>
         {persona.business.isOsekZeir && (
-          <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] text-amber-800 font-bold">
+          <span className="inline-block rounded-full bg-brand/20 px-2 py-0.5 text-[10px] text-brand-navy font-bold">
             עוסק זעיר
           </span>
         )}
@@ -148,8 +152,8 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
     category.rule === "full"
       ? "bg-success-light text-brand-navy border-success/50"
       : category.rule === "partial"
-        ? "bg-info text-brand-navy border-info"
-        : "bg-purple-100 text-purple-800 border-purple-300";
+        ? "bg-info text-brand-navy border-brand-deep/30"
+        : "bg-aqua-soft text-brand-deep border-brand-deep/30";
 
   // Every business expense ultimately reduces business income (field 150);
   // universal items carry their explicit field(s) from the deductions registry.
@@ -159,18 +163,18 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
     : PL_IMPACT_LABEL["operating-expense"];
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-stone-100">
+    <div className="rounded-2xl border border-line bg-paper shadow-brand overflow-hidden">
+      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-line">
         <div>
-          <h3 className="text-base font-bold text-stone-900">{category.name}</h3>
-          <p className="text-[12px] text-stone-600 mt-1 leading-relaxed">
+          <h3 className="text-base font-bold text-brand-navy">{category.name}</h3>
+          <p className="text-[12px] text-muted mt-1 leading-relaxed">
             {category.description}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             {fields.map((f) => (
               <span
                 key={f}
-                className="inline-flex items-center rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] font-mono text-stone-600"
+                className="inline-flex items-center rounded-md bg-sand px-1.5 py-0.5 text-[10px] font-mono text-muted"
                 title="שדה בטופס 1301 שהסכום מוזן אליו"
               >
                 שדה {f}
@@ -191,12 +195,15 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
         </span>
       </div>
 
-      <div className="px-5 py-3 bg-success-light/30 text-[12px]">
-        <div className="font-semibold text-stone-700 mb-1.5">דוגמאות:</div>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-stone-600">
+      <div className="px-5 py-3 bg-success-light/20 text-[12px]">
+        <div className="flex items-center gap-1.5 font-semibold text-muted mb-1.5">
+          <CheckCircleIcon className="size-3.5 text-success" />
+          דוגמאות:
+        </div>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 text-muted">
           {category.examples.map((ex, i) => (
             <li key={i} className="flex gap-1.5">
-              <span className="text-brand-navy">•</span>
+              <span className="text-brand-deep">•</span>
               <span>{ex}</span>
             </li>
           ))}
@@ -204,8 +211,8 @@ function CategoryCard({ category }: { category: ExpenseCategory }) {
       </div>
 
       {category.warning && (
-        <div className="px-5 py-2.5 bg-amber-50 border-t border-amber-200 text-[11px] text-amber-900">
-          <span className="font-bold">⚠ </span>
+        <div className="px-5 py-2.5 bg-due-bg/40 border-t border-due/30 text-[11px] text-ink flex items-start gap-1.5">
+          <AlertTriangleIcon className="size-3.5 shrink-0 mt-0.5 text-due" />
           {category.warning}
         </div>
       )}
@@ -223,7 +230,7 @@ function ruleDisplayLabel(c: ExpenseCategory): string {
 
 function FooterDisclaimer({ year }: { year: number }) {
   return (
-    <div className="mt-8 text-center text-[11px] text-stone-400 leading-relaxed">
+    <div className="mt-8 text-center text-[11px] text-faint leading-relaxed">
       <p>
         המידע המוצג מבוסס על פקודת מס הכנסה ({year}) ופרסומים פומביים של רשות המסים.
         קטגוריות והכרה ספציפית עשויות להשתנות לפי מצב העסק. לפני הגשת הדו״ח —

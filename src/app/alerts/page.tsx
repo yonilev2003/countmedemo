@@ -7,90 +7,97 @@ import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
 import { Alert, AlertSeverity, generateAllAlerts } from "@/lib/alerts/index";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  StatusBadge,
+  type Status,
+} from "@/components/brand/status";
+import {
+  BellIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  CheckCircleIcon,
+} from "@/components/brand/icons";
+
+// ─── Severity → brand status mapping ─────────────────────────────────────────
+
+const SEVERITY_STATUS: Record<AlertSeverity, Status> = {
+  alert: "overdue",
+  warn: "due",
+  info: "plan",
+  ok: "on-track",
+};
+
+const SEVERITY_CARD: Record<AlertSeverity, string> = {
+  alert: "border-s-2 border-s-alert bg-overdue-bg/30",
+  warn: "border-s-2 border-s-due bg-due-bg/30",
+  info: "border-s-2 border-s-brand-deep bg-info/30",
+  ok: "border-s-2 border-s-success bg-success-light/30",
+};
+
+const SEVERITY_BADGE_LABEL: Record<AlertSeverity, string> = {
+  alert: "דחוף",
+  warn: "שים לב",
+  info: "מידע",
+  ok: "תקין",
+};
+
+function SeverityIcon({
+  severity,
+  className,
+}: {
+  severity: AlertSeverity;
+  className?: string;
+}) {
+  if (severity === "alert" || severity === "warn") {
+    return <AlertTriangleIcon className={cn("text-alert", severity === "warn" && "text-due", className)} />;
+  }
+  if (severity === "ok") {
+    return <CheckCircleIcon className={cn("text-success", className)} />;
+  }
+  return <InfoIcon className={cn("text-brand-deep", className)} />;
+}
 
 // ─── Alert card ───────────────────────────────────────────────────────────────
 
-const SEVERITY_STYLES: Record<
-  AlertSeverity,
-  {
-    card: string;
-    icon: string;
-    badge: string;
-    badgeText: string;
-    label: string;
-  }
-> = {
-  alert: {
-    card: "bg-red-50 border-red-300",
-    icon: "🔴",
-    badge: "bg-red-100 text-red-800 border border-red-200",
-    badgeText: "דחוף",
-    label: "alert",
-  },
-  warn: {
-    card: "bg-amber-50 border-amber-300",
-    icon: "🟡",
-    badge: "bg-amber-100 text-amber-800 border border-amber-200",
-    badgeText: "שים לב",
-    label: "warn",
-  },
-  info: {
-    card: "bg-blue-50 border-blue-200",
-    icon: "🔵",
-    badge: "bg-blue-100 text-blue-800 border border-blue-200",
-    badgeText: "מידע",
-    label: "info",
-  },
-  ok: {
-    card: "bg-emerald-50 border-emerald-200",
-    icon: "🟢",
-    badge: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-    badgeText: "תקין",
-    label: "ok",
-  },
-};
-
 function AlertCard({ alert }: { alert: Alert }) {
-  const styles = SEVERITY_STYLES[alert.severity];
+  const cardBorder = SEVERITY_CARD[alert.severity];
+  const status = SEVERITY_STATUS[alert.severity];
 
   return (
     <div
       className={cn(
-        "rounded-xl border p-5 space-y-3 transition-shadow hover:shadow-md",
-        styles.card,
+        "rounded-2xl border border-line bg-paper shadow-brand-sm overflow-hidden transition-shadow hover:shadow-brand",
+        cardBorder,
       )}
       role="alert"
       aria-live="polite"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 px-5 py-4">
         <div className="flex items-start gap-3 min-w-0">
-          <span className="text-xl mt-0.5 shrink-0" aria-hidden="true">
-            {styles.icon}
+          <span className="shrink-0 mt-0.5" aria-hidden="true">
+            <SeverityIcon severity={alert.severity} className="size-5" />
           </span>
           <div className="min-w-0">
-            <div className="font-semibold text-stone-900 leading-snug">
+            <div className="font-semibold text-brand-navy leading-snug">
               {alert.headlineHe}
             </div>
-            <div className="mt-1 text-sm text-stone-600 leading-relaxed">
+            <div className="mt-1 text-sm text-muted leading-relaxed">
               {alert.detailHe}
             </div>
           </div>
         </div>
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold",
-            styles.badge,
-          )}
-        >
-          {styles.badgeText}
-        </span>
+        <StatusBadge status={status} showDot className="shrink-0">
+          {SEVERITY_BADGE_LABEL[alert.severity]}
+        </StatusBadge>
       </div>
 
       {alert.cta && (
-        <div className="pt-1">
+        <div className="px-5 pb-4 pt-0">
           <Link
             href={alert.cta.href}
-            className="inline-flex items-center gap-1 rounded-lg bg-white/70 border border-stone-300 px-3 py-1.5 text-xs font-medium text-brand-navy hover:bg-white transition-colors"
+            className={btn("secondary", "sm")}
           >
             {alert.cta.labelHe}
           </Link>
@@ -105,11 +112,13 @@ function AlertCard({ alert }: { alert: Alert }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="text-5xl mb-4">✅</div>
+      <span className="mb-4 grid size-16 place-items-center rounded-full bg-success-light text-success">
+        <CheckCircleIcon className="size-8" />
+      </span>
       <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
         הכל תקין!
       </h2>
-      <p className="text-stone-500 text-sm max-w-xs leading-relaxed">
+      <p className="text-muted text-sm max-w-xs leading-relaxed">
         אין התראות פעילות כרגע. כשיהיה משהו שדורש תשומת לב — נציג כאן.
       </p>
     </div>
@@ -118,11 +127,7 @@ function EmptyState() {
 
 // ─── Badge for unread count in header ────────────────────────────────────────
 
-function SeverityCount({
-  alerts,
-}: {
-  alerts: Alert[];
-}) {
+function SeverityCount({ alerts }: { alerts: Alert[] }) {
   const urgentCount = alerts.filter(
     (a) => a.severity === "alert" || a.severity === "warn",
   ).length;
@@ -130,7 +135,7 @@ function SeverityCount({
   if (urgentCount === 0) return null;
 
   return (
-    <span className="inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold h-4 min-w-4 px-1">
+    <span className="inline-flex items-center justify-center rounded-full bg-alert text-white text-[10px] font-bold h-4 min-w-4 px-1">
       {urgentCount}
     </span>
   );
@@ -161,32 +166,22 @@ export default function AlertsPage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe · התראות</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={24} />
+            <span className="text-sm font-semibold text-muted">· התראות</span>
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20 transition-colors"
-            >
-              דשבורד ←
+            <Link href="/dashboard" className={btn("secondary", "sm")}>
+              דשבורד
             </Link>
-            <Link
-              href="/demo"
-              className="rounded-full border border-brand-navy/20 px-3 py-1 text-xs text-brand-navy hover:bg-info/20 transition-colors"
-            >
-              לדוח 1301 ←
+            <Link href="/demo" className={btn("secondary", "sm")}>
+              לדוח 1301
             </Link>
-            <Link
-              href="/coach"
-              className="rounded-full border border-success/30 px-3 py-1 text-xs text-success hover:bg-success/10 transition-colors"
-            >
-              ✦ שוחח עם איתן
+            <Link href="/coach" className={btn("gold", "sm")}>
+              <span className="text-brand-navy">שוחח עם איתן</span>
             </Link>
           </div>
         </div>
@@ -197,10 +192,11 @@ export default function AlertsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl font-bold text-brand-navy flex items-center gap-2">
+              <BellIcon className="size-6" />
               תיבת התראות
               {urgentCount > 0 && <SeverityCount alerts={alerts} />}
             </h1>
-            <p className="text-sm text-stone-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               {persona
                 ? `${persona.personal.firstName} ${persona.personal.lastName} · שנת מס ${persona.income.year}`
                 : "טוען..."}
@@ -208,17 +204,20 @@ export default function AlertsPage() {
           </div>
 
           {alerts.length > 0 && (
-            <div className="text-xs text-stone-500 bg-stone-100 rounded-full px-3 py-1">
+            <div className="text-xs text-faint bg-sand rounded-full px-3 py-1">
               {alerts.length} התראות
             </div>
           )}
         </div>
 
         {/* Disclaimer */}
-        <div className="rounded-xl border border-stone-200 bg-stone-50 px-5 py-2.5 text-[11px] text-stone-500 leading-relaxed mb-6">
-          <span className="font-semibold text-stone-600">⚠ הצהרת אחריות: </span>
-          התראות אלו מבוססות על נתונים שהוזנו ידנית ועל היגיון תקופתי בלבד — אינן מהוות ייעוץ מס מקצועי.
-          לפני כל פעולה רגולטורית, מומלץ להתייעץ עם רואה חשבון מוסמך.
+        <div className="rounded-2xl border border-line bg-paper px-5 py-3 mb-6 flex items-start gap-2">
+          <AlertTriangleIcon className="size-4 shrink-0 mt-0.5 text-due" />
+          <p className="text-[11px] text-muted leading-relaxed">
+            <span className="font-semibold text-ink">הצהרת אחריות: </span>
+            התראות אלו מבוססות על נתונים שהוזנו ידנית ועל היגיון תקופתי בלבד — אינן מהוות ייעוץ מס מקצועי.
+            לפני כל פעולה רגולטורית, מומלץ להתייעץ עם רואה חשבון מוסמך.
+          </p>
         </div>
 
         {/* Alerts list */}
@@ -226,7 +225,7 @@ export default function AlertsPage() {
           /* Skeleton loader */
           <div className="space-y-4 animate-pulse">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-28 rounded-xl bg-stone-200" />
+              <div key={i} className="h-28 rounded-2xl bg-sand" />
             ))}
           </div>
         ) : alerts.length === 0 ? (
@@ -241,8 +240,8 @@ export default function AlertsPage() {
 
         {/* Summary footer */}
         {alerts.length > 0 && persona && (
-          <div className="mt-8 rounded-xl bg-white border border-stone-200 p-4">
-            <h2 className="text-xs font-semibold text-stone-500 mb-3">
+          <div className="mt-8 rounded-2xl bg-paper border border-line p-4 shadow-brand-sm">
+            <h2 className="text-xs font-semibold text-muted mb-3">
               סיכום לפי רמת חומרה
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -250,17 +249,14 @@ export default function AlertsPage() {
                 (sev) => {
                   const count = alerts.filter((a) => a.severity === sev).length;
                   if (count === 0) return null;
-                  const styles = SEVERITY_STYLES[sev];
                   return (
-                    <span
+                    <StatusBadge
                       key={sev}
-                      className={cn(
-                        "rounded-full px-3 py-1 text-xs font-semibold",
-                        styles.badge,
-                      )}
+                      status={SEVERITY_STATUS[sev]}
+                      showDot
                     >
-                      {styles.icon} {styles.badgeText}: {count}
-                    </span>
+                      {SEVERITY_BADGE_LABEL[sev]}: {count}
+                    </StatusBadge>
                   );
                 },
               )}
