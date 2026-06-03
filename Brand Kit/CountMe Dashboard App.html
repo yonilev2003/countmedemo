@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CountMe — אפליקציה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --navy:#083A4F; --navy-900:#052532; --navy-700:#0C4860;
+    --gold:#C8B59A; --gold-600:#AD9A7B; --gold-100:#EBE3D5;
+    --aqua:#C0D5D6; --aqua-soft:#E6EEEE; --teal:#407E8C; --teal-100:#DCE9EB;
+    --sand:#E5E1DD; --sand-50:#F1EFEA; --paper:#FBFAF8;
+    --ink:#0B2027; --muted:#6A7A80; --faint:#9AA7AC;
+    --on-track:#3E8E78; --on-track-bg:#DDEDE6;
+    --due:#A88A3F; --due-bg:#F1E9D4;
+    --overdue:#C05B45; --overdue-bg:#F3DED7;
+    --line:#E7E2DA; --line-soft:#EFEBE3;
+    --font:'Assistant',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  html,body{font-family:var(--font);-webkit-font-smoothing:antialiased;color:var(--ink)}
+  body{min-height:100vh;background:
+      radial-gradient(60% 40% at 82% 4%, rgba(192,213,214,.7) 0%, rgba(192,213,214,0) 60%),
+      radial-gradient(60% 50% at 8% 100%, rgba(64,126,140,.26) 0%, rgba(64,126,140,0) 60%),
+      linear-gradient(150deg,#EEEAE3 0%,#E3DED7 60%,#D8D2C9 100%);
+    padding:50px 40px 70px}
+
+  .pagehead{max-width:1100px;margin:0 auto 40px}
+  .ph-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.03em;color:var(--teal);margin-bottom:13px;text-transform:uppercase}
+  .ph-eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--gold)}
+  .pagehead h1{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--navy)}
+  .pagehead p{margin-top:9px;font-size:15.5px;color:#5a6b71;max-width:600px;line-height:1.6}
+
+  .frames{display:flex;gap:48px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .frame-cap{font-size:13px;font-weight:600;color:#5a6b71}
+
+  /* device */
+  .ios{width:390px;height:844px;border-radius:48px;overflow:hidden;position:relative;background:#000;
+    box-shadow:0 40px 80px rgba(8,40,55,.32), 0 0 0 1px rgba(0,0,0,.12);flex-shrink:0}
+  .ios .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:22px;background:#000;z-index:50}
+  .ios .homebar{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:100px;background:rgba(11,32,39,.28);z-index:60}
+  .screen{position:absolute;inset:0;background:var(--sand-50);display:flex;flex-direction:column}
+  .statusbar{height:54px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px 26px;color:var(--navy)}
+  .statusbar .t{font-size:15px;font-weight:700}
+  .statusbar .r{display:flex;align-items:center;gap:6px}
+
+  .scroll{flex:1;overflow-y:auto;padding:6px 20px 96px}
+  .scroll::-webkit-scrollbar{display:none}
+
+  /* app header */
+  .ah{display:flex;align-items:center;justify-content:space-between;padding:10px 0 18px}
+  .ah .hello{display:flex;align-items:center;gap:11px}
+  .ah .ava{width:44px;height:44px;border-radius:50%;background:linear-gradient(140deg,var(--teal),var(--navy));display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px}
+  .ah .ht .s{font-size:12.5px;color:var(--muted);font-weight:600}
+  .ah .ht .n{font-size:19px;font-weight:800;color:var(--navy);letter-spacing:-.01em}
+  .ah .bell{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;color:var(--navy);position:relative}
+  .ah .bell svg{width:20px;height:20px}
+  .ah .bell .dot{position:absolute;top:10px;inset-inline-end:11px;width:8px;height:8px;border-radius:50%;background:var(--overdue);border:1.5px solid #fff}
+
+  /* hero next-deadline */
+  .hero{border-radius:22px;padding:22px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(155deg,#0C4860 0%,#083A4F 55%,#052532 100%);box-shadow:0 24px 44px -22px rgba(8,40,55,.7)}
+  .hero::before{content:"";position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(200,181,154,.45),transparent 70%);top:-80px;left:-50px}
+  .hero .tag{display:inline-flex;align-items:center;gap:7px;background:rgba(192,213,214,.16);border:1px solid rgba(192,213,214,.3);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--aqua)}
+  .hero .tag .pd{width:7px;height:7px;border-radius:50%;background:var(--due)}
+  .hero h2{font-size:21px;font-weight:800;margin-top:14px;position:relative}
+  .hero .sub{font-size:13px;color:rgba(192,213,214,.85);margin-top:3px;position:relative}
+  .hero .row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:18px;position:relative}
+  .hero .cnt{display:flex;align-items:flex-end;gap:7px}
+  .hero .cnt .num{font-size:46px;font-weight:800;line-height:.85}
+  .hero .cnt .u{font-size:13px;color:var(--aqua);font-weight:600;padding-bottom:6px}
+  .hero .amt{text-align:left}
+  .hero .amt .k{font-size:11.5px;color:rgba(192,213,214,.8)}
+  .hero .amt .v{font-size:22px;font-weight:800}
+  .hero .cta{margin-top:18px;width:100%;height:46px;border:none;border-radius:13px;background:var(--gold);color:var(--navy);font-family:var(--font);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;position:relative}
+  .hero .cta svg{width:16px;height:16px}
+
+  /* section title */
+  .sect-t{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 12px}
+  .sect-t h3{font-size:16px;font-weight:800;color:var(--navy)}
+  .sect-t a{font-size:13px;font-weight:600;color:var(--teal);text-decoration:none}
+
+  /* status row: ring + stats */
+  .status-row{display:flex;gap:12px}
+  .ring-card{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;align-items:center;gap:14px}
+  .ring{position:relative;width:74px;height:74px;flex-shrink:0}
+  .ring .lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .lbl b{font-size:19px;font-weight:800;color:var(--navy);line-height:1}
+  .ring .lbl span{font-size:9.5px;color:var(--muted);font-weight:600}
+  .ring-card .rt .n{font-size:14px;font-weight:700;color:var(--ink)}
+  .ring-card .rt .m{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+
+  .mini{display:flex;flex-direction:column;gap:12px;width:128px;flex-shrink:0}
+  .mini .m{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+  .mini .m .k{font-size:11.5px;color:var(--muted);font-weight:600}
+  .mini .m .v{font-size:18px;font-weight:800;color:var(--navy);margin-top:2px}
+
+  /* income card (mobile) */
+  .inc-card{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px}
+  .inc-big{display:flex;align-items:baseline;gap:8px}
+  .inc-big .v{font-size:29px;font-weight:800;color:var(--navy);letter-spacing:-.02em;line-height:1}
+  .inc-big .of{font-size:13px;color:var(--muted);font-weight:600}
+  .inc-bar{height:11px;border-radius:999px;background:var(--sand-50);border:1px solid var(--line);position:relative;overflow:hidden;margin:13px 0 10px}
+  .inc-fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:999px;background:linear-gradient(90deg,var(--teal-600),var(--teal))}
+  .inc-rem{font-size:13px;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:8px}
+  .inc-rem .d{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .inc-div{height:1px;background:var(--line);margin:15px 0}
+  .inc-ratio{display:flex;align-items:center;justify-content:space-between}
+  .inc-ratio .lab{font-size:13.5px;color:var(--muted);font-weight:600}
+  .inc-ratio .lab small{display:block;font-size:11.5px;color:var(--faint);margin-top:3px}
+  .inc-ratio .pct{font-size:26px;font-weight:800;color:var(--on-track);letter-spacing:-.02em}
+
+  /* deadline list */
+  .dl{display:flex;flex-direction:column;gap:10px}
+  .ditem{display:flex;align-items:center;gap:13px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:13px 15px;position:relative;overflow:hidden}
+  .ditem::before{content:"";position:absolute;inset-block:0;inset-inline-end:0;width:4px}
+  .ditem.ok::before{background:var(--on-track)} .ditem.due::before{background:var(--due)} .ditem.over::before{background:var(--overdue)} .ditem.plan::before{background:var(--teal)}
+  .ditem .di{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+  .ditem .di svg{width:20px;height:20px}
+  .ditem.ok .di{background:var(--on-track-bg);color:var(--on-track)} .ditem.due .di{background:var(--due-bg);color:var(--due)} .ditem.over .di{background:var(--overdue-bg);color:var(--overdue)} .ditem.plan .di{background:var(--teal-100);color:var(--teal)}
+  .ditem .dc{flex:1;min-width:0}
+  .ditem .dc .nm{font-size:15px;font-weight:700;color:var(--ink)}
+  .ditem .dc .mt{font-size:12.5px;color:var(--muted);margin-top:1px}
+  .ditem .de{text-align:left;flex-shrink:0}
+  .ditem .de .dd{font-size:14px;font-weight:700;color:var(--navy)}
+  .ditem .de .pill{font-size:11px;font-weight:700;margin-top:3px;padding:2px 9px;border-radius:999px;display:inline-block}
+  .ditem.ok .pill{background:var(--on-track-bg);color:var(--on-track)} .ditem.due .pill{background:var(--due-bg);color:#7d6422} .ditem.over .pill{background:var(--overdue-bg);color:#9c3826} .ditem.plan .pill{background:var(--teal-100);color:var(--teal)}
+
+  /* tab bar */
+  .tabs{position:absolute;bottom:0;left:0;right:0;height:88px;padding:10px 26px 26px;display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(180deg,rgba(241,239,234,0),rgba(241,239,234,.95) 40%);backdrop-filter:blur(8px)}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--faint);font-size:10.5px;font-weight:600;cursor:pointer;flex:1}
+  .tab svg{width:23px;height:23px}
+  .tab.on{color:var(--navy)}
+  .tab .fab{width:52px;height:52px;border-radius:50%;background:var(--gold);color:var(--navy);display:grid;place-items:center;box-shadow:0 12px 24px -10px rgba(200,181,154,1);margin-top:-22px}
+  .tab .fab svg{width:24px;height:24px}
+
+  /* chips for deadlines screen filter */
+  .filters{display:flex;gap:8px;margin:4px 0 16px;flex-wrap:wrap}
+  .filt{font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);cursor:pointer}
+  .filt.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .month-sep{font-size:12.5px;font-weight:700;color:var(--faint);margin:18px 2px 10px;text-transform:uppercase;letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+  <div class="pagehead">
+    <div class="ph-eyebrow"><span class="d"></span>CountMe · App</div>
+    <h1>אפליקציית מובייל</h1>
+    <p>לוח בקרה ומסך מועדים — מערכת רמזור לכל התחייבות, בעברית RTL, בטיפוגרפיית Assistant.</p>
+  </div>
+
+  <div class="frames">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="frame-wrap">
+      <div class="ios">
+        <div class="island"></div>
+        <div class="homebar"></div>
+        <div class="screen">
+          <div class="statusbar"><span class="t">9:41</span><span class="r">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="#083A4F"><rect x="0" y="6.5" width="3" height="4.5" rx="1"/><rect x="4.5" y="4" width="3" height="7" rx="1"/><rect x="9" y="1.7" width="3" height="9.3" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1" opacity=".4"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="#083A4F" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#083A4F"/></svg>
+          </span></div>
+          <div class="scroll">
+            <div class="ah">
+              <div class="hello"><div class="ava">ד</div><div class="ht"><div class="s">בוקר טוב,</div><div class="n">דנה כהן</div></div></div>
+              <div class="bell"><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+            </div>
+
+            <div class="sect-t" style="margin-top:18px"><h3>מצב הכנסות השנה</h3><a>פרטים ›</a></div>
+            <div class="inc-card">
+              <div class="inc-big"><span class="v">₪86,400</span><span class="of">מתוך ₪122,833</span></div>
+              <div class="inc-bar"><div class="inc-fill" style="width:70.3%"></div></div>
+              <div class="inc-rem"><span class="d"></span>נותרו ₪36,433 עד לתקרת הפטור</div>
+              <div class="inc-div"></div>
+              <div class="inc-ratio"><div class="lab">יחס הוצאות להכנסות<small>הכנסות ₪86,400 · הוצאות ₪31,200</small></div><div class="pct">36.1%</div></div>
+            </div>
+
+            <div class="hero" style="background-position: center center">
+              <span class="tag"><span class="pd"></span>המועד הקרוב · מתקרב</span>
+              <h2>דיווח מע״מ דו-חודשי</h2>
+              <div class="sub">תקופה: אפריל–מאי 2025</div>
+              <div class="row">
+                <div class="cnt"><span class="num">3</span><span class="u">ימים<br/>נותרו</span></div>
+                <div class="amt"><div class="k">סכום לתשלום</div><div class="v">₪7,140</div></div>
+              </div>
+              <button class="cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>הגש דיווח עכשיו</button>
+            </div>
+
+            <div class="sect-t"><h3>מצב התקופה</h3><a>פירוט</a></div>
+            <div class="status-row">
+              <div class="ring-card">
+                <div class="ring">
+                  <svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="31" fill="none" stroke="#E7E2DA" stroke-width="9"/><circle cx="37" cy="37" r="31" fill="none" stroke="#3E8E78" stroke-width="9" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="62.3" transform="rotate(-90 37 37)"/></svg>
+                  <div class="lbl"><b>68%</b><span>טופל</span></div>
+                </div>
+                <div class="rt"><div class="n">במסלול טוב</div><div class="m">3 מתוך 5 התחייבויות הושלמו החודש</div></div>
+              </div>
+              <div class="mini">
+                <div class="m"><div class="k">הכנסות החודש</div><div class="v">₪48,200</div></div>
+                <div class="m"><div class="k">מע״מ לתשלום</div><div class="v">₪7,140</div></div>
+              </div>
+            </div>
+
+            <div class="sect-t"><h3>מועדים קרובים</h3><a>הצג הכל</a></div>
+            <div class="dl">
+              <div class="ditem over"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></span><div class="dc"><div class="nm">ביטוח לאומי</div><div class="mt">תשלום חודשי · מאי</div></div><div class="de"><div class="dd">2.6</div><span class="pill">באיחור</span></div></div>
+              <div class="ditem due"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6l4 2"/><circle cx="12" cy="13" r="8"/></svg></span><div class="dc"><div class="nm">מע״מ דו-חודשי</div><div class="mt">אפריל–מאי 2025</div></div><div class="de"><div class="dd">15.6</div><span class="pill">בעוד 3 ימים</span></div></div>
+              <div class="ditem plan"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span><div class="dc"><div class="nm">מקדמות מס הכנסה</div><div class="mt">מקדמה רבעונית · Q2</div></div><div class="de"><div class="dd">15.6</div><span class="pill">מתוכנן</span></div></div>
+              <div class="ditem ok"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span><div class="dc"><div class="nm">ניכויים</div><div class="mt">דיווח חודשי · אפריל</div></div><div class="de"><div class="dd">23.5</div><span class="pill">שולם</span></div></div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>בית</div>
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>מועדים</div>
+            <div class="tab"><div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>מסמכים</div>
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>פרופיל</div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-cap">לוח בקרה</div>
+    </div>
+
+    <!-- ===== DEADLINES ===== -->
+    <div class="frame-wrap">
+      <div class="ios">
+        <div class="island"></div>
+        <div class="homebar"></div>
+        <div class="screen">
+          <div class="statusbar"><span class="t">9:41</span><span class="r">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="#083A4F"><rect x="0" y="6.5" width="3" height="4.5" rx="1"/><rect x="4.5" y="4" width="3" height="7" rx="1"/><rect x="9" y="1.7" width="3" height="9.3" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1" opacity=".4"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="#083A4F" opacity=".5"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#083A4F"/></svg>
+          </span></div>
+          <div class="scroll">
+            <div class="ah"><div class="ht"><div class="s" style="font-size:13px">יוני 2025</div><div class="n" style="font-size:24px">המועדים שלי</div></div><div class="bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div></div>
+            <div class="filters"><span class="filt on">הכל</span><span class="filt">באיחור</span><span class="filt">השבוע</span><span class="filt">שולם</span></div>
+
+            <div class="month-sep">דורש טיפול</div>
+            <div class="dl">
+              <div class="ditem over"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></span><div class="dc"><div class="nm">ביטוח לאומי</div><div class="mt">תשלום חודשי · מאי · ₪1,280</div></div><div class="de"><div class="dd">2.6</div><span class="pill">באיחור</span></div></div>
+              <div class="ditem due"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6l4 2"/><circle cx="12" cy="13" r="8"/></svg></span><div class="dc"><div class="nm">מע״מ דו-חודשי</div><div class="mt">אפריל–מאי · ₪7,140</div></div><div class="de"><div class="dd">15.6</div><span class="pill">3 ימים</span></div></div>
+              <div class="ditem plan"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span><div class="dc"><div class="nm">מקדמות מס הכנסה</div><div class="mt">רבעון Q2 · הערכה ₪3,400</div></div><div class="de"><div class="dd">15.6</div><span class="pill">מתוכנן</span></div></div>
+            </div>
+
+            <div class="month-sep">הושלם</div>
+            <div class="dl">
+              <div class="ditem ok"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span><div class="dc"><div class="nm">ניכויים</div><div class="mt">דיווח חודשי · אפריל · ₪2,100</div></div><div class="de"><div class="dd">23.5</div><span class="pill">שולם</span></div></div>
+              <div class="ditem ok"><span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg></span><div class="dc"><div class="nm">מקדמות מ״ה</div><div class="mt">רבעון Q1 · ₪3,200</div></div><div class="de"><div class="dd">15.4</div><span class="pill">שולם</span></div></div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>בית</div>
+            <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>מועדים</div>
+            <div class="tab"><div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>מסמכים</div>
+            <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/></svg>פרופיל</div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-cap">מועדים</div>
+    </div>
+
+  </div>
+</body>
+</html>
