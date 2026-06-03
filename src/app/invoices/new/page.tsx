@@ -6,6 +6,9 @@ import Link from "next/link";
 import { loadPersona, savePersona } from "@/lib/setup-storage";
 import { nextInvoiceNumber, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
+import { Logo } from "@/components/brand/logo";
+import { btn, Button } from "@/components/brand/button";
+import { ArrowRightIcon, MicIcon, CheckCircleIcon, CalendarIcon, UserIcon, FileTextIcon, PercentIcon } from "@/components/brand/icons";
 
 const DOC_TYPE_LABELS: Record<InvoiceDocType, { title: string; sub: string; cta: string }> = {
   "tax-invoice-receipt": {
@@ -95,9 +98,9 @@ export default function NewInvoicePage() {
   if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-3 w-96 animate-pulse">
-        <div className="h-6 rounded-lg bg-stone-200 w-1/2 mx-auto" />
-        <div className="h-12 rounded-xl bg-stone-200" />
-        <div className="h-48 rounded-2xl bg-stone-200" />
+        <div className="h-6 rounded-lg bg-sand w-1/2 mx-auto" />
+        <div className="h-12 rounded-xl bg-sand" />
+        <div className="h-48 rounded-2xl bg-sand" />
       </div>
     </div>
   );
@@ -171,7 +174,7 @@ export default function NewInvoicePage() {
         category: parsed.category || f.category,
       }));
       if (parsed.docType) setDocType(parsed.docType);
-      setVoiceMsg("✓ מילאתי את הטופס מהדיבור — בדקי וערכי לפי הצורך.");
+      setVoiceMsg("מילאתי את הטופס מהדיבור — בדקי וערכי לפי הצורך.");
     } catch {
       setVoiceMsg("שגיאת רשת בפענוח הדיבור. נסי שוב או הקלידי ידנית.");
     } finally {
@@ -228,59 +231,78 @@ export default function NewInvoicePage() {
     router.push(`/invoices/${invoiceNumber}`);
   }
 
+  const inputClass = "w-full border-b border-line bg-transparent px-1 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-brand-deep transition-colors";
+  const labelClass = "block text-xs font-semibold text-muted mb-1";
+
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-white border-b border-stone-200">
+      {/* Header */}
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-6 py-4">
-          <Link href="/invoices" className="text-sm text-stone-600 hover:text-brand-navy">&#x2190; חזרה לרשימה</Link>
-          <span className="font-bold">חשבונית / קבלה חדשה</span>
+          <Link href="/invoices" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors">
+            <ArrowRightIcon className="size-4" />
+            חזרה לרשימה
+          </Link>
+          <Logo size={22} />
           <div />
         </div>
       </header>
 
       <main className="mx-auto max-w-screen-md px-6 py-8">
+        <div className="mb-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-deep mb-1">הפקת מסמך חדש</p>
+          <h1 className="font-display text-2xl font-bold text-brand-navy">חשבונית / קבלה חדשה</h1>
+        </div>
+
         {/* Voice dictation card */}
         {voiceSupported && (
-          <div className="mb-6 rounded-2xl border border-brand-navy/15 bg-info/40 p-4">
-            <div className="flex items-start justify-between gap-3 mb-2">
-              <div className="text-sm">
-                <div className="font-bold text-brand-navy">דיבור במקום הקלדה 🎙️</div>
-                <div className="text-xs text-stone-600 leading-relaxed mt-0.5">
-                  לחצי על המיקרופון ואמרי משפט כמו: <span className="font-medium">"חשבונית מס קבלה לדנה כהן עבור ייעוץ עיצוב בסך 3,000 שקלים"</span>
+          <div className="mb-6 rounded-2xl border border-line bg-paper shadow-brand-sm p-5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <MicIcon className="size-4 text-brand-deep" />
+                  <span className="text-sm font-bold text-brand-navy">דיבור במקום הקלדה</span>
                 </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  לחצי על המיקרופון ואמרי משפט כמו:{" "}
+                  <span className="font-medium text-ink">"חשבונית מס קבלה לדנה כהן עבור ייעוץ עיצוב בסך 3,000 שקלים"</span>
+                </p>
               </div>
               <button
                 onClick={listening ? stopListening : startListening}
                 disabled={parsing}
-                className={`shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-sm transition-colors ${
+                className={`shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-brand-sm transition-all ${
                   listening
                     ? "bg-alert text-white animate-pulse"
-                    : "bg-brand-navy text-white hover:bg-brand-navy/90"
+                    : "bg-brand-navy text-white hover:bg-navy-900"
                 } disabled:opacity-50`}
               >
-                <span className="text-base">{listening ? "■" : "🎙️"}</span>
-                <span>{listening ? "עצור" : "התחל הקלטה"}</span>
+                <MicIcon className="size-4" />
+                <span>{listening ? "עצור" : "הקלטה"}</span>
               </button>
             </div>
 
             {(transcript || listening) && (
-              <div className="rounded-lg bg-white border border-stone-200 px-3 py-2 text-sm text-stone-800 min-h-[40px]">
-                {transcript || <span className="text-stone-400">מקשיב…</span>}
+              <div className="rounded-xl border border-line bg-cream px-3 py-2.5 text-sm text-ink min-h-[40px]">
+                {transcript || <span className="text-faint">מקשיב…</span>}
               </div>
             )}
 
             {transcript && !listening && (
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <button
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={parseTranscriptToForm}
                   disabled={parsing}
-                  className="rounded-full bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success/90 disabled:opacity-50 transition-colors shadow-sm"
+                  className="bg-teal-100 text-teal-600 hover:bg-teal-100"
                 >
-                  {parsing ? "מפענח…" : "✦ מלא טופס מהדיבור"}
-                </button>
+                  <CheckCircleIcon className="size-4" />
+                  {parsing ? "מפענח…" : "מלא טופס מהדיבור"}
+                </Button>
                 <button
                   onClick={() => { setTranscript(""); setVoiceMsg(null); }}
-                  className="text-xs text-stone-500 hover:text-stone-800"
+                  className="text-xs text-faint hover:text-muted transition-colors"
                 >
                   נקה
                 </button>
@@ -288,7 +310,7 @@ export default function NewInvoicePage() {
             )}
 
             {voiceMsg && (
-              <div className="mt-2 text-xs text-stone-700 bg-white rounded px-2 py-1 border border-stone-200">{voiceMsg}</div>
+              <div className="mt-3 text-xs text-ink bg-info/30 rounded-lg px-3 py-2 border border-line">{voiceMsg}</div>
             )}
           </div>
         )}
@@ -302,87 +324,156 @@ export default function NewInvoicePage() {
               <button
                 key={t}
                 onClick={() => setDocType(t)}
-                className={`text-right rounded-xl border-2 px-4 py-3 transition-colors ${
-                  active ? "border-brand-navy bg-brand-navy/5" : "border-stone-200 bg-white hover:border-stone-300"
+                className={`text-end rounded-2xl border-2 px-4 py-3.5 transition-all ${
+                  active
+                    ? "border-brand-navy bg-brand-navy/5 shadow-brand-sm"
+                    : "border-line bg-paper hover:border-brand-deep hover:bg-aqua-soft"
                 }`}
               >
-                <div className={`text-sm font-bold ${active ? "text-brand-navy" : "text-stone-700"}`}>
+                <div className={`text-sm font-bold ${active ? "text-brand-navy" : "text-ink"}`}>
                   {labels.title}
                 </div>
-                <div className="text-xs text-stone-500 mt-1 leading-snug">{labels.sub}</div>
+                <div className="text-xs text-muted mt-1 leading-snug">{labels.sub}</div>
               </button>
             );
           })}
         </div>
 
-        <div className="rounded-2xl bg-white border border-stone-200 p-6 space-y-4">
+        {/* Main form card */}
+        <div className="rounded-2xl bg-paper border border-line shadow-brand p-6 space-y-6">
           {errors.length > 0 && (
-            <div className="rounded-lg bg-alert/10 border border-alert/20 p-3">
+            <div className="rounded-xl bg-overdue-bg border border-alert/20 p-3">
               {errors.map((e, i) => <p key={i} className="text-sm text-alert">{e}</p>)}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">תאריך</label>
-              <input type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})}
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info" dir="ltr" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-1">קטגוריה (אופציונלי)</label>
-              <input type="text" value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                placeholder="ייעוץ, עיצוב, פיתוח..."
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">שם הלקוח</label>
-            <input type="text" value={form.customerName} onChange={e => setForm({...form, customerName: e.target.value})}
-              placeholder='חברה בע"מ / שם פרטי'
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              ת.ז. / ח.פ. לקוח {amount > 5000 && <span className="text-alert text-xs">* נדרש מעל 5,000 &#x20AA;</span>}
-            </label>
-            <input type="text" value={form.customerTaxId} onChange={e => setForm({...form, customerTaxId: e.target.value})}
-              placeholder="123456789"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info" dir="ltr" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">תיאור השירות / המוצר</label>
-            <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-              placeholder="פירוט השירות שניתן"
-              rows={2}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info resize-none" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-1">
-              סכום {persona.business.osekType === "morshe" ? '(לפני מע"מ)' : ""}
-            </label>
-            <input type="number" min={0} value={form.amount} onChange={e => setForm({...form, amount: e.target.value})}
-              placeholder="0"
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-brand-navy focus:outline-none focus:ring-2 focus:ring-info" dir="ltr" />
-            {amount > 0 && (
-              <div className="mt-2 rounded-lg bg-info/20 p-3 text-sm space-y-1">
-                <div className="flex justify-between"><span className="text-stone-600">סכום נטו</span><span dir="ltr">&#x20AA;{totals.net.toLocaleString("he-IL")}</span></div>
-                {totals.vat > 0 && <div className="flex justify-between"><span className="text-stone-600">מע&quot;מ 17%</span><span dir="ltr">&#x20AA;{totals.vat.toLocaleString("he-IL")}</span></div>}
-                <div className="flex justify-between font-semibold text-brand-navy"><span>סה&quot;כ לתשלום</span><span dir="ltr">&#x20AA;{totals.total.toLocaleString("he-IL")}</span></div>
+          {/* Document details block */}
+          <div className="pb-6 border-b border-line">
+            <h2 className="text-sm font-bold text-brand-navy mb-4">פרטי המסמך</h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className={labelClass}>
+                  <span className="inline-flex items-center gap-1"><CalendarIcon className="size-3.5" />תאריך</span>
+                </label>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm({...form, date: e.target.value})}
+                  className={inputClass}
+                  dir="ltr"
+                />
               </div>
-            )}
+              <div>
+                <label className={labelClass}>
+                  <span className="inline-flex items-center gap-1"><FileTextIcon className="size-3.5" />קטגוריה (אופציונלי)</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.category}
+                  onChange={e => setForm({...form, category: e.target.value})}
+                  placeholder="ייעוץ, עיצוב, פיתוח..."
+                  className={inputClass}
+                />
+              </div>
+            </div>
           </div>
 
-          <p className="text-[11px] text-stone-500 text-center leading-relaxed">
-            ✦ עם השמירה — הסכום מתעדכן מיד גם בדשבורד, גם ב-/demo (שדה 238 / שדה 150) ובכל החישובים האישיים.
+          {/* Customer block */}
+          <div className="pb-6 border-b border-line">
+            <h2 className="text-sm font-bold text-brand-navy mb-4">פרטי הלקוח</h2>
+            <div className="space-y-4">
+              <div>
+                <label className={labelClass}>
+                  <span className="inline-flex items-center gap-1"><UserIcon className="size-3.5" />שם הלקוח <span className="text-alert">*</span></span>
+                </label>
+                <input
+                  type="text"
+                  value={form.customerName}
+                  onChange={e => setForm({...form, customerName: e.target.value})}
+                  placeholder='חברה בע"מ / שם פרטי'
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  ת.ז. / ח.פ. לקוח{amount > 5000 && <span className="text-alert text-xs me-1"> — נדרש מעל 5,000 &#x20AA;</span>}
+                </label>
+                <input
+                  type="text"
+                  value={form.customerTaxId}
+                  onChange={e => setForm({...form, customerTaxId: e.target.value})}
+                  placeholder="123456789"
+                  className={inputClass}
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Service description block */}
+          <div className="pb-6 border-b border-line">
+            <h2 className="text-sm font-bold text-brand-navy mb-4">פירוט השירות</h2>
+            <div>
+              <label className={labelClass}>תיאור השירות / המוצר <span className="text-alert">*</span></label>
+              <textarea
+                value={form.description}
+                onChange={e => setForm({...form, description: e.target.value})}
+                placeholder="פירוט השירות שניתן"
+                rows={2}
+                className="w-full border-b border-line bg-transparent px-1 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus:border-brand-deep transition-colors resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Amount block */}
+          <div>
+            <h2 className="text-sm font-bold text-brand-navy mb-4">
+              <span className="inline-flex items-center gap-1.5">
+                <PercentIcon className="size-4 text-brand-deep" />
+                סכום{persona.business.osekType === "morshe" ? ' (לפני מע"מ)' : ""}
+              </span>
+            </h2>
+            <div>
+              <label className={labelClass}>סכום <span className="text-alert">*</span></label>
+              <input
+                type="number"
+                min={0}
+                value={form.amount}
+                onChange={e => setForm({...form, amount: e.target.value})}
+                placeholder="0"
+                className={inputClass}
+                dir="ltr"
+              />
+              {amount > 0 && (
+                <div className="mt-3 rounded-xl bg-info/30 border border-line p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted">סכום נטו</span>
+                    <span dir="ltr" className="font-medium text-ink">&#x20AA;{totals.net.toLocaleString("he-IL")}</span>
+                  </div>
+                  {totals.vat > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted">מע&quot;מ 17%</span>
+                      <span dir="ltr" className="font-medium text-ink">&#x20AA;{totals.vat.toLocaleString("he-IL")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-bold text-brand-navy border-t border-line pt-2">
+                    <span>סה&quot;כ לתשלום</span>
+                    <span dir="ltr">&#x20AA;{totals.total.toLocaleString("he-IL")}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="text-[11px] text-faint text-center leading-relaxed">
+            עם השמירה — הסכום מתעדכן מיד גם בדשבורד, גם ב-/demo (שדה 238 / שדה 150) ובכל החישובים האישיים.
           </p>
 
-          <button onClick={handleSubmit}
-            className="w-full rounded-full bg-brand-navy py-3 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors shadow-sm">
-            {DOC_TYPE_LABELS[docType].cta} &#x2190;
+          <button
+            onClick={handleSubmit}
+            className={btn("primary", "md", "w-full")}
+          >
+            {DOC_TYPE_LABELS[docType].cta}
           </button>
         </div>
       </main>

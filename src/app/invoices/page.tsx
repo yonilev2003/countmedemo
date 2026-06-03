@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona, InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate } from "@/lib/invoice-generator/index";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import { StatusBadge } from "@/components/brand/status";
+import { SearchIcon, XIcon, PlusIcon } from "@/components/brand/icons";
 
 const MONTH_LABELS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 
@@ -70,26 +74,23 @@ export default function InvoicesPage() {
   if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-3 w-96 animate-pulse">
-        <div className="h-6 rounded-lg bg-stone-200 w-1/2 mx-auto" />
-        <div className="h-64 rounded-2xl bg-stone-200" />
+        <div className="h-6 rounded-lg bg-sand w-1/2 mx-auto" />
+        <div className="h-64 rounded-2xl bg-sand" />
       </div>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe · חשבוניות</span>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={24} />
+            <span className="text-base font-semibold text-muted">· חשבוניות</span>
           </Link>
-          <Link
-            href="/invoices/new"
-            className="rounded-full bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors"
-          >
-            + חשבונית חדשה
+          <Link href="/invoices/new" className={btn("primary", "sm")}>
+            <PlusIcon className="size-4" />
+            חשבונית חדשה
           </Link>
         </div>
       </header>
@@ -97,13 +98,14 @@ export default function InvoicesPage() {
       <main className="mx-auto max-w-screen-lg px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="font-display text-2xl font-bold text-brand-navy">חשבוניות ותקבולים</h1>
-          <span className="text-sm text-stone-500">{allInvoices.length} מסמכים בסה&quot;כ</span>
+          <span className="text-sm text-muted">{allInvoices.length} מסמכים בסה&quot;כ</span>
         </div>
 
         {allInvoices.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-stone-300 bg-white py-12 text-center">
-            <p className="text-stone-500 mb-4">עוד אין חשבוניות</p>
-            <Link href="/invoices/new" className="rounded-full bg-brand-navy px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-navy/90">
+          <div className="rounded-2xl border-2 border-dashed border-line bg-paper py-12 text-center">
+            <p className="text-muted mb-4">עוד אין חשבוניות</p>
+            <Link href="/invoices/new" className={btn("primary", "sm")}>
+              <PlusIcon className="size-4" />
               צור/י חשבונית ראשונה
             </Link>
           </div>
@@ -114,15 +116,15 @@ export default function InvoicesPage() {
               {/* Year filter */}
               {availableYears.length > 1 && (
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-stone-500 font-medium">שנה:</span>
+                  <span className="text-xs text-muted font-medium">שנה:</span>
                   {availableYears.map((y) => (
                     <button
                       key={y}
                       onClick={() => { setFilterYear(y); setFilterMonth(null); }}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
                         filterYear === y
                           ? "bg-brand-navy text-white"
-                          : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                          : "bg-paper border border-line text-ink hover:border-brand-deep hover:bg-aqua-soft"
                       }`}
                     >
                       {y}
@@ -131,7 +133,7 @@ export default function InvoicesPage() {
                   {filterYear && (
                     <button
                       onClick={() => { setFilterYear(null); setFilterMonth(null); }}
-                      className="text-xs text-stone-400 hover:text-stone-600"
+                      className="text-xs text-faint hover:text-muted"
                     >
                       הצג הכל
                     </button>
@@ -142,15 +144,15 @@ export default function InvoicesPage() {
               {/* Month filter */}
               {availableMonths.length > 1 && (
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span className="text-xs text-stone-500 font-medium">חודש:</span>
+                  <span className="text-xs text-muted font-medium">חודש:</span>
                   {availableMonths.map((m) => (
                     <button
                       key={m}
                       onClick={() => setFilterMonth(filterMonth === m ? null : m)}
-                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
                         filterMonth === m
                           ? "bg-brand-navy/80 text-white"
-                          : "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
+                          : "bg-paper border border-line text-ink hover:border-brand-deep hover:bg-aqua-soft"
                       }`}
                     >
                       {MONTH_LABELS[m - 1]}
@@ -161,18 +163,21 @@ export default function InvoicesPage() {
 
               {/* Customer search */}
               <div className="flex items-center gap-3">
-                <span className="text-xs text-stone-500 font-medium">לקוח:</span>
-                <input
-                  type="text"
-                  value={filterCustomer}
-                  onChange={(e) => setFilterCustomer(e.target.value)}
-                  placeholder="חיפוש לפי שם לקוח..."
-                  className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-navy/20 w-52"
-                  dir="rtl"
-                />
+                <span className="text-xs text-muted font-medium">לקוח:</span>
+                <div className="relative flex items-center">
+                  <SearchIcon className="absolute end-3 size-4 text-faint pointer-events-none" />
+                  <input
+                    type="text"
+                    value={filterCustomer}
+                    onChange={(e) => setFilterCustomer(e.target.value)}
+                    placeholder="חיפוש לפי שם לקוח..."
+                    className="rounded-full border border-line bg-paper pe-9 ps-3 py-1 text-xs text-ink placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-brand-deep/20 focus:border-brand-deep w-52"
+                    dir="rtl"
+                  />
+                </div>
                 {filterCustomer && (
-                  <button onClick={() => setFilterCustomer("")} className="text-xs text-stone-400 hover:text-stone-600">
-                    ✕
+                  <button onClick={() => setFilterCustomer("")} className="text-faint hover:text-muted">
+                    <XIcon className="size-4" />
                   </button>
                 )}
               </div>
@@ -180,16 +185,16 @@ export default function InvoicesPage() {
 
             {/* ── Summary strip ── */}
             {filtered.length > 0 && (
-              <div className="mb-4 flex items-center gap-6 rounded-xl bg-brand-navy/5 border border-brand-navy/10 px-4 py-2.5 text-sm">
-                <span className="text-stone-600">
-                  <span className="font-semibold text-brand-navy">{filtered.length}</span> חשבוניות
+              <div className="mb-4 flex items-center gap-6 rounded-xl bg-info border border-line px-4 py-2.5 text-sm">
+                <span className="text-muted">
+                  <span className="font-bold text-brand-navy">{filtered.length}</span> חשבוניות
                 </span>
-                <span className="text-stone-600">
-                  סה&quot;כ לפני מע&quot;מ: <span className="font-semibold text-brand-navy">{filteredNet.toLocaleString("he-IL")} ₪</span>
+                <span className="text-muted">
+                  סה&quot;כ לפני מע&quot;מ: <span className="font-bold text-brand-navy">{filteredNet.toLocaleString("he-IL")} &#x20AA;</span>
                 </span>
                 {filteredNet !== filteredTotal && (
-                  <span className="text-stone-600">
-                    סה&quot;כ כולל מע&quot;מ: <span className="font-semibold text-brand-navy">{filteredTotal.toLocaleString("he-IL")} ₪</span>
+                  <span className="text-muted">
+                    סה&quot;כ כולל מע&quot;מ: <span className="font-bold text-brand-navy">{filteredTotal.toLocaleString("he-IL")} &#x20AA;</span>
                   </span>
                 )}
               </div>
@@ -197,20 +202,20 @@ export default function InvoicesPage() {
 
             {/* ── Table ── */}
             {filtered.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-stone-300 bg-white py-10 text-center text-sm text-stone-500">
+              <div className="rounded-2xl border border-dashed border-line bg-paper py-10 text-center text-sm text-muted">
                 אין חשבוניות מתאימות לסינון
               </div>
             ) : (
-              <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden">
+              <div className="rounded-2xl bg-paper border border-line overflow-hidden shadow-brand">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-stone-50 border-b border-stone-200">
-                      <th className="px-4 py-3 text-right font-semibold text-stone-600">מספר</th>
-                      <th className="px-4 py-3 text-right font-semibold text-stone-600">סוג</th>
-                      <th className="px-4 py-3 text-right font-semibold text-stone-600">תאריך</th>
-                      <th className="px-4 py-3 text-right font-semibold text-stone-600">לקוח</th>
-                      <th className="px-4 py-3 text-right font-semibold text-stone-600">תיאור</th>
-                      <th className="px-4 py-3 text-left font-semibold text-stone-600">סכום</th>
+                    <tr className="bg-sand border-b border-line">
+                      <th className="px-4 py-3 text-start font-bold text-brand-navy">מספר</th>
+                      <th className="px-4 py-3 text-start font-bold text-brand-navy">סוג</th>
+                      <th className="px-4 py-3 text-start font-bold text-brand-navy">תאריך</th>
+                      <th className="px-4 py-3 text-start font-bold text-brand-navy">לקוח</th>
+                      <th className="px-4 py-3 text-start font-bold text-brand-navy">תיאור</th>
+                      <th className="px-4 py-3 text-end font-bold text-brand-navy">סכום</th>
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
@@ -219,23 +224,24 @@ export default function InvoicesPage() {
                       const dt = inv.docType ?? "tax-invoice-receipt";
                       const dtLabel = dt === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
                       return (
-                        <tr key={inv.invoiceNumber} className={idx % 2 === 0 ? "bg-white" : "bg-stone-50/50"}>
-                          <td className="px-4 py-3 font-mono text-xs text-stone-500">{inv.invoiceNumber}</td>
+                        <tr key={inv.invoiceNumber} className={`border-b border-line-soft last:border-0 ${idx % 2 === 0 ? "bg-paper" : "bg-cream"}`}>
+                          <td className="px-4 py-3 font-mono text-xs text-faint">{inv.invoiceNumber}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                              dt === "receipt" ? "bg-success/15 text-success" : "bg-info text-brand-navy"
-                            }`}>
+                            <StatusBadge
+                              status={dt === "receipt" ? "on-track" : "plan"}
+                              showDot={false}
+                            >
                               {dtLabel}
-                            </span>
+                            </StatusBadge>
                           </td>
-                          <td className="px-4 py-3 text-stone-600">{formatHebrewDate(inv.date)}</td>
-                          <td className="px-4 py-3 font-medium text-stone-800">{inv.customerName}</td>
-                          <td className="px-4 py-3 text-stone-600 max-w-xs truncate">{inv.description}</td>
-                          <td className="px-4 py-3 text-left font-semibold text-brand-navy" dir="ltr">
+                          <td className="px-4 py-3 text-muted">{formatHebrewDate(inv.date)}</td>
+                          <td className="px-4 py-3 font-semibold text-ink">{inv.customerName}</td>
+                          <td className="px-4 py-3 text-muted max-w-xs truncate">{inv.description}</td>
+                          <td className="px-4 py-3 text-end font-bold text-brand-navy" dir="ltr">
                             &#x20AA;{inv.total.toLocaleString("he-IL")}
                           </td>
-                          <td className="px-4 py-3 text-left">
-                            <Link href={`/invoices/${inv.invoiceNumber}`} className="text-xs text-brand-navy hover:underline">
+                          <td className="px-4 py-3 text-end">
+                            <Link href={`/invoices/${inv.invoiceNumber}`} className="text-xs font-medium text-brand-deep hover:text-teal-600">
                               צפייה
                             </Link>
                           </td>
