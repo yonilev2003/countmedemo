@@ -1,4 +1,15 @@
 import Link from "next/link";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import {
+  BellIcon,
+  CalendarIcon,
+  SparklesIcon,
+  UploadIcon,
+  SettingsIcon,
+  ClipboardCheckIcon,
+  BarChartIcon,
+} from "@/components/brand/icons";
 
 export default function Home() {
   return (
@@ -6,32 +17,28 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/90 backdrop-blur-sm">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-9 w-9" />
-            <span className="text-base font-bold tracking-tight">CountMe</span>
-          </div>
+          <Logo size={30} />
           <nav className="hidden items-center gap-1 sm:flex">
             <NavLink href="/dashboard">דשבורד</NavLink>
-            <NavLink href="/alerts">🔔 התראות</NavLink>
-            <NavLink href="/deadlines">🗓️ מועדים</NavLink>
+            <NavLink href="/alerts">
+              <BellIcon className="size-4" /> התראות
+            </NavLink>
+            <NavLink href="/deadlines">
+              <CalendarIcon className="size-4" /> מועדים
+            </NavLink>
             <NavLink href="/file">מילוי 1301</NavLink>
             <NavLink href="/business-expenses">הוצאות</NavLink>
             <NavLink href="/invoices">חשבוניות</NavLink>
-            <NavLink href="/coach">✦ איתן</NavLink>
+            <NavLink href="/coach">
+              <SparklesIcon className="size-4" /> איתן
+            </NavLink>
             <NavLink href="/about">תיעוד</NavLink>
           </nav>
           <div className="flex items-center gap-2">
-            <Link
-              href="/setup"
-              className="rounded-full border border-stone-300 px-4 py-1.5 text-sm text-stone-600 hover:bg-stone-50 transition-colors"
-            >
+            <Link href="/setup" className={btn("secondary", "sm")}>
               הכנסת נתונים
             </Link>
-            <Link
-              href="/demo"
-              className="rounded-full bg-brand-navy px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-navy/90 transition-colors"
-            >
+            <Link href="/demo" className={btn("primary", "sm")}>
               דמו →
             </Link>
           </div>
@@ -59,22 +66,13 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/setup"
-              className="rounded-full bg-brand-navy px-7 py-3 text-base font-medium text-white shadow-sm hover:bg-brand-navy/90 transition-colors"
-            >
+            <Link href="/setup" className={btn("primary")}>
               התחל/י עכשיו →
             </Link>
-            <Link
-              href="/coach"
-              className="rounded-full bg-success px-7 py-3 text-base font-medium text-white shadow-sm hover:bg-success/90 transition-colors"
-            >
-              ✦ דבר/י עם איתן
+            <Link href="/coach" className={btn("gold")}>
+              <SparklesIcon className="size-[18px]" /> דבר/י עם איתן
             </Link>
-            <Link
-              href="/demo"
-              className="rounded-full border border-brand-navy/30 px-7 py-3 text-base font-medium text-brand-navy hover:bg-brand-navy/5 transition-colors"
-            >
+            <Link href="/demo" className={btn("secondary")}>
               ראה/י דמו
             </Link>
           </div>
@@ -113,7 +111,7 @@ export default function Home() {
               accentText="text-white"
               label="טופס 1301"
               title="מסלול מילוי חכם"
-              desc='שני מסלולים: מסלול מודרך עם איתן ב-12 שלבים עם עריכת שדות חיה, או הטופס המוכר של gov.il עם 📋 העתק וצ׳אט.'
+              desc="שני מסלולים: מסלול מודרך עם איתן ב-12 שלבים עם עריכת שדות חיה, או הטופס המוכר של gov.il עם כפתור העתקה וצ׳אט."
               cta="למסלול המילוי"
             />
             <FeatureCard
@@ -160,8 +158,8 @@ export default function Home() {
       <section className="bg-brand-navy py-12">
         <div className="mx-auto max-w-screen-xl px-6">
           <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-right">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-4xl">
-              🤝
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-brand">
+              <SparklesIcon className="size-8" />
             </div>
             <div className="flex-1">
               <h2 className="font-display text-2xl font-bold text-white">
@@ -173,11 +171,8 @@ export default function Home() {
                 שיחה בעברית, בגובה העיניים.
               </p>
             </div>
-            <Link
-              href="/coach"
-              className="shrink-0 rounded-full bg-success px-6 py-3 text-sm font-medium text-white hover:bg-success/90 transition-colors"
-            >
-              ✦ פתח שיחה עם איתן
+            <Link href="/coach" className={btn("gold", "md", "shrink-0")}>
+              <SparklesIcon className="size-[18px]" /> פתח שיחה עם איתן
             </Link>
           </div>
         </div>
@@ -198,28 +193,28 @@ export default function Home() {
               num="1"
               title="הכנסת נתונים"
               text="מעלה/ת קבצים (Excel, PDF) או ממלא/ת את האשף ב-7 שלבים. countme קורא חשבוניות, מזהה הוצאות, ובונה את הפרופיל הפיננסי שלך."
-              icon="📂"
+              icon={<UploadIcon className="size-6" />}
             />
             <StepArrow />
             <Step
               num="2"
               title="חישוב אוטומטי"
               text="כל שדה בטופס 1301 מחושב לפי חוקי מס הכנסה הישראלי — ביטוח לאומי, קרן השתלמות, נקודות זיכוי, סעיף 46, כולם."
-              icon="⚙️"
+              icon={<SettingsIcon className="size-6" />}
             />
             <StepArrow />
             <Step
               num="3"
               title="מסלול המילוי"
-              text='איתן מלווה אותך ב-12 שלבים או שאת/ה מסתכל/ת בטבלת מומחה. כל ערך עם כפתור 📋 להעתקה ישירה לטופס רשות המסים.'
-              icon="📋"
+              text="איתן מלווה אותך ב-12 שלבים או שאת/ה מסתכל/ת בטבלת מומחה. כל ערך עם כפתור העתקה ישירה לטופס רשות המסים."
+              icon={<ClipboardCheckIcon className="size-6" />}
             />
             <StepArrow />
             <Step
               num="4"
               title="מעקב שוטף"
               text="הדשבורד מתעדכן בזמן אמת. הוצא חשבוניות מס לאורך השנה. countme יושב לידך כל השנה, לא רק בעונת הדוחות."
-              icon="📊"
+              icon={<BarChartIcon className="size-6" />}
             />
           </div>
         </div>
@@ -230,9 +225,7 @@ export default function Home() {
         <div className="mx-auto max-w-screen-xl px-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div className="flex items-center gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/countme-logo.svg" alt="CountMe" className="h-7 w-7" />
-              <span className="text-sm font-medium">CountMe</span>
+              <Logo size={24} />
               <span className="text-xs text-stone-400">· לעצמאים בישראל</span>
             </div>
             <div className="flex gap-4 text-xs text-stone-400">
@@ -253,7 +246,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className="rounded-full px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100 transition-colors"
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100 transition-colors"
     >
       {children}
     </Link>
@@ -310,14 +303,14 @@ function FeatureCard({
   );
 }
 
-function Step({ num, title, text, icon }: { num: string; title: string; text: string; icon: string }) {
+function Step({ num, title, text, icon }: { num: string; title: string; text: string; icon: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-6">
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-navy text-sm font-bold text-white">
           {num}
         </div>
-        <span className="text-2xl">{icon}</span>
+        <span className="text-brand-deep">{icon}</span>
       </div>
       <h3 className="font-bold text-brand-navy">{title}</h3>
       <p className="text-sm leading-relaxed text-stone-500">{text}</p>
