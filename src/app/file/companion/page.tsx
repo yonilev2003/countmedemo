@@ -9,6 +9,15 @@ import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
 import { PLACEHOLDER_EITAN } from "@/lib/form-1301/companion-assets";
+import { Logo } from "@/components/brand/logo";
+import { btn, Button } from "@/components/brand/button";
+import {
+  SparklesIcon,
+  ArrowRightIcon,
+  ArrowLeftIcon,
+  MicIcon,
+  XIcon,
+} from "@/components/brand/icons";
 
 /** Hook wrapping the Web Speech API for Hebrew narration. */
 function useHebrewSpeech() {
@@ -94,9 +103,9 @@ export default function CompanionPage() {
   if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-3 w-80 animate-pulse">
-        <div className="h-8 rounded-lg bg-stone-200 w-2/3 mx-auto" />
-        <div className="h-24 rounded-2xl bg-stone-200" />
-        <div className="h-40 rounded-2xl bg-stone-200" />
+        <div className="h-8 rounded-lg bg-sand w-2/3 mx-auto" />
+        <div className="h-24 rounded-2xl bg-sand" />
+        <div className="h-40 rounded-2xl bg-sand" />
       </div>
     </div>
   );
@@ -117,52 +126,96 @@ export default function CompanionPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-20">
+      {/* Sticky header */}
+      <header className="bg-paper border-b border-line sticky top-0 z-20">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-3">
-          <Link href="/file" className="text-sm text-stone-600 hover:text-brand-navy">← מסלולים</Link>
+          <Link href="/file" className="flex items-center gap-1.5 text-sm text-muted hover:text-brand-navy">
+            <ArrowRightIcon className="size-4" />
+            מסלולים
+          </Link>
           <div className="flex items-center gap-2">
-            <span className="text-base">🎯</span>
+            <Logo size={28} />
             <span className="font-bold text-brand-navy text-sm">ליווי צמוד</span>
-            <span className="text-xs rounded-full bg-info px-2 py-0.5 text-brand-navy font-mono">{moduleIndex + 1}/{totalModules}</span>
+            <span className="text-xs rounded-full bg-info border border-brand-navy/20 px-2 py-0.5 text-brand-navy font-mono">
+              {moduleIndex + 1}/{totalModules}
+            </span>
           </div>
-          <Link href="/demo" className="text-xs text-stone-400 hover:text-brand-navy">דלג ←</Link>
+          <Link href="/demo" className="text-xs text-faint hover:text-brand-navy">
+            דלג
+          </Link>
         </div>
+        {/* Step progress dots */}
         <div className="mx-auto max-w-screen-md px-4 pb-2">
           <div className="flex gap-1 items-center">
             {FORM_MODULES.map((m, idx) => (
-              <div key={m.id} className={["h-1.5 flex-1 rounded-full transition-colors", idx < moduleIndex ? "bg-success" : idx === moduleIndex ? "bg-brand-navy" : "bg-stone-200"].join(" ")} />
+              <div
+                key={m.id}
+                className={[
+                  "h-1.5 flex-1 rounded-full transition-colors",
+                  idx < moduleIndex
+                    ? "bg-success"
+                    : idx === moduleIndex
+                    ? "bg-brand-navy"
+                    : "bg-sand",
+                ].join(" ")}
+              />
             ))}
           </div>
         </div>
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-screen-md px-4 py-5 space-y-4">
-        <div className="rounded-2xl bg-white border border-stone-200 p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wider text-brand-navy/60 mb-1">שלב {moduleIndex + 1} מתוך {totalModules}</p>
-          <h1 className="font-display text-2xl font-bold text-brand-navy">{currentModule.title}</h1>
+        {/* Step title card */}
+        <div className="bg-paper border border-line rounded-2xl p-5 shadow-brand">
+          <p className="text-xs uppercase tracking-wider text-muted mb-1">
+            שלב {moduleIndex + 1} מתוך {totalModules}
+          </p>
+          <h1 className="font-display text-2xl font-bold text-brand-navy">
+            {currentModule.title}
+          </h1>
         </div>
 
-        <div className="rounded-2xl bg-info border border-brand-navy/10 p-4">
+        {/* Eitan narration bubble */}
+        <div className="bg-info border border-brand-navy/10 rounded-2xl p-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success text-white font-bold text-sm shadow-sm">✦</div>
+            {/* Bot avatar — white paper bubble look */}
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-navy text-white shadow-brand-sm">
+              <SparklesIcon className="size-4" />
+            </div>
             {/* Bubble shows the same text TTS reads — perfect alignment */}
-            <p className="text-sm text-stone-800 leading-relaxed flex-1">{narration}</p>
+            <p className="text-sm text-ink leading-relaxed flex-1">{narration}</p>
           </div>
           <button
             onClick={() => speak(narration)}
             disabled={!supported}
             className={[
-              "mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors shadow-sm",
+              "mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors shadow-brand-sm border",
               !supported
-                ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+                ? "border-line bg-sand text-faint cursor-not-allowed"
                 : speaking
-                  ? "bg-alert text-white animate-pulse"
-                  : "bg-white text-brand-navy hover:bg-brand-navy hover:text-white border border-brand-navy/30",
+                ? "border-alert/30 bg-alert/10 text-alert animate-pulse"
+                : "border-line bg-paper text-brand-navy hover:bg-brand-navy hover:text-white hover:border-brand-navy",
             ].join(" ")}
-            title={!supported ? "ההקראה הקולית אינה נתמכת בדפדפן הזה" : speaking ? "לחץ/י לעצירה" : "הקראה קולית של ההסבר"}
+            title={
+              !supported
+                ? "ההקראה הקולית אינה נתמכת בדפדפן הזה"
+                : speaking
+                ? "לחץ/י לעצירה"
+                : "הקראה קולית של ההסבר"
+            }
           >
-            <span className="text-base">{speaking ? "■" : "🔊"}</span>
-            <span>{speaking ? "עצור הקראה" : !supported ? "הקראה לא נתמכת בדפדפן" : "הקרא/י לי את ההסבר"}</span>
+            {speaking ? (
+              <XIcon className="size-4" />
+            ) : (
+              <MicIcon className="size-4" />
+            )}
+            <span>
+              {speaking
+                ? "עצור הקראה"
+                : !supported
+                ? "הקראה לא נתמכת בדפדפן"
+                : "הקרא/י לי את ההסבר"}
+            </span>
           </button>
         </div>
 
@@ -177,11 +230,11 @@ export default function CompanionPage() {
           )}
 
           <div className="flex-1 w-full min-w-0">
-            <div className="rounded-2xl bg-white border border-stone-200 overflow-hidden shadow-sm">
-              <div className="bg-stone-50 px-4 py-2 border-b border-stone-200 flex items-center gap-2">
-                <span className="inline-block rounded-full bg-brand-navy w-2 h-2"></span>
-                <p className="text-xs font-semibold text-stone-600">
-                  הקטע הרלוונטי בטופס gov.il — לחצ/י על 📋 ליד כל ערך כדי להעתיק
+            <div className="bg-paper border border-line rounded-2xl overflow-hidden shadow-brand">
+              <div className="bg-sand px-4 py-2 border-b border-line flex items-center gap-2">
+                <span className="inline-block rounded-full bg-brand-navy w-2 h-2" />
+                <p className="text-xs font-semibold text-muted">
+                  הקטע הרלוונטי בטופס gov.il — לחצ/י על כפתור ההעתקה ליד כל ערך
                 </p>
               </div>
               <div className="p-2">
@@ -196,17 +249,44 @@ export default function CompanionPage() {
         </div>
       </main>
 
-      <nav className="sticky bottom-0 bg-white border-t border-stone-200 shadow-[0_-4px_16px_rgba(13,59,102,0.06)]">
+      {/* Sticky nav bar */}
+      <nav className="sticky bottom-0 bg-paper border-t border-line shadow-brand-lg">
         <div className="mx-auto max-w-screen-md px-4 py-3 flex items-center gap-3">
-          <button onClick={goBack} disabled={isFirst} className="rounded-full border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" aria-label="חזרה לשלב הקודם">←</button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={goBack}
+            disabled={isFirst}
+            aria-label="חזרה לשלב הקודם"
+            className="shrink-0"
+          >
+            <ArrowRightIcon className="size-4" />
+          </Button>
           {isLast ? (
-            <Link href="/" onClick={() => { try { localStorage.removeItem(COMPANION_STEP_KEY); } catch { /* ignore */ } }} className="flex-1 text-center rounded-full bg-success px-6 py-3 text-sm font-bold text-white hover:bg-success/90 transition-colors shadow-sm">סיום — חזרה לדף הבית →</Link>
+            <Link
+              href="/"
+              onClick={() => {
+                try { localStorage.removeItem(COMPANION_STEP_KEY); } catch { /* ignore */ }
+              }}
+              className={btn("primary", "md", "flex-1 text-center")}
+            >
+              סיום — חזרה לדף הבית
+              <ArrowLeftIcon className="size-4" />
+            </Link>
           ) : (
-            <button onClick={goNext} className="flex-1 rounded-full bg-brand-navy px-6 py-3 text-sm font-bold text-white hover:bg-brand-navy/90 transition-colors shadow-sm">המשך →</button>
+            <Button variant="primary" onClick={goNext} className="flex-1">
+              המשך
+              <ArrowLeftIcon className="size-4" />
+            </Button>
           )}
         </div>
         <div className="mx-auto max-w-screen-md px-4 pb-3 text-center">
-          <Link href="/demo" className="text-xs text-stone-400 hover:text-stone-700 underline-offset-2 hover:underline">דלג על הסיור</Link>
+          <Link
+            href="/demo"
+            className="text-xs text-faint hover:text-muted underline-offset-2 hover:underline"
+          >
+            דלג על הסיור
+          </Link>
         </div>
       </nav>
     </div>
@@ -230,7 +310,11 @@ function ContactInfoCard({ persona, moduleId }: { persona: Persona; moduleId: nu
       : [];
 
   if (rows.length === 0) {
-    return (<div className="px-4 py-4 text-sm text-stone-500 text-center">אין שדות מספריים לשלב זה — הפרטים מתועלים בשלבים אחרים.</div>);
+    return (
+      <div className="px-4 py-4 text-sm text-muted text-center">
+        אין שדות מספריים לשלב זה — הפרטים מתועלים בשלבים אחרים.
+      </div>
+    );
   }
 
   return (
@@ -241,10 +325,26 @@ function ContactInfoCard({ persona, moduleId }: { persona: Persona; moduleId: nu
         </div>
         <div className="divide-y divide-stone-100">
           {rows.map(({ label, value }) => (
-            <div key={label} className="grid items-center gap-2 px-3 py-1.5" style={{ gridTemplateColumns: "1fr 28px 140px" }}>
+            <div
+              key={label}
+              className="grid items-center gap-2 px-3 py-1.5"
+              style={{ gridTemplateColumns: "1fr 28px 140px" }}
+            >
               <span className="text-[12px] text-stone-800 leading-snug">{label}</span>
-              <div className="flex items-center justify-center">{value ? <InlineCopyButton value={value} /> : null}</div>
-              <span className={"inline-block border px-2 py-0.5 text-[12px] font-medium min-w-[100px] text-center " + (value ? "border-[#a8b8c8] bg-[#eef3f8] text-[#1a3f6a]" : "border-stone-300 bg-white text-stone-400")} dir="ltr">{value || "—"}</span>
+              <div className="flex items-center justify-center">
+                {value ? <InlineCopyButton value={value} /> : null}
+              </div>
+              <span
+                className={
+                  "inline-block border px-2 py-0.5 text-[12px] font-medium min-w-[100px] text-center " +
+                  (value
+                    ? "border-[#a8b8c8] bg-[#eef3f8] text-[#1a3f6a]"
+                    : "border-stone-300 bg-white text-stone-400")
+                }
+                dir="ltr"
+              >
+                {value || "—"}
+              </span>
             </div>
           ))}
         </div>

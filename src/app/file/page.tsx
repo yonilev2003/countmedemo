@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona } from "@/lib/persona";
+import { Logo } from "@/components/brand/logo";
+import { btn } from "@/components/brand/button";
+import { SparklesIcon, ClipboardCheckIcon, ArrowRightIcon } from "@/components/brand/icons";
 
 export default function FilePage() {
   const router = useRouter();
@@ -24,9 +27,9 @@ export default function FilePage() {
   if (!hydrated) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-4 w-full max-w-screen-md px-6 animate-pulse">
-        <div className="h-8 rounded-lg bg-stone-200 w-48 mx-auto" />
+        <div className="h-8 rounded-lg bg-sand w-48 mx-auto" />
         <div className="grid grid-cols-3 gap-4">
-          {[0,1,2].map(i => <div key={i} className="h-48 rounded-2xl bg-stone-200" />)}
+          {[0,1,2].map(i => <div key={i} className="h-48 rounded-2xl bg-sand" />)}
         </div>
       </div>
     </div>
@@ -35,18 +38,17 @@ export default function FilePage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/countme-logo.svg" alt="CountMe" className="h-10 w-10" />
-            <span className="text-lg font-bold">CountMe</span>
+            <Logo size={36} />
           </Link>
           <Link
             href="/demo"
-            className="text-sm text-brand-navy/70 hover:text-brand-navy"
+            className={btn("ghost", "sm")}
           >
-            צפה בטופס Gov.il ←
+            צפה בטופס Gov.il
+            <ArrowRightIcon className="size-4" />
           </Link>
         </div>
       </header>
@@ -56,70 +58,76 @@ export default function FilePage() {
           <h1 className="font-display text-3xl font-bold text-brand-navy mb-2">
             הגש/י את הדוח השנתי
           </h1>
-          <p className="text-stone-600">
+          <p className="text-muted">
             שלום {persona!.personal.firstName} — בחר/י את המסלול שמתאים לך
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {/* Expert View — points to /demo (gov.il-faithful preview with copy buttons + chat) */}
+          {/* Expert View — points to /demo */}
           <Link
             href="/demo"
-            className="group rounded-2xl border-2 border-brand-navy/20 bg-white p-6 shadow-sm hover:border-brand-navy/50 hover:shadow-brand transition-all flex flex-col"
+            className="group bg-paper border border-line rounded-2xl shadow-brand p-6 hover:shadow-brand-lg hover:border-brand-navy/40 transition-all flex flex-col"
           >
-            <div className="mb-3 text-3xl">⚡</div>
+            <div className="mb-3 flex items-center justify-center size-12 rounded-full bg-info text-brand-navy">
+              <ArrowRightIcon className="size-5" />
+            </div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
               מסלול מהיר
             </h2>
-            <p className="text-sm text-stone-600 leading-relaxed flex-1">
-              הטופס המוכר של gov.il עם כל הערכים מחושבים, כפתור העתקה ליד כל שדה,
+            <p className="text-sm text-muted leading-relaxed flex-1">
+              הטופס המוכן של gov.il עם כל הערכים מחושבים, כפתור העתקה ליד כל שדה,
               וצ׳אט עם איתן בצד. מתאים לאלה שיודעים מה הם עושים.
             </p>
-            <div className="mt-4 text-sm font-medium text-brand-navy group-hover:underline">
-              לצפייה בטופס →
+            <div className="mt-4 text-sm font-medium text-brand-deep group-hover:underline">
+              לצפייה בטופס
             </div>
           </Link>
 
           {/* Guided — 12-step conversation */}
           <Link
             href="/file/guided"
-            className="group rounded-2xl border-2 border-success/30 bg-white p-6 shadow-sm hover:border-success/60 hover:shadow-brand transition-all flex flex-col"
+            className="group bg-paper border border-line rounded-2xl shadow-brand p-6 hover:shadow-brand-lg hover:border-success/50 transition-all flex flex-col"
           >
-            <div className="mb-3 text-3xl">✦</div>
+            <div className="mb-3 flex items-center justify-center size-12 rounded-full bg-success-light text-success">
+              <ClipboardCheckIcon className="size-5" />
+            </div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
               מסלול מודרך עם איתן
             </h2>
-            <p className="text-sm text-stone-600 leading-relaxed flex-1">
+            <p className="text-sm text-muted leading-relaxed flex-1">
               12 שלבים עם הסבר של איתן בכל נקודה, עריכה inline של פרטים, וסנכרון
               אוטומטי. מומלץ לביצוע ראשון.
             </p>
             <div className="mt-4 text-sm font-medium text-success group-hover:underline">
-              התחל/י את המסלול →
+              התחל/י את המסלול
             </div>
           </Link>
 
           {/* Companion — 12-step walkthrough with screenshots, Eitan pointer image, voice */}
           <Link
             href="/file/companion"
-            className="group rounded-2xl border-2 border-alert/30 bg-white p-6 shadow-sm hover:border-alert/60 hover:shadow-brand transition-all flex flex-col"
+            className="group bg-paper border border-line rounded-2xl shadow-brand p-6 hover:shadow-brand-lg hover:border-brand-deep/50 transition-all flex flex-col"
           >
-            <div className="mb-3 text-3xl">🤝</div>
+            <div className="mb-3 flex items-center justify-center size-12 rounded-full bg-teal-100 text-teal-600">
+              <SparklesIcon className="size-5" />
+            </div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
               ליווי צמוד
             </h2>
-            <p className="text-sm text-stone-600 leading-relaxed flex-1">
+            <p className="text-sm text-muted leading-relaxed flex-1">
               לכל שלב — צילום מסך של gov.il, איתן מצביע על המקום הנכון, הקראה
               קולית של ההסבר, וכפתור העתק/הדבק. הכי מתאים לפעם הראשונה.
             </p>
-            <div className="mt-4 text-sm font-medium text-alert group-hover:underline">
-              בוא/י נצא לדרך →
+            <div className="mt-4 text-sm font-medium text-brand-deep group-hover:underline">
+              בוא/י נצא לדרך
             </div>
           </Link>
         </div>
 
-        <p className="mt-8 text-center text-xs text-stone-400">
+        <p className="mt-8 text-center text-xs text-faint">
           אחרי שמילאת את הנתונים —{" "}
-          <Link href="/demo" className="text-brand-navy hover:underline">
+          <Link href="/demo" className="text-brand-deep hover:underline">
             פתח/י את הטופס של gov.il
           </Link>{" "}
           לצד countme והעתק/י את הערכים
