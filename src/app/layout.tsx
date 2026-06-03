@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
-import { Heebo, Rubik } from "next/font/google";
+import { Assistant } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 
-const heebo = Heebo({
-  variable: "--font-heebo",
+const assistant = Assistant({
+  variable: "--font-assistant",
   subsets: ["hebrew", "latin"],
-  display: "swap",
-});
-
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["hebrew", "latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -31,7 +26,7 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} ${rubik.variable} h-full antialiased`}
+      className={`${assistant.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-stone-900 font-sans">
         <ServiceWorkerRegistration />
