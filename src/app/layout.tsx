@@ -28,7 +28,7 @@ export default function RootLayout({
       dir="rtl"
       className={`${assistant.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-stone-900 font-sans">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-ink font-sans">
         <ServiceWorkerRegistration />
         {children}
       </body>
