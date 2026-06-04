@@ -9,9 +9,12 @@ import { btn } from "@/components/brand/button";
 import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
 import {
   BellIcon,
+  CalendarIcon,
   ChevronDownIcon,
   ClipboardCheckIcon,
+  ClockIcon,
   FileTextIcon,
+  InfoIcon,
   PercentIcon,
   ShieldIcon,
   XIcon,
@@ -38,10 +41,29 @@ const AUTHORITY_LABEL: Record<Authority, string> = {
   "bituach-leumi": "ביטוח לאומי",
 };
 
+/**
+ * Per-authority brand chip — uses the kit's `.ttl-*` brand-tone palette
+ * (teal / beige / navy) so the authority reads as its own brand chip,
+ * distinct from the row's traffic-light status (icon cell + pill). Keeps
+ * the chip from echoing — and clashing with — the status colors.
+ */
 const AUTHORITY_STYLE: Record<Authority, string> = {
-  "mas-hachnasa": "bg-info text-brand-navy",
-  maam: "bg-due-bg text-[#7d6422]",
-  "bituach-leumi": "bg-success-light text-success",
+  "mas-hachnasa": "bg-aqua-soft text-brand-navy", // .ttl-navy
+  maam: "bg-beige-100 text-beige-600", // .ttl-beige
+  "bituach-leumi": "bg-teal-100 text-brand-deep", // .ttl-teal
+};
+
+/**
+ * Soft tint for the ~42px status-icon cell — pairs a status-toned background
+ * with a matching readable stroke, mirroring the kit's `.ttl-*` icon cells
+ * (CountMe Shortcuts.html). Keyed to the row's traffic-light status so the
+ * cell reads as a single colored unit with the edge stripe + pill.
+ */
+const ICON_CELL_TINT: Record<Status, string> = {
+  "on-track": "bg-success-light text-success",
+  due: "bg-due-bg text-[#7d6422]",
+  overdue: "bg-overdue-bg text-alert",
+  plan: "bg-teal-100 text-teal-600",
 };
 
 function AuthorityIcon({ authority, className }: { authority: Authority; className?: string }) {
@@ -101,13 +123,19 @@ export default function DeadlinesPage() {
       </header>
 
       <main className="mx-auto max-w-screen-lg px-6 py-8">
-        <h1 className="font-display text-2xl font-bold text-brand-navy mb-1">
-          לוח מועדי הגשה
-        </h1>
-        <p className="text-sm text-muted mb-6">
-          מועדים קרובים עבור {persona.business.osekType === "patur" ? "עוסק פטור" : "עוסק מורשה"} ·
-          ניתן להוסיף הערה / פולו-אפ לכל מועד.
-        </p>
+        <div className="mb-7">
+          <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-teal-600">
+            <span className="size-[7px] rounded-full bg-brand" />
+            CountMe · מועדים
+          </div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-navy">
+            לוח מועדי הגשה
+          </h1>
+          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">
+            מועדים קרובים עבור {persona.business.osekType === "patur" ? "עוסק פטור" : "עוסק מורשה"} ·
+            ניתן להוסיף הערה / פולו-אפ לכל מועד.
+          </p>
+        </div>
 
         <div className="space-y-3">
           {deadlines.map((d) => (
@@ -115,9 +143,12 @@ export default function DeadlinesPage() {
           ))}
         </div>
 
-        <p className="mt-6 text-[10px] text-faint leading-relaxed">
-          המועדים מחושבים מתוך לוח מובנה (`lib/deadlines`) ואינם כוללים הזזת שבת/חג — לאימות סופי
-          מול רשות המסים/ביטוח לאומי. הערות הפולו-אפ נשמרות מקומית בדפדפן (גרסה ראשונה, ללא שרת).
+        <p className="mt-7 flex items-start gap-2 text-[11px] leading-relaxed text-faint">
+          <InfoIcon className="mt-px size-3.5 shrink-0" />
+          <span>
+            המועדים מחושבים מתוך לוח מובנה (`lib/deadlines`) ואינם כוללים הזזת שבת/חג — לאימות סופי
+            מול רשות המסים/ביטוח לאומי. הערות הפולו-אפ נשמרות מקומית בדפדפן (גרסה ראשונה, ללא שרת).
+          </span>
         </p>
       </main>
     </div>
@@ -143,24 +174,44 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
   const openCount = notes.filter((n) => !n.done).length;
 
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-line bg-paper p-4 shadow-brand">
+    <section className="relative overflow-hidden rounded-2xl border border-line bg-paper p-4 ps-5 shadow-brand transition-shadow hover:border-brand-deep">
       {/* status edge stripe on the inline-end (RTL-aware) */}
-      <span className={cn("absolute inset-y-0 end-0 w-1", statusStripe(status))} />
+      <span className={cn("absolute inset-y-0 end-0 w-1.5", statusStripe(status))} />
 
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-start gap-3 min-w-0">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-sand text-teal-600">
-            <AuthorityIcon authority={d.authority} className="size-5" />
+        <div className="flex items-start gap-3.5 min-w-0">
+          {/* ~46px status-icon cell, tinted to the row's traffic-light tone (kit .li) */}
+          <span
+            className={cn(
+              "grid size-11 shrink-0 place-items-center rounded-xl",
+              ICON_CELL_TINT[status],
+            )}
+          >
+            <AuthorityIcon authority={d.authority} className="size-[23px]" />
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", AUTHORITY_STYLE[d.authority])}>
+              <h3 className="text-[15.5px] font-bold leading-tight text-brand-navy">
+                {d.titleHe}
+              </h3>
+              <span
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                  AUTHORITY_STYLE[d.authority],
+                )}
+              >
                 {AUTHORITY_LABEL[d.authority]}
               </span>
-              <h3 className="font-bold text-brand-navy">{d.titleHe}</h3>
             </div>
-            <div className="mt-1 text-xs text-muted">{dueLabel} · {d.dueRule}</div>
-            {d.notesHe && <div className="mt-1 text-[11px] text-faint">{d.notesHe}</div>}
+            <div className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-muted">
+              <CalendarIcon className="size-3.5 shrink-0 text-faint" />
+              <span className="tabular-nums">{dueLabel}</span>
+            </div>
+            <div className="mt-0.5 flex items-start gap-1.5 text-[12px] leading-relaxed text-faint">
+              <ClockIcon className="mt-px size-3.5 shrink-0" />
+              <span>{d.dueRule}</span>
+            </div>
+            {d.notesHe && <div className="mt-1.5 text-[11px] leading-relaxed text-faint">{d.notesHe}</div>}
           </div>
         </div>
         <StatusBadge status={status} className="shrink-0">
@@ -170,7 +221,7 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
 
       <button
         onClick={() => setOpen((o) => !o)}
-        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-brand-deep hover:text-teal-600"
+        className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-deep transition-colors hover:text-teal-600"
       >
         <ClipboardCheckIcon className="size-4" />
         פולו-אפ / הערות{openCount > 0 ? ` (${openCount} פתוחות)` : ""}
