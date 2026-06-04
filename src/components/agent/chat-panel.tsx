@@ -6,6 +6,39 @@ import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { SendIcon } from "@/components/brand/icons";
 
+/** Eitan's avatar image (cropped illustration, framed to the head like the mockup). */
+const EITAN_AVATAR = "/eitan/companion/picture1.png";
+
+/**
+ * Eitan avatar — circular cropped illustration on a soft-beige disc (mockup).
+ * Falls back to the navy LogoMark disc if the art is missing.
+ */
+function EitanAvatar({ size, className }: { size: number; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      className={cn(
+        "relative inline-flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-beige-100",
+        failed && "bg-brand-navy",
+        className,
+      )}
+      style={{ width: size, height: size }}
+    >
+      {failed ? (
+        <LogoMark size={size * 0.5} className="text-brand" />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={EITAN_AVATAR}
+          alt="איתן"
+          className="h-full w-full object-cover object-top"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
+  );
+}
+
 type Message = {
   role: "agent" | "user";
   text: string;
@@ -182,22 +215,45 @@ export function ChatPanel({ persona }: Props) {
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-line bg-paper shadow-brand overflow-hidden">
-      {/* Header */}
+      {/* Header — Eitan avatar + name + verified badge + status */}
       <div className="flex-shrink-0 flex items-center gap-3 border-b border-line bg-paper px-4 py-3">
-        {/* Eitan avatar: navy circle with beige LogoMark */}
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy shadow-brand-sm">
-          <LogoMark size={18} className="text-brand" />
-        </div>
-        <div>
-          <div className="text-sm font-bold text-brand-navy leading-tight">המלווה של countme</div>
-          <div className="text-xs text-muted leading-tight">
-            מבוסס על הסקיל israeli-tax-returns
+        {/* Eitan avatar */}
+        <EitanAvatar size={40} className="shadow-brand-sm" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-brand-navy leading-tight">
+            <span>איתן</span>
+            {/* Verified badge — teal check-circle */}
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-label="מאומת"
+              className="size-[14px] flex-shrink-0 text-brand-deep"
+            >
+              <circle cx="8" cy="8" r="7" fill="currentColor" opacity="0.15" />
+              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+              <path
+                d="M5 8l2 2 4-3.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[12px] font-semibold text-teal-600 leading-none">
+            <span className="inline-block h-[7px] w-[7px] rounded-full bg-success flex-shrink-0" />
+            מחובר · המלווה של countme
           </div>
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gradient-to-b from-paper to-cream">
+        {/* Day separator pill */}
+        <div className="self-center rounded-full bg-line-soft px-3 py-1 text-[11.5px] font-bold text-faint">
+          היום
+        </div>
+
         {messages.map((m, i) => (
           <div
             key={i}
@@ -207,16 +263,12 @@ export function ChatPanel({ persona }: Props) {
             )}
           >
             {/* Mini avatar for bot messages */}
-            {m.role === "agent" && (
-              <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-                <LogoMark size={13} className="text-brand" />
-              </div>
-            )}
+            {m.role === "agent" && <EitanAvatar size={28} className="self-end" />}
             <div
               className={cn(
-                "rounded-[18px] px-3.5 py-2 text-sm leading-relaxed",
+                "rounded-[18px] px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap",
                 m.role === "agent"
-                  ? "bg-paper border border-line text-ink rounded-es-[5px]"
+                  ? "bg-white border border-line text-ink rounded-es-[5px]"
                   : "bg-brand-navy text-white rounded-ee-[5px]",
               )}
             >
@@ -228,10 +280,8 @@ export function ChatPanel({ persona }: Props) {
         {/* Live streaming bubble */}
         {streamingText && (
           <div className="flex gap-2 max-w-[85%] self-start">
-            <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-              <LogoMark size={13} className="text-brand" />
-            </div>
-            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-3.5 py-2 text-sm leading-relaxed text-ink">
+            <EitanAvatar size={28} className="self-end" />
+            <div className="rounded-[18px] rounded-es-[5px] bg-white border border-line px-3.5 py-2 text-sm leading-relaxed text-ink whitespace-pre-wrap">
               {streamingText}
               <span className="inline-block w-1.5 h-3.5 bg-brand-deep/40 animate-pulse ms-0.5 align-middle" />
             </div>
@@ -241,10 +291,8 @@ export function ChatPanel({ persona }: Props) {
         {/* Typing indicator (before first token arrives) */}
         {isLoading && !streamingText && (
           <div className="flex gap-2 max-w-[85%] self-start">
-            <div className="flex h-[28px] w-[28px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-              <LogoMark size={13} className="text-brand" />
-            </div>
-            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-4 py-3 w-fit">
+            <EitanAvatar size={28} className="self-end" />
+            <div className="rounded-[18px] rounded-es-[5px] bg-white border border-line px-4 py-3 w-fit">
               <span className="inline-flex gap-1">
                 <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:0ms]" />
                 <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:150ms]" />
