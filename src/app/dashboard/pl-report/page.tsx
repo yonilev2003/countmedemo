@@ -113,7 +113,7 @@ export default function PLReportPage() {
                     >
                       <td className={`px-4 py-1.5 ${isSubtotal ? "text-brand-navy" : "text-ink"} ${!isSubtotal ? "pe-8" : ""}`}>{line.he}</td>
                       <td className={`px-4 py-1.5 text-xs ${isSubtotal ? "text-brand-navy/80" : "text-muted"} ${!isSubtotal ? "pe-8" : ""}`} dir="ltr">{line.en}</td>
-                      <td className={`px-4 py-1.5 text-end ${isSubtotal ? "text-brand-navy" : "text-ink"}`} dir="ltr">
+                      <td className={`px-4 py-1.5 text-end tabular-nums ${isSubtotal ? "font-display font-bold text-brand-navy" : "text-ink"}`} dir="ltr">
                         {formatNIS(line.amount, line.kind)}
                       </td>
                     </tr>
@@ -123,7 +123,7 @@ export default function PLReportPage() {
                 <tr className="bg-brand-navy text-white border-t-2 border-brand-navy">
                   <td className="px-4 py-2.5 font-bold">רווח נקי לשנה</td>
                   <td className="px-4 py-2.5 font-bold text-xs" dir="ltr">Net Profit for the Year</td>
-                  <td className="px-4 py-2.5 font-bold text-end" dir="ltr">
+                  <td className="px-4 py-2.5 font-display font-extrabold text-end tabular-nums" dir="ltr">
                     {formatNIS(report.totals.netProfit, report.totals.netProfit < 0 ? "outflow" : "inflow")}
                   </td>
                 </tr>

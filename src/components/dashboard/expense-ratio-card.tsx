@@ -9,25 +9,30 @@
  */
 
 import { ExpenseRatioInsight } from "@/lib/p-and-l/expense-ratio";
+import { PercentIcon } from "@/components/brand/icons";
 
 const TONE_STYLES: Record<ExpenseRatioInsight["tone"], {
-  accent: string; bar: string;
+  accent: string; bar: string; chip: string;
 }> = {
   ok: {
     accent: "text-success",
     bar: "bg-success",
+    chip: "bg-success-light text-success",
   },
   info: {
     accent: "text-brand-deep",
     bar: "bg-brand-deep",
+    chip: "bg-teal-100 text-brand-deep",
   },
   warn: {
     accent: "text-due",
     bar: "bg-due",
+    chip: "bg-due-bg text-due",
   },
   alert: {
     accent: "text-alert",
     bar: "bg-alert",
+    chip: "bg-overdue-bg text-alert",
   },
 };
 
@@ -43,19 +48,24 @@ export function ExpenseRatioCard({ insight }: { insight: ExpenseRatioInsight }) 
   return (
     <div className="rounded-2xl border border-line bg-paper p-4 sm:p-5 shadow-brand">
       <div className="flex items-start justify-between gap-4 mb-3">
-        <div>
-          <p className={`text-xs uppercase tracking-wider ${t.accent} font-bold`}>
-            יחס הוצאות / הכנסות
-          </p>
-          <p className="text-sm font-bold text-brand-navy mt-0.5">
-            {insight.headlineHe}
-          </p>
+        <div className="flex items-start gap-2.5">
+          <span className={`flex size-8 items-center justify-center rounded-xl ${t.chip}`}>
+            <PercentIcon className="size-[18px]" />
+          </span>
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-faint font-bold">
+              יחס הוצאות / הכנסות
+            </p>
+            <p className="text-sm font-bold text-brand-navy mt-0.5">
+              {insight.headlineHe}
+            </p>
+          </div>
         </div>
         <div className="text-end shrink-0">
-          <div className={`text-3xl font-display font-bold ${t.accent}`} dir="ltr">
+          <div className={`text-3xl font-display font-extrabold tabular-nums tracking-tight ${t.accent}`} dir="ltr">
             {insight.ratioPercent}%
           </div>
-          <div className="text-[10px] text-muted" dir="ltr">
+          <div className="text-[10px] text-muted tabular-nums" dir="ltr">
             {insight.totalExpenses.toLocaleString("he-IL")} / {insight.totalRevenue.toLocaleString("he-IL")} ₪
           </div>
         </div>
@@ -75,9 +85,12 @@ export function ExpenseRatioCard({ insight }: { insight: ExpenseRatioInsight }) 
         />
       </div>
       <div className="flex justify-between text-[10px] text-muted mb-3" dir="ltr">
-        <span>100%</span>
-        <span>← 30% זעיר</span>
-        <span>0%</span>
+        <span className="tabular-nums">100%</span>
+        <span className="flex items-center gap-1 font-semibold text-brand-navy">
+          <span className="inline-block h-2.5 w-px bg-brand-navy" />
+          <span className="tabular-nums">30%</span> זעיר
+        </span>
+        <span className="tabular-nums">0%</span>
       </div>
 
       <p className="text-xs text-ink leading-relaxed">{insight.detailHe}</p>
@@ -108,8 +121,8 @@ export function ExpenseRatioCard({ insight }: { insight: ExpenseRatioInsight }) 
 function Stat({ label, value, tone }: { label: string; value: number; tone: "ok" | "info" | "alert" }) {
   const cls = tone === "ok" ? "text-success" : tone === "alert" ? "text-alert" : "text-brand-navy";
   return (
-    <div className="rounded-lg bg-cream border border-line-soft p-2">
-      <div className={`text-sm font-bold ${cls}`} dir="ltr">
+    <div className="rounded-xl bg-cream border border-line-soft p-2.5">
+      <div className={`font-display text-sm font-extrabold tabular-nums ${cls}`} dir="ltr">
         {value.toLocaleString("he-IL")} ₪
       </div>
       <div className="text-[10px] text-muted leading-tight mt-0.5">{label}</div>
