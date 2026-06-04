@@ -29,6 +29,10 @@ import {
   AlertTriangleIcon,
   DownloadIcon,
   ArrowLeftIcon,
+  WalletIcon,
+  ReceiptIcon,
+  TrendingUpIcon,
+  PercentIcon,
 } from "@/components/brand/icons";
 
 // Dynamic import to avoid SSR issues with Recharts
@@ -48,19 +52,42 @@ function KPI({
   value,
   sub,
   color,
+  dot,
+  icon,
+  iconChip,
 }: {
   label: string;
   value: string;
   sub?: string;
   color?: string;
+  /** Tailwind bg-* class for the accent dot next to the label (mockup `.stat .sd`). */
+  dot?: string;
+  /** Optional line-icon rendered in the top-corner chip (mockup stat accent). */
+  icon?: React.ReactNode;
+  /** Tailwind classes for the icon chip (bg + text). */
+  iconChip?: string;
 }) {
   return (
     <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-      <div className="text-xs text-muted mb-1">{label}</div>
-      <div className={`font-display text-2xl font-bold ${color ?? "text-brand-navy"}`}>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted">
+          {dot && <span className={`size-2 shrink-0 rounded-full ${dot}`} />}
+          {label}
+        </div>
+        {icon && (
+          <span
+            className={`flex size-7 items-center justify-center rounded-lg ${iconChip ?? "bg-teal-100 text-brand-deep"}`}
+          >
+            {icon}
+          </span>
+        )}
+      </div>
+      <div
+        className={`font-display text-2xl font-extrabold tabular-nums tracking-tight ${color ?? "text-brand-navy"}`}
+      >
         {value}
       </div>
-      {sub && <div className="text-xs text-faint mt-0.5">{sub}</div>}
+      {sub && <div className="mt-0.5 text-xs text-faint">{sub}</div>}
     </div>
   );
 }
@@ -179,11 +206,11 @@ export default function DashboardPage() {
         {/* Title + filter */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-2xl font-bold text-brand-navy">
+            <h1 className="font-display text-[27px] font-extrabold tracking-tight text-brand-navy">
               דוח רווח והפסד — {persona.personal.firstName}{" "}
               {persona.personal.lastName}
             </h1>
-            <p className="text-sm text-muted mt-0.5">שנת מס {persona.income.year}</p>
+            <p className="text-sm font-medium text-muted mt-0.5">שנת מס {persona.income.year}</p>
           </div>
           <div className="flex flex-col gap-2 items-end">
             {/* Granularity toggle */}
@@ -241,33 +268,52 @@ export default function DashboardPage() {
         </div>
 
         {/* Period banner — explains what user is seeing */}
-        <div className="mb-4 rounded-2xl bg-info border border-teal-100 px-4 py-2 text-xs text-brand-navy">
-          תצוגה: <span className="font-bold">{periodLabel}</span>
-          {pl.hasDatedData ? (
-            <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
-          ) : (
-            <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
-          )}
+        <div className="mb-4 flex items-center gap-2 rounded-2xl bg-info border border-teal-100 px-4 py-2.5 text-xs text-brand-navy">
+          <CalendarIcon className="size-4 shrink-0 text-brand-deep" />
+          <span>
+            תצוגה: <span className="font-bold">{periodLabel}</span>
+            {pl.hasDatedData ? (
+              <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
+            ) : (
+              <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
+            )}
+          </span>
         </div>
 
         {/* KPI strip */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
-          <KPI label="הכנסות" value={fmt(filteredRevenue)} color="text-brand-deep" />
+          <KPI
+            label="הכנסות"
+            value={fmt(filteredRevenue)}
+            color="text-brand-deep"
+            dot="bg-brand-deep"
+            icon={<WalletIcon className="size-4" />}
+            iconChip="bg-teal-100 text-brand-deep"
+          />
           <KPI
             label="הוצאות"
             value={fmt(filteredExpenses)}
             color="text-ink"
+            dot="bg-brand"
+            icon={<ReceiptIcon className="size-4" />}
+            iconChip="bg-beige-100 text-beige-600"
           />
           <KPI
             label="רווח נקי"
             value={fmt(filteredNet)}
             color={filteredNet >= 0 ? "text-success" : "text-alert"}
+            dot={filteredNet >= 0 ? "bg-success" : "bg-alert"}
+            icon={<TrendingUpIcon className="size-4" />}
+            iconChip={filteredNet >= 0 ? "bg-success-light text-success" : "bg-overdue-bg text-alert"}
           />
           <KPI
             label="מס הכנסה משוער"
             value={fmt(Math.round(filteredNet * 0.2))}
             sub="הערכה בלבד"
             color="text-muted"
+            dot="bg-due"
+            icon={<PercentIcon className="size-4" />}
+            iconChip="bg-due-bg text-due"
           />
         </div>
 
@@ -301,21 +347,24 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-4">
             <EitanInsights persona={persona} pl={pl} />
-            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-              <h3 className="text-xs font-semibold text-muted mb-2">
-                סיכום שנתי
-              </h3>
-              <div className="space-y-2 text-sm">
+            <div className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-base font-bold text-brand-navy">סיכום שנתי</h3>
+                <span className="text-xs font-semibold text-faint">
+                  שנת {persona.income.year}
+                </span>
+              </div>
+              <div className="space-y-2.5 text-sm">
                 {[
                   { label: "מחזור לשדה 238", value: pl.totalRevenue },
                   { label: "הכנסה חייבת (שדה 150)", value: pl.netProfit },
                 ].map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-center justify-between"
+                    className="flex items-center justify-between rounded-xl border border-line-soft bg-cream px-3 py-2.5"
                   >
-                    <span className="text-muted">{row.label}</span>
-                    <span className="font-semibold text-brand-navy">
+                    <span className="font-semibold text-muted">{row.label}</span>
+                    <span className="font-display font-extrabold tabular-nums text-brand-navy">
                       {fmt(row.value)}
                     </span>
                   </div>

@@ -72,12 +72,17 @@ export function EitanInsights({ persona, pl }: Props) {
   }, [persona, pl]);
 
   return (
-    <div className="rounded-2xl border border-line bg-aqua-soft p-4 shadow-brand">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex size-7 items-center justify-center rounded-full bg-brand-navy text-brand">
-          <SparklesIcon className="size-4" />
+    <div className="rounded-2xl border border-line bg-aqua-soft p-5 shadow-brand">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="flex size-9 items-center justify-center rounded-xl bg-brand-navy text-brand shadow-brand">
+          <SparklesIcon className="size-5" />
         </div>
-        <span className="text-sm font-semibold text-brand-navy">איתן אומר</span>
+        <div className="leading-tight">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
+            עוזר חכם
+          </div>
+          <div className="text-sm font-bold text-brand-navy">איתן אומר</div>
+        </div>
       </div>
       {loading ? (
         <div className="space-y-2">

@@ -7,6 +7,7 @@ import {
   planVsActual,
   type ForecastBasis,
 } from "@/lib/forecast/index";
+import { TrendingUpIcon } from "@/components/brand/icons";
 
 const BASIS_META: Record<ForecastBasis, { label: string; hint: string }> = {
   strong: { label: "חודש חזק", hint: "הקרנה זהירה־כלפי־מעלה — משלמים יותר עכשיו, פחות הפתעות בסוף השנה" },
@@ -33,13 +34,18 @@ export function ForecastCard({ persona }: { persona: Persona }) {
   return (
     <section className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="font-display text-lg font-bold text-brand-navy">
-            תכנון מול ביצוע — מקדמות
-          </h3>
-          <p className="text-xs text-muted mt-0.5">
-            תחזית קדימה על בסיס החודשים שכבר נרשמו. על איזה חודש לחשב?
-          </p>
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-teal-100 text-brand-deep">
+            <TrendingUpIcon className="size-5" />
+          </span>
+          <div>
+            <h3 className="font-display text-lg font-bold text-brand-navy">
+              תכנון מול ביצוע — מקדמות
+            </h3>
+            <p className="text-xs text-muted mt-0.5">
+              תחזית קדימה על בסיס החודשים שכבר נרשמו. על איזה חודש לחשב?
+            </p>
+          </div>
         </div>
         {/* Strong / average / weak basis toggle — the "ask strong or weak" dialog */}
         <div className="flex gap-1 rounded-full bg-cream p-1">
@@ -81,10 +87,10 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         <div className={`text-sm font-bold ${tone.text}`}>{pva.headlineHe}</div>
         <div className="mt-1 text-xs text-muted">{pva.detailHe}</div>
         <div className="mt-2 flex items-center gap-4 text-[11px] text-muted">
-          <span>תחזית: <b className="text-ink">{fmt(pva.due)}</b></span>
-          <span>שולם בפועל: <b className="text-ink">{fmt(pva.paid)}</b></span>
+          <span>תחזית: <b className="text-ink tabular-nums">{fmt(pva.due)}</b></span>
+          <span>שולם בפועל: <b className="text-ink tabular-nums">{fmt(pva.paid)}</b></span>
           <span>
-            פער: <b className={tone.text}>{pva.gap >= 0 ? "" : "−"}{fmt(Math.abs(pva.gap))}</b>
+            פער: <b className={`${tone.text} tabular-nums`}>{pva.gap >= 0 ? "" : "−"}{fmt(Math.abs(pva.gap))}</b>
           </span>
         </div>
       </div>
@@ -119,7 +125,9 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line-soft bg-cream p-3">
       <div className="text-[11px] text-muted mb-0.5">{label}</div>
-      <div className="font-display text-base font-bold text-brand-navy">{value}</div>
+      <div className="font-display text-base font-extrabold tabular-nums text-brand-navy">
+        {value}
+      </div>
     </div>
   );
 }
