@@ -19,16 +19,27 @@ export default function CoachPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div
+      className="min-h-screen flex flex-col bg-cream"
+      style={{
+        backgroundImage: [
+          "radial-gradient(60% 40% at 84% 4%, color-mix(in srgb, var(--color-aqua) 55%, transparent) 0%, transparent 60%)",
+          "radial-gradient(60% 50% at 6% 100%, color-mix(in srgb, var(--color-brand-navy) 18%, transparent) 0%, transparent 60%)",
+          "linear-gradient(150deg, var(--color-cream) 0%, var(--color-sand) 70%)",
+        ].join(", "),
+      }}
+    >
       {/* Header */}
-      <header className="bg-paper border-b border-line">
+      <header className="bg-paper/80 backdrop-blur-sm border-b border-line">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-3">
             <Logo size={28} />
             <div>
-              <div className="text-sm font-bold text-brand-navy leading-tight">CountMe</div>
-              <div className="text-[11px] text-muted leading-tight">
-                איתן · ייעוץ כספי אישי
+              <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-teal-600 leading-tight">
+                CountMe · Chat
+              </div>
+              <div className="text-[12px] text-muted leading-tight">
+                איתן · השותף הדיגיטלי לדוח השנתי
               </div>
             </div>
           </Link>

@@ -15,7 +15,42 @@ import {
   FileTextIcon,
   ArrowRightIcon,
   ClipboardCheckIcon,
+  InfoIcon,
+  ChevronDownIcon,
 } from "@/components/brand/icons";
+
+/** Eitan's avatar image (cropped illustration, framed to the head like the mockup). */
+const EITAN_AVATAR = "/eitan/companion/picture1.png";
+
+/**
+ * Eitan avatar — the brand mockup shows a circular cropped illustration on a
+ * soft-beige disc. Falls back to the navy LogoMark disc if the art is missing.
+ */
+function EitanAvatar({ size, className }: { size: number; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span
+      className={cn(
+        "relative inline-flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-beige-100",
+        failed && "bg-brand-navy",
+        className,
+      )}
+      style={{ width: size, height: size }}
+    >
+      {failed ? (
+        <LogoMark size={size * 0.5} className="text-brand" />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={EITAN_AVATAR}
+          alt="איתן"
+          className="h-full w-full object-cover object-top"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
+  );
+}
 
 type Attachment = {
   name: string;
@@ -284,16 +319,23 @@ export function CoachChat({ persona }: Props) {
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-line bg-paper shadow-brand overflow-hidden">
-      {/* Chat header — Eitan avatar + name + verified badge + "מחובר" status */}
+      {/* Chat header — back · Eitan avatar + name + verified badge + status · info */}
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-line bg-paper">
-        {/* Eitan avatar: branded placeholder — navy circle with beige LogoMark */}
-        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-brand-navy shadow-brand-sm">
-          <LogoMark size={22} className="text-brand" />
-        </div>
+        {/* Back to home (start side, RTL-aware chevron) */}
+        <Link
+          href="/"
+          aria-label="חזרה"
+          className="grid size-[30px] flex-shrink-0 place-items-center text-brand-navy hover:text-teal-600 transition-colors"
+        >
+          <ChevronDownIcon className="size-[22px] rotate-90" />
+        </Link>
+
+        {/* Eitan avatar */}
+        <EitanAvatar size={44} className="shadow-brand-sm" />
 
         <div className="flex-1 min-w-0">
           {/* Name + verified badge */}
-          <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-brand-navy leading-tight">
+          <div className="flex items-center gap-1.5 text-[16.5px] font-extrabold text-brand-navy leading-tight">
             <span>איתן</span>
             {/* Verified badge — teal check-circle */}
             <svg
@@ -314,23 +356,33 @@ export function CoachChat({ persona }: Props) {
             </svg>
           </div>
           {/* Status line */}
-          <div className="flex items-center gap-1.5 mt-0.5 text-[12px] font-semibold text-teal-600 leading-none">
+          <div className="flex items-center gap-1.5 mt-0.5 text-[12.5px] font-semibold text-teal-600 leading-none">
             <span className="inline-block h-[7px] w-[7px] rounded-full bg-success flex-shrink-0" />
-            מחובר
+            מחובר · עונה תוך שניות
           </div>
         </div>
 
-        <button
-          onClick={reset}
-          className={btn("ghost", "sm")}
-          type="button"
-        >
+        {/* Actions: new chat + info disc */}
+        <button onClick={reset} className={btn("ghost", "sm")} type="button">
           שיחה חדשה
+        </button>
+        <button
+          type="button"
+          aria-label="אודות איתן"
+          title="איתן — השותף הדיגיטלי שלך לדוח השנתי"
+          className="grid size-[38px] flex-shrink-0 place-items-center rounded-full bg-cream text-brand-navy hover:bg-teal-100 transition-colors"
+        >
+          <InfoIcon className="size-[18px]" />
         </button>
       </div>
 
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-gradient-to-b from-paper to-cream">
+        {/* Day separator pill */}
+        <div className="self-center rounded-full bg-line-soft px-3 py-1 text-[11.5px] font-bold text-faint">
+          היום
+        </div>
+
         {messages.map((m, i) => (
           <div
             key={i}
@@ -340,19 +392,15 @@ export function CoachChat({ persona }: Props) {
             )}
           >
             {/* Mini avatar for bot messages */}
-            {m.role === "agent" && (
-              <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-                <LogoMark size={14} className="text-brand" />
-              </div>
-            )}
+            {m.role === "agent" && <EitanAvatar size={30} className="self-end" />}
 
             <div
               className={cn(
                 "rounded-[18px] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
                 m.role === "agent"
-                  /* bot bubble: white/paper, left cut corner, branded border */
-                  ? "bg-paper border border-line text-ink rounded-es-[5px]"
-                  /* user bubble: navy, right cut corner */
+                  /* bot bubble: white, start-cut corner, branded border */
+                  ? "bg-white border border-line text-ink rounded-es-[5px]"
+                  /* user bubble: navy, end-cut corner */
                   : "bg-brand-navy text-white rounded-ee-[5px]",
               )}
             >
@@ -374,8 +422,6 @@ export function CoachChat({ persona }: Props) {
                 </div>
               )}
               {m.text}
-              {/* Timestamp faint */}
-              {/* (omitted — no real timestamp data, but structure is here if needed) */}
             </div>
           </div>
         ))}
@@ -383,10 +429,8 @@ export function CoachChat({ persona }: Props) {
         {/* Streaming bubble */}
         {streamingText && (
           <div className="flex gap-2 max-w-[84%] self-start">
-            <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-              <LogoMark size={14} className="text-brand" />
-            </div>
-            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-3.5 py-2.5 text-sm leading-relaxed text-ink whitespace-pre-wrap">
+            <EitanAvatar size={30} className="self-end" />
+            <div className="rounded-[18px] rounded-es-[5px] bg-white border border-line px-3.5 py-2.5 text-sm leading-relaxed text-ink whitespace-pre-wrap">
               {streamingText}
               <span className="inline-block w-1.5 h-3.5 bg-brand-deep/40 animate-pulse ms-0.5 align-middle" />
             </div>
@@ -396,10 +440,8 @@ export function CoachChat({ persona }: Props) {
         {/* Typing indicator */}
         {isLoading && !streamingText && (
           <div className="flex gap-2 max-w-[84%] self-start">
-            <div className="flex h-[30px] w-[30px] flex-shrink-0 self-end items-center justify-center rounded-full bg-brand-navy">
-              <LogoMark size={14} className="text-brand" />
-            </div>
-            <div className="rounded-[18px] rounded-es-[5px] bg-paper border border-line px-4 py-3 w-fit">
+            <EitanAvatar size={30} className="self-end" />
+            <div className="rounded-[18px] rounded-es-[5px] bg-white border border-line px-4 py-3 w-fit">
               <span className="inline-flex gap-1">
                 <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:0ms]" />
                 <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:200ms]" />
@@ -419,7 +461,7 @@ export function CoachChat({ persona }: Props) {
             type="button"
             onClick={sendSummary}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-paper px-3.5 py-2 text-[13px] font-semibold text-teal-600 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-teal-100 bg-white px-3.5 py-2 text-[13px] font-semibold text-teal-600 hover:bg-teal-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <SparklesIcon className="size-3.5" />
             סיכום השיחה
@@ -507,8 +549,19 @@ export function CoachChat({ persona }: Props) {
             className="hidden"
           />
 
-          {/* Input field with inline paperclip */}
+          {/* Input field with inline paperclip (clip sits at inline-start, per mockup) */}
           <div className="flex flex-1 items-center gap-2.5 rounded-full border border-line bg-cream px-4 py-2.5">
+            {/* Paperclip inside field */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              type="button"
+              className="flex-shrink-0 text-faint hover:text-brand-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="צרף קבלה (JPG/PNG) או PDF"
+              aria-label="צרף קובץ"
+            >
+              <PaperclipIcon className="size-[19px]" />
+            </button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -521,17 +574,6 @@ export function CoachChat({ persona }: Props) {
               disabled={isLoading}
               className="flex-1 bg-transparent border-none outline-none text-[14.5px] text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"
             />
-            {/* Paperclip inside field */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isLoading}
-              type="button"
-              className="flex-shrink-0 text-faint hover:text-brand-deep disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="צרף קבלה (JPG/PNG) או PDF"
-              aria-label="צרף קובץ"
-            >
-              <PaperclipIcon className="size-[19px]" />
-            </button>
           </div>
 
           {/* Mic button — beige */}
