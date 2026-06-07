@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CountMe — לוח בקרה (ווב)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --navy:#083A4F; --navy-900:#052532; --navy-700:#0C4860;
+    --gold:#C8B59A; --gold-600:#AD9A7B; --gold-100:#EBE3D5;
+    --aqua:#C0D5D6; --aqua-soft:#E6EEEE; --teal:#407E8C; --teal-600:#356a77; --teal-100:#DCE9EB;
+    --sand:#E5E1DD; --sand-50:#F1EFEA; --paper:#FBFAF8;
+    --ink:#0B2027; --muted:#6A7A80; --faint:#9AA7AC;
+    --on-track:#3E8E78; --on-track-bg:#DDEDE6;
+    --due:#A88A3F; --due-bg:#F1E9D4;
+    --overdue:#C05B45; --overdue-bg:#F3DED7;
+    --line:#E7E2DA; --line-soft:#EFEBE3;
+    --font:'Assistant',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    --radius:16px;
+    --shadow-card:0 1px 2px rgba(8,40,55,.04), 0 12px 28px -16px rgba(8,40,55,.18);
+  }
+  html,body{font-family:var(--font);-webkit-font-smoothing:antialiased;color:var(--ink)}
+  body{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:34px 24px;
+    background:
+      radial-gradient(60% 50% at 84% 4%, rgba(192,213,214,.7) 0%, rgba(192,213,214,0) 60%),
+      radial-gradient(60% 60% at 6% 100%, rgba(64,126,140,.28) 0%, rgba(64,126,140,0) 60%),
+      linear-gradient(150deg,#EEEAE3 0%,#E3DED7 60%,#D8D2C9 100%);}
+  .scaler{transform-origin:top center}
+
+  /* ===== shell ===== */
+  .app{width:1340px;height:1024px;display:flex;border-radius:30px;overflow:hidden;
+    background:rgba(251,250,248,.78);-webkit-backdrop-filter:blur(30px) saturate(140%);backdrop-filter:blur(30px) saturate(140%);
+    border:1px solid rgba(255,255,255,.7);box-shadow:0 50px 100px -40px rgba(8,40,55,.45), inset 0 1px 0 rgba(255,255,255,.6)}
+
+  /* ===== sidebar ===== */
+  .side{width:104px;flex-shrink:0;background:rgba(255,255,255,.5);border-inline-end:1px solid var(--line-soft);
+    display:flex;flex-direction:column;align-items:center;padding:26px 0 22px}
+  .side .logo{display:grid;place-items:center;margin-bottom:34px}
+  .side .nav{display:flex;flex-direction:column;gap:8px;flex:1;align-items:center}
+  .nav-item{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;color:var(--muted);cursor:pointer;position:relative;transition:all .15s ease}
+  .nav-item svg{width:23px;height:23px}
+  .nav-item:hover{background:var(--sand-50);color:var(--navy)}
+  .nav-item.active{background:var(--navy);color:#fff;box-shadow:0 10px 22px -10px rgba(8,40,55,.6)}
+  .nav-item .tip{position:absolute;inset-inline-start:60px;top:50%;transform:translateY(-50%);background:var(--navy);color:#fff;font-size:12px;font-weight:600;padding:5px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;z-index:30}
+  .nav-item:hover .tip{opacity:1}
+  .side .ava{width:48px;height:48px;border-radius:50%;background:linear-gradient(140deg,var(--teal),var(--navy));display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px;box-shadow:0 8px 18px -8px rgba(8,40,55,.5);cursor:pointer}
+
+  /* ===== main ===== */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 30px 28px;overflow:hidden}
+
+  /* topbar */
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+  .greet h1{font-size:27px;font-weight:800;letter-spacing:-.02em;color:var(--navy)}
+  .greet p{font-size:14.5px;color:var(--muted);margin-top:2px}
+  .greet p b{color:var(--due);font-weight:700}
+  .top-tools{display:flex;align-items:center;gap:12px}
+  .search{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.7);border:1px solid var(--line);border-radius:999px;padding:10px 16px;width:230px;color:var(--faint)}
+  .search input{border:none;background:transparent;outline:none;font-family:var(--font);font-size:14px;color:var(--ink);flex:1;text-align:right}
+  .search svg{width:17px;height:17px}
+  .chip{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border-radius:999px;padding:9px 15px;font-size:13px;font-weight:600}
+  .chip .wx{display:flex;flex-direction:column;line-height:1.05}
+  .chip .wx b{font-size:13px}.chip .wx span{font-size:10.5px;color:var(--aqua)}
+  .icon-btn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.7);border:1px solid var(--line);display:grid;place-items:center;color:var(--navy);cursor:pointer;position:relative}
+  .icon-btn svg{width:19px;height:19px}
+  .icon-btn .dot{position:absolute;top:9px;inset-inline-end:10px;width:8px;height:8px;border-radius:50%;background:var(--overdue);border:1.5px solid #fff}
+  .btn-cta{display:flex;align-items:center;gap:8px;background:var(--gold);color:var(--navy);border:none;border-radius:999px;padding:11px 20px;font-family:var(--font);font-size:14.5px;font-weight:700;cursor:pointer;box-shadow:0 12px 24px -12px rgba(200,181,154,.9)}
+  .btn-cta:hover{background:var(--gold-600)}
+  .btn-cta svg{width:17px;height:17px}
+
+  /* grid */
+  .grid{flex:1;display:grid;grid-template-columns:1.4fr 1.05fr .95fr;grid-template-rows:auto 1fr 1fr;gap:18px;min-height:0;
+    grid-template-areas:"income income income" "timeline status next" "docs finance next";}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-card);padding:20px 22px;display:flex;flex-direction:column;min-height:0}
+  .c-timeline{grid-area:timeline}
+  .c-status{grid-area:status}
+  .c-next{grid-area:next}
+  .c-docs{grid-area:docs}
+  .c-fin{grid-area:finance}
+  .card-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .card-h h3{font-size:16.5px;font-weight:700;color:var(--navy)}
+  .card-h .sub{font-size:12.5px;color:var(--faint);font-weight:600}
+  .seg{display:flex;background:var(--sand-50);border-radius:999px;padding:3px}
+  .seg button{border:none;background:transparent;font-family:var(--font);font-size:12.5px;font-weight:600;color:var(--muted);padding:5px 13px;border-radius:999px;cursor:pointer}
+  .seg button.on{background:#fff;color:var(--navy);box-shadow:0 2px 6px -2px rgba(8,40,55,.2)}
+
+  /* timeline card */
+  .tl{flex:1;display:flex;flex-direction:column;gap:2px;position:relative;padding-top:6px}
+  .tl-axis{display:flex;justify-content:space-between;padding:0 4px 10px;border-bottom:1px dashed var(--line);margin-bottom:8px}
+  .tl-axis span{font-size:11.5px;color:var(--faint);font-weight:600}
+  .tl-row{display:grid;grid-template-columns:118px 1fr;align-items:center;gap:12px;height:46px}
+  .tl-row .lbl{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .tl-track{position:relative;height:34px;border-radius:10px;background:var(--line-soft)}
+  .tl-bar{position:absolute;top:4px;height:26px;border-radius:8px;display:flex;align-items:center;gap:7px;padding:0 10px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 6px 14px -8px rgba(8,40,55,.5)}
+  .tl-bar .av{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.35);display:grid;place-items:center;font-size:9px}
+  .tl-bar.ok{background:var(--on-track)} .tl-bar.due{background:var(--due)} .tl-bar.over{background:var(--overdue)} .tl-bar.plan{background:var(--teal)}
+  .tl-now{position:absolute;top:30px;bottom:6px;width:2px;background:var(--navy);opacity:.5}
+  .tl-now::after{content:"היום";position:absolute;top:-18px;right:-13px;font-size:10px;font-weight:700;color:var(--navy);background:#fff;padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+
+  /* status card */
+  .status-big{display:flex;align-items:baseline;gap:8px}
+  .status-big .pct{font-size:44px;font-weight:800;color:var(--navy);letter-spacing:-.03em;line-height:1}
+  .status-big .cap{font-size:13.5px;color:var(--muted);font-weight:600}
+  .spark{margin:14px 0 12px;width:100%;height:62px}
+  .legend{display:flex;flex-direction:column;gap:9px;margin-top:auto}
+  .legend .lg{display:flex;align-items:center;justify-content:space-between;font-size:13px}
+  .legend .lg .l{display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:600}
+  .legend .lg .d{width:9px;height:9px;border-radius:50%}
+  .legend .lg .v{font-weight:700;color:var(--navy)}
+
+  /* next deadline dark card */
+  .c-next{background:linear-gradient(160deg,#0C4860 0%,#083A4F 55%,#052532 100%);border:none;color:#fff;position:relative;overflow:hidden}
+  .c-next::before{content:"";position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(200,181,154,.4),transparent 70%);top:-90px;left:-70px}
+  .c-next .card-h h3{color:#fff}
+  .c-next .nd-tag{display:inline-flex;align-items:center;gap:7px;background:rgba(192,213,214,.16);border:1px solid rgba(192,213,214,.3);border-radius:999px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--aqua);width:fit-content}
+  .c-next .nd-tag .pd{width:7px;height:7px;border-radius:50%;background:var(--due)}
+  .nd-title{font-size:23px;font-weight:800;margin-top:18px;letter-spacing:-.01em}
+  .nd-sub{font-size:13.5px;color:rgba(192,213,214,.85);margin-top:4px}
+  .nd-count{margin-top:22px;display:flex;align-items:flex-end;gap:8px}
+  .nd-count .num{font-size:58px;font-weight:800;line-height:.9;color:#fff}
+  .nd-count .u{font-size:15px;color:var(--aqua);font-weight:600;padding-bottom:8px}
+  .nd-meta{margin-top:20px;display:flex;flex-direction:column;gap:12px}
+  .nd-meta .r{display:flex;align-items:center;justify-content:space-between;font-size:13.5px;padding-bottom:12px;border-bottom:1px solid rgba(192,213,214,.16)}
+  .nd-meta .r .k{color:rgba(192,213,214,.8)}
+  .nd-meta .r .val{font-weight:700;color:#fff}
+  .nd-btn{margin-top:auto;background:var(--gold);color:var(--navy);border:none;border-radius:12px;height:48px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+  .nd-btn:hover{background:var(--gold-600)}
+  .nd-btn svg{width:17px;height:17px}
+
+  /* documents card */
+  .doc-list{display:flex;flex-direction:column;gap:9px;overflow:hidden}
+  .doc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.7);border:1px solid var(--line-soft);cursor:pointer;transition:all .15s}
+  .doc:hover{border-color:var(--aqua);background:#fff}
+  .doc .dic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex-shrink:0}
+  .doc .dic svg{width:18px;height:18px}
+  .doc .pdf{background:var(--overdue-bg);color:var(--overdue)} .doc .xls{background:var(--on-track-bg);color:var(--on-track)} .doc .img{background:var(--teal-100);color:var(--teal)} .doc .gen{background:var(--gold-100);color:var(--gold-600)}
+  .doc .dt{flex:1;min-width:0}
+  .doc .dt .nm{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .doc .dt .mt{font-size:11.5px;color:var(--faint)}
+  .doc .arr{color:var(--faint)}
+
+  /* finance card */
+  .fin-wrap{display:grid;grid-template-columns:1fr 1.3fr;gap:22px;flex:1}
+  .fin-stats{display:flex;flex-direction:column;gap:12px}
+  .stat{background:rgba(255,255,255,.7);border:1px solid var(--line-soft);border-radius:12px;padding:13px 15px}
+  .stat .k{font-size:12.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+  .stat .k .sd{width:8px;height:8px;border-radius:50%}
+  .stat .v{font-size:22px;font-weight:800;color:var(--navy);margin-top:4px;letter-spacing:-.01em}
+  .stat .v small{font-size:13px;color:var(--on-track);font-weight:700}
+  .bars{display:flex;align-items:flex-end;gap:10px;height:100%;padding-top:10px}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+  .bar{width:100%;max-width:30px;border-radius:7px 7px 4px 4px;background:linear-gradient(180deg,var(--teal),var(--navy));transition:height .3s}
+  .bar.hl{background:linear-gradient(180deg,var(--gold),var(--gold-600))}
+  .bar-col .bl{font-size:11px;color:var(--faint);font-weight:600}
+
+  /* income vs ceiling card */
+  .c-income{grid-area:income}
+  .c-income .seg-link{font-size:13px;font-weight:700;color:var(--teal-600);display:flex;align-items:center;gap:5px;cursor:pointer}
+  .c-income .seg-link svg{width:15px;height:15px}
+  .inc-wrap{display:grid;grid-template-columns:1.5fr 1px .9fr;gap:30px;align-items:center}
+  .inc-vline{background:var(--line);height:84px}
+  .inc-big{display:flex;align-items:baseline;gap:10px}
+  .inc-big .v{font-size:38px;font-weight:800;color:var(--navy);letter-spacing:-.02em;line-height:1}
+  .inc-big .of{font-size:15px;color:var(--muted);font-weight:600}
+  .inc-bar{height:13px;border-radius:999px;background:var(--sand-50);position:relative;margin:16px 0 13px;overflow:hidden;border:1px solid var(--line-soft)}
+  .inc-fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:999px;background:linear-gradient(90deg,var(--teal-600),var(--teal))}
+  .inc-rem{font-size:14px;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:9px}
+  .inc-rem .d{width:9px;height:9px;border-radius:50%;background:var(--teal)}
+  .inc-ratio .rt-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .inc-ratio .rt-top .lab{font-size:14px;color:var(--muted);font-weight:600}
+  .inc-ratio .rt-top .pct{font-size:34px;font-weight:800;color:var(--on-track);letter-spacing:-.02em;line-height:1}
+  .inc-ratio .rt-sub{display:flex;justify-content:space-between;font-size:13.5px}
+  .inc-ratio .rt-sub .k{color:var(--muted);font-weight:600}
+  .inc-ratio .rt-sub .k b{color:var(--navy);font-weight:800}
+</style>
+</head>
+<body>
+<div class="scaler" id="scaler">
+  <div class="app" dir="rtl">
+
+    <!-- SIDEBAR -->
+    <aside class="side">
+      <div class="logo">
+        <svg width="34" height="38" viewBox="0 0 100 112" fill="none"><path d="M72.1 31.5 A33 33 0 1 0 72.1 80.5" stroke="#C8B59A" stroke-width="11" stroke-linecap="round"/><line x1="50" y1="15" x2="50" y2="97" stroke="#C8B59A" stroke-width="10" stroke-linecap="round"/></svg>
+      </div>
+      <nav class="nav">
+        <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg><span class="tip">לוח בקרה</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span class="tip">מועדים</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M8 13h8M8 17h5"/></svg><span class="tip">מסמכים</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span class="tip">הכנסות</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg><span class="tip">דוחות</span></div>
+        <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="tip">הגדרות</span></div>
+      </nav>
+      <div class="ava">ד</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="top">
+        <div class="greet">
+          <h1>בוקר טוב, דנה</h1>
+          <p>יש לך <b>3 מועדים</b> שדורשים טיפול החודש</p>
+        </div>
+        <div class="top-tools">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="חיפוש מסמך, מועד..."></div>
+          <div class="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0D5D6" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg><div class="wx"><b>3 ביוני</b><span>תל אביב · 24°</span></div></div>
+          <div class="icon-btn"><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+          <button class="btn-cta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>דוח חדש</button>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <!-- TIMELINE -->
+        <section class="card c-timeline">
+          <div class="card-h">
+            <div><h3>ציר המועדים · יוני 2025</h3></div>
+            <div class="seg"><button>יום</button><button>שבוע</button><button class="on">חודש</button><button>שנה</button></div>
+          </div>
+          <div class="tl">
+            <div class="tl-axis"><span>1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span></div>
+            <div class="tl-row"><div class="lbl">מע״מ דו-חודשי</div><div class="tl-track"><div class="tl-bar due" style="right:6%;width:34%"><span class="av">₪</span>15.6 · ₪7,140</div></div></div>
+            <div class="tl-row"><div class="lbl">מקדמות מ״ה</div><div class="tl-track"><div class="tl-bar plan" style="right:42%;width:26%">15.6 · רבעון Q2</div></div></div>
+            <div class="tl-row"><div class="lbl">ביטוח לאומי</div><div class="tl-track"><div class="tl-bar over" style="right:2%;width:14%">2.6 · באיחור</div></div></div>
+            <div class="tl-row"><div class="lbl">ניכויים</div><div class="tl-track"><div class="tl-bar ok" style="right:70%;width:22%">23.6 · שולם</div></div></div>
+            <div class="tl-now" style="right:13%"></div>
+          </div>
+        </section>
+
+        <!-- NEXT DEADLINE (dark, spans both rows) -->
+        <section class="card c-next">
+          <div class="card-h"><h3>המועד הקרוב</h3></div>
+          <span class="nd-tag"><span class="pd"></span>מתקרב</span>
+          <div class="nd-title">דיווח מע״מ דו-חודשי</div>
+          <div class="nd-sub">תקופה: אפריל–מאי 2025</div>
+          <div class="nd-count"><span class="num">3</span><span class="u">ימים נותרו · 15.06</span></div>
+          <div class="nd-meta">
+            <div class="r"><span class="k">סכום לתשלום</span><span class="val">₪7,140</span></div>
+            <div class="r"><span class="k">מס עסקאות</span><span class="val">₪11,280</span></div>
+            <div class="r" style="border:none"><span class="k">מס תשומות</span><span class="val">₪4,140</span></div>
+          </div>
+          <button class="nd-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>הגש דיווח עכשיו</button>
+        </section>
+
+        <!-- STATUS -->
+        <section class="card c-status">
+          <div class="card-h"><h3>מצב התקופה</h3><span class="sub">יוני 2025</span></div>
+          <div class="status-big"><span class="pct">68%</span><span class="cap">מההתחייבויות טופלו</span></div>
+          <svg class="spark" viewBox="0 0 260 62" preserveAspectRatio="none">
+            <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#407E8C" stop-opacity=".28"/><stop offset="1" stop-color="#407E8C" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,46 C30,40 45,20 70,26 C95,32 110,50 135,40 C160,30 175,10 205,16 C230,21 245,34 260,30 L260,62 L0,62 Z" fill="url(#sg)"/>
+            <path d="M0,46 C30,40 45,20 70,26 C95,32 110,50 135,40 C160,30 175,10 205,16 C230,21 245,34 260,30" fill="none" stroke="#407E8C" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+          <div class="legend">
+            <div class="lg"><span class="l"><span class="d" style="background:var(--on-track)"></span>שולם</span><span class="v">₪23,400</span></div>
+            <div class="lg"><span class="l"><span class="d" style="background:var(--due)"></span>לתשלום</span><span class="v">₪7,140</span></div>
+            <div class="lg"><span class="l"><span class="d" style="background:var(--overdue)"></span>באיחור</span><span class="v">₪1,280</span></div>
+          </div>
+        </section>
+
+        <!-- DOCUMENTS -->
+        <section class="card c-docs">
+          <div class="card-h"><h3>מסמכים אחרונים</h3><span class="sub">12 קבצים</span></div>
+          <div class="doc-list">
+            <div class="doc"><span class="dic pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></span><div class="dt"><div class="nm">דוח_מעמ_אפר-מאי.pdf</div><div class="mt">הוגש · 28 במאי 2025</div></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></span></div>
+            <div class="doc"><span class="dic xls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8l8 8M16 8l-8 8"/></svg></span><div class="dt"><div class="nm">חשבוניות_מאי_2025.xlsx</div><div class="mt">עודכן · 30 במאי 2025</div></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></span></div>
+            <div class="doc"><span class="dic gen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M8 13h8M8 17h5"/></svg></span><div class="dt"><div class="nm">אישור_ניכוי_מס.pdf</div><div class="mt">התקבל · 23 במאי 2025</div></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></span></div>
+            <div class="doc"><span class="dic img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></span><div class="dt"><div class="nm">קבלה_ספק_1042.jpg</div><div class="mt">נסרק · 21 במאי 2025</div></div><span class="arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></span></div>
+          </div>
+        </section>
+
+        <!-- FINANCE (spans 2 cols) -->
+        <section class="card c-fin">
+          <div class="card-h"><h3>סקירה כספית</h3><div class="seg"><button>חצי שנה</button><button class="on">שנה</button></div></div>
+          <div class="fin-wrap">
+            <div class="fin-stats">
+              <div class="stat"><div class="k"><span class="sd" style="background:var(--teal)"></span>הכנסות החודש</div><div class="v">₪48,200 <small>▲ 12%</small></div></div>
+              <div class="stat"><div class="k"><span class="sd" style="background:var(--due)"></span>מע״מ לתשלום</div><div class="v">₪7,140</div></div>
+              <div class="stat"><div class="k"><span class="sd" style="background:var(--gold)"></span>החזר מס צפוי</div><div class="v">₪2,300</div></div>
+            </div>
+            <div class="bars">
+              <div class="bar-col"><div class="bar" style="height:46%"></div><span class="bl">ינו</span></div>
+              <div class="bar-col"><div class="bar" style="height:58%"></div><span class="bl">פבר</span></div>
+              <div class="bar-col"><div class="bar" style="height:40%"></div><span class="bl">מרץ</span></div>
+              <div class="bar-col"><div class="bar" style="height:72%"></div><span class="bl">אפר</span></div>
+              <div class="bar-col"><div class="bar" style="height:64%"></div><span class="bl">מאי</span></div>
+              <div class="bar-col"><div class="bar hl" style="height:88%"></div><span class="bl">יוני</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- INCOME vs CEILING -->
+        <section class="card c-income">
+          <div class="card-h"><h3>מצב הכנסות השנה</h3><span class="seg-link">פרטים<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></span></div>
+          <div class="inc-wrap">
+            <div class="inc-income">
+              <div class="inc-big"><span class="v">₪86,400</span><span class="of">מתוך ₪122,833</span></div>
+              <div class="inc-bar"><div class="inc-fill" style="width:70.3%"></div></div>
+              <div class="inc-rem"><span class="d"></span>נותרו ₪36,433 עד לתקרת הפטור</div>
+            </div>
+            <div class="inc-vline"></div>
+            <div class="inc-ratio">
+              <div class="rt-top"><span class="lab">יחס הוצאות להכנסות</span><span class="pct">36.1%</span></div>
+              <div class="rt-sub"><span class="k">הכנסות: <b>₪86,400</b></span><span class="k">הוצאות: <b>₪31,200</b></span></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  function fit(){
+    const s=document.getElementById('scaler');
+    const app=s.querySelector('.app');
+    const pad=48;
+    const scale=Math.min(1,(window.innerWidth-pad)/app.offsetWidth,(window.innerHeight-pad)/app.offsetHeight);
+    s.style.transform='scale('+scale+')';
+  }
+  window.addEventListener('resize',fit); fit();
+</script>
+</body>
+</html>
