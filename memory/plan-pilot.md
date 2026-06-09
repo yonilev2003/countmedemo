@@ -3,6 +3,41 @@
 > נכתב 2026-06-07 (יום א׳). מאחד **אסטרטגיה** (6 צירים, go-to-market) עם **ארכיטקטורה טכנית**
 > (Phases 0-6), מאומת מול Next.js 16 ומול הקוד בפועל. מאחד את כל ההערות מכל השיחה.
 
+## ⚠️ עדכון 2026-06-09 — PIVOT: מאמצים סכמה קיימת (מבטל את גישת personas/JSONB שלמטה)
+
+**ממצא:** הפרויקט `countme` ב-Supabase **לא ריק.** קיימת סכמה **מנורמלת ובוגרת** שנבנתה ב-6 מיגרציות
+מתוארכות (25.3→4.4.2026), עם trigger ופונקציות. **אין app/repo נפרד** (אומת מול יוני) — הריפו הזה
+(`countmedemo` → countmedemo.vercel.app) הוא היחיד; ה-backend פשוט לא היה מחובר אליו.
+
+**החלטה:** מאמצים את הסכמה הקיימת כבסיס. כל אזכור של `personas(jsonb)`+`follow_up_notes` בגוף
+התוכנית למטה — **מבוטל**; הנתונים יישבו בטבלאות הקיימות.
+
+**הסכמה הקיימת (8 טבלאות, 0 שורות):**
+| טבלה | תוכן | RLS |
+|---|---|---|
+| `profiles` | זהות + `user_type`(zaair/patur/murshe) + `deductions_summary` jsonb + `chat_history` jsonb | ✅ |
+| `incomes` / `expenses` | תנועות; ל-expenses יש `recognition_percentage` (אחוז הכרה) | ✅ |
+| `invoices` / `income_documents` | מסמכים + `invoice_number`/`doc_number` (מספור עוקב) | ✅ |
+| `invoice_sends` / `notifications` | שליחת חשבונית / התראות+דדליינים | ✅ |
+| `tax_rules` | חוקי-מס גלובליים (בלי user_id) | ✅ (תוקן היום) |
+- trigger `on_auth_user_created → handle_new_user()`: יוצר profile אוטומטית בכל signup.
+- פונקציות `get_next_invoice_number`/`get_next_doc_number` (advisory-lock per-user) — מספור עוקב.
+
+**בוצע היום (Phase 0 + Phase 1):**
+- ✅ `@supabase/ssr`+`supabase-js`; 3 client factories מטופסים (`client`/`server`/`admin`) ב-`src/lib/supabase/`.
+- ✅ `database.types.ts` — טייפים מהסכמה החיה; ה-clients `<Database>`-typed.
+- ✅ `.env.local` עם URL+anon (service-role עדיין חסר — צריך מיוני).
+- ✅ אבטחה: `tax_rules` קיבל RLS + policy קריאה ל-authenticated (כתיבה רק service-role). מיגרציה `secure_tax_rules_rls`.
+
+**פער-מפתח לאישור יוני:** הסכמה הקיימת **רזה** מ-`Persona` העשיר בקוד (אין עמודות לת"ז/מגדר/ילדים/
+בנק/כתובת/tradeName/vatAndTurnover). הצעה לפיילוט: להוסיף עמודה `profiles.persona jsonb` שתחזיק את כל
+ה-Persona ללא אובדן, ולהשאיר את הטבלאות המנורמליות לפיצ'רים הטרנזקציוניים (חשבוניות/מספור). מהיר והפיך.
+**דורש אישור לפני Phase 2.**
+
+**ניקוי פתוח (לא חוסם):** כפילות policies קוסמטית ב-`profiles/incomes/expenses` (2 דורות; שניהם אוכפים `auth.uid()=user_id`, אז אין חור — רק לניקיון).
+
+---
+
 ## Context — למה אנחנו עושים את זה
 יש דמו עובד שמכוון ל-EY (דרך מאיץ הסטודנטים **Momentum**). מהות המוצר: **companion** שמלווה מילוי
 1301 — המשתמש מעתיק ערכים מחושבים לטופס האמיתי ב-`secapp.taxes.gov.il`, **לא** מגיש אוטומטית. המטרה: **תוך חודש — פיילוט אמיתי ל-3-5 עצמאים**, ולפניו **self-test על
