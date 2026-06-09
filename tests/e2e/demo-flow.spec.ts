@@ -94,7 +94,8 @@ test.describe("/demo — gov.il-faithful form preview", () => {
     await firstCalc.click();
 
     await expect(page.getByText("איך הגענו לזה")).toBeVisible();
-    await expect(page.getByText("מקור")).toBeVisible();
+    // exact — "מקור" is a substring of several other strings on the form
+    await expect(page.getByText("מקור", { exact: true })).toBeVisible();
   });
 
   test("manual fields are eliminated — no 'למילוי ידני' anywhere on the form", async ({ page }) => {
@@ -112,8 +113,13 @@ test.describe("/setup — wizard", () => {
   test("step 0 fast-track upload step is the entry point", async ({ page }) => {
     await page.goto("/setup");
     await expect(page.getByText("מסלול מהיר — אופציונלי")).toBeVisible();
-    await expect(page.getByText("דו״ח הכנסות תקופתי")).toBeVisible();
-    await expect(page.getByText("אקסל הוצאות")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "דו״ח הכנסות תקופתי" }),
+    ).toBeVisible();
+    // heading role — the intro paragraph also mentions "אקסל הוצאות"
+    await expect(
+      page.getByRole("heading", { name: "אקסל הוצאות" }),
+    ).toBeVisible();
   });
 
   test("step 1 blocks advance when required fields are empty", async ({ page }) => {
@@ -125,7 +131,10 @@ test.describe("/setup — wizard", () => {
     await page.getByRole("button", { name: /הבא/ }).click();
 
     await expect(page.getByText("שדה חובה").first()).toBeVisible();
-    await expect(page.getByText("פרטים אישיים")).toBeVisible();
+    // heading role — the progress bar also shows "פרטים אישיים" as a step label
+    await expect(
+      page.getByRole("heading", { name: "פרטים אישיים" }),
+    ).toBeVisible();
   });
 
   test("עוסק זעיר checkbox appears only when עוסק פטור is selected", async ({ page }) => {
@@ -134,12 +143,13 @@ test.describe("/setup — wizard", () => {
     await page.getByRole("button", { name: /דלג על העלאה/ }).click();
     await page.getByLabel("שם פרטי").fill("טסט");
     await page.getByLabel("שם משפחה").fill("טסטסון");
-    await page.getByLabel("תעודת זהות").fill("318274561");
+    await page.getByLabel("תעודת זהות").fill("318274560");
     await page.getByLabel("תאריך לידה").fill("1996-08-14");
     await page.getByRole("button", { name: /הבא/ }).click();
     await page.getByRole("button", { name: /הבא/ }).click();
 
-    await expect(page.getByText("פרטי עסק")).toBeVisible();
+    // heading role — the progress bar also shows "פרטי עסק" as a step label
+    await expect(page.getByRole("heading", { name: "פרטי עסק" })).toBeVisible();
     await expect(page.getByText("מסלול עוסק זעיר")).toBeVisible();
 
     await page.getByLabel("סוג עוסק").selectOption("morshe");
@@ -151,7 +161,7 @@ test.describe("/setup — wizard", () => {
     await page.getByRole("button", { name: /דלג על העלאה/ }).click();
     await page.getByLabel("שם פרטי").fill("טסט");
     await page.getByLabel("שם משפחה").fill("טסטסון");
-    await page.getByLabel("תעודת זהות").fill("318274561");
+    await page.getByLabel("תעודת זהות").fill("318274560");
     await page.getByLabel("תאריך לידה").fill("1996-08-14");
     await page.getByRole("button", { name: /הבא/ }).click();
     await page.getByRole("button", { name: /הבא/ }).click();
