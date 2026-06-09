@@ -1,0 +1,36 @@
+// Server-side Supabase client (Server Components, Server Actions, Route Handlers).
+// Respects RLS as the logged-in user. In Next 16 `cookies()` is async, so this
+// factory is async too. Cookie writes from a Server Component throw, so setAll
+// swallows the error — the session is refreshed in proxy.ts (Phase 4) instead.
+
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
+
+export async function createClient(): Promise<SupabaseClient> {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(
+          cookiesToSet: { name: string; value: string; options?: CookieOptions }[],
+        ) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          } catch {
+            // Called from a Server Component — safe to ignore;
+            // session refresh happens in proxy.ts.
+          }
+        },
+      },
+    },
+  );
+}
