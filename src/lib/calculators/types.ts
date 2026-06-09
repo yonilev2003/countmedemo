@@ -96,6 +96,9 @@ export const TAX_YEAR_2024 = {
   osekZeirExpenseRate: 0.30,   // 30% of turnover treated as expenses automatically
   osekZeirThreshold: OSEK_EXEMPT_CEILING_2024,   // same ceiling as עוסק פטור
 
+  // VAT (מע"מ) standard rate — 17% through 2024
+  vatRate: 0.17,
+
   // Credit points
   residentCreditPoints: 2.25,
   pointValueAnnual: 2904, // ILS per nekuda, frozen 2024–2027
@@ -173,6 +176,9 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   osekPaturThreshold: OSEK_EXEMPT_CEILING_2025,
   osekZeirExpenseRate: 0.30,            // statutory 30% (תיקון 257)
   osekZeirThreshold: OSEK_EXEMPT_CEILING_2025,
+
+  // VAT (מע"מ) standard rate — raised to 18% on 2025-01-01 (held at 18% in 2026)
+  vatRate: 0.18,
 
   // Credit points — FROZEN for 2025 (no linkage)
   residentCreditPoints: 2.25,           // frozen
