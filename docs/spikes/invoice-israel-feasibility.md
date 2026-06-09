@@ -1,0 +1,209 @@
+# Feasibility Spike — חשבונית ישראל / Israeli E-Invoicing (SHAAM Allocation Numbers)
+
+> **Spike type:** research only (no app code). **Date:** 2026-06-09. **Author:** Claude (agent spike).
+> **Maps to internal plan item:** R3 — חשבונית ישראל registration.
+> **Sources:** see [Sources](#sources) at the bottom. Domain authority = the `israeli-e-invoice` skill + live web research (gov.il, רשות המסים, accountant guides). Figures cross-checked against multiple independent sources; any figure I could **not** confirm from an official gov.il/רשות-המסים page is flagged with ⚠️.
+
+---
+
+## ⭐ Recommendation (TL;DR): **OUT of the ~1-month pilot — except an optional sandbox-only POC spike**
+
+**Verdict: OUT for production. Conditionally IN for a tiny sandbox POC if (and only if) we have spare engineering days.**
+
+Reasoning in one breath:
+
+1. **countme is a companion, not an issuer.** Today the product reads the user's data and pre-fills Form 1301; the user copies values into the real gov.il form. The allocation-number flow is fundamentally a **write/issuance** action against the Tax Authority (you submit invoice data *before* issuing and embed the returned number). That is a different product posture (countme would become a system-of-record that emits legally-binding documents), with real liability if a number is wrong/missing. That posture is **not** what the EY pilot is demonstrating.
+2. **Most of our target users are exempt.** The mandate only bites **עוסק מורשה / companies** issuing a **tax invoice (חשבונית מס / 300/305/310)** to another business (B2B) **above the threshold**. **עוסק פטור cannot issue a tax invoice at all** (they issue חשבונית עסקה / receipt), so they are entirely **out of scope**. A large slice of the ≈352K under-35 freelancers countme targets are osek patur or low-volume — for them this feature is irrelevant.
+3. **Registration is a real-world, human, credential-gated process** (smart-ID login, signed forms, digital permissions, a token that expires every 3 months) — it cannot be fully automated or demoed convincingly inside a 1-month window without Yoni's real business identity and credentials.
+4. **The pilot is 3–5 users for ~1 month.** Even where a user is osek morshe (our demo persona Dana **is** — see below), the value of auto-issuing allocation numbers in a 1-month pilot is low vs. the integration + compliance cost.
+
+**What is in scope instead:** countme should *understand* and *surface* the allocation-number rule as **advisory/compliance intelligence** — e.g., the invoice generator and the chat agent should know the current threshold (5,000 ₪ net as of 2026-06-01), warn the user when an invoice they're issuing crosses it, and tell them they must obtain a מספר הקצאה. That is read-only, zero-credential, on-brand for "companion", and **cheap**. (It also fixes a latent bug — see [Codebase reality check](#codebase-reality-check).)
+
+If we want to de-risk the *future* production integration, the right minimal slice is a **throwaway sandbox POC** (OAuth2 handshake + one `Approval` call against the ITA test environment) — see [Q4](#q4--verdict-for-the-pilot--in-or-out).
+
+---
+
+## Q1 — What is חשבונית ישראל and the allocation number (מספר הקצאה)?
+
+**חשבונית ישראל ("Israel Invoice")** is the Tax Authority's **Continuous Transaction Control (CTC) / clearance** model. Before a business issues a **tax invoice** above a set amount, it must send the invoice data to רשות המסים (via its **SHAAM/שע"ם** technology arm), which validates it in real time and returns a unique **מספר הקצאה (allocation number)**. The number must be printed on the invoice. **Without a valid allocation number, the buyer cannot deduct the input VAT (מע"מ תשומות)** — that is the enforcement lever. Purpose: kill fictitious-invoice fraud.
+
+**Which invoices require an allocation number:**
+- **Required:** tax invoice **300** (חשבונית מס), tax invoice/receipt **305** (חשבונית מס/קבלה), credit invoice **310** (חשבונית זיכוי) — i.e. documents that carry VAT — issued **B2B by an עוסק מורשה / partnership / company**, when the **net amount (לפני מע"מ) exceeds the current threshold**.
+- **Never required:** receipt **320** (קבלה), proforma **330** (חשבונית פרופורמה), חשבונית עסקה (demand-for-payment), and anything issued by an **עוסק פטור** (who cannot issue a חשבונית מס at all).
+- The threshold is on the **net amount, excluding VAT**. Multi-line invoices: the **total** counts. **Splitting an invoice to dodge the threshold is explicitly prohibited** (anti-avoidance).
+
+### Threshold & phase-in schedule (2024 → 2026)
+
+| Effective date | Threshold (net, **excl. VAT**) | Applies to | Status |
+|---|---|---|---|
+| 2024-05-01 | **> 25,000 ₪** | Tax invoices 300/305/310, B2B | Past |
+| 2025-01-01 | **> 20,000 ₪** | " | Past |
+| 2026-01-01 | **> 10,000 ₪** | " | Past (as of today) |
+| **2026-06-01** | **> 5,000 ₪** | " | ✅ **CURRENT (took effect 8 days ago)** |
+| Final stage (date not yet fixed) | trending toward **all** tax invoices | " | ⚠️ Planned, date TBD |
+
+**Today (2026-06-09) the live threshold is 5,000 ₪ net.** Any tax invoice ≥ 5,000 ₪ before VAT issued from 2026-06-01 onward must carry an allocation number. **Check the invoice *issue* date, not the transaction date.**
+
+- **Legal basis:** amendment to **§38(b) of the Economic Efficiency Law (חוק ההתייעלות הכלכלית)**, originally enacting a glide path 25,000 ₪ (2024) → 5,000 ₪ in **2028**. The 2026 acceleration (10,000 ₪ in Jan, then 5,000 ₪ in June) was legislated via the **budget-targets / arrangements law (חוק ההסדרים / חוק להשגת יעדי התקציב)**. The original "5,000 only in 2028" was **pulled forward ~2 years**.
+- **Current standard VAT rate: 18%** (raised from 17% on **2025-01-01**; a proposed rise to 19% for 2026 was **rejected** — stays 18%). Confirmed for 2026 budget.
+
+> ⚠️ **Confirmation note:** the threshold *amounts and dates* above are corroborated by the `israeli-e-invoice` skill **and** multiple 2026 accountant/vendor guides (GreenInvoice, Bizportal, BritCPA, Invoice4U, CPA.co.il, capitax). I did **not** get a 200 from gov.il directly in this environment (most external hosts returned 403 to the fetch tool), so the precise gov.il wording of the §38(b) text is **second-hand via reputable Israeli CPA firms**, not a primary-source quote. The figures are consistent across all of them, so confidence is high, but flag for Yoni to eyeball the official רשות-המסים page before any production work.
+
+---
+
+## Q2 — Registration as a software house / "בית תוכנה" (SHAAM)
+
+**Two different registrations exist — don't conflate them:**
+
+**(A) Business registration to *obtain* allocation numbers (every issuing business needs this).**
+This is what an individual עוסק does, with or without software:
+1. Log in to the **Tax Authority personal area** and create a **permanent personal user code (קוד משתמש)** — `https://secapp.taxes.gov.il/srRishum/main/openPage`. Requires **smart-ID identification (הזדהות עם אמצעי זיהוי חכם)**.
+2. Grant **digital-action permissions ("הרשאה לפעולות דיגיטליות")**, ticking the relevant topics:
+   - *"חשבונית ישראל – בקשת מספר הקצאה עבור חשבונית ללקוח"* (request allocation for a customer invoice)
+   - *"חשבונית ישראל – אימות מספר הקצאה בחשבונית ספק"* (verify a supplier's allocation number)
+3. **Manual path:** request the number by hand in the personal area (works for paper/manual books) — fine for low volume, slow for many invoices/day.
+4. **Automated path:** connect accounting software via API, which fetches the number and embeds it at issue time (transparent, seconds).
+
+**(B) Software-house / API-producer registration (what countme would need to call the API).**
+To call the allocation API *on behalf of businesses from your own software*, the **organization registers as an API consumer in the ITA OpenAPI developers' portal** and is **subject to ITA authorization**:
+- **Sandbox / developer registration:** `https://openapi-portal.taxes.gov.il/sandbox/` — **a full test/sandbox environment exists** (this is a headline feature of the program; you can develop & test without touching production).
+- **Production access is gated:** you must **submit signed registration documents** and be **authorized by the ITA** before the production endpoints work. New client sign-up: `https://secapp.taxes.gov.il/srRishum/main/openPage`.
+- **Identifiers issued:** OAuth2 **Client ID / Client Secret** for the registered app, plus the per-business **access token + refresh token** obtained through the user-restricted OAuth flow. The ITA docs frame auth as a **token that identifies the business + the authorized user**; **the token must be renewed every ~3 months** for security.
+- **Spec:** "Israel Invoice Model — Description of API's", **v2.0 (July 2024)**; v2.0 extended the JSON to align with **UBL 2.1** for the Jan-2025 mandate. Documentation is **primarily in Hebrew**.
+
+> **Bottom line for Q2:** Yes — to call the allocation API from countme's own backend, countme registers as an **API consumer / software house** in the OpenAPI portal, gets **OAuth2 Client ID/Secret**, and goes through an **ITA authorization step (signed docs)** before production. **A sandbox exists and needs only self-service developer registration.** *Each end-user business* still also needs **its own** personal-area registration + digital permission + token (it's their VAT identity being used).
+
+---
+
+## Q3 — The API
+
+**Authentication model:** **OAuth2, "User Restricted" authorization** (authorization-code grant), **not** bare client-credentials. Two-step:
+1. **Authorization Code** — the business/user authenticates (smart-ID) and authorizes the app → you receive an **authorization code**.
+2. **Token exchange** — exchange the code (with the app's **Client ID / Client Secret**) → receive **access token + refresh token**. Tokens are time-limited; refresh as needed, and the underlying authorization is **renewed ~every 3 months**.
+
+(The `israeli-e-invoice` skill's bundled API reference additionally notes a **digital-certificate** element in the auth bundle in some rollout phases — ⚠️ verify against the current OpenAPI v2.0 spec; the auth shape has changed across phases.)
+
+**Base URLs (from ITA OpenAPI guide):**
+- **Sandbox:** `https://openapi.taxes.gov.il/shaam/tsandbox/Invoices/v1/Approval`
+- **Production:** `https://openapi.taxes.gov.il/shaam/prod/Invoices/v1/Approval` (base `https://openapi.taxes.gov.il/shaam/…`)
+- **Developer portal:** `https://openapi-portal.taxes.gov.il/sandbox/`
+
+**Request → response (obtain an allocation number):** `POST …/Invoices/v1/Approval` with a JSON body (v2.0, UBL-2.1-aligned). Key data fields that must be sent:
+- **Seller** TIN/עוסק number (מספר עוסק, 9 digits)
+- **Buyer** TIN (for B2B) — 9 digits
+- **Invoice type** code (300 / 305 / 310)
+- **Invoice date** and **invoice (sequential) number**
+- **Amounts:** net (before VAT), VAT amount, total (incl. VAT), **currency** (ILS)
+- **Line items** (description, qty, unit price) per UBL 2.1
+
+**Illustrative shapes (from the skill reference — treat as schematic, confirm field names against v2.0):**
+```jsonc
+// Request
+POST /shaam/{env}/Invoices/v1/Approval
+Authorization: Bearer {access_token}
+{
+  "seller_tin": "123456782",
+  "buyer_tin":  "987654328",
+  "invoice_type": 300,
+  "invoice_date": "2026-06-09",
+  "net_amount": 7000,
+  "vat_amount": 1260,      // 18%
+  "total_amount": 8260,
+  "currency": "ILS"
+}
+// Response
+{ "allocation_number": "…", "status": "approved", "valid_until": "…" }
+```
+Typical error codes: 400 (bad structure), 401 (auth), 403 (not authorized for this TIN), 409 (allocation already used), 422 (validation), 429 (rate-limited), 500 (SHAAM error). ⚠️ The exact paths/field names/error map have shifted across rollout phases — **the current ITA v2.0 spec is the only authoritative source**; the JSON above is schematic.
+
+**Reference implementation to learn from:** `dsaddan/Israel-Tax-Authority-OpenAPI-Taxes-Demo` on GitHub — a C#/MVC demo that walks **registration → authorization code → access token → send sample invoice → get allocation number** (online demo at `demo.open-api.co.il`). Good map of the end-to-end handshake for whoever builds the POC.
+
+---
+
+## Q4 — Verdict for the pilot — IN or OUT?
+
+**Is invoice-*issuance* even in scope for the pilot?** **No, not as production functionality.** countme's pilot demonstrates the **Form-1301 companion** value (pre-computed, explainable fields + chat). Issuing legally-binding tax invoices with live allocation numbers is a **new, higher-liability product surface** that:
+- requires each user's **real VAT identity + smart-ID + 3-monthly token** (operationally heavy for a 3–5-user, 1-month pilot),
+- only benefits **osek-morshe B2B issuers above 5,000 ₪** (a subset of users; **osek patur are wholly exempt**),
+- turns countme into a system-of-record that **emits documents the Tax Authority treats as cleared** — a compliance/liability step we shouldn't take lightly mid-pilot.
+
+### Three options, by size
+
+| Option | What it is | Effort (rough) | Recommendation |
+|---|---|---|---|
+| **0. Advisory only (read-only)** | Invoice generator + chat agent *know* the rule: show current threshold (5,000 ₪), flag invoices that cross it, explain "you must get a מספר הקצאה". **No API, no credentials.** Also fix the VAT bug. | **~0.5–1 day** | ✅ **DO THIS — fits the pilot & "companion" identity** |
+| **1. Sandbox-only POC (throwaway)** | Register in OpenAPI dev portal, implement OAuth2 handshake + **one** `Approval` call against **sandbox** with test data. Proves we *can* integrate; **never touches production or real user invoices.** | **~3–5 days** (most of it: portal registration friction + Hebrew docs + OAuth plumbing) | ⚪ **Optional** — only if spare days; de-risks the future, **not** needed for EY |
+| **2. Full production integration** | Software-house authorization (signed docs), production OAuth per user, per-user token lifecycle (3-mo renewal), embed numbers on real issued invoices, error/edge handling, store allocation numbers (Supabase), audit. | **~3–6 weeks + ITA authorization lead time + legal/compliance review** | ❌ **OUT of pilot** — post-pilot roadmap item |
+
+**Minimal slice if we do anything:** Option 0 (advisory) is the keeper for the pilot. Option 1 (sandbox POC) is the right *engineering* spike to schedule **after** EY if/when invoice-issuance becomes a product goal — it's the cheapest way to retire the technical risk before committing to Option 2.
+
+---
+
+## Q5 — Concrete next steps for countme (R3) + what's needed from Yoni
+
+**Now (in-pilot, no credentials needed) — Option 0:**
+1. Add a **year-keyed allocation-number threshold constant** to the regulatory layer (same pattern as the tax constants in `src/lib/calculators/types.ts`): `{ '2024': 25000, '2025': 20000, '2026-01': 10000, '2026-06': 5000 }`, resolved by invoice **issue date**. Single source of truth — never hardcode in a component.
+2. **Fix the VAT bug** in `src/lib/invoice-generator/index.ts` — it uses `0.17`; the rate has been **18% since 2025-01-01**. (See below.)
+3. In the invoice generator + chat agent: when an osek-morshe user composes a tax invoice (300/305/310) with **net ≥ current threshold**, surface a clear notice — *"חשבונית זו מחייבת מספר הקצאה מרשות המסים (חשבונית ישראל)"* — and link the manual-request flow. Skip entirely for osek patur / receipts / proforma.
+4. (Optional, read-only) implement **verify-allocation** awareness on the *expense* side later — when ingesting a supplier invoice, countme could remind the user to verify the supplier's allocation number.
+
+**Later (post-pilot, if issuance becomes a goal) — Option 1 → 2:**
+5. **Self-service register** countme in the OpenAPI developers' **sandbox** (`openapi-portal.taxes.gov.il/sandbox`), get **Client ID/Secret**, build the OAuth2 + single `Approval` POC against sandbox (budget 3–5 days). Use `dsaddan/…OpenAPI-Taxes-Demo` as the reference.
+6. Decide on production: pursue **ITA software-house authorization** (signed docs) only once there's product commitment; design the **per-user token lifecycle (3-mo renewal)** and **allocation-number storage** (extend the existing `invoices` table — it already has sequential per-user numbering) up front.
+
+**What we need from Yoni (blocks Option 1/2, *not* Option 0):**
+- **Business / registration identity:** which legal entity issues invoices in countme's flows (countme as a software house acting for users vs. each user's own עוסק). Confirm countme's company number / עוסק status for the **software-house** registration.
+- **ITA OpenAPI developer-portal account** ownership — who registers and holds the **Client ID/Secret** (use the project account, **not** a personal one — consistent with the Vercel/account policy in CLAUDE.md).
+- **Signed registration documents** for production authorization (Yoni/legal to sign) — known lead-time item.
+- A **test עוסק identity** (or willingness to use Yoni's) for sandbox calls, since even sandbox flows are organized around a business + authorized user.
+- Confirm the **official gov.il threshold/§38(b) wording** (the ⚠️ above) before any production build.
+
+---
+
+## Codebase reality check
+
+What countme already has that's relevant (so a future build extends, not rebuilds):
+- **Invoice generator:** `src/lib/invoice-generator/index.ts` — `nextInvoiceNumber()` (sequential `YYYY-NNNN`), `validateInvoice()`, `calculateInvoiceTotals()`, `formatHebrewDate()`. Invoice UI under `src/app/invoices/` (`page.tsx`, `new/`, `[invoiceNumber]/`).
+- **Persona** already carries `invoiceCounter`, `business.osekType`, `invoiceCount`. The **demo persona Dana Cohen is `osekType: "morshe"`** (UX designer, ~248,500 ₪ revenue, ~38 invoices/yr ⇒ ~6,500 ₪ avg) — so **some of her invoices would cross the 5,000 ₪ net threshold**, making the *advisory* feature genuinely demo-relevant for her, while full issuance is still overkill for the pilot.
+- **Supabase** (`crm-snapshot/supabase/migrations/`) already models per-user data with RLS; CLAUDE.md notes `invoices` + `income_documents` tables with sequential per-user numbering — the natural home for a stored `allocation_number` later.
+
+> 🐞 **Bug found (fix as part of Option 0):** `calculateInvoiceTotals()` computes VAT as `Math.round(amount * 0.17)` and `validateInvoice()` hardcodes a `> 5000` customer-ID rule. **VAT is 18% since 2025-01-01** (the `0.17` undercharges VAT on every osek-morshe invoice). Move the rate into the year-keyed regulatory constants rather than swapping a literal. Note the coincidental `5000` in `validateInvoice` is the *customer-ID-required* rule, **not** the allocation threshold — they're now numerically equal (5,000 ₪) but are **different rules**; keep them distinct constants.
+
+---
+
+## Sources
+
+Cross-checked; ⚠️ = could not load the primary gov.il page directly in this environment (fetch returned 403), corroborated via reputable Israeli CPA/vendor guides instead.
+
+**Official / primary (ITA / gov.il):**
+- Israel Tax Authority — e-invoice / Israel Invoices program: https://www.gov.il/he/departments/israel_tax_authority and https://govextra.gov.il/taxes/innovation/home/israel-invoices/
+- ITA Q&A — Israel Invoices (EN): https://www.gov.il/en/pages/faq_israel_invoice
+- ITA "Israel Invoice Model — Description of API's" **v2.0 / 7.2024** (gov.il PDF): https://www.gov.il/BlobFolder/generalpage/israel-invoice-160723/he/vat_software-houses-180724-en.pdf  · v1.0/2023 (EN): https://www.gov.il/BlobFolder/generalpage/israel-invoice-160723/he/IncomeTax_software-houses-en-040723.pdf
+- ITA OpenAPI **Login/User Guide** (secapp): https://secapp.taxes.gov.il/OpenApiUserGuide/OpenApiUserGuide_EN.pdf
+- ITA "Tax Authority Open API — SHAAM" service page (gov.il PDF): https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_Tax-Authority-Open-API.pdf
+- ITA software-houses landing: https://www.gov.il/he/departments/targetaudience/taxes-adience-software/govil-landing-page
+- New-client / user-code sign-up: https://secapp.taxes.gov.il/srRishum/main/openPage
+- Developer sandbox portal: https://openapi-portal.taxes.gov.il/sandbox/
+
+**Reference implementation:**
+- `dsaddan/Israel-Tax-Authority-OpenAPI-Taxes-Demo` (GitHub, OAuth + allocation demo): https://github.com/dsaddan/Israel-Tax-Authority-OpenAPI-Taxes-Demo
+
+**Threshold / timeline / VAT (corroborating, ⚠️ secondary):**
+- GreenInvoice 2026 guide: https://www.greeninvoice.co.il/magazine/israel-invoice/
+- Bizportal — 5,000 ₪ from June 1: https://www.bizportal.co.il/general/news/article/20032314
+- Ynet — every transaction over 5,000 ₪ from Monday: https://www.ynet.co.il/economy/article/yokra14781826
+- BritCPA — 2026 updates: https://britcpa.co.il/hozrim/מודל-חשבוניות-ישראל-עדכונים-לשנת-2026/
+- capitax — §38(b) two-step reduction (10k Jan / 5k June): https://www.capitax.co.il/content/1/2489
+- CPA.co.il — invoice over 10,000 ₪ requires allocation (2026): https://www.cpa.co.il/2026-allocation-number/
+- Sovos — accelerated CTC timeline confirmed: https://sovos.com/regulatory-updates/vat/israel-tax-authority-confirms-accelerated-timeline-for-ctc-invoice-allocation-number/
+- KPMG — expansion of mandatory e-invoicing (Dec 2025): https://kpmg.com/us/en/taxnewsflash/news/2025/12/tnf-israel-expansion-of-mandatory-e-invoicing-model.html
+- Avalara — Israel e-invoicing country guide: https://www.avalara.com/vatlive/en/country-guides/africa-and-middle-east/israel/e-invoicing-in-israel.html
+- dddinvoices — 2026 guide: https://dddinvoices.com/learn/e-invoicing-israel
+- VAT rate 18% (2025→2026, 19% rejected): https://www.vatupdate.com/2025/12/10/israel-approves-2026-budget-vat-stays-at-18-expands-exemptions-eases-bank-entry-rules/ · https://marosavat.com/vat-news/israel-increases-vat-rate-from-17-to-18-by-2025
+
+**Registration / osek-patur scope (corroborating):**
+- SUMIT — connection-to-ITA process: https://help.sumit.co.il/he/articles/8267195
+- iCount — how to issue an allocation number (2026): https://www.icount.co.il/blog/invoice-israel/
+- Kol Zchut — osek patur (cannot issue tax invoice): https://www.kolzchut.org.il/he/עוסק_פטור
+
+**Domain authority:** `israeli-e-invoice` skill (`.claude/skills/israeli-e-invoice/` — `references/shaam-api-reference.md`, `references/compliance-timeline.md`, `references/invoice-types.md`).
