@@ -163,9 +163,15 @@ src/
 │   │   └── interactive-value.tsx # Clickable calculated number with tooltip
 │   ├── agent/
 │   │   └── chat-panel.tsx        # Live Claude chat with persona-aware greeting
+│   ├── setup/                    # Setup wizard internals: step1–6 components + validation + progress
 │   └── upload/
 │       └── document-upload.tsx   # 4-slot drag-drop UI for fast-track step
 └── lib/
+    ├── api/                      # Shared API-route plumbing — use these, don't copy-paste per route
+    │   ├── rate-limit.ts         # getClientIp (x-real-ip first — XFF is spoofable) + createRateLimiter
+    │   ├── chat-validation.ts    # message/history validators + sanitizeText
+    │   ├── persona-context.ts    # persona → system-prompt builders (field-capped, cost-bounded)
+    │   └── sse.ts                # anthropicSSEResponse — Anthropic stream → SSE Response
     ├── form-1301/schema.ts       # Form structure (3 tabs, sections, fields, codes)
     ├── calculators/              # Pure functions per "star field"
     │   ├── types.ts              # CalcResult, per-year tax constants (getTaxYearConstants)
@@ -183,9 +189,13 @@ personas/
 ├── persona.schema.json     # JSON Schema for validation
 └── README.md               # How to swap personas
 
-docs/                       # Future: design docs, decision log
+docs/                       # Design docs, meeting records, form-screenshots (reference, see below)
 secrets/                    # Gitignored — account credentials + recovery codes
+crm-snapshot/               # Separate CRM app snapshot — slated for extraction to its own repo
+                            # (see its SETUP_NEW_REPO.md). Kept here temporarily; don't grow it.
 ```
+
+**Tooling note — Playwright is the single browser-automation stack.** Both the e2e suite and the regulatory-watch PDF render (`scripts/regulatory-watch/report.ts`) use `@playwright/test`; puppeteer was removed (2026-06-09). The version is pinned exact (`1.56.1`) to match the Chromium build pre-installed in the Claude Code web container (`/opt/pw-browsers`, revision 1194) — the container's network policy blocks browser downloads, so a newer Playwright means no local browser and no runnable tests. Bump the pin only together with a container image that ships the matching Chromium.
 
 ## Data flow (the demo's magic)
 
@@ -251,11 +261,12 @@ Mapped from a generic launch-readiness checklist to **what's actually relevant f
 | Item | Relevant? | Status |
 |---|---|---|
 | Authorization (users access only their own data) | Not yet — no auth, no DB | N/A until Supabase + auth |
-| Input validation/sanitization on `/api/chat` | **Yes** | TODO: validate `message` length, strip control chars |
+| Input validation/sanitization on `/api/chat` | **Yes** | ✅ Done — `lib/api/chat-validation.ts`, persona fields capped in `lib/api/persona-context.ts` |
 | CORS | Default Next.js (same-origin) is fine | OK |
-| **Rate limiting on `/api/chat`** | **Critical — Anthropic costs** | TODO: per-IP limit (e.g. 10/min) before going public |
+| **Rate limiting on `/api/chat`** | **Critical — Anthropic costs** | ✅ Done — per-IP via `lib/api/rate-limit.ts` (in-memory; per-instance caveat). IP from `x-real-ip` (Vercel-set), NOT first XFF entry — that one is client-spoofable |
+| Security headers | Yes | ✅ Done — nosniff / X-Frame-Options / Referrer-Policy / Permissions-Policy in `next.config.ts` (microphone kept for voice-to-invoice) |
 | Password reset link expiry | No auth yet | N/A |
-| Frontend error boundaries | Yes | TODO: add a top-level `<ErrorBoundary>` in `app/layout.tsx` |
+| Frontend error boundaries | Yes | ✅ Done — `app/error.tsx` + `app/global-error.tsx` (Hebrew) |
 | DB indexing | No DB yet | N/A until Supabase |
 | Logging | Vercel built-in is enough for demo | OK |
 | **Alerts** | **Yes — before EY** | TODO: Vercel error alerts + Anthropic usage budget alert |
@@ -363,4 +374,4 @@ See `NEXT_STEPS.md` for the prioritized list. High-level:
 
 `src/lib/form-1301/schema.ts` is the canonical structure. Field codes match the live `secapp.taxes.gov.il` Form 1301 (tax year 2024) verbatim. The schema is intentionally **only the demo subset** — the live form has hundreds of fields; we cover the 8 stars + their surrounding context.
 
-We don't store reference screenshots in the repo. The schema is the durable artifact — anyone reading it can see what each field is, what feeds it (calculated vs. personal), and which calculator engine drives the value.
+Reference screenshots of the live form live in `docs/form-screenshots/` (decision 2026-06-09: kept in-repo for process/knowledge-management value, reversing the earlier "no screenshots" stance). They are reference only — the schema remains the durable artifact: anyone reading it can see what each field is, what feeds it (calculated vs. personal), and which calculator engine drives the value.
