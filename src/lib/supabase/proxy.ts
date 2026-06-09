@@ -69,7 +69,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Auth gating only: unauthenticated → /login for protected routes.
-  if (!user && isProtectedPath(request.nextUrl.pathname)) {
+  // Behind a flag so auth can be merged/deployed BEFORE the Google provider is
+  // live without locking the app. Set AUTH_GATING_ENABLED=true to enforce.
+  if (
+    process.env.AUTH_GATING_ENABLED === "true" &&
+    !user &&
+    isProtectedPath(request.nextUrl.pathname)
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
