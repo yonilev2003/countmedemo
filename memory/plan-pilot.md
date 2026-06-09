@@ -31,8 +31,8 @@
 - ✅ **P2** — שכבת-נתונים DB-backed (`src/lib/data/`): `persistPersona` write-through + `usePersona()`; 3 הכותבים מחווטים; נוספה `profiles.persona jsonb`; שדרוג SDK (supabase-js 2.108 / ssr 0.12).
 - ✅ **P3+P4** — Google OAuth (`/login`, `/auth/callback`, signOut) + `proxy.ts`+`middleware.ts` gating ל-`/demo`,`/setup`,`/business-expenses`,`/dashboard`. **דורש הפעלת ספק Google ב-Supabase כדי לעבוד חי.** (נבנה ב-worktree מקבילי.)
 - ✅ **ספייק A9** — `docs/spikes/invoice-israel-feasibility.md`: verdict OUT לפיילוט (advisory-only IN); סף 5,000₪ מ-1.6.2026; מע"מ 18%.
-- 🐞 **באג** — `invoice-generator` מחשב מע"מ 0.17 במקום 0.18 (מאז 1.1.2025); לתיקון (עדיף year-keyed const).
-- ⏭️ **נותר ל-P2** — read-hydration (DB→מסכים) אחרי הפעלת OAuth; אימוץ `usePersona` בקוראים; seed (P6 — דורש service-role).
+- ✅ **תוקן** — מע"מ 0.17→0.18 כקבוע year-keyed (`vatRate` ב-`types.ts`; `invoice-generator` + ceiling alert).
+- ✅ **read-hydration** — `PersonaHydrator` ב-`layout` (DB→cache בעלייה). ⏭️ נותר: אימוץ `usePersona` per-page + בדיקה חיה (אחרי הפעלת OAuth); seed (P6 — דורש service-role).
 
 **פער-מפתח לאישור יוני:** הסכמה הקיימת **רזה** מ-`Persona` העשיר בקוד (אין עמודות לת"ז/מגדר/ילדים/
 בנק/כתובת/tradeName/vatAndTurnover). הצעה לפיילוט: להוסיף עמודה `profiles.persona jsonb` שתחזיק את כל
