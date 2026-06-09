@@ -1,6 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
-import { getTaxYearConstants } from "@/lib/calculators/types";
+import {
+  getClientIp,
+  createRateLimiter,
+  rateLimitResponse,
+} from "@/lib/api/rate-limit";
+import {
+  HistoryItem,
+  validateMessage,
+  validateHistory,
+} from "@/lib/api/chat-validation";
+import { buildCoachPersonaContext } from "@/lib/api/persona-context";
+import { anthropicSSEResponse } from "@/lib/api/sse";
 
 /**
  * /api/coach — Eitan, the unified digital partner for countme.
@@ -80,44 +91,9 @@ const SYSTEM_DASHBOARD_INSIGHTS = `אתה איתן. אתה מסתכל על דש�
 "טרם תועדו הפקדות לקרן השתלמות — זה עוד פוטנציאל חיסכון מס."
 בלי markdown. שלוש נקודות מקסימום. עברית נקייה.`;
 
-/* ──────────────────────────────────────────────────────────
-   Rate limiting — same shape as /api/chat. Separate bucket so
-   coach + form-filling chats don't share a budget.
-   ────────────────────────────────────────────────────────── */
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 12;
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+// Separate bucket so coach + form-filling chats don't share a budget.
+const checkRateLimit = createRateLimiter(12);
 
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  const real = request.headers.get("x-real-ip");
-  if (real) return real.trim();
-  return "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    if (ipBuckets.size > 1000) {
-      for (const [k, v] of ipBuckets.entries()) {
-        if (now > v.resetAt) ipBuckets.delete(k);
-      }
-    }
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
-}
-
-const MAX_MESSAGE_CHARS = 2000;
-const MAX_HISTORY_ITEMS = 40;
-const MAX_HISTORY_ITEM_CHARS = 4000;
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB after base64 decode
 const ALLOWED_ATTACHMENT_TYPES = [
   "image/jpeg",
@@ -139,7 +115,7 @@ type CoachMode = "eitan" | "dashboard-insights" | "audit" | "discover";
 
 interface ValidatedBody {
   message: string;
-  history: { role: "user" | "assistant"; content: string }[];
+  history: HistoryItem[];
   mode: CoachMode;
   persona?: Persona;
   attachment?: Attachment;
@@ -153,16 +129,8 @@ function validateBody(
   }
   const r = raw as Record<string, unknown>;
 
-  if (typeof r.message !== "string") {
-    return { ok: false, error: "message must be a string" };
-  }
-  const message = r.message
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
-    .trim();
-  if (message.length === 0) return { ok: false, error: "message is empty" };
-  if (message.length > MAX_MESSAGE_CHARS) {
-    return { ok: false, error: `message exceeds ${MAX_MESSAGE_CHARS} chars` };
-  }
+  const msg = validateMessage(r.message);
+  if (!msg.ok) return msg;
 
   // Accept "eitan", "dashboard-insights", "audit", "discover", or undefined (defaults to "eitan")
   const validModes: CoachMode[] = ["eitan", "dashboard-insights", "audit", "discover"];
@@ -175,29 +143,8 @@ function validateBody(
     mode = rawMode as CoachMode;
   }
 
-  if (!Array.isArray(r.history)) {
-    return { ok: false, error: "history must be an array" };
-  }
-  if (r.history.length > MAX_HISTORY_ITEMS) {
-    return { ok: false, error: `history exceeds ${MAX_HISTORY_ITEMS} items` };
-  }
-  const history: { role: "user" | "assistant"; content: string }[] = [];
-  for (const item of r.history) {
-    if (typeof item !== "object" || item === null) {
-      return { ok: false, error: "history item must be an object" };
-    }
-    const it = item as Record<string, unknown>;
-    if (it.role !== "user" && it.role !== "assistant") {
-      return { ok: false, error: "history role must be user or assistant" };
-    }
-    if (typeof it.content !== "string") {
-      return { ok: false, error: "history content must be a string" };
-    }
-    if (it.content.length > MAX_HISTORY_ITEM_CHARS) {
-      return { ok: false, error: "history item too long" };
-    }
-    history.push({ role: it.role, content: it.content });
-  }
+  const hist = validateHistory(r.history);
+  if (!hist.ok) return hist;
 
   let persona: Persona | undefined;
   if (r.persona !== undefined && r.persona !== null) {
@@ -242,29 +189,8 @@ function validateBody(
 
   return {
     ok: true,
-    body: { message, history, mode, persona, attachment },
+    body: { message: msg.message, history: hist.history, mode, persona, attachment },
   };
-}
-
-function buildPersonaContext(persona: Persona): string {
-  const p = persona;
-  const TC = getTaxYearConstants(p.income.year);
-  const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const bituachDeductible = Math.round(
-    bituachPaid * TC.bituachLeumiDeductibleRate,
-  );
-  const gender = p.personal.gender === "male" ? "זכר" : "נקבה";
-  return `נתוני המשתמש/ת מהדוח שלהם:
-שם: ${p.personal.firstName} ${p.personal.lastName}
-מגדר: ${gender}
-עסק: ${p.business.tradeName}, ${p.business.primaryOccupation}
-סוג עוסק: ${p.business.osekType}${p.business.isOsekZeir ? " (מסלול עוסק זעיר)" : ""}
-מחזור שנתי: ${p.income.totalRevenue.toLocaleString("he-IL")} ש"ח
-הוצאות מוכרות שכבר דווחו: ${p.income.totalDeductibleExpenses.toLocaleString("he-IL")} ש"ח
-ביטוח לאומי ששולם: ${bituachPaid.toLocaleString("he-IL")} ש"ח (מוכר ${bituachDeductible.toLocaleString("he-IL")} ש"ח)
-קרן השתלמות: ${p.deductionsAndCredits.kerenHishtalmut.annualContribution.toLocaleString("he-IL")} ש"ח
-
-כשאתה חוקר איתם, התייחס לנתונים האלה. אם משהו חסר או נמוך משמעותית מהצפוי לעיסוק שלהם, ציין את זה.`;
 }
 
 export async function POST(request: Request) {
@@ -273,17 +199,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
-  if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
-  }
+  const rl = checkRateLimit(getClientIp(request));
+  if (!rl.allowed) return rateLimitResponse(rl);
 
   let raw: unknown;
   try {
@@ -333,7 +250,7 @@ export async function POST(request: Request) {
 
   const messages: Anthropic.MessageParam[] = [
     ...trimmedHistory.map((m) => ({
-      role: m.role as "user" | "assistant",
+      role: m.role,
       content: m.content,
     })),
     { role: "user" as const, content: currentTurnContent },
@@ -346,66 +263,22 @@ export async function POST(request: Request) {
   const baseSystem =
     mode === "dashboard-insights" ? SYSTEM_DASHBOARD_INSIGHTS : SYSTEM_EITAN;
 
+  // Single cache breakpoint on the LAST system block — caches the whole prefix
+  // (instructions + persona context) as one unit instead of two sub-minimum blocks.
   const systemBlocks: Anthropic.TextBlockParam[] = [
-    {
-      type: "text",
-      text: baseSystem,
-      cache_control: { type: "ephemeral" },
-    },
+    { type: "text", text: baseSystem },
   ];
-
-  // Always inject persona context when persona is provided
   if (persona) {
-    systemBlocks.push({
-      type: "text",
-      text: buildPersonaContext(persona),
-      cache_control: { type: "ephemeral" },
-    });
+    systemBlocks.push({ type: "text", text: buildCoachPersonaContext(persona) });
   }
+  systemBlocks[systemBlocks.length - 1].cache_control = { type: "ephemeral" };
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      const enqueue = (data: string) => {
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-      };
-
-      try {
-        const anthropicStream = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1024,
-          system: systemBlocks,
-          messages,
-        });
-
-        for await (const event of anthropicStream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            enqueue(event.delta.text);
-          }
-        }
-
-        enqueue("[DONE]");
-        controller.close();
-      } catch (err) {
-        const msg =
-          err instanceof Anthropic.APIError
-            ? `שגיאה מה-API: ${err.message}`
-            : "אירעה שגיאה בלתי צפויה. נסי שוב.";
-        enqueue(`[ERROR] ${msg}`);
-        enqueue("[DONE]");
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
+  return anthropicSSEResponse(() =>
+    anthropic.messages.stream({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: systemBlocks,
+      messages,
+    }),
+  );
 }

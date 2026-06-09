@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import ExcelJS from "exceljs";
+import {
+  getClientIp,
+  createRateLimiter,
+  rateLimitResponse,
+} from "@/lib/api/rate-limit";
 
 /**
  * /api/upload — extract structured tax data from user-uploaded reports.
@@ -12,30 +17,8 @@ import ExcelJS from "exceljs";
  * setup wizard's persona-in-progress.
  */
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_UPLOADS = 8; // per IP per minute
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_UPLOADS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
-}
+const checkRateLimit = createRateLimiter(8); // uploads per IP per minute
 
 export interface ExtractedData {
   /** Only for income-report PDFs */
@@ -61,17 +44,8 @@ export interface ExtractedData {
 }
 
 export async function POST(request: Request) {
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
-  if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי העלאות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
-  }
+  const rl = checkRateLimit(getClientIp(request));
+  if (!rl.allowed) return rateLimitResponse(rl);
 
   let formData: FormData;
   try {

@@ -1,4 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  getClientIp,
+  createRateLimiter,
+  rateLimitResponse,
+} from "@/lib/api/rate-limit";
+import { sanitizeText } from "@/lib/api/chat-validation";
 
 /**
  * Voice-to-invoice parser.
@@ -28,34 +34,7 @@ const SYSTEM_PROMPT = `אתה מסייע ב-CountMe להוצאת חשבוניו�
 - שמות בעברית/אנגלית — שמור על האיות המקורי.
 - אם השדה חסר, החזר מחרוזת ריקה (או 0 ל-amount), אל תמציא.`;
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 12;
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip")?.trim() ?? "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    if (ipBuckets.size > 1000) {
-      for (const [k, v] of ipBuckets.entries()) {
-        if (now > v.resetAt) ipBuckets.delete(k);
-      }
-    }
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
-}
+const checkRateLimit = createRateLimiter(12);
 
 interface ParsedInvoice {
   customerName: string;
@@ -85,17 +64,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
-  if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
-  }
+  const rl = checkRateLimit(getClientIp(request));
+  if (!rl.allowed) return rateLimitResponse(rl);
 
   let raw: unknown;
   try {
@@ -111,7 +81,7 @@ export async function POST(request: Request) {
   if (typeof body.transcript !== "string") {
     return Response.json({ error: "transcript must be a string" }, { status: 400 });
   }
-  const transcript = body.transcript.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  const transcript = sanitizeText(body.transcript);
   if (transcript.length === 0) {
     return Response.json({ error: "transcript is empty" }, { status: 400 });
   }
