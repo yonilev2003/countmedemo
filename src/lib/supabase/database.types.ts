@@ -236,6 +236,7 @@ export type Database = {
           id: string
           is_registration_complete: boolean
           last_name: string
+          persona: Json | null
           updated_at: string
           user_id: string
           user_type: string | null
@@ -249,6 +250,7 @@ export type Database = {
           id?: string
           is_registration_complete?: boolean
           last_name?: string
+          persona?: Json | null
           updated_at?: string
           user_id: string
           user_type?: string | null
@@ -262,6 +264,7 @@ export type Database = {
           id?: string
           is_registration_complete?: boolean
           last_name?: string
+          persona?: Json | null
           updated_at?: string
           user_id?: string
           user_type?: string | null

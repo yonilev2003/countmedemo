@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
-import { savePersona, loadPersona } from "@/lib/setup-storage";
+import { loadPersona } from "@/lib/setup-storage";
+import { persistPersona } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { cn } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
@@ -561,7 +562,7 @@ export default function SetupPage() {
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
     const persona = buildPersona();
-    savePersona(persona);
+    persistPersona(persona);
     router.push("/dashboard");
   }
 
