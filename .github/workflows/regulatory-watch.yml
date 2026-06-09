@@ -22,10 +22,13 @@ jobs:
           node-version: "22"
           cache: npm
 
-      # npm ci installs puppeteer (devDependency) and fetches its bundled,
-      # version-matched Chromium binary automatically.
       - name: Install dependencies
         run: npm ci
+
+      # Playwright (devDependency, shared with the e2e suite) does NOT fetch
+      # browsers on npm ci — install the Chromium used by the PDF render step.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
       # Persist the dedup store across runs. Rolling-cache pattern: a unique key
       # per run means the exact key never hits, so the post-job step always saves
@@ -61,7 +64,7 @@ jobs:
 
       # Render the HTML/PDF report. Paths are injected via env (never inlined
       # into the JS) so there is no YAML-escaping hazard. The single-quoted
-      # bash literal keeps the inline script intact; puppeteer/Chromium only
+      # bash literal keeps the inline script intact; Playwright/Chromium only
       # spins up here, isolated from the agent loop above.
       - name: Render HTML/PDF report
         env:

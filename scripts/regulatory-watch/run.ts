@@ -5,7 +5,7 @@
  * with Claude → open a GitHub issue per relevant finding → persist the run
  * summary. The heavy Chromium/PDF render is intentionally a *separate* CI step
  * that reads the persisted summary (see report.ts / the workflow), so this loop
- * stays light and can run even where puppeteer can't.
+ * stays light and can run even where Chromium can't.
  *
  * Environment:
  *   ANTHROPIC_API_KEY      — required to classify (without it, items fall back

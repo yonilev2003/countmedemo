@@ -5,7 +5,7 @@
  *   node --experimental-strip-types scripts/regulatory-watch/report.smoke.ts
  *
  * Self-contained: no test framework, no new dependencies. Uses Node built-ins,
- * the report module under test, and the already-installed puppeteer (via the
+ * the report module under test, and the already-installed Playwright (via the
  * module's own writeReport). Exits 0 if every check passes, 1 otherwise.
  */
 
@@ -169,7 +169,7 @@ function runHtmlChecks(): void {
 }
 
 // ---------------------------------------------------------------------------
-// PDF checks (via writeReport -> puppeteer)
+// PDF checks (via writeReport -> Playwright)
 // ---------------------------------------------------------------------------
 async function writeReportToFreshDir(summary: RunSummary): Promise<{ pdfPath: string; htmlPath: string; dir: string }> {
   const dir = mkdtempSync(join(tmpdir(), "regwatch-smoke-"));
@@ -180,7 +180,7 @@ async function writeReportToFreshDir(summary: RunSummary): Promise<{ pdfPath: st
 }
 
 async function runPdfChecks(): Promise<void> {
-  console.log("PDF checks (writeReport / puppeteer):");
+  console.log("PDF checks (writeReport / Playwright):");
 
   const rich = await writeReportToFreshDir(richFixture);
   const empty = await writeReportToFreshDir(emptyFixture);
@@ -239,7 +239,7 @@ async function main(): Promise<void> {
     failed++;
     console.log(`  ✗ PDF checks failed to run: ${err instanceof Error ? err.message : String(err)}`);
     console.log(
-      "    (If this is a Chromium/launch problem, ensure puppeteer's browser is installed: `npx puppeteer browsers install chrome`)",
+      "    (If this is a Chromium/launch problem, ensure Playwright's browser is installed: `npx playwright install chromium`)",
     );
   }
 

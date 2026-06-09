@@ -5,8 +5,8 @@
  * renders a print-ready Hebrew (RTL) executive report, then writes both an
  * .html and a .pdf to `.regulatory-watch/reports/YYYY-MM-DD.{html,pdf}`.
  *
- * `generateHtmlReport` is pure (no I/O, no puppeteer) so it is trivially
- * testable. `writeReport` performs the filesystem + Chromium work; puppeteer
+ * `generateHtmlReport` is pure (no I/O, no Chromium) so it is trivially
+ * testable. `writeReport` performs the filesystem + Chromium work; Playwright
  * is imported lazily so that merely importing this module (e.g. in a unit
  * test of the HTML) never launches a browser.
  *
@@ -421,8 +421,10 @@ export async function writeReport(summary: RunSummary): Promise<string> {
   await writeFile(htmlPath, html, "utf8");
 
   // Lazy import: keep generateHtmlReport (and unit tests) free of Chromium.
-  const puppeteer = (await import("puppeteer")).default;
-  const browser = await puppeteer.launch({
+  // @playwright/test re-exports the browser launchers and is already a devDep
+  // (the e2e suite), so no second browser-automation stack is needed.
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
@@ -431,7 +433,7 @@ export async function writeReport(summary: RunSummary): Promise<string> {
     await page.setContent(html, { waitUntil: "load" });
     // Wait for the Heebo webfont to actually finish loading before painting,
     // otherwise the PDF can render in a fallback font.
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
     await page.pdf({
       path: pdfPath,
       format: "A4",
