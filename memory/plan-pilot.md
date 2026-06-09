@@ -23,11 +23,16 @@
 - trigger `on_auth_user_created → handle_new_user()`: יוצר profile אוטומטית בכל signup.
 - פונקציות `get_next_invoice_number`/`get_next_doc_number` (advisory-lock per-user) — מספור עוקב.
 
-**בוצע היום (Phase 0 + Phase 1):**
+**בוצע היום (Phase 0–4 + ספייק A9 — הכל ב-`claude/awesome-ritchie-VsVoE`):**
 - ✅ `@supabase/ssr`+`supabase-js`; 3 client factories מטופסים (`client`/`server`/`admin`) ב-`src/lib/supabase/`.
 - ✅ `database.types.ts` — טייפים מהסכמה החיה; ה-clients `<Database>`-typed.
 - ✅ `.env.local` עם URL+anon (service-role עדיין חסר — צריך מיוני).
 - ✅ אבטחה: `tax_rules` קיבל RLS + policy קריאה ל-authenticated (כתיבה רק service-role). מיגרציה `secure_tax_rules_rls`.
+- ✅ **P2** — שכבת-נתונים DB-backed (`src/lib/data/`): `persistPersona` write-through + `usePersona()`; 3 הכותבים מחווטים; נוספה `profiles.persona jsonb`; שדרוג SDK (supabase-js 2.108 / ssr 0.12).
+- ✅ **P3+P4** — Google OAuth (`/login`, `/auth/callback`, signOut) + `proxy.ts`+`middleware.ts` gating ל-`/demo`,`/setup`,`/business-expenses`,`/dashboard`. **דורש הפעלת ספק Google ב-Supabase כדי לעבוד חי.** (נבנה ב-worktree מקבילי.)
+- ✅ **ספייק A9** — `docs/spikes/invoice-israel-feasibility.md`: verdict OUT לפיילוט (advisory-only IN); סף 5,000₪ מ-1.6.2026; מע"מ 18%.
+- 🐞 **באג** — `invoice-generator` מחשב מע"מ 0.17 במקום 0.18 (מאז 1.1.2025); לתיקון (עדיף year-keyed const).
+- ⏭️ **נותר ל-P2** — read-hydration (DB→מסכים) אחרי הפעלת OAuth; אימוץ `usePersona` בקוראים; seed (P6 — דורש service-role).
 
 **פער-מפתח לאישור יוני:** הסכמה הקיימת **רזה** מ-`Persona` העשיר בקוד (אין עמודות לת"ז/מגדר/ילדים/
 בנק/כתובת/tradeName/vatAndTurnover). הצעה לפיילוט: להוסיף עמודה `profiles.persona jsonb` שתחזיק את כל
