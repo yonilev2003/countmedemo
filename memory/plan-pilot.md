@@ -23,7 +23,7 @@
 - trigger `on_auth_user_created → handle_new_user()`: יוצר profile אוטומטית בכל signup.
 - פונקציות `get_next_invoice_number`/`get_next_doc_number` (advisory-lock per-user) — מספור עוקב.
 
-**בוצע היום (Phase 0–4 + ספייק A9 — הכל ב-`claude/awesome-ritchie-VsVoE`):**
+**בוצע היום (Phase 0–5 + ספייק A9 — הכל ב-`claude/awesome-ritchie-VsVoE`):**
 - ✅ `@supabase/ssr`+`supabase-js`; 3 client factories מטופסים (`client`/`server`/`admin`) ב-`src/lib/supabase/`.
 - ✅ `database.types.ts` — טייפים מהסכמה החיה; ה-clients `<Database>`-typed.
 - ✅ `.env.local` עם URL+anon (service-role עדיין חסר — צריך מיוני).
@@ -33,6 +33,8 @@
 - ✅ **ספייק A9** — `docs/spikes/invoice-israel-feasibility.md`: verdict OUT לפיילוט (advisory-only IN); סף 5,000₪ מ-1.6.2026; מע"מ 18%.
 - ✅ **תוקן** — מע"מ 0.17→0.18 כקבוע year-keyed (`vatRate` ב-`types.ts`; `invoice-generator` + ceiling alert).
 - ✅ **read-hydration** — `PersonaHydrator` ב-`layout` (DB→cache בעלייה). ⏭️ נותר: אימוץ `usePersona` per-page + בדיקה חיה (אחרי הפעלת OAuth); seed (P6 — דורש service-role).
+- ✅ **gating flag** — `AUTH_GATING_ENABLED` (כבוי כברירת-מחדל): דחיית OAuth לא נועלת את האפליקציה.
+- ✅ **P5** — דשבורד device-adaptive (mobile↔desktop ב-breakpoint `lg` יחיד) + סרגל quick-actions; 6 רכיבי dashboard חדשים. worktree `claude/phase5-dashboard`, מוזג ב-ff. (שים לב: נדרש `rm -rf .next` אחרי שדרוגי SDK — cache התקלקל.)
 
 **פער-מפתח לאישור יוני:** הסכמה הקיימת **רזה** מ-`Persona` העשיר בקוד (אין עמודות לת"ז/מגדר/ילדים/
 בנק/כתובת/tradeName/vatAndTurnover). הצעה לפיילוט: להוסיף עמודה `profiles.persona jsonb` שתחזיק את כל
