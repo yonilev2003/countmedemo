@@ -6,9 +6,10 @@
  *   - sources: human-readable list of what fed the calculation (shown in the agent tooltip)
  *   - formula: short explanation of the math
  *
- * Tax-rule references default to year 2024. When tomorrow we wire the
- * israeli-tax-returns skill, calculators may pull constants from there
- * instead of being hard-coded.
+ * Tax-rule constants are year-keyed (see getTaxYearConstants). The product's
+ * current calibration target is TAX YEAR 2025 (the pilot files the 2025 annual
+ * return); 2024 stays defined as a valid historical filing year and 2026 is
+ * defined-but-mostly-flagged (out of scope of the 2025 alignment pass).
  */
 
 import type { Persona } from "@/lib/persona";
@@ -178,14 +179,22 @@ const OSEK_EXEMPT_CEILING_2025 = 120000;
 
 /**
  * Tax year 2025 — every value is set explicitly (no blind spread of 2024) so
- * each constant is a deliberate per-year decision.
+ * each constant is a deliberate per-year decision. THIS IS THE CALIBRATION
+ * TARGET (the pilot files the 2025 annual return) — no 2024 or 2026 value may
+ * leak into this block.
  *
- * FROZEN: Israel did not index income-tax brackets or credit-point values for
- * 2025 (budget freeze, no inflation linkage) — those are intentionally equal to
- * 2024. STABLE: statutory rates (4.5% keren, 52/48% B"L, 30% zeir, 35% pension
- * credit) don't move year to year. CARRIED: index-linked caps/thresholds that
- * normally change annually are kept at the 2024 figure with a TODO until Roy
- * confirms the official 2025 numbers — so we never silently show a wrong value.
+ * Status after the ty2025-alignment pass (2026-06-10):
+ *  • FROZEN — brackets, credit-point value (2,904), surtax (721,560): not
+ *    indexed for 2025, intentionally equal to 2024. CONFIRMED via
+ *    israeli-tax-returns (frozen 2025–2027).
+ *  • CONFIRMED — keren cap 13,203 / income ceiling 293,397; B"L bracket 7,522/mo
+ *    & ceiling 49,030/mo + the 7.12% / 17.83% self-employed rates; עוסק
+ *    פטור/זעיר ceiling 120,000; VAT 18%. Sources in the inline comments.
+ *  • STABLE — statutory rates (4.5% keren, 52% B"L deduction, 30% zeir, 35%
+ *    pension credit) don't move year to year.
+ *  • FLAG(Roy) — only the index-linked PENSION caps (25,608 / 12,804) remain
+ *    unconfirmed for 2025 (no owned skill states them); carried at 2024 with a
+ *    flag so we never silently show a wrong value.
  */
 export const TAX_YEAR_2025: TaxYearConstants = {
   // Keren Hishtalmut — rate + caps all unchanged 2024→2025 (frozen).
@@ -196,34 +205,50 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   // 20,566 ₪ for 2025 — surfaced in field137 notes, not a constant here.
 
   // Bituach Leumi — rates stable; thresholds index-linked.
-  bituachLeumiDeductibleRate: 0.52,     // stable (סעיף 47א — 52% of B"L is deductible)
+  // CONFIRMED 2025 (israeli-bituach-leumi + ty2025-alignment decision):
+  //   • reduced-rate bracket boundary = 7,522 ₪/mo (= 90,264 ₪/yr; 60% avg wage)
+  //   • max insurable income          = 49,030 ₪/mo (= 588,360 ₪/yr)
+  //   • combined SELF-EMPLOYED rates (B"L + health):
+  //       reduced bracket = 7.12%  (3.89% B"L + 3.23% health)   ← blRate1
+  //       full    bracket = 17.83% (12.83% B"L + 5.00% health)  ← blRate2
+  //   The 52% deduction (סעיף 47א) applies to the B"L COMPONENT ONLY, never to
+  //   the health-tax component — that intent is documented by the split above
+  //   and enforced in field030BituachLeumi (it deducts 52% of the user's
+  //   `bituachLeumiSelfEmployed.annualPaid` input, which is B"L-paid, not health).
+  bituachLeumiDeductibleRate: 0.52,     // stable (סעיף 47א — 52% of the B"L component)
   // NOTE: bituachLeumiCreditRate is NOT a real tax benefit. Only 52% of B"L is a
   // deduction-from-income; the other 48% gets NO deduction and NO credit
   // (verified 2026-06: claltax/prisha/kolzchut). This field is retained for the
   // shared type shape + field-048 legacy display only — the tax ESTIMATE no
   // longer credits it (see estimateTaxLiability). Do not treat 48% as a credit.
   bituachLeumiCreditRate: 0.48,         // legacy/display only — NOT credited in tax calc
-  blMonthlyThreshold1: 7522,            // TODO(Roy): confirm 2025 (avg-wage linked)
-  blMonthlyMax: 49030,                  // TODO(Roy): confirm 2025 contribution ceiling
-  blRate1: 0.0597,                      // stable
-  blRate2: 0.1783,                      // stable
+  blMonthlyThreshold1: 7522,            // CONFIRMED 2025 (= 90,264 ₪/yr, 60% avg wage)
+  blMonthlyMax: 49030,                  // CONFIRMED 2025 (= 588,360 ₪/yr contribution ceiling)
+  // blRate1/blRate2 are DORMANT (defined for shape/provenance; no calculator
+  // consumes them — the 030/137 calcs deduct from the persona's paid figure).
+  blRate1: 0.0712,                      // CONFIRMED 2025 reduced total: 3.89% B"L + 3.23% health
+  blRate2: 0.1783,                      // CONFIRMED 2025 full total: 12.83% B"L + 5.00% health
 
-  // Pension — rates stable; caps index-linked
+  // Pension — rates stable; caps index-linked.
+  // FLAG(Roy): the 2025 indexed pension caps are NOT confirmed by any owned
+  // skill (israeli-tax-returns/tax-brackets-credits.md lists brackets + credit-
+  // point value but no pension-cap figure). Carried at the 2024 values until
+  // confirmed — do NOT treat 25,608 / 12,804 as verified 2025 numbers.
   pensionDeductionRate: 0.11,           // stable
-  pensionDeductionCap: 25608,           // TODO(Roy): confirm 2025
+  pensionDeductionCap: 25608,           // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
   pensionCreditRate: 0.055,             // stable
-  pensionCreditCap: 12804,              // TODO(Roy): confirm 2025
+  pensionCreditCap: 12804,              // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
   pensionCreditPercent: 0.35,           // stable
 
-  // Form 6111 obligation threshold.
-  // FLAG(Roy) 2026-06: israeli-tax-returns states the obligation triggers at
-  // turnover > 300,000 ₪ INCLUDING VAT. Our code compares this against ex-VAT
-  // turnover (income.totalRevenue), so the units don't match. 256,410 is a
-  // legacy ex-VAT-looking figure of unconfirmed provenance. Two coherent fixes:
-  //   (a) set this to 300000 and compare against VAT-inclusive turnover, or
-  //   (b) keep an ex-VAT threshold = 300000 / 1.18 ≈ 254,237 and compare ex-VAT.
-  // Left at 256,410 pending Roy's call on which basis to model. See audit doc.
-  form6111Threshold: 256410,            // FLAG(Roy): reconcile with 300,000 incl-VAT
+  // Form 6111 obligation threshold — CONFIRMED 256,410 ₪ (ex-VAT) for 2025.
+  // ADJUDICATED (ty2025-alignment): our calculators compare against ex-VAT
+  // turnover (income.totalRevenue), and 256,410 ₪ is the correct ex-VAT trigger
+  // for the 2025 return. The israeli-tax-returns skill quotes the rule as
+  // "> 300,000 ₪ INCLUDING VAT"; at the 2025 VAT rate (18%) that is
+  // 300,000 / 1.18 ≈ 254,237 ₪ ex-VAT — the same order of magnitude. The
+  // ex-VAT figure we use (256,410) is the value to compare against our ex-VAT
+  // turnover and is confirmed correct; the earlier FLAG is resolved.
+  form6111Threshold: 256410,            // CONFIRMED 2025 (ex-VAT basis; ≈300,000 incl-VAT)
 
   // עוסק פטור / עוסק זעיר ceiling — tied (always equal)
   osekPaturThreshold: OSEK_EXEMPT_CEILING_2025,
@@ -311,8 +336,9 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   pensionCreditCap: 12804,              // FLAG(Roy): confirm 2026
   pensionCreditPercent: 0.35,           // stable
 
-  // Form 6111 — same FLAG as 2025 (reconcile 300,000 incl-VAT vs ex-VAT basis).
-  form6111Threshold: 256410,            // FLAG(Roy): reconcile with 300,000 incl-VAT
+  // Form 6111 — basis adjudicated (ex-VAT comparison, see 2025 block). The 2026
+  // ex-VAT figure itself is OUT OF SCOPE of the ty2025 pass; carried from 2025.
+  form6111Threshold: 256410,            // carried from 2025 (2026 value out of scope — NEEDS-ROY)
 
   // עוסק פטור / עוסק זעיר ceiling — CONFIRMED 122,833 for 2026.
   osekPaturThreshold: OSEK_EXEMPT_CEILING_2026,
@@ -470,22 +496,22 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     description: "שיעור ההפקדה המוכר לקרן השתלמות לעצמאי (4.5%)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // statutory rate — stable (ty2025-alignment)
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   bituachLeumiDeductibleRate: {
-    description: "שיעור דמי ביטוח לאומי לעצמאי המוכרים כהוצאה (52%)",
+    description: "שיעור דמי ביטוח לאומי לעצמאי המוכרים כהוצאה — רכיב הב״ל בלבד (52%)",
     sourceUrl: "https://www.btl.gov.il/",
     publisher: "המוסד לביטוח לאומי",
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // סעיף 47א — stable; applies to B"L component only
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   form6111Threshold: {
-    description: "מחזור שמעליו חלה חובת צירוף טופס 6111 לדוח",
+    description: "מחזור (ללא מע״מ) שמעליו חלה חובת צירוף טופס 6111 לדוח (256,410 ₪)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // ex-VAT basis confirmed (ty2025-alignment)
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   osekPaturThreshold: {
     description: "תקרת מחזור שנתי לעוסק פטור ממע״מ (120,000 ₪ ל-2024–2025; 122,833 ₪ מ-2026)",
@@ -495,25 +521,25 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     lastVerified: "2026-06-10T00:00:00.000Z",
   },
   osekZeirExpenseRate: {
-    description: "שיעור הוצאות מוכר אוטומטית במסלול עוסק זעיר (30%)",
+    description: "שיעור הוצאות מוכר אוטומטית במסלול עוסק זעיר (30%, תיקון 257)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // statutory 30% — stable (ty2025-alignment)
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   osekZeirThreshold: {
-    description: "תקרת מחזור למסלול עוסק זעיר",
+    description: "תקרת מחזור למסלול עוסק זעיר (= תקרת עוסק פטור, 120,000 ₪ ל-2024–2025)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // 120,000 confirmed 2024–2025; 122,833 from 2026
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   residentCreditPoints: {
-    description: "נקודות זיכוי בסיס לתושב ישראל",
+    description: "נקודות זיכוי בסיס לתושב ישראל (גבר 2.25 / אישה 2.75)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // frozen (ty2025-alignment)
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   pointValueAnnual: {
     description: "שווי שנתי של נקודת זיכוי אחת (₪)",
@@ -533,14 +559,14 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     description: "שיעור מס יסף (3%)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
-    lastVerified: "2024-01-01T00:00:00.000Z",
+    effectiveTaxYears: [2024, 2025], // stable (ty2025-alignment)
+    lastVerified: "2026-06-10T00:00:00.000Z",
   },
   pensionDeductionCap: {
     description: "תקרת ניכוי בגין הפקדות לפנסיה (סעיף 47)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024],
+    effectiveTaxYears: [2024], // FLAG(Roy): 2025 indexed cap unconfirmed — see TAX_YEAR_2025
     lastVerified: "2024-01-01T00:00:00.000Z",
   },
 };

@@ -125,6 +125,15 @@ export interface PersonaDeductions {
   kupatGemel: { annualContribution: number };
   /** Sections 45A/47 — pension/provident fund contributions */
   pensionContributions: { annualContribution: number };
+  /**
+   * Self-employed National-Insurance paid (field 030). `annualPaid` is intended
+   * to be the BITUACH-LEUMI COMPONENT ONLY — it is the base for the 52% סעיף-47א
+   * deduction, which applies to B"L and NOT to health tax (מס בריאות).
+   * FLAG(Roy): if a real persona's figure bundles health tax into this number,
+   * the 52% deduction is overstated. Recommended fix when real data lands: split
+   * into `{ bituachLeumi: number; healthTax: number }` and deduct 52% of the
+   * B"L part only. Do not change the deduction base silently.
+   */
   bituachLeumiSelfEmployed: { annualPaid: number };
   bituachLifeOrCancerPolicy: number;
   /** Section 72 — life insurance premium */

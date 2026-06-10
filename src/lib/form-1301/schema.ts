@@ -320,7 +320,7 @@ const tabGeneral: FormTab = {
           kind: "boolean",
           status: "personal",
           personaPath: "business.osekType",
-          hint: "תקרת עוסק פטור לשנת 2024: 120,000 ₪ מחזור שנתי",
+          hint: "תקרת עוסק פטור לשנים 2024–2025: 120,000 ₪ מחזור שנתי (122,833 ₪ מ-2026)",
         },
         {
           label: "הפקת חשבוניות/קבלה (ממוחשב / ידני / לא רלוונטי)",
@@ -607,7 +607,7 @@ const tabIncome: FormTab = {
           kind: "currency",
           status: "calculated",
           calculator: "field-137-keren-hishtalmut",
-          hint: "ניכוי בשיעור עד 4.5% מההכנסה (תקרה 19,920 ₪ לשנה 2024).",
+          hint: "ניכוי בשיעור עד 4.5% מההכנסה (תקרת ניכוי מוכר 13,203 ₪, 2024–2025).",
         },
       ],
     },
