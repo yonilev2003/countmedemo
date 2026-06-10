@@ -22,7 +22,11 @@
 
 import { Persona } from "@/lib/persona";
 import { PLSummary } from "./index";
-import { getTaxYearConstants } from "@/lib/calculators/types";
+import {
+  computePersonalDeductions,
+  computeTaxableIncome,
+  grossIncomeTax,
+} from "@/lib/calculators/index";
 
 export interface PLLine {
   /** Hebrew label */
@@ -67,22 +71,9 @@ export interface IsraeliPLReport {
   };
 }
 
-/**
- * Estimate income tax using Israeli 2024 progressive brackets for self-employed.
- * Brackets per the calculators/types module; this is a rough estimate for the
- * report (not the official liability).
- */
-function estimateIncomeTax(profitBeforeTax: number, year: number): number {
-  if (profitBeforeTax <= 0) return 0;
-  const brackets = getTaxYearConstants(year).taxBrackets;
-  let tax = 0;
-  for (const b of brackets) {
-    if (profitBeforeTax <= b.from) break;
-    const taxable = Math.min(profitBeforeTax, b.to) - b.from;
-    if (taxable > 0) tax += taxable * b.rate;
-  }
-  return Math.round(tax);
-}
+/* Income tax is estimated via the canonical grossIncomeTax() from the
+ * calculators module (single source of truth for brackets) — the previous local
+ * estimateIncomeTax() was removed in the 2026-06 audit to prevent drift. */
 
 /**
  * Route expenses to their P&L destination using the plImpact each category
@@ -160,11 +151,24 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
   const profitBeforeTax = operatingProfit - financialExpenses;
 
   // Personal deductions (ניכויים אישיים) sit below the business result and
-  // reduce the taxable base — so income tax is estimated on the post-deduction
-  // income, not on the operating profit.
-  const personalDeductions = split.personalDeductions;
-  const taxableIncome = profitBeforeTax - personalDeductions;
-  const incomeTax = estimateIncomeTax(taxableIncome, persona.income.year);
+  // reduce the taxable base. SINGLE SOURCE OF TRUTH (audit 2026-06, Issue 5):
+  // these come from the canonical computePersonalDeductions(persona) — the exact
+  // same recognised keren / B"L-52% / pension-47 amounts the tax estimate uses —
+  // NOT from the synthetic expense breakdown (which produced a different number
+  // and made the P&L diverge from the dashboard/estimate). The line items below
+  // are rebuilt from these recognised amounts so they sum to the total exactly.
+  const recognised = computePersonalDeductions(persona);
+  const recognisedDeductionLines = [
+    { he: "ביטוח לאומי (52% מוכר)", id: "bl", amount: recognised.bituachLeumi },
+    { he: "קרן השתלמות", id: "keren", amount: recognised.keren },
+    { he: "פנסיה (סעיף 47)", id: "pension", amount: recognised.pension },
+  ].filter((l) => l.amount > 0);
+  const personalDeductions =
+    recognised.keren + recognised.bituachLeumi + recognised.pension;
+  // Taxable income is computed canonically from business income (= field 150),
+  // which equals profitBeforeTax for a service business with no financing costs.
+  const taxableIncome = computeTaxableIncome(persona);
+  const incomeTax = grossIncomeTax(taxableIncome, persona.income.year);
   const netProfit = profitBeforeTax - personalDeductions - incomeTax;
 
   const year = persona.income.year ?? new Date().getFullYear() - 1;
@@ -258,11 +262,10 @@ export function buildIsraeliPLReport(persona: Persona, pl: PLSummary): IsraeliPL
   // (deduction-from-income). When absent, the report flows straight to tax,
   // identical to a pure business P&L.
   if (personalDeductions > 0) {
-    for (const d of split.deductionLines) {
-      const pctLabel = d.recognizedRate < 1 ? ` (${Math.round(d.recognizedRate * 100)}% מוכר)` : "";
+    for (const d of recognisedDeductionLines) {
       lines.push({
-        he: `${d.category}${pctLabel}`,
-        en: CATEGORY_EN[d.category] ?? d.category,
+        he: d.he,
+        en: CATEGORY_EN[d.he] ?? d.he,
         amount: d.amount,
         kind: "outflow",
       });
