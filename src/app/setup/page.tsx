@@ -16,7 +16,6 @@ import {
   CheckIcon,
   ArrowRightIcon,
   ArrowLeftIcon,
-  AlertTriangleIcon,
   InfoIcon,
   SparklesIcon,
 } from "@/components/brand/icons";
@@ -200,6 +199,12 @@ export default function SetupPage() {
   // Derive step subtitles dynamically so they always show the current selected year
   const STEP_SUBTITLES = getStepSubtitles(selectedYear);
 
+  // עוסק זעיר / עוסק פטור share ONE ceiling (invariant in lib/calculators/types.ts).
+  // Read it from the year constants — never hardcode (it is CPI-indexed: 120,000
+  // for 2024–2025, 122,833 for 2026).
+  const osekCeiling = getTaxYearConstants(selectedYear).osekZeirThreshold;
+  const osekCeilingHe = osekCeiling.toLocaleString("he-IL");
+
   const [s1, setS1] = useState<Step1Data>({
     firstName: "",
     lastName: "",
@@ -321,7 +326,13 @@ export default function SetupPage() {
     }
     if (s2.academicDegreeYear) {
       const y = Number(s2.academicDegreeYear);
-      if (isNaN(y) || y < 1950 || y > currentYear) {
+      // DELIBERATION POINT: a FUTURE graduation year is intentionally NOT a hard
+      // error. A user filing in advance, or who already knows their expected
+      // graduation year, can enter a future year — we surface a soft heads-up
+      // (academicYearNote below) instead of blocking. Only structurally
+      // impossible values (non-numeric, or absurdly early) block "next".
+      // Revisit if product decides a future degree year must hard-block.
+      if (isNaN(y) || y < 1950) {
         e.academicDegreeYear = "שנה לא תקינה";
       }
     }
@@ -583,6 +594,14 @@ export default function SetupPage() {
       ? Number(s4.totalRevenue) - Number(s5.totalDeductibleExpenses)
       : null;
 
+  // Soft heads-up (NOT a blocking error): the academic-degree year is in the
+  // future. The credit applies once the degree is actually awarded — see the
+  // DELIBERATION POINT note in validateStep2.
+  const academicYearIsFuture =
+    !!s2.academicDegreeYear &&
+    !isNaN(Number(s2.academicDegreeYear)) &&
+    Number(s2.academicDegreeYear) > currentYear;
+
   const creditPoints = (() => {
     let pts = s1.gender === "female" ? 2.75 : 2.25;
     if (s2.isNewResident) pts += 3;
@@ -590,6 +609,33 @@ export default function SetupPage() {
     pts += s2.children.filter((c) => c.birthYear).length * 0.5;
     return pts;
   })();
+
+  /*
+   * Step-5 expense-ratio facts (NO advice — facts only, product decision).
+   * The 30% threshold is the עוסק-זעיר normative-expense rate, read from the
+   * year constants (never hardcoded). Two mirror cases:
+   *   • זעיר  + expenses ABOVE 30% → only 30% is recognised in the זעיר track.
+   *   • פטור  + expenses BELOW 30% → states the זעיר track would auto-recognise
+   *     30% (more than reported). Both are neutral statements of fact.
+   */
+  const zeirExpenseRate =
+    getTaxYearConstants(selectedYear).osekZeirExpenseRate;
+  const step5Revenue = Number(s4.totalRevenue) || 0;
+  const step5Expenses = Number(s5.totalDeductibleExpenses) || 0;
+  const step5Ratio = step5Revenue > 0 ? step5Expenses / step5Revenue : 0;
+  const showZeirOverNote =
+    s3.isOsekZeir &&
+    step5Revenue > 0 &&
+    step5Expenses > 0 &&
+    step5Ratio > zeirExpenseRate;
+  const showPaturUnderNote =
+    s3.osekType === "patur" &&
+    !s3.isOsekZeir &&
+    step5Revenue > 0 &&
+    step5Expenses > 0 &&
+    step5Ratio < zeirExpenseRate;
+  const zeirRatePct = Math.round(zeirExpenseRate * 100);
+  const zeirCapAmount = Math.round(step5Revenue * zeirExpenseRate);
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
@@ -878,7 +924,6 @@ export default function SetupPage() {
                     id="academicYear"
                     type="number"
                     min={1950}
-                    max={currentYear}
                     value={s2.academicDegreeYear}
                     onChange={(e) =>
                       setS2({ ...s2, academicDegreeYear: e.target.value })
@@ -888,6 +933,15 @@ export default function SetupPage() {
                     placeholder="לדוגמה: 2022"
                   />
                   <ErrorMsg msg={errors.academicDegreeYear} />
+                  {academicYearIsFuture && !errors.academicDegreeYear && (
+                    <div className="mt-1.5 flex items-start gap-2 rounded-lg border border-due/30 bg-due-bg/50 px-3 py-2 text-xs text-ink">
+                      <InfoIcon className="size-3.5 mt-0.5 shrink-0 text-due" />
+                      <span>
+                        שנת סיום עתידית — ודא/י שהתואר כבר הוענק. נקודת הזיכוי
+                        ניתנת רק מהשנה שבה התואר הוענק בפועל.
+                      </span>
+                    </div>
+                  )}
                   <p className="mt-1 text-xs text-muted">
                     זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
                   </p>
@@ -980,51 +1034,50 @@ export default function SetupPage() {
                 </div>
 
                 <div>
-                  <FieldLabel htmlFor="osekType">סוג עוסק</FieldLabel>
-                  <select
-                    id="osekType"
-                    value={s3.osekType}
-                    onChange={(e) => {
-                      const next = e.target.value as OsekType;
-                      setS3({
-                        ...s3,
-                        osekType: next,
-                        // עוסק זעיר rule applies only to עוסק פטור
-                        isOsekZeir: next === "patur" ? s3.isOsekZeir : false,
-                      });
-                    }}
-                    className={inputCls(false)}
-                  >
-                    <option value="patur">עוסק פטור</option>
-                    <option value="morshe">עוסק מורשה</option>
-                  </select>
+                  <FieldLabel>סוג עוסק</FieldLabel>
+                  {/*
+                    Three osek tracks offered as first-class choices: זעיר / פטור / מורשה.
+                    Data-model note: the persona keeps `osekType: "patur" | "morshe"`
+                    plus a separate `isOsekZeir` flag (זעיר is an income-tax track
+                    layered on עוסק פטור — both share the same VAT ceiling). So we map:
+                      • "zeir"   → osekType="patur", isOsekZeir=true
+                      • "patur"  → osekType="patur", isOsekZeir=false
+                      • "morshe" → osekType="morshe", isOsekZeir=false
+                    Facts per israeli-vat-reporting + israeli-freelancer-ops skills
+                    (תיקון 257): עוסק זעיר = 30% normative expense recognition +
+                    simplified reporting, SAME revenue ceiling as עוסק פטור.
+
+                    FLAG (product decision needed): the user asked whether choosing
+                    מורשה should expose an "עוסק מורשה זעיר" path. The skills do NOT
+                    support a זעיר track for an עוסק מורשה — עוסק זעיר shares the
+                    עוסק-פטור ceiling and is unavailable above it. We therefore do
+                    NOT offer זעיר under מורשה. Confirm with a tax professional
+                    before adding any murshe→zeir behavior.
+                  */}
+                  <OsekTypeChoice
+                    osekType={s3.osekType}
+                    isOsekZeir={s3.isOsekZeir}
+                    ceilingHe={osekCeilingHe}
+                    onChange={(next) => setS3({ ...s3, ...next })}
+                  />
                 </div>
 
-                {s3.osekType === "patur" && (
+                {s3.isOsekZeir && (
                   <div className="rounded-xl border border-line bg-cream p-4">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={s3.isOsekZeir}
-                        onChange={(e) =>
-                          setS3({ ...s3, isOsekZeir: e.target.checked })
-                        }
-                        className="h-4 w-4 mt-0.5 rounded border-line accent-brand-navy"
-                      />
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-ink">
-                          מסלול עוסק זעיר (ניכוי 30% אוטומטי)
-                        </span>
-                        <p className="text-xs text-muted mt-0.5 leading-relaxed">
-                          לעוסק פטור עם מחזור עד 120,000 ₪. 30% מהמחזור מוכרים אוטומטית כהוצאות
-                          (כולל ביטוח לאומי). אין חובת מקדמות. יציאה מהמסלול חוסמת חזרה לשנתיים.
-                        </p>
-                      </div>
-                    </label>
-                    <OsekZeirWarning
+                    <p className="text-xs text-muted leading-relaxed">
+                      <span className="font-medium text-ink">מסלול עוסק זעיר:</span>{" "}
+                      30% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח לאומי), בלי
+                      צורך לתעד הוצאות בפועל. אין חובת מקדמות. המסלול פתוח עד מחזור
+                      של {osekCeilingHe} ₪ — אותה תקרה של עוסק פטור. יציאה מהמסלול
+                      חוסמת חזרה אליו לשנתיים.
+                    </p>
+                    <OsekZeirNote
                       checked={s3.isOsekZeir}
                       totalRevenue={Number(s4.totalRevenue) || 0}
                       totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
+                      expenseRate={
+                        getTaxYearConstants(selectedYear).osekZeirExpenseRate
+                      }
                     />
                   </div>
                 )}
@@ -1130,6 +1183,36 @@ export default function SetupPage() {
                       ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
                       : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
                   </p>
+
+                  {/* Factual 30% note — osek ZEIR with expenses ABOVE 30% (facts, no advice) */}
+                  {showZeirOverNote && (
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
+                      <InfoIcon className="size-4 mt-0.5 shrink-0 text-due" />
+                      <span>
+                        <span className="font-semibold text-due">שים/י לב: </span>
+                        במסלול עוסק זעיר מוכרים רק {zeirRatePct}% מההוצאות
+                        ({zeirCapAmount.toLocaleString("he-IL")} ₪). המספרים שהזנת
+                        ({step5Expenses.toLocaleString("he-IL")} ₪) גבוהים יותר —{" "}
+                        {Math.round(step5Ratio * 100)}% מהמחזור.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Mirror factual note — osek PATUR (not zeir) with expenses BELOW 30% */}
+                  {showPaturUnderNote && (
+                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-brand-deep/25 bg-info/30 px-3 py-2.5 text-xs leading-relaxed text-ink">
+                      <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
+                      <span>
+                        <span className="font-semibold text-brand-deep">
+                          לידיעתך:{" "}
+                        </span>
+                        ההוצאות שהזנת ({step5Expenses.toLocaleString("he-IL")} ₪)
+                        הן {Math.round(step5Ratio * 100)}% מהמחזור — נמוכות מסף
+                        ה-{zeirRatePct}% של מסלול עוסק זעיר, שבו מוכרים אוטומטית{" "}
+                        {zeirCapAmount.toLocaleString("he-IL")} ₪.
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-line pt-4 mt-2">
@@ -1427,53 +1510,147 @@ export default function SetupPage() {
 }
 
 /**
- * Warning banner shown when osek zeir is checked but real expenses
- * exceed the 30% auto-deduction. The user would lose the difference
- * in deductions by filing as zeir.
+ * Three osek-track selector: זעיר / פטור / מורשה.
  *
- * Reference: Israeli Tax Ordinance — מסלול עוסק זעיר (סעיף 8א2 לפקודה,
- * תיקון 257 משנת 2024). מאפשר ניכוי אוטומטי של 30% מהמחזור כהוצאות
- * במקום הוצאות בפועל.
+ * The persona data model stores `osekType` ("patur" | "morshe") + a separate
+ * `isOsekZeir` boolean (זעיר is an income-tax track layered on עוסק פטור). This
+ * component presents all three as first-class radio options and maps the chosen
+ * one back onto that model. See the FLAG comment at the call site re: why מורשה
+ * does NOT expose a זעיר sub-track.
  */
-function OsekZeirWarning({
+type OsekChoice = "zeir" | "patur" | "morshe";
+
+function currentOsekChoice(osekType: OsekType, isOsekZeir: boolean): OsekChoice {
+  if (osekType === "morshe") return "morshe";
+  return isOsekZeir ? "zeir" : "patur";
+}
+
+function OsekTypeChoice({
+  osekType,
+  isOsekZeir,
+  ceilingHe,
+  onChange,
+}: {
+  osekType: OsekType;
+  isOsekZeir: boolean;
+  ceilingHe: string;
+  onChange: (next: { osekType: OsekType; isOsekZeir: boolean }) => void;
+}) {
+  const selected = currentOsekChoice(osekType, isOsekZeir);
+
+  const options: {
+    key: OsekChoice;
+    title: string;
+    desc: string;
+    next: { osekType: OsekType; isOsekZeir: boolean };
+  }[] = [
+    {
+      key: "zeir",
+      title: "עוסק זעיר",
+      desc: `מסלול מס פשוט לעוסק פטור — 30% מהמחזור מוכרים אוטומטית כהוצאות. מחזור עד ${ceilingHe} ₪.`,
+      next: { osekType: "patur", isOsekZeir: true },
+    },
+    {
+      key: "patur",
+      title: "עוסק פטור",
+      desc: `פטור מגביית מע״מ, מדווח הוצאות בפועל. מחזור עד ${ceilingHe} ₪.`,
+      next: { osekType: "patur", isOsekZeir: false },
+    },
+    {
+      key: "morshe",
+      title: "עוסק מורשה",
+      desc: "גובה ומדווח מע״מ, מקזז מע״מ תשומות. ללא תקרת מחזור.",
+      next: { osekType: "morshe", isOsekZeir: false },
+    },
+  ];
+
+  return (
+    <div className="space-y-2.5">
+      {options.map((opt) => {
+        const active = selected === opt.key;
+        return (
+          <label
+            key={opt.key}
+            className={cn(
+              "flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+              active
+                ? "border-brand-deep bg-teal-100/40"
+                : "border-line bg-paper hover:bg-cream",
+            )}
+          >
+            <input
+              type="radio"
+              name="osekChoice"
+              value={opt.key}
+              checked={active}
+              onChange={() => onChange(opt.next)}
+              className="mt-0.5 h-4 w-4 accent-brand-navy"
+            />
+            <div className="flex-1">
+              <span
+                className={cn(
+                  "text-sm font-medium",
+                  active ? "text-brand-navy" : "text-ink",
+                )}
+              >
+                {opt.title}
+              </span>
+              <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                {opt.desc}
+              </p>
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * FACTUAL note (no advice) shown when osek zeir is selected but real expenses
+ * exceed the 30% auto-recognition. States the numbers only — does not tell the
+ * user what to do. The advice framing was intentionally removed (product
+ * decision: "facts, not advice"). The legal disclaimer lives elsewhere.
+ *
+ * Reference: מסלול עוסק זעיר (תיקון 257 לפקודת מס הכנסה, 2024) — ניכוי אוטומטי
+ * של 30% מהמחזור כהוצאות במקום הוצאות בפועל. The 30% rate flows in via
+ * `expenseRate` from the year constants (never hardcoded here).
+ */
+function OsekZeirNote({
   checked,
   totalRevenue,
   totalExpenses,
+  expenseRate,
 }: {
   checked: boolean;
   totalRevenue: number;
   totalExpenses: number;
+  expenseRate: number;
 }) {
   if (!checked) return null;
   if (totalRevenue <= 0 || totalExpenses <= 0) return null;
 
-  // Use the shared algorithm (kept locally inline to avoid pulling persona shape into setup state)
   const ratio = totalExpenses / totalRevenue;
-  if (ratio <= 0.3) return null;
-  const lostDeduction = Math.round(totalExpenses - totalRevenue * 0.3);
+  if (ratio <= expenseRate) return null;
+  const recognized = Math.round(totalRevenue * expenseRate);
+  const notRecognized = Math.round(totalExpenses - recognized);
 
   return (
-    <div className="mt-3 rounded-xl border-2 border-due/40 bg-due-bg/60 p-3">
+    <div className="mt-3 rounded-xl border border-due/40 bg-due-bg/60 p-3">
       <div className="flex items-start gap-2">
-        <AlertTriangleIcon className="size-4 text-due shrink-0 mt-0.5" />
+        <InfoIcon className="size-4 text-due shrink-0 mt-0.5" />
         <div className="flex-1 text-xs leading-relaxed text-ink">
           <p className="font-bold mb-1 text-due">
-            שימי לב — מסלול זעיר עשוי להפסיד לך הוצאות
+            שים/י לב: במסלול עוסק זעיר מוכרים רק {Math.round(expenseRate * 100)}%
+            מההוצאות
           </p>
           <p>
-            לפי תיקון 257 לפקודת מס הכנסה (רפורמת המסלול הירוק לעוסק זעיר), הגשה
-            כעוסק/ת זעיר/ה תכיר ב-30% מהמחזור בלבד כהוצאות אוטומטיות
-            ({Math.round(totalRevenue * 0.3).toLocaleString("he-IL")} ₪).
-          </p>
-          <p className="mt-1.5">
-            ההוצאות שדיווחת ({totalExpenses.toLocaleString("he-IL")} ₪) הן{" "}
-            <strong>{Math.round(ratio * 100)}%</strong> מהמחזור — תאבד/י הכרה
-            ב-<strong>{lostDeduction.toLocaleString("he-IL")} ₪</strong> של
-            הוצאות אמיתיות.
-          </p>
-          <p className="mt-1.5 text-due">
-            מומלץ לבטל את המסלול ולדווח בדרך הרגילה (עוסק פטור) כדי לקבל הכרה
-            מלאה בכל ההוצאות.
+            במסלול זעיר מוכרים אוטומטית {recognized.toLocaleString("he-IL")} ₪
+            ({Math.round(expenseRate * 100)}% מהמחזור). ההוצאות שהזנת
+            ({totalExpenses.toLocaleString("he-IL")} ₪) גבוהות יותר — הן{" "}
+            <strong>{Math.round(ratio * 100)}%</strong> מהמחזור, כך
+            ש-<strong>{notRecognized.toLocaleString("he-IL")} ₪</strong> מעבר
+            לתקרת ה-{Math.round(expenseRate * 100)}% לא נכללים בחישוב המסלול.
           </p>
         </div>
       </div>
