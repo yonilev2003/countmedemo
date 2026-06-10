@@ -169,7 +169,7 @@ export default function InvoicePrintPage() {
                 {!isReceipt && (
                   <tr className="border-b border-line-soft">
                     <td colSpan={2} className="px-1.5 py-2 text-end font-semibold text-muted text-sm">
-                      מע&quot;מ {isPatur ? "0% (עוסק פטור)" : "17%"}
+                      מע&quot;מ {isPatur ? "0% (עוסק פטור)" : `${Math.round((invoice.vat / (invoice.amount || 1)) * 100)}%`}
                     </td>
                     <td colSpan={2} className="px-1.5 py-2 text-start font-bold text-brand-navy text-sm tabular-nums" dir="ltr">&#x20AA;{invoice.vat.toLocaleString("he-IL")}</td>
                   </tr>
