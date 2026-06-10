@@ -15,7 +15,15 @@
  */
 
 import { Persona } from "@/lib/persona";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
+/**
+ * Baseline 2024–2025 values, exported for callers that need a constant outside a
+ * persona context. The actual numbers used inside computeExpenseRatio are
+ * resolved PER TAX YEAR from getTaxYearConstants(persona.income.year) — never
+ * hardcode the rate/ceiling, they are year-keyed (the ceiling is CPI-indexed:
+ * 120,000 for 2024–2025, 122,833 from 2026).
+ */
 export const ZEIR_RECOGNITION_RATE = 0.30;
 export const ZEIR_REVENUE_CEILING = 120_000;
 
@@ -59,12 +67,19 @@ function statusFromRatio(ratioPercent: number): RatioStatus {
 }
 
 export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
+  // Year-keyed: the זעיר recognition rate AND the revenue ceiling come from the
+  // persona's tax year — never the module-level baseline constants (which would
+  // silently show 120,000 for a 2026 persona that should see 122,833).
+  const TC = getTaxYearConstants(persona.income.year);
+  const recognitionRate = TC.osekZeirExpenseRate;
+  const revenueCeiling = TC.osekZeirThreshold;
+
   const totalRevenue = persona.income.totalRevenue || 0;
   const totalExpenses = persona.income.totalDeductibleExpenses || 0;
   const ratio = totalRevenue > 0 ? totalExpenses / totalRevenue : 0;
   const ratioPercent = Math.round(ratio * 100);
 
-  const zeirCapAmount = Math.round(totalRevenue * ZEIR_RECOGNITION_RATE);
+  const zeirCapAmount = Math.round(totalRevenue * recognitionRate);
   const zeirRecognized = Math.min(totalExpenses, zeirCapAmount);
   const zeirLostDeduction = Math.max(0, totalExpenses - zeirCapAmount);
   const isZeirFavorable = totalExpenses < zeirCapAmount;
@@ -73,7 +88,7 @@ export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
   const isZeirEligible =
     persona.business.osekType === "patur" &&
     totalRevenue > 0 &&
-    totalRevenue <= ZEIR_REVENUE_CEILING;
+    totalRevenue <= revenueCeiling;
 
   const status = statusFromRatio(ratioPercent);
 

@@ -192,9 +192,12 @@ export default function SetupPage() {
 
   /**
    * The tax year the user is filing for.
-   * Default: 2024 — because 2025 indexed values are provisional (TODO(Roy) markers).
+   * Default: 2025 — the current calibration target (the pilot files the 2025
+   * annual return) and confirmed in lib/calculators/types.ts. 2024 stays
+   * selectable as a historical year. (Was 2024 while 2025 was provisional; that
+   * reasoning is obsolete after the ty2025-alignment pass.)
    */
-  const [selectedYear, setSelectedYear] = useState<number>(2024);
+  const [selectedYear, setSelectedYear] = useState<number>(2025);
 
   // Derive step subtitles dynamically so they always show the current selected year
   const STEP_SUBTITLES = getStepSubtitles(selectedYear);
@@ -1112,10 +1115,10 @@ export default function SetupPage() {
                     </div>
                   </div>
                   {selectedYear === 2025 && (
-                    <p className="mt-2 text-xs text-due bg-due-bg/60 border border-due/30 rounded-lg px-3 py-1.5 leading-relaxed">
-                      חלק מנתוני 2025 (תקרות קרן השתלמות, ביטוח לאומי ופנסיה)
-                      הם ערכים זמניים הממתינים לאישור רשמי — יעודכנו עם פרסום
-                      נתוני האינדקס הסופיים.
+                    <p className="mt-2 text-xs text-muted leading-relaxed">
+                      נתוני 2025 מאומתים (מדרגות מס, נקודות זיכוי, תקרות קרן
+                      השתלמות וביטוח לאומי). תקרות הניכוי לפנסיה ממתינות לאישור
+                      סופי ויעודכנו עם פרסום נתוני האינדקס.
                     </p>
                   )}
                 </div>

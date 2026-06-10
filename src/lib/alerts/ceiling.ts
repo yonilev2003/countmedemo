@@ -1,8 +1,10 @@
 /**
  * עוסק פטור / מחזור שנתי — threshold alert.
  *
- * 2024 ceiling: 120,000 NIS. Exceeding it triggers mandatory morshe registration.
- * Shows at 80 / 90 / 100% milestones; component handles display.
+ * The ceiling is read PER TAX YEAR from getTaxYearConstants(persona.income.year)
+ * — 120,000 ₪ for 2024–2025, 122,833 ₪ from 2026 (CPI-indexed). Exceeding it
+ * triggers mandatory עוסק מורשה registration. Shows at 80 / 90 / 100% milestones;
+ * the component handles display.
  *
  * Pure function — no React.
  */

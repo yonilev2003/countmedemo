@@ -1,6 +1,6 @@
 {
   "$schema": "./persona.schema.json",
-  "_comment": "Persona placeholder for the countme demo. Replace any field with real data when running with a real user. All fields use plausible-but-fictional Israeli data. Tax year: 2024.",
+  "_comment": "Persona placeholder for the countme demo. Replace any field with real data when running with a real user. All fields use plausible-but-fictional Israeli data. Tax year: 2025 (calibration target — calculators read 2025 constants from income.year). Sample invoice/monthly dates are illustrative; the star-field calcs use the totalRevenue/totalDeductibleExpenses aggregates, and the P&L monthly chart buckets by month regardless of the year label.",
   "id": "dana-cohen",
   "displayName": "דנה כהן",
   "invoiceCounter": 39,
@@ -70,7 +70,7 @@
   },
 
   "income": {
-    "year": 2024,
+    "year": 2025,
     "totalRevenue": 248500,
     "totalDeductibleExpenses": 47800,
     "netIncome": 200700,
@@ -111,7 +111,7 @@
   "deductionsAndCredits": {
     "kerenHishtalmut": {
       "annualContribution": 18375,
-      "_note": "Field 137. 7.5% of net income, capped at 19,920 ILS/year for 2024."
+      "_note": "Field 137. Recognised deduction = min(contribution, 4.5% x min(income, 293,397), cap 13,203) for 2025. Excess over the cap is not a deductible expense (but may earn the capital-gains exemption)."
     },
     "kupatGemel": {
       "annualContribution": 11000,
@@ -123,7 +123,7 @@
     },
     "bituachLeumiSelfEmployed": {
       "annualPaid": 22340,
-      "_note": "Field 030. 52% deductible, ~11,617 ILS expense, rest is tax credit."
+      "_note": "Field 030. B\"L component only (base for the 52% deduction, סעיף 47א). 52% (~11,617 ILS) is deductible from income; the other 48% earns NO deduction and NO credit. Health tax is not included here and is not deductible."
     },
     "bituachLifeOrCancerPolicy": 2400,
     "lifeInsurancePremium": 0,
