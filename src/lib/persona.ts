@@ -159,7 +159,20 @@ export interface Persona {
   invoiceCounter?: number;   // next invoice number to use
 }
 
-/** Default persona for the demo. Replace by editing personas/dana-cohen.json. */
+/**
+ * Bundled demo persona (Dana Cohen). Replace by editing personas/dana-cohen.json.
+ *
+ * SCOPE — anonymous / open-demo ONLY. Do NOT auto-load this for an authenticated
+ * user: a real logged-in user's persona is `profiles.persona` in Supabase (read
+ * via `lib/data/persona-repository`), hydrated into the local cache by
+ * `PersonaHydrator`. Seeding this demo object into the signup → /setup → DB flow
+ * would show one person fake data and could overwrite their real DB row.
+ *
+ * As of this writing nothing in `src/` imports this at runtime — `/demo` reads
+ * the local cache and redirects to /setup when empty; pages read the cache via
+ * `loadPersona()`. Keep it that way: if you need a demo seed, gate it behind an
+ * explicit "no authenticated user" check, never an unconditional fallback.
+ */
 export const defaultPersona = danaCohen as unknown as Persona;
 
 /** Read any nested path on the persona (used by form-1301 schema "personaPath"). */
