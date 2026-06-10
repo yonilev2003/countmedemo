@@ -7,11 +7,163 @@
  */
 
 import { Persona } from "@/lib/persona";
-import { Calculator, CalcResult, TaxEstimate, TAX_YEAR_2024, getTaxYearConstants } from "./types";
+import {
+  Calculator,
+  CalcResult,
+  TaxEstimate,
+  TAX_YEAR_2024,
+  getTaxYearConstants,
+  miluimCreditPoints,
+  MILUIM_CREDIT_FIRST_YEAR,
+} from "./types";
 
 export type { CalcResult, TaxEstimate } from "./types";
 
 const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Shared credit-point helpers — ONE source of truth for nekudot zikui so the
+ * form fields, the tax estimate, and the setup wizard cannot drift. Each
+ * returns a precise point count (not a boolean), prorated where the law
+ * prorates. Owned by israeli-tax-returns. (Accuracy audit 2026-06.)
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Optional persona.personal fields the credit-point calcs read, without
+ * widening the shared Persona type (kept out of scope of this audit). When a
+ * real persona omits them the calcs fall back to sensible defaults:
+ *   - soldierServiceMonths: length of regular service in months. Drives the
+ *     full (1/6) vs partial (1/12) per-month rate. Absent ⇒ assume full service.
+ *   - combatReserveDays: combat reserve days served in the tax year, for the
+ *     miluim credit (תיקון 283, from 2026). Absent ⇒ 0.
+ */
+interface SoldierMiluimInputs {
+  soldierServiceMonths?: number | null;
+  combatReserveDays?: number | null;
+}
+function soldierMiluimInputs(p: Persona): SoldierMiluimInputs {
+  return p.personal as unknown as SoldierMiluimInputs;
+}
+
+/** Base resident points: female 2.75, male 2.25 (israeli-tax-returns). */
+function residentCreditPoints(p: Persona): number {
+  const TC = getTaxYearConstants(p.income.year);
+  // Female gets +0.5 over the male base; TC.residentCreditPoints is the male base.
+  return p.personal.gender === "female"
+    ? TC.residentCreditPoints + 0.5
+    : TC.residentCreditPoints;
+}
+
+/**
+ * Discharged-soldier credit points for the given tax year, PRORATED by the
+ * number of eligible months that fall within that year.
+ *
+ * Rule (israeli-tax-returns / kolzchut, סעיף 67/39א): 1/6 point per eligible
+ * month for full service (men 23+, women 22+ months) or 1/12 for partial
+ * qualifying service (12–22 months), for the 36 months starting the month AFTER
+ * discharge. The discharge year and the year the window closes are partial.
+ *
+ * Needs the discharge date to locate the eligibility window. When the date is
+ * missing we fall back to a full tax year of eligibility (12 months) so the
+ * demo still shows a sensible figure, and the caller surfaces the assumption.
+ */
+function soldierCreditPoints(p: Persona): number {
+  if (!p.personal.isSoldierDischarged) return 0;
+  const TC = getTaxYearConstants(p.income.year);
+  const year = p.income.year;
+
+  // Per-month fraction depends on service length. Absent → assume full service.
+  const months = soldierMiluimInputs(p).soldierServiceMonths;
+  const fullThreshold =
+    p.personal.gender === "female"
+      ? TC.soldierFullServiceMonthsFemale
+      : TC.soldierFullServiceMonthsMale;
+  const perMonth =
+    months != null && months < fullThreshold
+      ? TC.soldierReducedFractionPerMonth
+      : TC.soldierFractionPerMonth;
+
+  const eligibleMonths = soldierEligibleMonthsInYear(
+    p.personal.soldierDischargeDate,
+    year,
+    TC.soldierMonthsCredit,
+  );
+  return round2(eligibleMonths * perMonth);
+}
+
+/**
+ * How many of the 36 eligibility months fall inside the given tax year.
+ * The window opens the month AFTER discharge and runs `windowMonths` months.
+ * Returns 12 (a full year) when the discharge date is unknown.
+ */
+function soldierEligibleMonthsInYear(
+  dischargeDate: string | null | undefined,
+  year: number,
+  windowMonths: number,
+): number {
+  if (!dischargeDate) return 12; // unknown date → assume a full eligible year
+  const d = new Date(dischargeDate);
+  if (Number.isNaN(d.getTime())) return 12;
+
+  // Eligibility starts the first day of the month after discharge.
+  const startMonthIndex = d.getFullYear() * 12 + d.getMonth() + 1; // +1 = next month
+  const endMonthIndex = startMonthIndex + windowMonths - 1; // inclusive last month
+
+  // The tax year spans these absolute month indices.
+  const yearStart = year * 12 + 0; // January
+  const yearEnd = year * 12 + 11; // December
+
+  const overlapStart = Math.max(startMonthIndex, yearStart);
+  const overlapEnd = Math.min(endMonthIndex, yearEnd);
+  return Math.max(0, overlapEnd - overlapStart + 1);
+}
+
+/** Child credit points by age within the tax year (israeli-tax-returns). */
+function childCreditPoints(p: Persona): number {
+  const year = p.income.year;
+  let pts = 0;
+  for (const c of p.personal.children ?? []) {
+    const age = year - c.birthYear;
+    if (age < 0) continue;
+    if (age === 0) pts += 1.5; // born during the tax year
+    else if (age >= 1 && age <= 5) pts += 2.5;
+    else if (age >= 6 && age <= 17) pts += 1.0;
+    else if (age === 18) pts += 0.5;
+  }
+  return pts;
+}
+
+/** New-immigrant credit is date-windowed; without an aliyah date we can't
+ * place the year, so this returns the year-1 rate as a conservative display
+ * value only when flagged. The tax estimate uses this same helper. */
+function newOlehCreditPoints(p: Persona): number {
+  if (!p.personal.isNewResident) return 0;
+  const TC = getTaxYearConstants(p.income.year);
+  // Without an aliyah date we cannot tell which of the 3 benefit years applies.
+  // Default to year-1 (3.0) as the headline figure; FLAG via the calculator.
+  return TC.newOlehCreditYear1;
+}
+
+/** Round to 2 decimals (credit points are quoted to 1/4 / 1/12 granularity). */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Total nekudot zikui for the persona in its tax year — the SINGLE aggregation
+ * used by the tax estimate. Resident + soldier (prorated) + children + oleh +
+ * miluim (2026+). Academic-degree points are intentionally excluded here
+ * (handled as a separate field with its own eligibility window).
+ */
+export function totalCreditPoints(p: Persona): number {
+  return round2(
+    residentCreditPoints(p) +
+      soldierCreditPoints(p) +
+      childCreditPoints(p) +
+      newOlehCreditPoints(p) +
+      miluimCreditPoints(p.income.year, soldierMiluimInputs(p).combatReserveDays ?? 0),
+  );
+}
 
 /* ============================================================
  * שדה 150 — מיגיעה אישית מעסק או משלח יד
@@ -57,6 +209,10 @@ export const field150BusinessIncome: Calculator = (p) => {
       },
     ],
     confidence: "high",
+    notes: [
+      'שדה 150 הוא ההכנסה מהעסק לפני ניכויים אישיים. הניכויים האישיים (קרן השתלמות שדה 137, ביטוח לאומי 52% שדה 030, פנסיה סעיף 47) מקטינים את ההכנסה החייבת בשדות נפרדים — ראה אומדן המס.',
+      'תרומות (סעיף 46) והפקדות פנסיה (סעיף 45א) הם זיכויים מהמס עצמו, לא ניכוי מההכנסה.',
+    ],
   };
 };
 
@@ -94,7 +250,7 @@ export const field030BituachLeumi: Calculator = (p) => {
       formula: 'מסלול עוסק זעיר: ניכוי הב"ל כלול ב-30% ההוצאות האוטומטיות — לא ניתן לנכות בנוסף',
       sources: [{ label: 'business.isOsekZeir = true' }],
       confidence: "high",
-      notes: ['זיכוי הב"ל בשיעור 48% (שדה 048) עדיין רלוונטי — זה זיכוי ישיר מהמס.'],
+      notes: ['ה-48% הנותרים מדמי הביטוח הלאומי אינם מוכרים — לא כניכוי ולא כזיכוי (סעיף 47א).'],
     };
   }
 
@@ -111,21 +267,21 @@ export const field030BituachLeumi: Calculator = (p) => {
     ],
     confidence: "high",
     notes: [
-      "החלק הנותר (48%) נכנס כזיכוי בשדה 048 — נחשב בנפרד.",
+      "רק 52% מדמי הביטוח הלאומי מוכרים כניכוי מההכנסה (סעיף 47א). ה-48% הנותרים אינם מוכרים — לא כניכוי ולא כזיכוי. (תוקן ביוני 2026.)",
+      "מס בריאות אינו מוכר כלל — הניכוי חל על דמי ביטוח לאומי בלבד.",
     ],
   };
 };
 
 /* ============================================================
  * שדה 137 — קרן השתלמות לעצמאים
- * ניכוי עד 4.5% מההכנסה החייבת, תקרה 19,920 ₪ (2024)
+ * ניכוי עד 4.5% מההכנסה, תקרת ניכוי מוכר 13,203 ₪ (2024–2025)
+ * תקרת הפקדה לפטור ממס רווחי הון: 20,566 ₪ (גבוהה מהחלק המוכר בניכוי)
  * ============================================================ */
 export const field137KerenHishtalmut: Calculator = (p) => {
   const TC = getTaxYearConstants(p.income.year);
   const contribution = p.deductionsAndCredits.kerenHishtalmut.annualContribution;
-  const income = p.business.isOsekZeir
-    ? Math.round(p.income.totalRevenue * (1 - TC.osekZeirExpenseRate))
-    : p.income.totalRevenue - p.income.totalDeductibleExpenses;
+  const income = computeBusinessIncome(p);
   const incomeBased = Math.round(
     Math.min(income, TC.kerenHishtalmutIncomeCeiling) *
       TC.kerenHishtalmutRate,
@@ -149,7 +305,7 @@ export const field137KerenHishtalmut: Calculator = (p) => {
  * ============================================================ */
 export const field020Resident: Calculator = (p) => {
   const TC = getTaxYearConstants(p.income.year);
-  const points = p.personal.gender === "female" ? 2.75 : 2.25;
+  const points = residentCreditPoints(p);
   return {
     value: true,
     formula: `${points} נקודות זיכוי × ${ils(TC.pointValueAnnual)} = ${ils(
@@ -188,22 +344,101 @@ export const field044OlehHadash: Calculator = (p) => {
 
 /* ============================================================
  * שדה 068 — חייל משוחרר
- * 1/6 נקודות זיכוי × 36 חודשים מהשחרור (= חצי נקודה לשנה לתקופה זו)
+ * 1/6 נקודת זיכוי לכל חודש זכאות (שירות מלא: גבר 23+, אישה 22+ חודשים) =
+ * 2 נקודות לשנת זכאות מלאה, או 1/12 לחודש לשירות חלקי (12–22 חודשים).
+ * הזכאות ל-36 חודשים מהחודש שאחרי השחרור; שנת השחרור ושנת סיום החלון יחסיות.
  * ============================================================ */
 export const field068Soldier: Calculator = (p) => {
   if (!p.personal.isSoldierDischarged) {
     return {
       value: false,
-      formula: "לא בעלת זכאות לזיכוי חייל משוחרר",
+      formula: "לא בעל/ת זכאות לזיכוי חייל משוחרר",
       sources: [{ label: "personal.isSoldierDischarged = false" }],
       confidence: "high",
     };
   }
+  const TC = getTaxYearConstants(p.income.year);
+  const months = soldierMiluimInputs(p).soldierServiceMonths;
+  const fullThreshold =
+    p.personal.gender === "female"
+      ? TC.soldierFullServiceMonthsFemale
+      : TC.soldierFullServiceMonthsMale;
+  const isFull = months == null || months >= fullThreshold;
+  const perMonthLabel = isFull ? "1/6" : "1/12";
+  const eligibleMonths = soldierEligibleMonthsInYear(
+    p.personal.soldierDischargeDate,
+    p.income.year,
+    TC.soldierMonthsCredit,
+  );
+  const points = soldierCreditPoints(p);
+  const dateKnown = !!p.personal.soldierDischargeDate;
+
+  const notes: string[] = [];
+  if (months == null) {
+    notes.push("לא הוזן אורך שירות — חושב לפי שירות מלא (1/6 נקודה לחודש). הזן/י אורך שירות לדיוק.");
+  }
+  if (!dateKnown) {
+    notes.push("לא הוזן תאריך שחרור — חושבה שנת זכאות מלאה (12 חודשים). הזן/י תאריך שחרור לחישוב יחסי מדויק.");
+  }
+
+  return {
+    value: points > 0,
+    formula:
+      `${perMonthLabel} נקודה × ${eligibleMonths} חודשי זכאות בשנת ${p.income.year} = ` +
+      `${points} נקודות זיכוי (${ils(Math.round(points * TC.pointValueAnnual))})`,
+    sources: [
+      {
+        label: dateKnown
+          ? `תאריך שחרור: ${p.personal.soldierDischargeDate}`
+          : "תאריך שחרור משירות סדיר",
+        detail: isFull ? "שירות מלא — 2 נקודות לשנת זכאות מלאה" : "שירות חלקי — נקודה אחת לשנת זכאות מלאה",
+      },
+    ],
+    confidence: dateKnown ? "high" : "medium",
+    notes: notes.length ? notes : undefined,
+  };
+};
+
+/* ============================================================
+ * זיכוי נקודות למשרתי מילואים (לוחמים) — תיקון 283
+ * רלוונטי משנת המס 2026 בלבד (בגין מילואים שבוצעו ב-2025).
+ * 30–39 ימים → 0.5 · 40–49 → 0.75 · 50+ → 1.0 נקודה.
+ * ============================================================ */
+export const fieldMiluimCredit: Calculator = (p) => {
+  const year = p.income.year;
+  const days = soldierMiluimInputs(p).combatReserveDays ?? 0;
+  const TC = getTaxYearConstants(year);
+
+  if (year < MILUIM_CREDIT_FIRST_YEAR) {
+    return {
+      value: false,
+      formula: `זיכוי מילואים חל משנת המס ${MILUIM_CREDIT_FIRST_YEAR} ואילך — לא רלוונטי לשנת ${year}`,
+      sources: [{ label: "תיקון 283 — תחילה משנת המס 2026" }],
+      confidence: "high",
+      notes: ["ההטבה אושרה בכנסת ב-19.11.2025 וחלה על שנות המס 2026–2027 (בגין שירות 2025–2026)."],
+    };
+  }
+
+  const points = miluimCreditPoints(year, days);
+  if (points === 0) {
+    return {
+      value: false,
+      formula:
+        days > 0
+          ? `${days} ימי מילואים < סף מינימלי (30 ימים) — אין זיכוי`
+          : "לא הוזנו ימי מילואים כלוחם",
+      sources: [{ label: "personal.combatReserveDays", detail: days > 0 ? `${days} ימים` : "0" }],
+      confidence: "high",
+      notes: ["נדרשים לפחות 30 ימי מילואים כלוחם בשנת המס לקבלת הזיכוי (2026–2027)."],
+    };
+  }
+
   return {
     value: true,
-    formula: "1/6 נקודות זיכוי × 36 חודשים מתאריך השחרור",
-    sources: [{ label: "תאריך שחרור משירות סדיר" }],
-    confidence: "medium",
+    formula: `${days} ימי מילואים כלוחם → ${points} נקודות זיכוי (${ils(Math.round(points * TC.pointValueAnnual))})`,
+    sources: [{ label: "ימי מילואים כלוחם בשנת המס", detail: `${days} ימים` }],
+    confidence: "high",
+    notes: ["מדרגות 2026–2027: 30–39 ימים=0.5 · 40–49=0.75 · 50+=1.0. משנת 2028 הסף יורד ל-20 ימים."],
   };
 };
 
@@ -233,24 +468,26 @@ export const field297Form6111: Calculator = (p) => {
 };
 
 /* ============================================================
- * שדה 048 — זיכוי בגין תשלומים לביטוח לאומי כעצמאי (48%)
- * 52% ניכוי כבר נדרש בשדה 030; הנותר נכנס כזיכוי ישיר מהמס
+ * ביטוח לאומי לעצמאי — אין "זיכוי 48%"
+ * תוקן ביוני 2026: בניגוד למה שהוצג קודם, אין זיכוי ממס בגין 48% מדמי הביטוח
+ * הלאומי. סעיף 47א מתיר ניכוי של 52% בלבד מההכנסה (שדה 030); ה-48% הנותרים
+ * אינם מוכרים — לא כניכוי ולא כזיכוי. אומדן המס כבר אינו זוקף זיכוי זה.
+ * נשמר רק לתאימות לאחור עם הסכמה והקוראים הקיימים; הערך הוא 0.
+ * מקורות: claltax (סעיף 47א), prisha, kolzchut — אומת 2026-06.
  * ============================================================ */
 export const field048BituachLeumiCredit: Calculator = (p) => {
-  const TC = getTaxYearConstants(p.income.year);
   const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const credit = Math.round(paid * TC.bituachLeumiCreditRate);
   return {
-    value: credit,
-    formula: `${ils(paid)} (סה"כ ב"ל ששולם) × 48% = ${ils(credit)} (חלק הזיכוי)`,
+    value: 0,
+    formula: 'אין זיכוי ממס בגין ביטוח לאומי. רק 52% ממנו מוכרים כניכוי מההכנסה (שדה 030); ה-48% הנותרים אינם מוכרים כלל.',
     sources: [
       {
         label: 'תקבולים מהמוסד לביטוח לאומי',
-        detail: '52% ניכוי כבר נדרש בשדה 030 — חלק זה מוחת ישירות מהמס',
+        detail: `מתוך ${ils(paid)} ששולמו — 52% נוכו בשדה 030, ו-48% אינם מקנים הטבה.`,
       },
     ],
     confidence: "high",
-    notes: ['זיכוי זה מופחת מהמס — לא מהכנסה החייבת.'],
+    notes: ['שונה מהגרסה הקודמת שהציגה בטעות "זיכוי 48%". אין סעיף כזה בפקודה.'],
   };
 };
 
@@ -463,6 +700,7 @@ export const calculators: Record<string, Calculator> = {
   "field-020-resident": field020Resident,
   "field-044-oleh-hadash": field044OlehHadash,
   "field-068-soldier": field068Soldier,
+  "field-miluim-credit": fieldMiluimCredit,
   "field-297-form-6111": field297Form6111,
   "field-364-donations-carried": field364DonationsCarried,
 };
@@ -477,68 +715,161 @@ export function calculate(
 }
 
 /**
- * Pure function — no API calls.
- * Estimates income tax liability for the demo persona.
- * This is NOT part of Form 1301; shown as a bonus card with a disclaimer.
+ * Business income (field 150) — the income from business BEFORE personal
+ * deductions (B"L 52%, keren, pension). For עוסק זעיר it's 70% of turnover.
+ *
+ * This is the value the dashboard's "שדה 150" card shows; it is NOT the taxable
+ * income (which is after personal deductions — see computeTaxableIncome).
  */
-export function estimateTaxLiability(persona: Persona): TaxEstimate {
+export function computeBusinessIncome(persona: Persona): number {
   const TC = getTaxYearConstants(persona.income.year);
-  const isOsekZeir = persona.business.isOsekZeir;
-
-  // עוסק זעיר: 70% of revenue is taxable; 30% auto-deducted as expenses (includes BL)
-  const businessIncome = isOsekZeir
+  return persona.business.isOsekZeir
     ? Math.round(persona.income.totalRevenue * (1 - TC.osekZeirExpenseRate))
     : persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
+}
 
-  // Deductions from taxable income
-  const kerenDeduction = Math.min(
+/** The recognised personal DEDUCTIONS (reduce taxable income, not tax). */
+export interface PersonalDeductions {
+  /** Keren hishtalmut (137): min(contribution, 4.5%×min(income,ceiling), cap). */
+  keren: number;
+  /** Bituach Leumi (030): 52% of paid — 0 for עוסק זעיר (bundled in the 30%). */
+  bituachLeumi: number;
+  /** Pension Section 47 (135): min(contribution, 11%×income, cap). */
+  pension: number;
+}
+
+/**
+ * Canonical recognised personal deductions for a persona. ONE source of truth so
+ * the tax estimate and the P&L report deduct exactly the same recognised
+ * amounts (was a source of the dashboard↔P&L divergence). israeli-tax-returns.
+ */
+export function computePersonalDeductions(persona: Persona): PersonalDeductions {
+  const TC = getTaxYearConstants(persona.income.year);
+  const businessIncome = computeBusinessIncome(persona);
+  const keren = Math.min(
     persona.deductionsAndCredits.kerenHishtalmut.annualContribution,
     Math.round(Math.min(businessIncome, TC.kerenHishtalmutIncomeCeiling) * TC.kerenHishtalmutRate),
     TC.kerenHishtalmutCap,
   );
-  // BL 52% deduction is bundled into the 30% auto-expense for עוסק זעיר
-  const blDeduction = isOsekZeir
+  // 52% of B"L is the only recognised portion (סעיף 47א). For עוסק זעיר it is
+  // already bundled into the automatic 30% expense, so it is NOT deducted again.
+  const bituachLeumi = persona.business.isOsekZeir
     ? 0
-    : Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TC.bituachLeumiDeductibleRate);
-  const pensionDeduction = Math.min(
+    : Math.round(
+        persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid *
+          TC.bituachLeumiDeductibleRate,
+      );
+  const pension = Math.min(
     persona.deductionsAndCredits.pensionContributions.annualContribution,
     Math.round(businessIncome * TC.pensionDeductionRate),
     TC.pensionDeductionCap,
   );
+  return { keren, bituachLeumi, pension };
+}
 
-  const taxableIncome = Math.max(0, businessIncome - kerenDeduction - blDeduction - pensionDeduction);
+/**
+ * Canonical TAXABLE income = business income − recognised personal deductions.
+ * This is the single definition the tax estimate AND the P&L report use, so the
+ * two surfaces cannot diverge. (Resolves the dashboard↔P&L "הכנסה חייבת" mismatch
+ * — Issue 5, audit 2026-06.)
+ */
+export function computeTaxableIncome(persona: Persona): number {
+  const businessIncome = computeBusinessIncome(persona);
+  const d = computePersonalDeductions(persona);
+  return Math.max(0, businessIncome - d.keren - d.bituachLeumi - d.pension);
+}
 
-  // Progressive tax brackets
-  let grossTax = 0;
+/** Progressive income tax on a taxable-income figure, for a given year. */
+export function grossIncomeTax(taxableIncome: number, year: number): number {
+  const TC = getTaxYearConstants(year);
+  let tax = 0;
   for (const bracket of TC.taxBrackets) {
     if (taxableIncome <= bracket.from) break;
-    const inBracket = Math.min(taxableIncome, bracket.to === Infinity ? taxableIncome : bracket.to) - bracket.from;
-    grossTax += inBracket * bracket.rate;
+    const upper = bracket.to === Infinity ? taxableIncome : bracket.to;
+    const inBracket = Math.min(taxableIncome, upper) - bracket.from;
+    if (inBracket > 0) tax += inBracket * bracket.rate;
   }
-  grossTax = Math.round(grossTax);
+  return Math.round(tax);
+}
 
-  // Tax credits
-  let creditPoints = persona.personal.gender === "female" ? 2.75 : 2.25;
-  if (persona.personal.isNewResident) creditPoints += 3.0;
-  if (persona.personal.isSoldierDischarged) creditPoints += 0.5;
-  creditPoints += (persona.personal.children ?? []).length * (persona.personal.children?.some(c => {
-    const age = persona.income.year - c.birthYear;
-    return age >= 1 && age <= 5;
-  }) ? 2.5 : 1.0);
+/**
+ * Pure function — no API calls.
+ * Estimates income tax liability for the demo persona.
+ * This is NOT part of Form 1301; shown as a bonus card with a disclaimer.
+ *
+ * Rewritten in the 2026-06 accuracy audit:
+ *  - credit points now come from the shared, correctly-prorated aggregator
+ *    (totalCreditPoints) instead of an ad-hoc inline sum that over-counted
+ *    soldiers and mis-multiplied child points;
+ *  - the bogus "48% B"L tax credit" is REMOVED (no such benefit exists — only
+ *    52% is a deduction; the other 48% gets nothing). blCredit is held at 0;
+ *  - real tax CREDITS are added: donations §46 (35%) and pension §45A (35% of
+ *    up to 5.5% of income), per israeli-tax-returns.
+ */
+export function estimateTaxLiability(persona: Persona): TaxEstimate {
+  const TC = getTaxYearConstants(persona.income.year);
 
+  const businessIncome = computeBusinessIncome(persona);
+  const d = computePersonalDeductions(persona);
+  const kerenDeduction = d.keren;
+  const blDeduction = d.bituachLeumi;
+  const pensionDeduction = d.pension;
+
+  const taxableIncome = computeTaxableIncome(persona);
+  const grossTax = grossIncomeTax(taxableIncome, persona.income.year);
+
+  // ── Tax credits (reduce tax directly, after brackets) ──────────────────────
+  const creditPoints = totalCreditPoints(persona);
   const creditPointsValue = Math.round(creditPoints * TC.pointValueAnnual);
-  const blCredit = Math.round(persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid * TC.bituachLeumiCreditRate);
 
-  const totalCredits = creditPointsValue + blCredit;
+  // §46 donations credit — 35% of recognised donations (≥ 200 ₪).
+  const donationsTotal =
+    persona.deductionsAndCredits.donations.currentYear +
+    (persona.deductionsAndCredits.donations.carriedFromPriorYears ?? 0);
+  const donationsCredit =
+    donationsTotal >= 200 ? Math.round(donationsTotal * 0.35) : 0;
+
+  // §45A pension credit — 35% of the qualifying contribution, qualifying base
+  // capped at 5.5% of business income. SEPARATE from the §47 deduction above.
+  const pensionCreditBase = Math.min(
+    persona.deductionsAndCredits.pensionContributions.annualContribution,
+    Math.round(businessIncome * TC.pensionCreditRate),
+  );
+  const pensionCredit = Math.round(pensionCreditBase * TC.pensionCreditPercent);
+
+  // There is NO 48% B"L credit — held at 0 (see TaxEstimate.blCredit doc).
+  const blCredit = 0;
+
+  const totalCredits = creditPointsValue + donationsCredit + pensionCredit + blCredit;
   const excessCredits = Math.max(0, totalCredits - grossTax);
   const taxAfterCredits = Math.max(0, grossTax - totalCredits);
   const mikdamot = persona.income.mikdamot ?? 0;
   const balance = taxAfterCredits - mikdamot;
 
-  return { businessIncome, kerenDeduction, blDeduction, pensionDeduction, taxableIncome, grossTax, creditPointsValue, blCredit, excessCredits, taxAfterCredits, mikdamot, balance };
+  return {
+    businessIncome,
+    kerenDeduction,
+    blDeduction,
+    pensionDeduction,
+    taxableIncome,
+    grossTax,
+    creditPointsValue,
+    pensionCredit,
+    donationsCredit,
+    blCredit,
+    excessCredits,
+    taxAfterCredits,
+    mikdamot,
+    balance,
+  };
 }
 
-/** Rules for the עוסק זעיר simplified tax track (2024). */
+/**
+ * Rules for the עוסק זעיר simplified tax track. Threshold/expense-rate are read
+ * from the year constants; the 2024 set is used here only for the static text
+ * blob (the rate is statutory + stable, the threshold is year-keyed elsewhere
+ * via getTaxYearConstants — see ceiling.ts / field calculators).
+ */
 export const OSEK_ZEIR_RULES = {
   threshold: TAX_YEAR_2024.osekZeirThreshold,
   expenseRate: TAX_YEAR_2024.osekZeirExpenseRate,
