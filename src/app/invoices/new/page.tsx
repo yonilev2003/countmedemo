@@ -512,7 +512,7 @@ export default function NewInvoicePage() {
                     </div>
                     {totals.vat > 0 ? (
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted">מע&quot;מ 17%</span>
+                        <span className="text-muted">מע&quot;מ {Math.round((totals.vat / totals.net) * 100)}%</span>
                         <span dir="ltr" className="font-medium text-ink tabular-nums">₪{totals.vat.toLocaleString("he-IL")}</span>
                       </div>
                     ) : (
