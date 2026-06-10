@@ -3,6 +3,8 @@
 import { useTransition } from "react";
 import { btn } from "@/components/brand/button";
 import { signOut } from "@/app/auth/actions";
+import { clearLocalPersona } from "@/lib/setup-storage";
+import { clearFollowUpNotes } from "@/lib/crm/notes";
 
 type Variant = "primary" | "secondary" | "ghost" | "gold";
 type Size = "sm" | "md";
@@ -25,11 +27,21 @@ export function SignOutButton({
 }) {
   const [isPending, startTransition] = useTransition();
 
+  // Drop the local persona cache (and follow-up notes) BEFORE the session ends,
+  // so the next user on this browser can never see the previous user's data.
+  // For logged-in users the DB (profiles.persona) is the source of truth; this
+  // cache is rehydrated from the DB on next login by the PersonaHydrator.
+  function handleSignOut() {
+    clearLocalPersona();
+    clearFollowUpNotes();
+    startTransition(() => signOut());
+  }
+
   return (
     <button
       type="button"
       disabled={isPending}
-      onClick={() => startTransition(() => signOut())}
+      onClick={handleSignOut}
       className={btn(variant, size, className)}
     >
       {isPending ? "מתנתק…" : label}

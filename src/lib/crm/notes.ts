@@ -90,3 +90,19 @@ export function deleteNote(targetId: string, noteId: string): FollowUpNote[] {
   write(store);
   return getNotes(targetId);
 }
+
+/**
+ * Drop all locally-stored follow-up notes (client-side only).
+ *
+ * These notes live only in localStorage (no backend yet) and are not scoped to a
+ * user id, so on a shared browser they would otherwise leak between accounts.
+ * Call this on sign-out alongside `clearLocalPersona()`.
+ */
+export function clearFollowUpNotes(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* quota / privacy mode — best-effort, same as write() */
+  }
+}
