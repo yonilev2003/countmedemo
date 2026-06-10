@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona, savePersona } from "@/lib/setup-storage";
+import { loadPersona } from "@/lib/setup-storage";
+import { persistPersona } from "@/lib/data/persona-store";
 import { nextInvoiceNumber, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
 import { Logo } from "@/components/brand/logo";
@@ -237,7 +238,7 @@ export default function NewInvoicePage() {
       },
     };
 
-    savePersona(updatedPersona);
+    persistPersona(updatedPersona);
     router.push(`/invoices/${invoiceNumber}`);
   }
 

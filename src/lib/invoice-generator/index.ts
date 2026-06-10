@@ -1,4 +1,5 @@
 import { Persona, InvoiceLine } from "@/lib/persona";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 
 /** Returns next sequential invoice number string like "2024-0042" */
 export function nextInvoiceNumber(persona: Persona): string {
@@ -20,10 +21,18 @@ export function validateInvoice(invoice: Partial<InvoiceLine>): string[] {
   return errors;
 }
 
-/** Calculates totals for an invoice given the osek type */
-export function calculateInvoiceTotals(amount: number, osekType: "patur" | "morshe"): { net: number; vat: number; total: number } {
+/**
+ * Calculates totals for an invoice given the osek type. VAT uses the standard
+ * rate for the issuing year (year-keyed in calculators/types.ts): 17% through
+ * 2024, 18% from 2025-01-01. Defaults to the current calendar year.
+ */
+export function calculateInvoiceTotals(
+  amount: number,
+  osekType: "patur" | "morshe",
+  year: number = new Date().getFullYear(),
+): { net: number; vat: number; total: number } {
   if (osekType === "morshe") {
-    const vat = Math.round(amount * 0.17);
+    const vat = Math.round(amount * getTaxYearConstants(year).vatRate);
     return { net: amount, vat, total: amount + vat };
   }
   return { net: amount, vat: 0, total: amount };

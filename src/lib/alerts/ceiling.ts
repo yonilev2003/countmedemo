@@ -56,7 +56,7 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
     approaching: `המחזור שלך (${fmt(turnover)}) מתקרב לתקרת עוסק פטור (${fmt(threshold)}). בשלב זה אין חובה, אבל כדאי לעקוב.`,
     warning: `עברת 80% מהתקרה. בדוק/י: האם צפויות הכנסות נוספות השנה? אם כן, התחל/י תהליך העברה לעוסק מורשה.`,
     critical: `90% מהתקרה — מכאן כל חשבונית מקרבת חובת עוסק מורשה. הוסף/י מע"מ מיידית כשחורג/ת.`,
-    exceeded: `המחזור (${fmt(turnover)}) חורג מ-${fmt(threshold)}. יש לפנות לרשות המסים לרישום כעוסק מורשה, ולרשום 17% מע"מ על כל חשבונית מרגע החריגה.`,
+    exceeded: `המחזור (${fmt(turnover)}) חורג מ-${fmt(threshold)}. יש לפנות לרשות המסים לרישום כעוסק מורשה, ולרשום 18% מע"מ על כל חשבונית מרגע החריגה.`,
   }[level];
 
   const tone: CeilingAlert["tone"] = {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Assistant } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
+import { PersonaHydrator } from "@/components/persona-hydrator";
 
 const assistant = Assistant({
   variable: "--font-assistant",
@@ -30,6 +31,7 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-ink font-sans">
         <ServiceWorkerRegistration />
+        <PersonaHydrator />
         {children}
       </body>
     </html>

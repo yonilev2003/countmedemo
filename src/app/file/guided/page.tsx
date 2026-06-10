@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona, savePersona, setPersonaPath } from "@/lib/setup-storage";
+import { loadPersona, setPersonaPath } from "@/lib/setup-storage";
+import { persistPersona } from "@/lib/data/persona-store";
 import { Persona, readPersonaPath } from "@/lib/persona";
 import { form1301, FormField } from "@/lib/form-1301/schema";
 import { calculate } from "@/lib/calculators/index";
@@ -82,7 +83,7 @@ export default function GuidedPage() {
     if (!persona) return;
     const updated = setPersonaPath(persona, path, value);
     setPersona(updated);
-    savePersona(updated);
+    persistPersona(updated);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1800);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -13,12 +13,22 @@ import {
   MonthlyPL,
   PLSummary,
 } from "@/lib/p-and-l/index";
+import {
+  getUpcomingDeadlines,
+  type FilerType,
+  type UpcomingDeadline,
+} from "@/lib/deadlines/calendar";
 import { EitanInsights } from "@/components/dashboard/eitan-insights";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { ForecastCard } from "@/components/dashboard/forecast-card";
+import { IncomeCeilingCard } from "@/components/dashboard/income-ceiling-card";
+import { NextDeadlineCard } from "@/components/dashboard/next-deadline-card";
+import { PeriodStatusCard } from "@/components/dashboard/period-status-card";
+import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import {
@@ -94,6 +104,15 @@ function KPI({
 
 const MONTH_LABELS = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
 
+/** Time-of-day Hebrew greeting, matching the mockups' "בוקר טוב". */
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "בוקר טוב";
+  if (h < 17) return "צהריים טובים";
+  if (h < 21) return "ערב טוב";
+  return "לילה טוב";
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
@@ -110,6 +129,21 @@ export default function DashboardPage() {
     setPersona(p);
     setPL(calculatePL(p));
   }, [router]);
+
+  // Upcoming deadlines, derived from the persona's filer type (no new plumbing).
+  const deadlines: UpcomingDeadline[] = useMemo(() => {
+    if (!persona) return [];
+    const filer: FilerType =
+      persona.business.osekType === "patur" ? "osek-patur" : "osek-murshe";
+    return getUpcomingDeadlines(new Date(), filer, 12);
+  }, [persona]);
+
+  // The near-term window the status ring + list summarize.
+  const imminentDeadlines = useMemo(
+    () => deadlines.filter((d) => d.daysUntilDue >= 0 && d.daysUntilDue <= 45),
+    [deadlines],
+  );
+  const nextDeadline = imminentDeadlines[0] ?? deadlines[0] ?? null;
 
   if (!persona || !pl) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -158,16 +192,168 @@ export default function DashboardPage() {
         ? `רבעון ${filter.q}`
         : MONTH_LABELS[filter.m - 1];
 
+  const ceilingAlert = computeCeilingAlert(persona);
+
+  // ── Reusable blocks shared by both layouts ───────────────────────────────
+
+  const kpiStrip = (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <KPI
+        label="הכנסות"
+        value={fmt(filteredRevenue)}
+        color="text-brand-deep"
+        dot="bg-brand-deep"
+        icon={<WalletIcon className="size-4" />}
+        iconChip="bg-teal-100 text-brand-deep"
+      />
+      <KPI
+        label="הוצאות"
+        value={fmt(filteredExpenses)}
+        color="text-ink"
+        dot="bg-brand"
+        icon={<ReceiptIcon className="size-4" />}
+        iconChip="bg-beige-100 text-beige-600"
+      />
+      <KPI
+        label="רווח נקי"
+        value={fmt(filteredNet)}
+        color={filteredNet >= 0 ? "text-success" : "text-alert"}
+        dot={filteredNet >= 0 ? "bg-success" : "bg-alert"}
+        icon={<TrendingUpIcon className="size-4" />}
+        iconChip={filteredNet >= 0 ? "bg-success-light text-success" : "bg-overdue-bg text-alert"}
+      />
+      <KPI
+        label="מס הכנסה משוער"
+        value={fmt(Math.round(filteredNet * 0.2))}
+        sub="הערכה בלבד"
+        color="text-muted"
+        dot="bg-due"
+        icon={<PercentIcon className="size-4" />}
+        iconChip="bg-due-bg text-due"
+      />
+    </div>
+  );
+
+  const granularityControls = (
+    <div className="flex flex-col gap-2 items-end">
+      {/* Granularity toggle */}
+      <div className="flex gap-1 rounded-full bg-cream p-1">
+        {(["year", "quarter", "month"] as Granularity[]).map((g) => (
+          <button
+            key={g}
+            onClick={() => setGranularityAndFilter(g)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              granularity === g
+                ? "bg-paper text-brand-navy shadow-sm"
+                : "text-muted hover:text-ink"
+            }`}
+          >
+            {g === "year" ? "שנה" : g === "quarter" ? "רבעון" : "חודש"}
+          </button>
+        ))}
+      </div>
+      {/* Period selector — shown only for quarter/month */}
+      {granularity === "quarter" && (
+        <div className="flex gap-1">
+          {activeQuarters.map((q) => (
+            <button
+              key={q}
+              onClick={() => setFilter({ kind: "quarter", q: q as 1 | 2 | 3 | 4 })}
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                filter.kind === "quarter" && filter.q === q
+                  ? "bg-brand-navy text-white"
+                  : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
+              }`}
+            >
+              Q{q}
+            </button>
+          ))}
+        </div>
+      )}
+      {granularity === "month" && (
+        <div className="flex flex-wrap gap-1 max-w-[400px] justify-end">
+          {activeMonths.map((m) => (
+            <button
+              key={m}
+              onClick={() => setFilter({ kind: "month", m })}
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
+                filter.kind === "month" && filter.m === m
+                  ? "bg-brand-navy text-white"
+                  : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
+              }`}
+            >
+              {MONTH_LABELS[m - 1]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const periodBanner = (
+    <div className="flex items-center gap-2 rounded-2xl bg-info border border-teal-100 px-4 py-2.5 text-xs text-brand-navy">
+      <CalendarIcon className="size-4 shrink-0 text-brand-deep" />
+      <span>
+        תצוגה: <span className="font-bold">{periodLabel}</span>
+        {pl.hasDatedData ? (
+          <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
+        ) : (
+          <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
+        )}
+      </span>
+    </div>
+  );
+
+  const plChartCard = (
+    <div className="rounded-2xl bg-paper border border-line p-5 shadow-brand">
+      <PLChart
+        monthlyData={filteredMonthly}
+        expenseBreakdown={pl.expenseBreakdown}
+      />
+    </div>
+  );
+
+  const annualSummaryCard = (
+    <div className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-bold text-brand-navy">סיכום שנתי</h3>
+        <span className="text-xs font-semibold text-faint">
+          שנת {persona.income.year}
+        </span>
+      </div>
+      <div className="space-y-2.5 text-sm">
+        {[
+          { label: "מחזור לשדה 238", value: pl.totalRevenue },
+          { label: "הכנסה חייבת (שדה 150)", value: pl.netProfit },
+        ].map((row) => (
+          <div
+            key={row.label}
+            className="flex items-center justify-between rounded-xl border border-line-soft bg-cream px-3 py-2.5"
+          >
+            <span className="font-semibold text-muted">{row.label}</span>
+            <span className="font-display font-extrabold tabular-nums text-brand-navy">
+              {fmt(row.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <Link href="/file" className={btn("primary", "sm", "mt-3 w-full")}>
+        עבור/י למילוי הדוח <ArrowLeftIcon className="size-4" />
+      </Link>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
       <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
             <Logo size={28} />
-            <span className="text-base font-semibold text-muted">· דשבורד</span>
+            <span className="hidden text-base font-semibold text-muted sm:inline">· דשבורד</span>
           </Link>
-          <div className="flex items-center gap-2">
+          {/* Desktop toolbar */}
+          <div className="hidden items-center gap-2 lg:flex">
             <Link href="/alerts" className={btn("secondary", "sm")}>
               <BellIcon className="size-4" /> התראות
             </Link>
@@ -188,10 +374,25 @@ export default function DashboardPage() {
               <SparklesIcon className="size-4" /> שוחח עם איתן
             </Link>
           </div>
+          {/* Mobile: condensed — the rest of the actions live in the bottom bar */}
+          <div className="flex items-center gap-2 lg:hidden">
+            <Link
+              href="/alerts"
+              aria-label="התראות"
+              className="relative grid size-10 place-items-center rounded-full border border-line bg-paper text-brand-navy"
+            >
+              <BellIcon className="size-5" />
+              <span className="absolute end-2.5 top-2.5 size-2 rounded-full border-[1.5px] border-paper bg-alert" />
+            </Link>
+            <Link href="/coach" className={btn("gold", "sm")}>
+              <SparklesIcon className="size-4" /> איתן
+            </Link>
+          </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-screen-xl px-6 pt-4">
+      {/* Disclaimer */}
+      <div className="mx-auto max-w-screen-xl px-4 pt-4 sm:px-6">
         <div className="flex items-start gap-2 rounded-2xl border border-line bg-sand px-5 py-2.5 text-[11px] text-muted leading-relaxed">
           <AlertTriangleIcon className="size-4 shrink-0 text-due mt-px" />
           <span>
@@ -202,194 +403,111 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-screen-xl px-6 py-8">
-        {/* Title + filter */}
-        <div className="flex items-center justify-between mb-6">
+      <main className="mx-auto max-w-screen-xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:pb-8">
+        {/* Greeting */}
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-[27px] font-extrabold tracking-tight text-brand-navy">
-              דוח רווח והפסד — {persona.personal.firstName}{" "}
-              {persona.personal.lastName}
+            <h1 className="font-display text-[26px] font-extrabold tracking-tight text-brand-navy sm:text-[30px]">
+              {greeting()}, {persona.personal.firstName}
             </h1>
-            <p className="text-sm font-medium text-muted mt-0.5">שנת מס {persona.income.year}</p>
-          </div>
-          <div className="flex flex-col gap-2 items-end">
-            {/* Granularity toggle */}
-            <div className="flex gap-1 rounded-full bg-cream p-1">
-              {(["year", "quarter", "month"] as Granularity[]).map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setGranularityAndFilter(g)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    granularity === g
-                      ? "bg-paper text-brand-navy shadow-sm"
-                      : "text-muted hover:text-ink"
-                  }`}
-                >
-                  {g === "year" ? "שנה" : g === "quarter" ? "רבעון" : "חודש"}
-                </button>
-              ))}
-            </div>
-            {/* Period selector — shown only for quarter/month */}
-            {granularity === "quarter" && (
-              <div className="flex gap-1">
-                {activeQuarters.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => setFilter({ kind: "quarter", q: q as 1 | 2 | 3 | 4 })}
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                      filter.kind === "quarter" && filter.q === q
-                        ? "bg-brand-navy text-white"
-                        : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
-                    }`}
-                  >
-                    Q{q}
-                  </button>
-                ))}
-              </div>
-            )}
-            {granularity === "month" && (
-              <div className="flex flex-wrap gap-1 max-w-[400px] justify-end">
-                {activeMonths.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setFilter({ kind: "month", m })}
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
-                      filter.kind === "month" && filter.m === m
-                        ? "bg-brand-navy text-white"
-                        : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
-                    }`}
-                  >
-                    {MONTH_LABELS[m - 1]}
-                  </button>
-                ))}
-              </div>
-            )}
+            <p className="mt-0.5 text-sm font-medium text-muted">
+              {imminentDeadlines.length > 0 ? (
+                <>
+                  יש לך{" "}
+                  <b className="font-bold text-due">
+                    {imminentDeadlines.length} מועדים
+                  </b>{" "}
+                  שדורשים מעקב · שנת מס {persona.income.year}
+                </>
+              ) : (
+                <>שנת מס {persona.income.year} · אין מועדים דחופים כרגע</>
+              )}
+            </p>
           </div>
         </div>
 
-        {/* Period banner — explains what user is seeing */}
-        <div className="mb-4 flex items-center gap-2 rounded-2xl bg-info border border-teal-100 px-4 py-2.5 text-xs text-brand-navy">
-          <CalendarIcon className="size-4 shrink-0 text-brand-deep" />
-          <span>
-            תצוגה: <span className="font-bold">{periodLabel}</span>
-            {pl.hasDatedData ? (
-              <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
-            ) : (
-              <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
-            )}
-          </span>
+        {/*
+          ── Desktop (lg+): multi-column dashboard, per CountMe Dashboard Web ──
+          Top: income-vs-ceiling spans full width. Then a 3-col row:
+            [ period status ] | [ next-deadline hero ] | [ deadlines list ].
+          Finance below (filter + KPIs + chart) with a side column carrying
+          Eitan insights, the quick-actions rail, and the annual summary.
+
+          ── Mobile (<lg): stacked, per CountMe Dashboard App ──
+          income → next-deadline hero → period status → deadlines list →
+          finance KPIs/chart → forecast → insights/summary. Quick-actions
+          live in a fixed bottom bar (rendered once, outside the grid).
+        */}
+
+        {/* Top: income vs ceiling */}
+        <div className="mb-5">
+          <IncomeCeilingCard persona={persona} />
         </div>
 
-        {/* KPI strip */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
-          <KPI
-            label="הכנסות"
-            value={fmt(filteredRevenue)}
-            color="text-brand-deep"
-            dot="bg-brand-deep"
-            icon={<WalletIcon className="size-4" />}
-            iconChip="bg-teal-100 text-brand-deep"
-          />
-          <KPI
-            label="הוצאות"
-            value={fmt(filteredExpenses)}
-            color="text-ink"
-            dot="bg-brand"
-            icon={<ReceiptIcon className="size-4" />}
-            iconChip="bg-beige-100 text-beige-600"
-          />
-          <KPI
-            label="רווח נקי"
-            value={fmt(filteredNet)}
-            color={filteredNet >= 0 ? "text-success" : "text-alert"}
-            dot={filteredNet >= 0 ? "bg-success" : "bg-alert"}
-            icon={<TrendingUpIcon className="size-4" />}
-            iconChip={filteredNet >= 0 ? "bg-success-light text-success" : "bg-overdue-bg text-alert"}
-          />
-          <KPI
-            label="מס הכנסה משוער"
-            value={fmt(Math.round(filteredNet * 0.2))}
-            sub="הערכה בלבד"
-            color="text-muted"
-            dot="bg-due"
-            icon={<PercentIcon className="size-4" />}
-            iconChip="bg-due-bg text-due"
-          />
+        {/* Hero + status + list. Order utilities honor each mockup:
+            mobile = hero first; desktop = status | hero | list. */}
+        <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="order-1 lg:order-2">
+            <NextDeadlineCard deadline={nextDeadline} className="h-full" />
+          </div>
+          <div className="order-2 lg:order-1">
+            <PeriodStatusCard deadlines={imminentDeadlines} showLegend className="h-full" />
+          </div>
+          <div className="order-3 lg:order-3">
+            <DeadlinesTimeline deadlines={imminentDeadlines.slice(0, 5)} className="h-full" />
+          </div>
         </div>
 
         {/* עוסק פטור ceiling alert — only for patur */}
-        {(() => {
-          const ceilingAlert = computeCeilingAlert(persona);
-          return ceilingAlert ? (
-            <div className="mb-6">
-              <CeilingAlertCard alert={ceilingAlert} />
-            </div>
-          ) : null;
-        })()}
+        {ceilingAlert && (
+          <div className="mb-5">
+            <CeilingAlertCard alert={ceilingAlert} />
+          </div>
+        )}
 
-        {/* Expense-to-revenue ratio insight (zeir track 30% rule) */}
-        <div className="mb-8">
+        {/* Finance section: title + filter, KPIs, chart, side column */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-navy">
+            סקירה כספית — רווח והפסד
+          </h2>
+          {granularityControls}
+        </div>
+
+        <div className="mb-4">{periodBanner}</div>
+
+        <div className="mb-5">{kpiStrip}</div>
+
+        {/* Expense-ratio insight (zeir track 30% rule) */}
+        <div className="mb-5">
           <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
         </div>
 
-        {/* Forward-looking advances forecast — plan vs actual, strong/weak basis */}
-        <div className="mb-8">
+        {/* Forward-looking advances forecast */}
+        <div className="mb-5">
           <ForecastCard persona={persona} />
         </div>
 
-        {/* Charts + Eitan in a 2-col layout on large screens */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-2xl bg-paper border border-line p-5 shadow-brand">
-            <PLChart
-              monthlyData={filteredMonthly}
-              expenseBreakdown={pl.expenseBreakdown}
-            />
-          </div>
-          <div className="space-y-4">
+        {/* Charts + Eitan + quick-actions rail (rail only shows on lg) */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2">{plChartCard}</div>
+          <div className="space-y-5">
             <EitanInsights persona={persona} pl={pl} />
-            <div className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-base font-bold text-brand-navy">סיכום שנתי</h3>
-                <span className="text-xs font-semibold text-faint">
-                  שנת {persona.income.year}
-                </span>
-              </div>
-              <div className="space-y-2.5 text-sm">
-                {[
-                  { label: "מחזור לשדה 238", value: pl.totalRevenue },
-                  { label: "הכנסה חייבת (שדה 150)", value: pl.netProfit },
-                ].map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-center justify-between rounded-xl border border-line-soft bg-cream px-3 py-2.5"
-                  >
-                    <span className="font-semibold text-muted">{row.label}</span>
-                    <span className="font-display font-extrabold tabular-nums text-brand-navy">
-                      {fmt(row.value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <Link
-                href="/file"
-                className={btn("primary", "sm", "mt-3 w-full")}
-              >
-                עבור/י למילוי הדוח <ArrowLeftIcon className="size-4" />
-              </Link>
-            </div>
+            {/* Quick-actions side rail — desktop only (mobile uses the bottom bar) */}
+            <QuickActions variant="rail" className="hidden lg:block" />
+            {annualSummaryCard}
           </div>
         </div>
 
         {/* Print button */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => window.print()}
-            className={btn("secondary", "md")}
-          >
+        <div className="mt-6 text-center no-print">
+          <button onClick={() => window.print()} className={btn("secondary", "md")}>
             <DownloadIcon className="size-[18px]" /> הדפס / שמור כ-PDF
           </button>
         </div>
       </main>
+
+      {/* Quick-actions bottom bar — mobile only (desktop uses the side rail) */}
+      <QuickActions variant="bar" className="lg:hidden" />
 
       {/* Print styles */}
       <style jsx global>{`
