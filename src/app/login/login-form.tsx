@@ -2,13 +2,17 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { btn } from "@/components/brand/button";
 
 /**
  * The interactive part of the login screen: a single "sign in with Google"
  * button that kicks off the Supabase OAuth (PKCE) flow. On click, Supabase
  * redirects the browser to Google and back to /auth/callback, which completes
  * the code exchange and forwards the user on to the app.
+ *
+ * Styled after the "CountMe Auth" handoff's primary action — a full-width 54px
+ * pill. Because the product only supports Google OAuth, the Google sign-in is
+ * the primary button rather than a secondary option below an email/password
+ * form.
  */
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
@@ -38,11 +42,7 @@ export function LoginForm() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className={btn(
-          "secondary",
-          "md",
-          "w-full justify-center gap-3 bg-white text-ink",
-        )}
+        className="flex h-[54px] w-full items-center justify-center gap-3 rounded-full bg-white px-6 text-base font-bold text-brand-navy shadow-lg transition-all hover:-translate-y-px hover:bg-aqua-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:pointer-events-none disabled:opacity-60"
       >
         <GoogleGlyph />
         {loading ? "מעביר ל-Google…" : "התחברות עם Google"}
@@ -61,8 +61,8 @@ export function LoginForm() {
 function GoogleGlyph() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       viewBox="0 0 18 18"
       aria-hidden="true"
       className="shrink-0"

@@ -77,6 +77,15 @@ const ALLOWED_TYPES = [
 ];
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
+/** Opening quick-reply prompts (the mockup's `.quicks` chips). Tapping one
+ *  sends it straight through the normal streaming flow. */
+const OPENING_SUGGESTIONS = [
+  "אילו הוצאות מוכרות לי?",
+  "מה המועד הבא שאני צריך לדווח?",
+  "כמה זיכוי מס מגיע לי על תרומות?",
+  "עזור לי למלא את טופס 1301",
+];
+
 async function fileToAttachment(file: File): Promise<Attachment> {
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
@@ -448,6 +457,22 @@ export function CoachChat({ persona }: Props) {
                 <span className="inline-block h-[7px] w-[7px] rounded-full bg-beige-600 animate-bounce [animation-delay:400ms]" />
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Opening quick-reply chips — only before the first user turn */}
+        {messages.length === 1 && !isLoading && !streamingText && (
+          <div className="mt-1 flex max-w-[92%] flex-wrap gap-2 self-start">
+            {OPENING_SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => sendMessage(s, null)}
+                className="rounded-full border border-teal-100 bg-white px-3.5 py-2 text-[13px] font-semibold text-teal-600 transition-colors hover:bg-teal-100"
+              >
+                {s}
+              </button>
+            ))}
           </div>
         )}
 

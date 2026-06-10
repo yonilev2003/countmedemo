@@ -1,78 +1,93 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
+import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import {
-  BellIcon,
-  CalendarIcon,
   SparklesIcon,
-  UploadIcon,
-  SettingsIcon,
+  ReceiptIcon,
+  FileTextIcon,
   ClipboardCheckIcon,
   BarChartIcon,
-  FileTextIcon,
-  PercentIcon,
-  ReceiptIcon,
-  WalletIcon,
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  MicIcon,
 } from "@/components/brand/icons";
 
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col bg-cream">
-      {/* Nav */}
-      <header className="sticky top-0 z-20 border-b border-line bg-paper/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
-          <Logo size={30} />
-          <nav className="hidden items-center gap-1 sm:flex">
-            <NavLink href="/dashboard">דשבורד</NavLink>
-            <NavLink href="/alerts">
-              <BellIcon className="size-4" /> התראות
-            </NavLink>
-            <NavLink href="/deadlines">
-              <CalendarIcon className="size-4" /> מועדים
-            </NavLink>
-            <NavLink href="/file">מילוי 1301</NavLink>
-            <NavLink href="/business-expenses">הוצאות</NavLink>
-            <NavLink href="/invoices">חשבוניות</NavLink>
-            <NavLink href="/coach">
-              <SparklesIcon className="size-4" /> איתן
-            </NavLink>
-            <NavLink href="/about">תיעוד</NavLink>
+    <div className="flex flex-1 flex-col bg-paper">
+      {/* ===== NAV ===== */}
+      <header className="sticky top-0 z-50 border-b border-line bg-paper/80 backdrop-blur-md">
+        <div className="mx-auto flex h-[70px] max-w-screen-xl items-center justify-between gap-6 px-6">
+          <Logo size={26} />
+          <nav className="hidden items-center gap-1 lg:flex">
+            <NavAnchor href="#shortcuts">פעולות מהירות</NavAnchor>
+            <NavAnchor href="#form1301">מילוי 1301</NavAnchor>
+            <NavAnchor href="#eitan">
+              <SparklesIcon className="size-4 text-beige-600" /> איתן
+            </NavAnchor>
+            <NavAnchor href="#social">קהילה</NavAnchor>
+            <NavAnchor href="#pricing">מחירים</NavAnchor>
           </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/setup" className={btn("secondary", "sm")}>
-              הכנסת נתונים
+          <div className="flex items-center gap-2.5">
+            <Link href="/login" className={btn("secondary", "sm")}>
+              כניסה
             </Link>
-            <Link href="/demo" className={btn("primary", "sm")}>
-              דמו ←
+            <Link href="/setup" className={btn("primary", "sm")}>
+              התחילו עכשיו
+              <ArrowLeftIcon className="size-[17px]" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero — frosted glass over a navy-teal gradient (Brand Kit auth aesthetic) */}
-      <section className="relative overflow-hidden bg-brand-navy">
-        {/* gradient backdrop: radial aqua + gold + teal glows over navy */}
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden text-center text-white">
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(60% 46% at 82% 4%, rgba(192,213,214,.28) 0%, rgba(192,213,214,0) 60%)," +
-              "radial-gradient(74% 58% at 6% 100%, rgba(64,126,140,.5) 0%, rgba(64,126,140,0) 62%)," +
-              "radial-gradient(46% 40% at 96% 92%, rgba(200,181,154,.22) 0%, rgba(200,181,154,0) 60%)," +
-              "linear-gradient(157deg, var(--color-navy-700) 0%, var(--color-brand-navy) 46%, var(--color-navy-900) 100%)",
+              "radial-gradient(680px 460px at 82% 2%, rgba(64,126,140,.55) 0%, rgba(64,126,140,0) 60%)," +
+              "radial-gradient(720px 520px at 6% 104%, rgba(12,72,96,.85) 0%, rgba(12,72,96,0) 60%)," +
+              "radial-gradient(520px 380px at 98% 96%, rgba(165,141,102,.28) 0%, rgba(165,141,102,0) 60%)," +
+              "linear-gradient(168deg, #0d4a62 0%, var(--color-brand-navy) 52%, var(--color-navy-900) 100%)",
           }}
         />
-        {/* soft glass wash to deepen the base */}
         <div
           aria-hidden
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(180deg, rgba(192,213,214,.08) 0%, rgba(8,40,55,.04) 44%, rgba(5,30,40,.34) 100%)",
+              "radial-gradient(120% 70% at 50% -8%, rgba(255,255,255,.06), transparent 60%)",
           }}
         />
-        {/* hairline base separator into the cream section */}
+        <div className="relative z-[2] mx-auto flex max-w-[920px] flex-col items-center px-8 pb-[88px] pt-[78px]">
+          <span className="mb-7 inline-flex items-center gap-2.5 rounded-full border border-aqua/25 bg-aqua/10 px-[18px] py-[9px] text-[13.5px] font-semibold text-aqua">
+            <span
+              className="size-[7px] rounded-full bg-brand"
+              style={{ boxShadow: "0 0 0 4px rgba(200,181,154,.2)" }}
+            />
+            מוצר חדש לעצמאיות ולעצמאים בישראל
+          </span>
+          <h1 className="mb-11 font-display text-[clamp(44px,7.2vw,86px)] font-extrabold leading-[1.06] tracking-[-0.035em]">
+            לשחרר את העצמאים
+            <span className="block pb-[0.08em] text-brand">מהפחד</span>
+          </h1>
+          <p className="mb-[38px] max-w-[620px] text-[clamp(16px,2.1vw,20px)] leading-[1.62] text-aqua/[0.82]">
+            שקט נפשי לעצמאים. כל מועדי הדיווח והבירוקרטיה — תחת שליטה מלאה במקום
+            אחד, בזמן. כאן כדי להוריד ממך את הלחץ ולהחזיר לך{" "}
+            <b className="font-semibold text-white">את הראש השקט לעסק</b>.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-[18px]">
+            <Link
+              href="/setup"
+              className={btn("gold", "md", "px-[30px] py-[15px] text-base")}
+            >
+              התחל/י עכשיו
+              <ArrowLeftIcon className="size-[18px]" />
+            </Link>
+          </div>
+        </div>
         <div
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-px"
@@ -81,235 +96,293 @@ export default function Home() {
               "linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent)",
           }}
         />
-
-        <div className="relative mx-auto flex max-w-screen-xl flex-col items-center gap-7 px-6 py-24 text-center md:py-32">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-aqua shadow-brand backdrop-blur-md">
-            <span className="size-1.5 rounded-full bg-brand" />
-            מוצר חדש לעצמאיות ועצמאים בישראל · בפיתוח
-          </span>
-
-          <h1
-            className="max-w-3xl font-display text-[44px] font-extrabold leading-[1.06] tracking-[-0.025em] text-white sm:text-6xl md:text-[68px]"
-            style={{ textShadow: "0 2px 28px rgba(5,30,40,.45)" }}
-          >
-            מלא/י דו״חות מס
-            <br />
-            <span className="text-brand">בלי רואה חשבון, בלי פחד</span>
-          </h1>
-
-          <p className="max-w-xl text-base leading-relaxed text-aqua/90 md:text-lg">
-            countme הוא האח החכם שלך לדוח השנתי. מחשב כל שדה בטופס 1301 מהנתונים
-            שלך, מסביר כל מספר, ועוזר לך לגלות הוצאות שלא ידעת שמגיעות לך.
-          </p>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link href="/setup" className={btn("gold")}>
-              התחל/י עכשיו ←
-            </Link>
-            <Link
-              href="/coach"
-              className={btn(
-                "secondary",
-                "md",
-                "border-white/30 bg-white/10 text-white backdrop-blur-md hover:border-white/50 hover:bg-white/20",
-              )}
-            >
-              <SparklesIcon className="size-[18px]" /> דבר/י עם איתן
-            </Link>
-            <Link
-              href="/demo"
-              className={btn(
-                "ghost",
-                "md",
-                "text-aqua hover:bg-white/10 hover:text-white",
-              )}
-            >
-              ראה/י דמו
-            </Link>
-          </div>
-
-          {/* Stats — frosted-glass tiles */}
-          <div className="mt-8 grid w-full max-w-2xl grid-cols-3 gap-3 sm:gap-4">
-            <Stat value="352K" label="עצמאים ישראלים" />
-            <Stat value="₪1,200" label="חיסכון ממוצע" suffix="לדוח" />
-            <Stat value="3 דק׳" label="למילוי עם countme" />
-          </div>
-        </div>
       </section>
 
-      {/* Features */}
-      <section className="bg-cream py-20 md:py-24">
-        <div className="mx-auto max-w-screen-xl px-6">
-          <SectionHeading
-            eyebrow="הכלים"
-            title="כל מה שצריך לדוח שנתי"
-            subtitle="חמישה כלים, עבודה אחת שלמה"
+      {/* ===== SHORTCUTS ===== */}
+      <section
+        id="shortcuts"
+        className="border-y border-line bg-cream py-24 md:py-[96px]"
+      >
+        <div className="mx-auto max-w-screen-xl px-8">
+          <SectionHead
+            eyebrow="פעולות מהירות"
+            title="כל מה שצריך, בלחיצה אחת"
+            subtitle="הפקת מסמכים וקיצורים מהירים, בלי לחפש, בלי בלגן. הכול מחכה לך במסך הבית."
           />
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <FeatureCard
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
+            <ShortcutCard
+              href="/invoices/new"
+              tone="teal"
+              icon={<ReceiptIcon className="size-[26px]" />}
+              title="קבלה"
+              desc="תיעוד תקבול שהתקבל, תוך שניות."
+              kbd="⌘ R"
+            />
+            <ShortcutCard
+              href="/invoices/new"
+              tone="beige"
+              icon={<FileTextIcon className="size-[26px]" />}
+              title="חשבון עסקה"
+              desc="דרישת תשלום מלקוח, מעוצבת ומסודרת."
+              kbd="⌘ I"
+            />
+            <ShortcutCard
+              href="/invoices/new"
+              tone="green"
+              icon={<ClipboardCheckIcon className="size-[26px]" />}
+              title="הצעת מחיר"
+              desc="הצעה ללקוח עוד לפני שנסגרת העסקה."
+              kbd="⌘ Q"
+            />
+            <ShortcutCard
               href="/dashboard"
-              icon={<BarChartIcon className="size-6" />}
-              label="דשבורד"
-              title="רווח והפסד בזמן אמת"
-              desc="תצוגה חיה של הכנסות, הוצאות ורווח נקי. סינון אוטומטי לפי תאריכי החשבוניות וההוצאות שלך — חודש, רבעון או שנה."
-              cta="פתח/י דשבורד"
-            />
-            <FeatureCard
-              href="/file"
-              icon={<FileTextIcon className="size-6" />}
-              label="טופס 1301"
-              title="מסלול מילוי חכם"
-              desc="שני מסלולים: מסלול מודרך עם איתן ב-12 שלבים עם עריכת שדות חיה, או הטופס המוכר של gov.il עם כפתור העתקה וצ׳אט."
-              cta="למסלול המילוי"
-            />
-            <FeatureCard
-              href="/business-expenses"
-              icon={<WalletIcon className="size-6" />}
-              label="הוצאות"
-              title="הוצאות מוכרות לפי עסק"
-              desc="רשימה מותאמת לתחום עיסוק (קריאייטיב / טכנולוגיה / ייעוץ) עם כללי ניכוי — חלקי, מלא, פחת."
-              cta="לרשימת ההוצאות"
-            />
-            <FeatureCard
-              href="/invoices"
-              icon={<ReceiptIcon className="size-6" />}
-              label="חשבוניות"
-              title="חשבונית מס/קבלה ישראלית"
-              desc="הוצא חשבונית מס/קבלה (305) או קבלה (320) בפורמט חוקי, מספור רץ אוטומטי, מע״מ לפי סוג עוסק, הדפסה ישירה."
-              cta="לחשבוניות"
-            />
-            <FeatureCard
-              href="/coach"
-              icon={<SparklesIcon className="size-6" />}
-              label="איתן"
-              title="ייעוץ AI מתמיד"
-              desc="צ׳אט עם איתן — מאתר הוצאות שפספסת, מחיל כללי ניכוי, מקבל קבלות וקורא PDF, בעברית בגובה העיניים."
-              cta="פתח שיחה"
-            />
-            <FeatureCard
-              href="/about"
-              icon={<PercentIcon className="size-6" />}
-              label="תיעוד"
-              title="איך זה בנוי"
-              desc="תיעוד טכני: ארכיטקטורה, רשימת דפים, שדות הכוכב של 1301, סטאק טכנולוגי, וטוקני העיצוב — הכל בעמוד אחד."
-              cta="לתיעוד הטכני"
+              tone="navy"
+              icon={<BarChartIcon className="size-[26px]" />}
+              title="לוח הבקרה"
+              desc="תמונת מצב מלאה — הכנסות, מועדים וסטטוס."
+              kbd="⌘ D"
             />
           </div>
         </div>
       </section>
 
-      {/* Eitan strip — navy with glow + frosted avatar tile */}
-      <section className="relative overflow-hidden bg-navy-900 py-16 md:py-20">
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(50% 80% at 88% 0%, rgba(64,126,140,.4) 0%, rgba(64,126,140,0) 60%)," +
-              "radial-gradient(40% 70% at 4% 100%, rgba(200,181,154,.16) 0%, rgba(200,181,154,0) 60%)",
-          }}
-        />
-        <div className="relative mx-auto max-w-screen-xl px-6">
+      {/* ===== 1301 + EITAN ===== */}
+      <section id="form1301" className="bg-paper py-24 md:py-[96px]">
+        <div className="mx-auto max-w-screen-xl px-8">
+          <SectionHead
+            eyebrow="מילוי טופס 1301"
+            title="איתן מסביר כל מספר"
+            subtitle="במקום שדות מבלבלים וקודים סתומים, איתן הנציג הדיגיטלי שלנו מלווה אותך שדה-שדה, בשפה פשוטה, ומחשב הכול מהנתונים שלך."
+          />
           <div
-            className="flex flex-col items-center gap-7 rounded-3xl border border-white/15 bg-white/5 p-8 text-center shadow-brand backdrop-blur-md md:flex-row md:p-10 md:text-start"
-            style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.14)" }}
+            id="eitan"
+            className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[46px]"
           >
-            <div
-              className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-brand backdrop-blur-md"
-              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.2)" }}
-            >
-              <SparklesIcon className="size-8" />
+            {/* form mock */}
+            <div className="overflow-hidden rounded-[22px] border border-line bg-paper shadow-lg">
+              <div className="flex items-center justify-between bg-brand-navy px-6 py-[18px] text-white">
+                <div>
+                  <div className="text-base font-bold">טופס 1301 · דו״ח שנתי</div>
+                  <div className="mt-px text-[12.5px] text-aqua">שנת מס 2024</div>
+                </div>
+                <span className="rounded-full bg-brand px-3 py-[5px] text-xs font-bold text-brand-navy">
+                  מולא אוטומטית
+                </span>
+              </div>
+              <div className="px-[22px] py-[18px]">
+                <FormRow
+                  code="158"
+                  label="הכנסה מעסק או משלח יד"
+                  sub="סך הכנסות 2024"
+                  value="₪248,900"
+                />
+                <FormRow
+                  code="170"
+                  label="הוצאות מוכרות"
+                  sub="קוזזו אוטומטית"
+                  value="₪71,300"
+                />
+                <FormRow
+                  code="042"
+                  label="מקדמות ששולמו"
+                  sub="איתן מצא עוד ₪2,300 להחזר"
+                  value="₪18,400"
+                  highlight
+                />
+                <FormRow
+                  code="036"
+                  label="ניכוי במקור"
+                  sub="מתוך אישורי לקוחות"
+                  value="₪6,150"
+                />
+              </div>
+              <div className="flex items-center justify-between border-t border-line bg-cream px-[22px] py-4">
+                <span className="text-sm font-semibold text-muted">
+                  החזר מס צפוי
+                </span>
+                <span
+                  className="text-[22px] font-extrabold text-brand-navy"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  ₪2,300
+                </span>
+              </div>
             </div>
-            <div className="flex-1">
-              <span className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-aqua/80">
-                <span className="size-1.5 rounded-full bg-brand" />
-                העוזר החכם
-              </span>
-              <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-white md:text-3xl">
-                איתן — השותף הדיגיטלי שלך
-              </h2>
-              <p className="mt-2 max-w-2xl leading-relaxed text-aqua/90">
-                לא בוט, לא ״שאל רואה חשבון״ — איתן הוא מערכת AI שמחליפה את הרואה
-                חשבון. מזהה הוצאות שפספסת, מחיל את כלל 30% לעבודה מהבית, שואל על
-                תרומות לסעיף 46. שיחה בעברית, בגובה העיניים.
+
+            {/* Eitan chat preview */}
+            <div className="flex flex-col gap-[15px]">
+              <div className="mb-0.5 flex items-center gap-[13px]">
+                <span className="flex size-14 items-center justify-center rounded-full border-2 border-beige-100 bg-beige-100 text-brand-deep">
+                  <SparklesIcon className="size-7" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-[7px] text-lg font-extrabold text-brand-navy">
+                    איתן
+                    <CheckCircleIcon className="size-4 text-brand-deep" />
+                  </div>
+                  <div className="text-[13.5px] font-semibold text-teal-600">
+                    הנציג הדיגיטלי שלנו · מחובר
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <ChatBubble from="bot">
+                  בדקתי את הדו״ח שלך לשנת 2024. שמתי לב למשהו חשוב —{" "}
+                  <b className="font-bold">מגיע לך החזר מס</b>.
+                </ChatBubble>
+                <ChatBubble from="me">כמה ולמה?</ChatBubble>
+                <ChatBubble from="bot">
+                  <span className="mb-[7px] inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-[9px] py-[3px] text-[12.5px] font-bold text-teal-600">
+                    <CheckCircleIcon className="size-[13px]" />
+                    החזר צפוי ₪2,300
+                  </span>
+                  <br />
+                  שילמת מקדמות גבוהות מדי ביחס להכנסה החייבת. הגשתי את זה בשדה 042
+                  — הכול מחושב מהנתונים שלך.
+                </ChatBubble>
+              </div>
+
+              <div className="mt-1 flex items-center gap-2.5">
+                <Link
+                  href="/coach"
+                  className="flex-1 rounded-full border border-line bg-paper px-[18px] py-[13px] text-sm text-faint transition-colors hover:border-brand-deep hover:text-teal-600"
+                >
+                  כתבו לאיתן…
+                </Link>
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-navy">
+                  <MicIcon className="size-[21px]" />
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-wrap justify-center gap-3">
+            <Link href="/file" className={btn("primary")}>
+              למסלול המילוי
+              <ArrowLeftIcon className="size-[18px]" />
+            </Link>
+            <Link href="/demo" className={btn("secondary")}>
+              ראה/י דמו 1301
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== SOCIAL (marquee) ===== */}
+      <section
+        id="social"
+        className="relative overflow-hidden bg-brand-navy py-24 text-white md:py-[96px]"
+      >
+        <div className="mx-auto max-w-screen-xl px-8">
+          <SectionHead
+            eyebrow="קהילה"
+            title="עצמאים מספרים"
+            subtitle="מה אומרים מי שכבר הורידו את הלחץ של הבירוקרטיה."
+            dark
+          />
+        </div>
+        <div
+          className="relative"
+          style={{
+            WebkitMaskImage:
+              "linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent)",
+            maskImage:
+              "linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent)",
+          }}
+        >
+          <div className="cm-marquee flex w-max gap-5">
+            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+              <PostCard key={i} {...t} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FINAL CTA ===== */}
+      <section className="bg-paper py-24 md:py-[96px]">
+        <div className="mx-auto max-w-screen-xl px-8">
+          <div
+            className="relative overflow-hidden rounded-[30px] px-10 py-[72px] text-center text-white"
+            style={{
+              background:
+                "radial-gradient(600px 360px at 80% 0%, rgba(165,141,102,.32), transparent 60%), linear-gradient(160deg, #0c4860, var(--color-navy-900))",
+            }}
+          >
+            <h2 className="mb-4 font-display text-[clamp(30px,4.4vw,48px)] font-extrabold leading-[1.08] tracking-[-0.025em]">
+              מוכנים להוריד את הלחץ
+              <span className="text-brand"> ולהחזיר את הראש לעסק?</span>
+            </h2>
+            <p className="mx-auto mb-[34px] max-w-[520px] text-lg text-aqua/[0.82]">
+              פתחו חשבון חינם ותנו ל-countme לספור — כדי שאתם תוכלו לעבוד.
+            </p>
+            <div className="flex flex-wrap justify-center gap-[18px]">
+              <Link
+                href="/setup"
+                className={btn("gold", "md", "px-8 py-[15px] text-base")}
+              >
+                פתחו חשבון חינם
+              </Link>
+              <Link
+                href="/coach"
+                className={btn(
+                  "secondary",
+                  "md",
+                  "border-white/30 bg-white/10 px-8 py-[15px] text-base text-white backdrop-blur-md hover:border-white/50 hover:bg-white/20",
+                )}
+              >
+                <SparklesIcon className="size-[18px]" /> תכירו את איתן
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="bg-navy-900 py-[54px] text-aqua/[0.62]">
+        <div className="mx-auto max-w-screen-xl px-8">
+          <div className="flex flex-wrap items-start justify-between gap-8">
+            <div>
+              <div className="flex items-center gap-2.5">
+                <LogoMark size={26} className="text-brand" />
+                <span className="font-display text-[22px] font-extrabold tracking-tight text-white">
+                  CountMe
+                </span>
+              </div>
+              <p className="mt-3 max-w-[280px] text-[13.5px] leading-relaxed">
+                השקט הנפשי שמגיע לעצמאים. אנחנו סופרים, אתם עובדים.
               </p>
             </div>
-            <Link href="/coach" className={btn("gold", "md", "shrink-0")}>
-              <SparklesIcon className="size-[18px]" /> פתח שיחה עם איתן
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="bg-cream py-20 md:py-24">
-        <div className="mx-auto max-w-screen-xl px-6">
-          <SectionHeading
-            eyebrow="התהליך"
-            title="איך זה עובד"
-            subtitle="ארבעה שלבים, דוח שלם"
-          />
-
-          <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
-            <Step
-              num="1"
-              title="הכנסת נתונים"
-              text="מעלה/ת קבצים (Excel, PDF) או ממלא/ת את האשף ב-7 שלבים. countme קורא חשבוניות, מזהה הוצאות, ובונה את הפרופיל הפיננסי שלך."
-              icon={<UploadIcon className="size-6" />}
-            />
-            <Step
-              num="2"
-              title="חישוב אוטומטי"
-              text="כל שדה בטופס 1301 מחושב לפי חוקי מס הכנסה הישראלי — ביטוח לאומי, קרן השתלמות, נקודות זיכוי, סעיף 46, כולם."
-              icon={<SettingsIcon className="size-6" />}
-            />
-            <Step
-              num="3"
-              title="מסלול המילוי"
-              text="איתן מלווה אותך ב-12 שלבים או שאת/ה מסתכל/ת בטבלת מומחה. כל ערך עם כפתור העתקה ישירה לטופס רשות המסים."
-              icon={<ClipboardCheckIcon className="size-6" />}
-            />
-            <Step
-              num="4"
-              title="מעקב שוטף"
-              text="הדשבורד מתעדכן בזמן אמת. הוצא חשבוניות מס לאורך השנה. countme יושב לידך כל השנה, לא רק בעונת הדוחות."
-              icon={<BarChartIcon className="size-6" />}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-line bg-paper py-10">
-        <div className="mx-auto max-w-screen-xl px-6">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <Logo size={24} />
-              <span className="text-xs text-faint">· לעצמאים בישראל</span>
+            <div className="flex flex-wrap gap-16">
+              <FooterCol
+                heading="מוצר"
+                links={[
+                  { label: "מילוי 1301", href: "/file" },
+                  { label: "דשבורד", href: "/dashboard" },
+                  { label: "חשבוניות", href: "/invoices" },
+                  { label: "איתן", href: "/coach" },
+                ]}
+              />
+              <FooterCol
+                heading="חברה"
+                links={[
+                  { label: "אודות", href: "/about" },
+                  { label: "דמו 1301", href: "/demo" },
+                  { label: "מועדים", href: "/deadlines" },
+                ]}
+              />
+              <FooterCol
+                heading="משפטי"
+                links={[
+                  { label: "תנאי שימוש", href: "#" },
+                  { label: "פרטיות", href: "#" },
+                ]}
+              />
             </div>
-            <div className="flex gap-5 text-xs text-muted">
-              <Link href="/demo" className="transition-colors hover:text-brand-navy">
-                דמו 1301
-              </Link>
-              <Link
-                href="/dashboard"
-                className="transition-colors hover:text-brand-navy"
-              >
-                דשבורד
-              </Link>
-              <Link href="/file" className="transition-colors hover:text-brand-navy">
-                מילוי הדוח
-              </Link>
-              <Link
-                href="/invoices"
-                className="transition-colors hover:text-brand-navy"
-              >
-                חשבוניות
-              </Link>
-              <Link href="/coach" className="transition-colors hover:text-brand-navy">
-                איתן
-              </Link>
-            </div>
+          </div>
+          <div className="mt-10 flex flex-wrap justify-between gap-2.5 border-t border-aqua/[0.14] pt-[22px] text-[13px]">
+            <span>© {new Date().getFullYear()} countme · לעצמאים בישראל</span>
+            <span>נבנה בישראל</span>
           </div>
         </div>
       </footer>
@@ -317,140 +390,353 @@ export default function Home() {
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavAnchor({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
-    <Link
+    <a
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted transition-colors hover:bg-aqua-soft hover:text-brand-navy"
+      className="inline-flex items-center gap-1.5 rounded-[10px] px-[13px] py-2 text-[14.5px] font-semibold text-muted transition-colors hover:bg-cream hover:text-brand-navy"
     >
       {children}
-    </Link>
+    </a>
   );
 }
 
-/** Eyebrow + heading + subtitle block, matching the kit's section-label rhythm. */
-function SectionHeading({
+/** Eyebrow + heading + subtitle block, matching the mockup's `.sec-head`. */
+function SectionHead({
   eyebrow,
   title,
   subtitle,
+  dark = false,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
+  dark?: boolean;
 }) {
   return (
-    <div className="mb-12 flex flex-col items-center text-center">
-      <span className="mb-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-teal-600">
-        <span className="size-1.5 rounded-full bg-brand" />
+    <div className="mx-auto mb-14 max-w-[680px] text-center">
+      <span
+        className={
+          "mb-3.5 inline-flex items-center gap-2.5 text-[13px] font-bold uppercase tracking-[0.04em] " +
+          (dark ? "text-aqua" : "text-teal-600")
+        }
+      >
+        <span className="h-0.5 w-5 rounded-sm bg-brand" />
         {eyebrow}
       </span>
-      <h2 className="font-display text-3xl font-bold tracking-[-0.02em] text-brand-navy md:text-[34px]">
+      <h2
+        className={
+          "font-display text-[clamp(30px,4vw,44px)] font-extrabold leading-[1.1] tracking-[-0.025em] " +
+          (dark ? "text-white" : "text-brand-navy")
+        }
+      >
         {title}
       </h2>
-      <p className="mt-2.5 text-muted">{subtitle}</p>
-    </div>
-  );
-}
-
-function Stat({
-  value,
-  label,
-  suffix,
-}: {
-  value: string;
-  label: string;
-  suffix?: string;
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-white/15 bg-white/10 p-4 text-center shadow-brand backdrop-blur-md"
-      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.18)" }}
-    >
-      <div
-        className="font-display text-xl font-extrabold text-white md:text-2xl"
-        style={{ fontVariantNumeric: "tabular-nums" }}
+      <p
+        className={
+          "mt-3.5 text-[17px] leading-relaxed " +
+          (dark ? "text-aqua/80" : "text-muted")
+        }
       >
-        {value}
-        {suffix && (
-          <span className="ms-1 text-xs font-normal text-aqua/70">{suffix}</span>
-        )}
-      </div>
-      <div className="mt-1 text-xs text-aqua/80">{label}</div>
+        {subtitle}
+      </p>
     </div>
   );
 }
 
-function FeatureCard({
+const SHORTCUT_TONES = {
+  teal: "bg-teal-100 text-brand-deep",
+  beige: "bg-beige-100 text-beige-600",
+  green: "bg-success-light text-success",
+  navy: "bg-[#E3EAEC] text-brand-navy",
+} as const;
+
+function ShortcutCard({
   href,
+  tone,
   icon,
-  label,
   title,
   desc,
-  cta,
+  kbd,
 }: {
   href: string;
+  tone: keyof typeof SHORTCUT_TONES;
   icon: React.ReactNode;
-  label: string;
   title: string;
   desc: string;
-  cta: string;
+  kbd: string;
 }) {
   return (
     <Link
       href={href}
-      className="group relative flex flex-col gap-4 rounded-3xl border border-line bg-paper/70 p-6 shadow-brand backdrop-blur-md transition-all hover:-translate-y-1 hover:border-brand-deep/40 hover:bg-paper"
-      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.6)" }}
+      className="group flex flex-col rounded-[20px] border border-line bg-paper p-[26px] shadow-sm transition-all hover:-translate-y-1 hover:border-aqua hover:shadow-lg"
     >
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex size-12 items-center justify-center rounded-2xl bg-teal-100 text-brand-deep transition-colors group-hover:bg-brand-deep group-hover:text-white">
-          {icon}
-        </span>
-        <span className="rounded-full bg-aqua-soft px-2.5 py-0.5 text-xs font-semibold text-teal-600">
-          {label}
-        </span>
-      </div>
-      <div>
-        <h3 className="text-lg font-bold tracking-[-0.01em] text-brand-navy">
-          {title}
-        </h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-muted">{desc}</p>
-      </div>
-      <span className="mt-auto inline-flex items-center gap-1 text-sm font-semibold text-brand-deep transition-colors group-hover:text-brand-navy">
-        {cta} ←
+      <span
+        className={
+          "mb-[18px] flex size-[54px] items-center justify-center rounded-2xl " +
+          SHORTCUT_TONES[tone]
+        }
+      >
+        {icon}
+      </span>
+      <h3 className="mb-[5px] text-lg font-bold text-brand-navy">{title}</h3>
+      <p className="text-sm leading-snug text-muted">{desc}</p>
+      <span className="mt-4 inline-block w-fit rounded-lg bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-600">
+        {kbd}
       </span>
     </Link>
   );
 }
 
-function Step({
-  num,
-  title,
-  text,
-  icon,
+function FormRow({
+  code,
+  label,
+  sub,
+  value,
+  highlight = false,
 }: {
-  num: string;
-  title: string;
-  text: string;
-  icon: React.ReactNode;
+  code: string;
+  label: string;
+  sub: string;
+  value: string;
+  highlight?: boolean;
 }) {
   return (
     <div
-      className="relative flex flex-col gap-3 rounded-3xl border border-line bg-paper/70 p-6 shadow-brand backdrop-blur-md"
-      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.6)" }}
+      className={
+        "mt-[3px] grid grid-cols-[54px_1fr_122px] items-center gap-3.5 rounded-xl p-3 first:mt-0 " +
+        (highlight
+          ? "bg-beige-100 shadow-[inset_0_0_0_1.5px_var(--color-brand)]"
+          : "")
+      }
     >
-      <div className="flex items-center justify-between gap-3">
-        <div
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-navy text-sm font-bold text-white"
-          style={{ fontVariantNumeric: "tabular-nums" }}
+      <span
+        className="rounded-lg bg-teal-100 py-1.5 text-center text-[13px] font-extrabold text-teal-600"
+        style={{ fontVariantNumeric: "tabular-nums" }}
+      >
+        {code}
+      </span>
+      <span className="text-[14.5px] font-semibold text-ink">
+        {label}
+        <small className="mt-px block text-xs font-medium text-faint">
+          {sub}
+        </small>
+      </span>
+      <span
+        className={
+          "text-start text-base font-bold " +
+          (highlight ? "text-beige-600" : "text-brand-navy")
+        }
+        style={{ fontVariantNumeric: "tabular-nums" }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ChatBubble({
+  from,
+  children,
+}: {
+  from: "bot" | "me";
+  children: React.ReactNode;
+}) {
+  if (from === "me") {
+    return (
+      <div className="max-w-[94%] self-end rounded-[18px] rounded-ee-[5px] bg-brand-navy px-4 py-[13px] text-[15px] leading-relaxed text-white">
+        {children}
+      </div>
+    );
+  }
+  return (
+    <div className="max-w-[94%] self-start rounded-[18px] rounded-es-[5px] border border-line bg-paper px-4 py-[13px] text-[15px] leading-relaxed text-ink">
+      {children}
+    </div>
+  );
+}
+
+type Testimonial = {
+  initial: string;
+  avatarColor: string;
+  name: string;
+  handle: string;
+  platform: "instagram" | "linkedin";
+  quote: string;
+  body: React.ReactNode;
+};
+
+const TESTIMONIALS: Testimonial[] = [
+  {
+    initial: "ר",
+    avatarColor: "#407E8C",
+    name: "רותם לוי",
+    handle: "@rotem.designs",
+    platform: "instagram",
+    quote: "סוף סוף הפסקתי לפחד מהמע״מ",
+    body: (
+      <>
+        כל דיווח בזמן, בלי לרדוף אחרי רואה חשבון.{" "}
+        <span className="font-semibold text-teal-600">#עצמאים #שקט_נפשי</span>
+      </>
+    ),
+  },
+  {
+    initial: "א",
+    avatarColor: "#083A4F",
+    name: "אבי כהן",
+    handle: "Avi Cohen",
+    platform: "linkedin",
+    quote: "החזר מס שלא ידעתי שמגיע לי",
+    body: (
+      <>
+        איתן מצא ₪2,300 שפספסתי.{" "}
+        <b className="font-bold text-brand-navy">המלצה חמה.</b>
+      </>
+    ),
+  },
+  {
+    initial: "מ",
+    avatarColor: "#AD9A7B",
+    name: "מאיה ברק",
+    handle: "@maya.studio",
+    platform: "instagram",
+    quote: "מילאתי 1301 ב-3 דקות",
+    body: (
+      <>
+        בלי קודים סתומים, הכול מוסבר בעברית.{" "}
+        <span className="font-semibold text-teal-600">#פרילנס</span>
+      </>
+    ),
+  },
+  {
+    initial: "ד",
+    avatarColor: "#3E8E78",
+    name: "דניאל פרץ",
+    handle: "Daniel Peretz",
+    platform: "linkedin",
+    quote: "כל המועדים במקום אחד",
+    body: <>מקדמות, ביטוח לאומי, מע״מ — אף פעם לא מאחר.</>,
+  },
+  {
+    initial: "ש",
+    avatarColor: "#356A77",
+    name: "שירה אזולאי",
+    handle: "@shira.creative",
+    platform: "instagram",
+    quote: "כאילו יש לי רואה חשבון בכיס",
+    body: (
+      <>
+        שואלת כל שאלה, מקבלת תשובה בגובה העיניים.{" "}
+        <span className="font-semibold text-teal-600">#עצמאית</span>
+      </>
+    ),
+  },
+];
+
+function PostCard({
+  initial,
+  avatarColor,
+  name,
+  handle,
+  platform,
+  quote,
+  body,
+}: Testimonial) {
+  return (
+    <div className="w-[336px] shrink-0 overflow-hidden rounded-[20px] bg-paper text-ink shadow-lg">
+      <div className="flex items-center gap-[11px] px-4 py-3.5">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold text-white"
+          style={{ background: avatarColor }}
         >
-          {num}
+          {initial}
+        </span>
+        <div>
+          <div className="text-sm font-bold text-brand-navy">{name}</div>
+          <div className="text-xs text-faint">{handle}</div>
         </div>
-        <span className="flex size-10 items-center justify-center rounded-2xl bg-teal-100 text-brand-deep">
-          {icon}
+        <span className="ms-auto text-faint">
+          {platform === "instagram" ? <InstagramGlyph /> : <LinkedInGlyph />}
         </span>
       </div>
-      <h3 className="font-bold tracking-[-0.01em] text-brand-navy">{title}</h3>
-      <p className="text-sm leading-relaxed text-muted">{text}</p>
+      <div className="flex h-[180px] items-center justify-center bg-cream px-[22px] text-center">
+        <p className="text-[19px] font-extrabold leading-[1.3] tracking-[-0.01em] text-brand-navy">
+          “{quote}”
+        </p>
+      </div>
+      <div className="px-4 pb-[18px] pt-3.5">
+        <p className="text-[13.5px] leading-snug text-ink">{body}</p>
+      </div>
     </div>
+  );
+}
+
+function FooterCol({
+  heading,
+  links,
+}: {
+  heading: string;
+  links: { label: string; href: string }[];
+}) {
+  return (
+    <div>
+      <h4 className="mb-3.5 text-[13px] font-bold uppercase tracking-[0.04em] text-white">
+        {heading}
+      </h4>
+      {links.map((l) => (
+        <Link
+          key={l.label}
+          href={l.href}
+          className="mb-[9px] block text-sm transition-colors hover:text-white"
+        >
+          {l.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/** Brand-style social glyphs (line, currentColor) — no emoji. */
+function InstagramGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="size-5"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function LinkedInGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="size-5"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 11v6" />
+    </svg>
   );
 }
