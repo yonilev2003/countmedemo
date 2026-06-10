@@ -79,7 +79,7 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         <Figure label="הקרנה חודשית" value={fmt(scenario.monthlyRunRate)} />
         <Figure label="מחזור שנתי צפוי" value={fmt(scenario.projectedAnnualRevenue)} />
         <Figure label="מקדמות שנתיות צפויות" value={fmt(scenario.projectedAdvancesDue)} />
-        <Figure label="מקדמה חודשית מומלצת" value={fmt(scenario.recommendedMonthlyMikdama)} />
+        <Figure label="מקדמה חודשית לפי התחזית" value={fmt(scenario.recommendedMonthlyMikdama)} />
       </div>
 
       {/* Plan vs actual */}
