@@ -217,3 +217,25 @@ body {
   background: #fff2b8;
   transform: scale(1.02);
 }
+
+/* Landing social marquee — seamless horizontal loop (cards duplicated 2x in
+   markup, so -50% wraps perfectly). Pauses on hover; honors reduced-motion. */
+.cm-marquee {
+  animation: cm-scrollx 48s linear infinite;
+}
+.cm-marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes cm-scrollx {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-marquee {
+    animation: none;
+  }
+}
