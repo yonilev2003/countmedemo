@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Persona } from "@/lib/persona";
 import { loadPersona } from "@/lib/setup-storage";
 import { CoachChat } from "@/components/agent/coach-chat";
-import { Logo } from "@/components/brand/logo";
+import { ChatNavRail } from "@/components/agent/chat-nav-rail";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
 
@@ -20,7 +20,7 @@ export default function CoachPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-cream"
+      className="flex min-h-screen flex-col bg-cream"
       style={{
         backgroundImage: [
           "radial-gradient(60% 40% at 84% 4%, color-mix(in srgb, var(--color-aqua) 55%, transparent) 0%, transparent 60%)",
@@ -29,55 +29,60 @@ export default function CoachPage() {
         ].join(", "),
       }}
     >
-      {/* Header */}
-      <header className="bg-paper/80 backdrop-blur-sm border-b border-line">
-        <div className="mx-auto flex max-w-screen-md items-center justify-between px-6 py-3">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={28} />
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.04em] text-teal-600 leading-tight">
+      {/* SaaS shell — side nav rail + central chat column (the handoff `.webapp`).
+          On <lg the rail drops out and becomes the bottom nav bar below. */}
+      <div className="mx-auto flex w-full max-w-screen-xl flex-1 lg:gap-6 lg:p-6">
+        {/* Desktop: the navigation rail, as a card matching the mockup shell */}
+        <ChatNavRail
+          variant="rail"
+          className="hidden self-stretch overflow-hidden rounded-3xl shadow-brand lg:flex"
+        />
+
+        {/* Central chat column */}
+        <main className="flex min-w-0 flex-1 flex-col px-4 pt-4 pb-24 lg:px-0 lg:pt-0 lg:pb-0">
+          {/* Slim context bar — the product centerpiece (Form 1301) lives off the
+              rail, so surface it here alongside the expense guide. */}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase leading-tight tracking-[0.04em] text-teal-600">
                 CountMe · Chat
               </div>
-              <div className="text-[12px] text-muted leading-tight">
+              <div className="truncate text-[12px] leading-tight text-muted">
                 איתן · השותף הדיגיטלי לדוח השנתי
               </div>
             </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/demo"
-              className={btn("ghost", "sm", "gap-1.5")}
-            >
-              <ArrowRightIcon className="size-3.5" />
-              לדוח 1301
-            </Link>
-            <Link
-              href="/business-expenses"
-              className={btn("secondary", "sm", "gap-1.5")}
-            >
-              <ClipboardCheckIcon className="size-3.5" />
-              מדריך הוצאות
-            </Link>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/business-expenses"
+                className={btn("ghost", "sm", "gap-1.5")}
+              >
+                <ClipboardCheckIcon className="size-3.5" />
+                <span className="hidden sm:inline">מדריך הוצאות</span>
+              </Link>
+              <Link href="/demo" className={btn("secondary", "sm", "gap-1.5")}>
+                <ArrowRightIcon className="size-3.5" />
+                לדוח 1301
+              </Link>
+            </div>
           </div>
-        </div>
-      </header>
 
-      {/* Chat fills the rest of the viewport */}
-      <main className="flex-1 mx-auto w-full max-w-screen-md px-4 py-4 flex flex-col">
-        {hydrated && (
-          <div className="flex-1 min-h-[600px]">
-            <CoachChat persona={persona} />
-          </div>
-        )}
-      </main>
+          {/* Chat — fills the rest of the column. coach-chat.tsx is untouched:
+              streaming, attachments, mic/send and the opening chips all intact. */}
+          {hydrated && (
+            <div className="min-h-[560px] flex-1">
+              <CoachChat persona={persona} />
+            </div>
+          )}
 
-      <footer className="mx-auto w-full max-w-screen-md px-6 pb-4 text-center text-[10px] text-faint leading-relaxed">
-        <p>
-          המידע אינו מהווה ייעוץ מס. countme מבוסס על מקורות פומביים ופקודת מס
-          הכנסה 2024. לפני הגשה — התייעצי עם רואה חשבון.
-        </p>
-      </footer>
+          <p className="mt-3 px-2 text-center text-[10px] leading-relaxed text-faint">
+            המידע אינו מהווה ייעוץ מס. countme מבוסס על מקורות פומביים ופקודת מס
+            הכנסה 2024. לפני הגשה — התייעצי עם רואה חשבון.
+          </p>
+        </main>
+      </div>
+
+      {/* Mobile: the rail collapses to a fixed bottom nav bar */}
+      <ChatNavRail variant="bar" className="lg:hidden" />
     </div>
   );
 }
