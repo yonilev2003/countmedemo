@@ -2,6 +2,24 @@
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 10/06/2026 — מילסטון: דמו → פיילוט SaaS חי בפרודקשן
+
+יום ענק. עברנו מ-דמו-localStorage ל-**פלטפורמת SaaS חיה ומאובטחת** ב-`countmedemo-eight.vercel.app`. **10 PRs מוזגו ל-main, אפס שבירות.**
+
+**לפי PR:**
+- **#15** — Phase 0–5 לפרודקשן: Supabase clients + Google OAuth + persona ב-DB + דשבורד device-adaptive.
+- **#16** — דיוק-מס (נק' זיכוי 3.25, הסרת זיכוי 48% מומצא, §46/§45A) + "עובדות לא עצות" + GTM/PMF brief.
+- **#17** — נעילת TY2025 (קבועים מאומתים, ברירת-מחדל שנה → 2025).
+- **#18** — design-fidelity: /login, landing, chat מיושרים ל-handoff.
+- **#19** — תיקון תווית מע"מ (17% קבוע בעוד החישוב 18%).
+- **#20** — chat SaaS rail + ניקוי דאטה DB-authoritative (תיקון דליפה בין-משתמשים).
+
+**גילויים/החלטות:** הפרויקט האמיתי ב-Supabase = `hbsgzelipeawkvtcazdr` (לא akfg), סכמה נבנתה שם מחדש; Vercel = `countmedemo-eight` (חשבון אישי). · חשבונית-ישראל ספייק → OUT לפיילוט. · מילואים הוכרע 30/40/50.
+
+**נשאר:** הדלקת gating (ידני) · self-test מייסדים · אישור יעל לחיצוני · NEEDS-ROY של רוי.
+
+**עבד טוב:** git worktrees + agents מקבילים; merge אוטומטי דרך ה-API; build-gate על כל PR. **תקלה חוזרת:** `.next` cache התקלקל אחרי שדרוגי SDK → `rm -rf .next` לפני build.
+
 ## סבב 03/06/2026 — Brand Kit + ריברנד מלא
 
 ענף `claude/adoring-brahmagupta-u8no8`. CommitHead: `fae935b`.

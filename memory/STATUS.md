@@ -1,49 +1,38 @@
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-06-03 · ענף עבודה: `claude/adoring-brahmagupta-u8no8` (נדחף ל-origin, טרם מוזג ל-main).
+> עודכן: 2026-06-10 · ענף: `main` (פרודקשן חי) · פיילוט SaaS חי ב-`countmedemo-eight.vercel.app`.
 
-## מצב הקוד
+## מצב — פיילוט חי בפרודקשן 🟢
+ב-10.6 עברנו מ-דמו-localStorage ל-**פלטפורמת SaaS חיה ומאובטחת**. **10 PRs מוזגו ל-main, אפס שבירות.**
 
-- ✅ עץ עבודה נקי, מסונכרן מלא עם origin, אין שינויים לא-דחופים.
-- ✅ `npm run build` עובר · `tsc --noEmit` נקי · smoke-test HTTP (8 מסלולים → 200).
-- ✅ **Brand Kit הוטמע** — טוקנים, פונט, אייקונים, קומפוננטות ב-`src/components/brand/`. כל הדפים (למעט `/demo`) עברו ריברנד לנייבי/בז'/טיל.
+- ✅ **Backend חי:** Supabase (פרויקט `hbsgzelipeawkvtcazdr`) + Google OAuth (עובד) + persona per-user ב-DB + RLS.
+- ✅ **כיול 2025:** נק' זיכוי 3.25, מע"מ דינמי 18%, מספרי-ברזל ב"ל 2025 (90,264/588,360 + פיצול בריאות), מילואים 30/40/50, 6111 256,410 ללא מע"מ.
+- ✅ **מוצר/מיצוב:** עוסק יחידים-בלבד (זעיר/פטור/מורשה), **"עובדות לא עצות"**.
+- ✅ **עיצוב:** /login+landing+chat מיושרים ל-handoff + **chat SaaS rail**.
+- ✅ **אבטחה:** persona DB-authoritative + תיקון דליפה בין-משתמשים.
 
-## אחוזי ביצוע (11 משימות הפ"ע)
+## ⚠️ Gating עדיין כבוי
+ה-auth-gating **בנוי ומוכן בדגל** (`AUTH_GATING_ENABLED`) אבל **כבוי** — האפליקציה עדיין פתוחה (לא "נעולה"). הדלקה = פעולה ידנית של יוני.
 
-| מצב | משימות | הערה |
-|---|---|---|
-| ✅ מוגמר/כמעט | #7 (100%), **#4 (95%)**, #3 (90%), #5 (90%), #9 (85%) | כל הסקופ הלא-חסום |
-| ✅ **Brand Kit** | ריברנד מלא (2026-06-03) | `src/components/brand/`, `Brand Kit/`, טוקנים ב-globals.css |
-| 🟡 חלקי | #8 (70% — הליבה עובדת) | חסום DB (יום 2+) |
-| ⛔ חסום על פגישות | #1, #2, #6, #10, #11 (0%) | רוי / פ"ע שלושתם |
-
-**≈100% מהסקופ הלא-חסום הושלם.** מקור-אמת מלא: `docs/meeting-records/yoni-tasks-27032026.md`.
-
-## חסום — ממתין לאנשים
-
+## חסום — ממתין
 | נושא | חסום על | מה צריך |
 |---|---|---|
-| **ערכי מס 2025 + 2026** (#4) | רוי | אישור כל ה-`TODO(Roy)` ב-`types.ts`: מדרגות 3–5 ל-2026 (228K/301,200), סף/שיעורי ב"ל (7,703 + תיקון 252), תקרות קרן/פנסיה/6111/עוסק-פטור |
-| #1 גבול רו"ח↔AI | פ"ע שלושתם | מיפוי מה מחייב רו"ח מול מה ש-AI מכסה |
-| #2 תיאום מס + מקדמות ב"ל | רוי | נוסחאות → ואז shell UI |
-| #6 מעבר לגוגל קלאוד | רוי | פגישת בירור עלות (כיום Vercel) |
-| #10 תכנון↔ביצוע 1301 | רוי | פגישת אפיון פערים |
-| #11 מסמך MVP | רוי + תומי | ליצור `MVP.md` + פגישות |
+| **הדלקת gating** | יוני (ידני) | `AUTH_GATING_ENABLED=true` ב-Vercel + redeploy |
+| **self-test מייסדים** | יוני/תומי/רוי | כניסה חיה /login → auth → חשבונית → אימות 18%+בידוד |
+| **חשיפה חיצונית/EY** | יעל (משפטי) | אישור פרטיות/ToS/קופי לפני external |
+| **NEEDS-ROY 2025** | רוי | תקרות פנסיה (25,608/12,804), פיצול מס-בריאות, מילואים מול תיקון 283 |
 
-## פתוח ידנית (לא חוסם, לא דורש פגישה)
+## פתוח (לא חוסם)
+- design-review של המסכים החדשים (login/landing/chat) — עין אנושית.
+- ריבוי-חשבונות: Supabase (`hbsgz` מול `akfg`) + Vercel (`countmedemo-eight` מול `countmes-projects`) — לסדר בהמשך.
+- refactor DB-only (הסרת localStorage) — מסומן, אחרי שה-gating חי ומוכח.
 
-- 👁️ **אימות ויזואלי** של מודל שנות-המס: באדג'י סטטוס (הוגש/פתוח/עתידי) ב-/demo ובדשבורד, מעבר
-  שנים (2025 → 248,500), empty-state של 2026. לא ניתן headless בסביבת הענן (אין דפדפן, חסימת רשת).
-- 📋 אפשר לפתוח **PR** מ-`claude/adoring-brahmagupta-u8no8` למעבר מסודר על ה-diff.
-- 👁️ אימות ויזואלי של Brand Kit — לבדוק בדפדפן שכל הדפים נראים תקינים עם פונט Assistant + צבעים חדשים.
-
-## נקודות כניסה מהירות
-
+## נקודות-כניסה לקוד החדש
 | נושא | קבצים |
 |---|---|
-| קבועי מס per-year + מחזור-חיים | `src/lib/calculators/types.ts` (`getTaxYearConstants`, `ACTIVE_FILING_YEAR`, `getYearStatus`) |
-| באדג' סטטוס שנה + בורר | `src/components/year-status-badge.tsx`, `src/lib/p-and-l/index.ts` (`taxYearsForUI`/`personaForYear`) |
-| מרשם ניכויים (rate/cap/formFields/plImpact/skill) | `src/lib/regulatory/deductions.ts` |
-| 8 ה-calculators + הערכת מס | `src/lib/calculators/index.ts` |
-| התראות / מועדים / תחזית | `src/lib/alerts/index.ts`, `src/lib/deadlines/calendar.ts`, `src/lib/forecast/index.ts` |
-| דו"ח רווח-והפסד | `src/lib/p-and-l/{index,israeli-report}.ts`, `src/app/dashboard/pl-report/page.tsx` |
+| Supabase clients | `src/lib/supabase/{client,server,admin,proxy}.ts` |
+| שכבת-נתונים DB | `src/lib/data/{persona-repository,persona-store,use-persona}.ts` |
+| auth | `src/app/login/*`, `src/app/auth/*`, `middleware.ts` |
+| דשבורד device-adaptive | `src/app/dashboard/page.tsx`, `src/components/dashboard/*` |
+| קבועי-מס 2025 | `src/lib/calculators/types.ts` (`getTaxYearConstants`) |
+| audits/אסטרטגיה | `docs/audit/*`, `docs/gtm/readiness.md`, `docs/spikes/*` |
