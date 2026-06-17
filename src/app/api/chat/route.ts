@@ -1,6 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
-import { getTaxYearConstants } from "@/lib/calculators/types";
+import {
+  EITAN_TOOLS,
+  runEitanTool,
+  buildRichContext,
+} from "@/lib/agent/tools";
 
 const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
 אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה, בצורה ידידותית ומקצועית.
@@ -121,36 +125,6 @@ function validateBody(raw: unknown): { ok: true; body: ValidatedBody } | { ok: f
   return { ok: true, body: { message, history, persona: r.persona as Persona } };
 }
 
-function buildPersonaContext(persona: Persona): string {
-  const p = persona;
-  const TC = getTaxYearConstants(p.income.year);
-  const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const bituachDeductible = Math.round(
-    bituachPaid * TC.bituachLeumiDeductibleRate,
-  );
-
-  const creditLines: string[] = ["תושב (2.25)"];
-  if (p.personal.isNewResident) creditLines.push("עולה חדש");
-  if (p.personal.isSoldierDischarged) creditLines.push("חייל משוחרר");
-
-  const form6111 = p.vatAndTurnover.annualTurnoverWithoutVat > TC.form6111Threshold
-    ? "חייב בטופס 6111"
-    : "לא חייב";
-
-  return `נתוני המשתמש:
-שם: ${p.personal.firstName} ${p.personal.lastName}
-הכנסות ברוטו: ${p.income.totalRevenue.toLocaleString("he-IL")} ₪
-הוצאות מוכרות: ${p.income.totalDeductibleExpenses.toLocaleString("he-IL")} ₪
-הכנסה חייבת (שדה 150): ${p.income.netIncome.toLocaleString("he-IL")} ₪
-מחזור שנתי (שדות 238/294): ${p.income.totalRevenue.toLocaleString("he-IL")} ₪
-ביטוח לאומי ששולם: ${bituachPaid.toLocaleString("he-IL")} ₪ (מוכר לניכוי: ${bituachDeductible.toLocaleString("he-IL")} ₪)
-קרן השתלמות: ${p.deductionsAndCredits.kerenHishtalmut.annualContribution.toLocaleString("he-IL")} ₪
-עסק: ${p.business.tradeName}, ${p.business.primaryOccupation}
-סוג עוסק: ${p.business.osekType}
-טופס 6111: ${form6111}
-נקודות זיכוי: ${creditLines.join(", ")}`;
-}
-
 export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey.trim() === "") {
@@ -195,7 +169,15 @@ export async function POST(request: Request) {
   ];
 
   const anthropic = new Anthropic({ apiKey });
-  const personaContext = buildPersonaContext(persona);
+  // Richer computed snapshot (runs the calculators) instead of a flat persona echo.
+  const personaContext = buildRichContext(persona);
+  const MAX_TOOL_ROUNDS = 4;
+
+  // Two cached system blocks: stable instructions + the computed snapshot.
+  const systemBlocks: Anthropic.TextBlockParam[] = [
+    { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+    { type: "text", text: personaContext, cache_control: { type: "ephemeral" } },
+  ];
 
   // Build a ReadableStream that pipes Anthropic SSE deltas as our own SSE
   const stream = new ReadableStream({
@@ -207,35 +189,49 @@ export async function POST(request: Request) {
       };
 
       try {
-        const anthropicStream = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1024,
-          // Two cached system blocks:
-          // 1. Stable persona-agnostic instructions (cache_control on this block
-          //    caches both it and everything before it — i.e. just itself here)
-          // 2. Persona context (may change per user but stable within a session)
-          system: [
-            {
-              type: "text",
-              text: SYSTEM_PROMPT,
-              cache_control: { type: "ephemeral" },
-            },
-            {
-              type: "text",
-              text: personaContext,
-              cache_control: { type: "ephemeral" },
-            },
-          ],
-          messages,
-        });
+        // Tool-use loop (persona is always present here): stream each turn's text;
+        // on tool_use, run the tools and feed results back. Bounded rounds.
+        for (let round = 0; ; round++) {
+          const anthropicStream = anthropic.messages.stream({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1024,
+            system: systemBlocks,
+            messages,
+            ...(round < MAX_TOOL_ROUNDS ? { tools: EITAN_TOOLS } : {}),
+          });
 
-        for await (const event of anthropicStream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            enqueue(event.delta.text);
+          for await (const event of anthropicStream) {
+            if (
+              event.type === "content_block_delta" &&
+              event.delta.type === "text_delta"
+            ) {
+              enqueue(event.delta.text);
+            }
           }
+
+          const final = await anthropicStream.finalMessage();
+
+          if (round < MAX_TOOL_ROUNDS && final.stop_reason === "tool_use") {
+            messages.push({ role: "assistant", content: final.content });
+            const toolResults: Anthropic.ToolResultBlockParam[] = [];
+            for (const block of final.content) {
+              if (block.type === "tool_use") {
+                toolResults.push({
+                  type: "tool_result",
+                  tool_use_id: block.id,
+                  content: runEitanTool(
+                    block.name,
+                    (block.input ?? {}) as Record<string, unknown>,
+                    persona,
+                  ),
+                });
+              }
+            }
+            messages.push({ role: "user", content: toolResults });
+            continue;
+          }
+
+          break;
         }
 
         enqueue("[DONE]");

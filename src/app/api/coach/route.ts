@@ -1,6 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Persona } from "@/lib/persona";
-import { getTaxYearConstants } from "@/lib/calculators/types";
+import {
+  EITAN_TOOLS,
+  runEitanTool,
+  buildRichContext,
+} from "@/lib/agent/tools";
 
 /**
  * /api/coach — Eitan, the unified digital partner for countme.
@@ -248,27 +252,6 @@ function validateBody(
   };
 }
 
-function buildPersonaContext(persona: Persona): string {
-  const p = persona;
-  const TC = getTaxYearConstants(p.income.year);
-  const bituachPaid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
-  const bituachDeductible = Math.round(
-    bituachPaid * TC.bituachLeumiDeductibleRate,
-  );
-  const gender = p.personal.gender === "male" ? "זכר" : "נקבה";
-  return `נתוני המשתמש/ת מהדוח שלהם:
-שם: ${p.personal.firstName} ${p.personal.lastName}
-מגדר: ${gender}
-עסק: ${p.business.tradeName}, ${p.business.primaryOccupation}
-סוג עוסק: ${p.business.osekType}${p.business.isOsekZeir ? " (מסלול עוסק זעיר)" : ""}
-מחזור שנתי: ${p.income.totalRevenue.toLocaleString("he-IL")} ש"ח
-הוצאות מוכרות שכבר דווחו: ${p.income.totalDeductibleExpenses.toLocaleString("he-IL")} ש"ח
-ביטוח לאומי ששולם: ${bituachPaid.toLocaleString("he-IL")} ש"ח (מוכר ${bituachDeductible.toLocaleString("he-IL")} ש"ח)
-קרן השתלמות: ${p.deductionsAndCredits.kerenHishtalmut.annualContribution.toLocaleString("he-IL")} ש"ח
-
-כשאתה חוקר איתם, התייחס לנתונים האלה. אם משהו חסר או נמוך משמעותית מהצפוי לעיסוק שלהם, ציין את זה.`;
-}
-
 export async function POST(request: Request) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey.trim() === "") {
@@ -356,14 +339,20 @@ export async function POST(request: Request) {
     },
   ];
 
-  // Always inject persona context when persona is provided
+  // Always inject the RICH computed snapshot when persona is provided (runs the
+  // calculators server-side: actual 1301 numbers, tax estimate, ceiling, deadlines).
   if (persona) {
     systemBlocks.push({
       type: "text",
-      text: buildPersonaContext(persona),
+      text: buildRichContext(persona),
       cache_control: { type: "ephemeral" },
     });
   }
+
+  // Live tool-use: only when we have a persona to retrieve against, and not in
+  // the short dashboard-insights mode. Lets Eitan fetch a precise value on demand.
+  const useTools = !!persona && mode !== "dashboard-insights";
+  const MAX_TOOL_ROUNDS = 4;
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -373,20 +362,56 @@ export async function POST(request: Request) {
       };
 
       try {
-        const anthropicStream = anthropic.messages.stream({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1024,
-          system: systemBlocks,
-          messages,
-        });
+        // Tool-use loop: stream each assistant turn's text; if the turn ends in
+        // tool_use, run the tools, feed the results back, and continue. Bounded
+        // by MAX_TOOL_ROUNDS so a misbehaving model can never loop forever.
+        for (let round = 0; ; round++) {
+          const anthropicStream = anthropic.messages.stream({
+            model: "claude-sonnet-4-6",
+            max_tokens: 1024,
+            system: systemBlocks,
+            messages,
+            ...(useTools && round < MAX_TOOL_ROUNDS
+              ? { tools: EITAN_TOOLS }
+              : {}),
+          });
 
-        for await (const event of anthropicStream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            enqueue(event.delta.text);
+          for await (const event of anthropicStream) {
+            if (
+              event.type === "content_block_delta" &&
+              event.delta.type === "text_delta"
+            ) {
+              enqueue(event.delta.text);
+            }
           }
+
+          const final = await anthropicStream.finalMessage();
+
+          if (
+            useTools &&
+            round < MAX_TOOL_ROUNDS &&
+            final.stop_reason === "tool_use"
+          ) {
+            messages.push({ role: "assistant", content: final.content });
+            const toolResults: Anthropic.ToolResultBlockParam[] = [];
+            for (const block of final.content) {
+              if (block.type === "tool_use") {
+                toolResults.push({
+                  type: "tool_result",
+                  tool_use_id: block.id,
+                  content: runEitanTool(
+                    block.name,
+                    (block.input ?? {}) as Record<string, unknown>,
+                    persona!,
+                  ),
+                });
+              }
+            }
+            messages.push({ role: "user", content: toolResults });
+            continue; // next assistant turn, now with the tool results
+          }
+
+          break; // normal end_turn (or tool budget exhausted)
         }
 
         enqueue("[DONE]");
