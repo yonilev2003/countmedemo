@@ -16,6 +16,7 @@ import {
   miluimCreditPoints,
   MILUIM_CREDIT_FIRST_YEAR,
 } from "./types";
+import { capitalCalculators } from "./capital";
 
 export type { CalcResult, TaxEstimate } from "./types";
 
@@ -703,6 +704,8 @@ export const calculators: Record<string, Calculator> = {
   "field-miluim-credit": fieldMiluimCredit,
   "field-297-form-6111": field297Form6111,
   "field-364-donations-carried": field364DonationsCarried,
+  // הצהרת הון (Form 1219) — asset/liability subtotals + net capital.
+  ...capitalCalculators,
 };
 
 /** Run a calculator by its identifier in the form schema. */

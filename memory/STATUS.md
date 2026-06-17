@@ -1,5 +1,17 @@
 # status — איפה אנחנו עכשיו
 
+> עודכן: 2026-06-17 · ענף עבודה: `claude/beta-launch-prep-z2m6f5` · ספרינט הכנה-לבטא פעיל.
+> מקור-אמת לספרינט: `docs/launch/sprint-checklist.md` (צ׳קליסט בוקר לכל סשן).
+
+## 🏃 ספרינט בטא (4 ימים) — יום 1 הושלם
+תוכנית: 4 workstreams — עיצוב/motion · auth+תשלומים (Tranzila ready-to-connect, כבוי) ·
+הצהרת הון (1219 מלא) · הקשחה+אנליטיקס. **build ירוק, tsc נקי.** פירוט מלא ב-sprint-checklist.
+- ⚠️ **חוסם:** ה-Supabase MCP מחובר לחשבון שרואה רק `akfgudspliyymiysajoh`+`BlondeShell`
+  (שניהם paused), **לא** את `hbsgzelipeawkvtcazdr` ה"חי". **המיגרציות (billing+events) לא הוחלו** —
+  יוני צריך לאמת איזה פרויקט חי ולהחיל ידנית + לרגנרט database.types.
+
+---
+
 > עודכן: 2026-06-10 · ענף: `main` (פרודקשן חי) · פיילוט SaaS חי ב-`countmedemo-eight.vercel.app`.
 
 ## מצב — פיילוט חי בפרודקשן 🟢

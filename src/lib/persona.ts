@@ -143,6 +143,58 @@ export interface PersonaDeductions {
   lossOfWorkCapacityPremium?: number;     // for field 112 (אובדן כושר עבודה)
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * הצהרת הון — Capital declaration (Form 1219)
+ *
+ * A point-in-time snapshot of everything the taxpayer owns (assets) and owes
+ * (liabilities). The Tax Authority compares two declarations across years to
+ * check that the change in net worth is explained by declared income. countme
+ * computes the SUBTOTALS and NET CAPITAL from the user's own entries — it states
+ * facts, not advice; valuation rules are flagged to the רו"ח (israeli-tax-returns).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export type AssetCategory =
+  | "cash-and-deposits" // מזומן, עו"ש, פיקדונות, חסכונות
+  | "securities" // ניירות ערך וקרנות
+  | "provident-and-pension" // קופ"ג, קרן השתלמות, פנסיה
+  | "real-estate" // נדל"ן (דירות, מגרשים)
+  | "vehicles" // כלי רכב
+  | "business-capital" // הון בעסק (מלאי, ציוד, יתרת לקוחות)
+  | "loans-receivable" // הלוואות שנתן הנישום
+  | "life-insurance" // ביטוח חיים — ערך פדיון
+  | "personal-property" // מטלטלין, תכשיטים, אומנות
+  | "other-assets";
+
+export type LiabilityCategory =
+  | "mortgage" // משכנתא
+  | "bank-loan" // הלוואה בנקאית
+  | "private-loan" // הלוואה מאחר/קרוב
+  | "credit-balance" // יתרת אשראי/כרטיסים
+  | "supplier-debt" // חוב לספקים
+  | "other-liability";
+
+export interface AssetItem {
+  category: AssetCategory;
+  description: string;
+  value: number; // ₪ at the declaration date
+  /** Provenance of the number (bank statement, appraisal…) — feeds CalcResult sources. */
+  evidence?: string;
+}
+
+export interface LiabilityItem {
+  category: LiabilityCategory;
+  description: string;
+  value: number;
+  evidence?: string;
+}
+
+export interface PersonaCapitalDeclaration {
+  /** Snapshot date of the declaration, ISO (e.g. "2024-12-31"). */
+  declarationDate: string;
+  assets: AssetItem[];
+  liabilities: LiabilityItem[];
+}
+
 export interface Persona {
   id: string;
   displayName: string;
@@ -156,6 +208,8 @@ export interface Persona {
     annualTurnoverWithoutVat: number;
     isAbove6111Threshold: boolean;
   };
+  /** הצהרת הון (Form 1219). Optional — only present once the user fills it. */
+  capitalDeclaration?: PersonaCapitalDeclaration;
   invoiceCounter?: number;   // next invoice number to use
 }
 

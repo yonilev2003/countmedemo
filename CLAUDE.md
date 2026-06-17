@@ -44,7 +44,8 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 
 | Topic | Decision | Rationale |
 |---|---|---|
-| Stack | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Anthropic SDK | Latest, fast, deploys to Vercel |
+| Stack | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Anthropic SDK + framer-motion | Latest, fast, deploys to Vercel. framer-motion (12.x) added 2026-06-17 for the beta-launch UX polish — animation lives ONLY in `src/components/brand/motion.tsx` (Reveal/Stagger/CountUp), all reduced-motion-aware |
+| Payments | Israeli PSP via a provider-agnostic seam (`src/lib/billing/`) — **Tranzila** is the chosen integration, **ready-to-connect but NOT live**. Gated by `BILLING_ENABLED` (off = free beta). Tracks→integration→features map in `src/lib/billing/tracks.ts` | Israel needs a real חשבונית מס; Stripe can't. Multiple paid tracks may use different integrations — kept explicit (added 2026-06-17) |
 | Hosting | Vercel | Project email account (NOT yoni's personal) |
 | Database | Supabase | Postponed — connecting Day 2+ |
 | AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
