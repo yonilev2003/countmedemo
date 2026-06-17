@@ -9,7 +9,47 @@ branch: claude/beta-launch-prep-z2m6f5
 
 > One dated section per work session. Newest on top. Each session ends here so
 > Yoni can review before we proceed. **Assume fixes** — flag anything to change.
-> Plan: `/root/.claude/plans/eager-hopping-blum.md` (4 workstreams A/B/C/D).
+> Plan: `/root/.claude/plans/eager-hopping-blum.md` (now A–H — addendum v2 added E–H).
+
+---
+
+## 🌙 Night session — 2026-06-17 (workstreams E / H / B; G frozen)
+
+**Build:** `npm run build` ✅ green after every commit · 28 routes (added `/home`, `/pricing`).
+Ran everything **not blocked**; miluim (G) deliberately **frozen pending verification**.
+
+### ✅ Done & pushed
+- **E — login UX + shortcuts home + routing** (`d500a7f`):
+  - New device-adaptive **`/home`** shortcuts hub (returning users land here; reuses
+    `QUICK_ACTIONS`; 2-up phone / 3-up desktop; skeleton + first-timer→`/setup` redirect).
+  - OAuth callback default `next` → `/home`; middleware protects `/home`; manifest `start_url`→`/home`.
+  - Login: "what happens next" reassurance strip.
+  - **`docs/launch/oauth-branding.md`** — exact steps for the "להמשיך אל CountMe" consent fix (Yoni-config).
+- **H — Eitan deepened (BOTH context + tools)** (`d5965e9`):
+  - New `src/lib/agent/tools.ts`: `buildRichContext()` (computed 1301 values + tax estimate +
+    ceiling + deadlines) **and** `EITAN_TOOLS` + `runEitanTool()` for live retrieval.
+  - Tools: `get_form_value`, `get_tax_estimate`, `get_upcoming_deadlines`, `get_ceiling_status` —
+    persona-derived, **no dependency on the blocked DB**.
+  - Bounded tool-use loop (max 4 rounds) wired into **`/api/coach` + `/api/chat`**; streaming preserved.
+- **B — `/pricing`** (`ba08572`): free vs pro from `TRACKS`; no-op "free in beta" CTA while billing off.
+- **Miluim knowledge doc** (`22017ec`, prior): `docs/launch/miluim-knowledge.md` — for verification.
+
+### ℹ️ Already in place (verified, no work needed)
+- **F PWA:** `public/sw.js` exists (network-first) + manifest — installable. Responsive via Tailwind.
+- **D hardening:** `/api/{chat,coach}` rate-limit (12/min) + input validation present;
+  `error.tsx` + `global-error.tsx` exist.
+
+### 🔴 Needs Yoni (blockers carried)
+1. **Supabase live project** — MCP sees only `akfg`+`BlondeShell` (paused), not `hbsgz`. Migrations unapplied.
+2. **Miluim (G) verification** — 3 questions in `miluim-knowledge.md`: (a) 2025 דוח shows *no* line
+   (credit for 2025 service lands on the **2026** return); (b) exact 2027 ladder; (c) real 1301 field code.
+   Code today is 2026-first + caps at 1.0 (misses the +0.25/5-days → 4-pt ladder).
+3. **OAuth branding** — console steps in `oauth-branding.md` (App name + Supabase auth host).
+
+### ⬜ Not started (unblocked, next)
+- A/F deep responsive polish at 390/768/1024/1440 (left for human visual verification).
+- C 1219 render page + setup capture · B PSP webhook/checkout · D reminders.
+- Link `/home` + `/pricing` into landing/nav.
 
 ---
 
