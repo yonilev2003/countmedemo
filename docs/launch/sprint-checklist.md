@@ -13,6 +13,26 @@ branch: claude/beta-launch-prep-z2m6f5
 
 ---
 
+## 🛠️ Supabase recovery — 2026-06-19
+
+**Did it myself via the Supabase MCP (no longer a Yoni ask):**
+- `list_projects` → the connected account sees **`akfgudspliyymiysajoh`** (countme, eu-central-1)
+  + `BlondeShell` only. Both were **INACTIVE/paused**.
+- **Restored** `akfgudspliyymiysajoh` and applied **all three migrations** to it
+  (`countme_init` → `billing` → `events`) — each returned success. Tables: profiles, incomes,
+  expenses, invoices, income_documents, invoice_sends, notifications, tax_rules, **plans**,
+  **subscriptions**, **payments**, **events**. Plans seeded (free/pro).
+- Updated `src/lib/supabase/database.types.ts` with plans/subscriptions/payments/events. Build ✅.
+
+**⚠️ The honest catch (needs your call — see "Needs Yoni"):** `memory/decisions.md` locks the
+**live** backend as **`hbsgzelipeawkvtcazdr`**, explicitly "not akfg". That project is **not
+visible to this MCP account at all** — i.e. the MCP is logged into a *different* Supabase account
+than the one that owns the live DB. So the migrations landed on **akfg** (which was empty — no
+data overwritten, all migrations idempotent), NOT on the live `hbsgz`. Two ways to resolve, your
+choice (steps in the report). Until then: prod DB schema unchanged; akfg is fully ready.
+
+---
+
 ## 🌙 Night session — 2026-06-17 (workstreams E / H / B; G frozen)
 
 **Build:** `npm run build` ✅ green after every commit · 28 routes (added `/home`, `/pricing`).
