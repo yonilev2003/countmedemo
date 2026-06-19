@@ -69,6 +69,10 @@ interface Step2Data {
   isNewResident: boolean;
   aliyahDate: string;
   academicDegreeYear: string;
+  /** Combat ("לוחם") reserve days served in the filing year — feeds the miluim
+   * credit (תיקון 283). For a 2025 filing this drives the forward-looking 2026
+   * forecast; from a 2026 filing it is the qualifying-year input. */
+  combatReserveDays: string;
   children: { birthYear: string }[];
 }
 
@@ -223,6 +227,7 @@ export default function SetupPage() {
     isNewResident: false,
     aliyahDate: "",
     academicDegreeYear: "",
+    combatReserveDays: "",
     children: [],
   });
 
@@ -273,6 +278,10 @@ export default function SetupPage() {
       isNewResident: saved.personal.isNewResident,
       aliyahDate: saved.personal.aliyahDate ?? "",
       academicDegreeYear: saved.personal.academicDegreeYear?.toString() ?? "",
+      combatReserveDays:
+        saved.personal.reserveDaysByYear?.[String(saved.income.year)]?.combatDays?.toString() ??
+        saved.personal.combatReserveDays?.toString() ??
+        "",
       children: saved.personal.children.map((c) => ({
         birthYear: c.birthYear.toString(),
       })),
@@ -489,6 +498,14 @@ export default function SetupPage() {
           ? Number(s2.academicDegreeYear)
           : null,
         aliyahDate: s2.isNewResident ? s2.aliyahDate || null : null,
+        // Combat reserve days, keyed by the filing (service) year. The miluim
+        // credit for tax year N reads N-1; for the 2025 demo this feeds the
+        // forward-looking 2026 forecast. TODO: capture multiple service years
+        // once filings span >1 year.
+        reserveDaysByYear:
+          Number(s2.combatReserveDays) > 0
+            ? { [String(selectedYear)]: { combatDays: Number(s2.combatReserveDays), nonCombatDays: 0 } }
+            : undefined,
         children: s2.children
           .filter((c) => c.birthYear)
           .map((c) => ({ birthYear: Number(c.birthYear) })),
@@ -947,6 +964,29 @@ export default function SetupPage() {
                   )}
                   <p className="mt-1 text-xs text-muted">
                     זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
+                  </p>
+                </div>
+
+                <div>
+                  <FieldLabel htmlFor="combatReserveDays">
+                    ימי מילואים כלוחם/ת בשנת {selectedYear} (אופציונלי)
+                  </FieldLabel>
+                  <input
+                    id="combatReserveDays"
+                    type="number"
+                    min={0}
+                    max={400}
+                    value={s2.combatReserveDays}
+                    onChange={(e) =>
+                      setS2({ ...s2, combatReserveDays: e.target.value })
+                    }
+                    className={inputCls(false)}
+                    dir="ltr"
+                    placeholder="לדוגמה: 45"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    נקודות זיכוי למשרתי מילואים כלוחמים (תיקון 283). הזיכוי חל מדוח
+                    2026 בגין שירות 2025 — בדוח {selectedYear} יוצג כצפי בלבד.
                   </p>
                 </div>
 
