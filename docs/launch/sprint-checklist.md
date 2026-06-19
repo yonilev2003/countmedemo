@@ -33,6 +33,18 @@ choice (steps in the report). Until then: prod DB schema unchanged; akfg is full
 
 ---
 
+## 🪖 Workstream G — מילואים IMPLEMENTED (2026-06-19)
+
+After Gemini's review unfroze the rules, G was implemented end-to-end (build ✅):
+- **Engine** (`calculators/types.ts`): full base ladder with **+0.25 per 5 days above 50, cap 4.0 @ 110 days** (was wrongly capped at 1.0); dedicated `MILUIM_CREDIT_POINT_VALUE=2904`; `miluimServiceYear` helper; corrected the "2028→2027" note.
+- **N-1 wiring** (`calculators/index.ts`): credit for tax year N now reads service days from **N-1** via `reserveDaysByYear`; forward-looking **forecast** on pre-2026 returns (Gemini's value-prop).
+- **Model** (`persona.ts`): formal `reserveDaysByYear` (service-year keyed) + `soldierServiceMonths`; removed the untyped cast.
+- **Form** (`form-1301/schema.ts`): miluim field in credit-points section (no official code yet → informative).
+- **Data/Capture**: Dana = 45 combat days 2025 (→0.75pt forecast); `/setup` step-2 input.
+- 🔴 **Only open:** 2027 **20-day entry tier** behind `TODO(Roy)` — reported value (20→0.75) is regressive vs base (30→0.5); awaiting official 2027 table (question drafted for Gemini).
+
+---
+
 ## 🌙 Night session — 2026-06-17 (workstreams E / H / B; G frozen)
 
 **Build:** `npm run build` ✅ green after every commit · 28 routes (added `/home`, `/pricing`).
