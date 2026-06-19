@@ -404,18 +404,26 @@ export function getTaxYearConstants(year: number): TaxYearConstants {
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Miluim (combat reserve) income-tax credit points — תיקון 283, approved by the
- * Knesset 2026-11-19. EFFECTIVE FROM TAX YEAR 2026 (for reserve service done in
- * 2025) — there is NO miluim credit-point benefit for tax year 2025 or earlier.
+ * Knesset 2025-11-19. EFFECTIVE FROM TAX YEAR 2026.
  *
- * Tiers for tax years 2026–2027 (CONFIRMED 2026-06 via Knesset + multiple CPA
- * firms): based on combat reserve days served in the qualifying year:
- *   30–39 days → 0.50 point · 40–49 days → 0.75 point · 50+ days → 1.00 point.
- * From tax year 2028 the day-thresholds drop (min 20 days) with a different
- * schedule — NOT modelled here; revisit when 2028 constants are added.
+ * MECHANISM (confirmed, Gemini review 2026-06-19): the credit in tax year N is
+ * based on the combat reserve days served in the PRIOR year (N-1). So the 2026
+ * return credits 2025 service; the 2027 return credits 2026 service. There is NO
+ * miluim credit line on the 2025 return itself — only a forward-looking forecast.
  *
- * Eligibility applies to combat ("לוחם") reservists; self-employed reservists are
- * eligible. Kept separate from the year constants because the benefit is
- * day-banded rather than a single scalar. See field-miluim calculator.
+ * BASE LADDER for tax years 2026–2027 (combat "לוחם" days in the qualifying year):
+ *   30–39 → 0.50 · 40–49 → 0.75 · 50 → 1.00, then +0.25 per full 5 days beyond
+ *   50, capped at 4.00 points (reached at 110 days). Point value = 2,904 ₪
+ *   (frozen 2024–2027), so the max benefit is 11,616 ₪.
+ *
+ * 2027 ENTRY TIER — TODO(Roy): sources mention a lower 20-day entry tier added
+ * for tax year 2027 (for 2026 service). The reported value (20 days → 0.75) is
+ * regressive against the base ladder (30 days → 0.50) and is NOT modelled until
+ * the official 2027 table is confirmed (חוזר רשות המסים 16.12.2025). Until then
+ * 2027 uses the same base ladder as 2026.
+ *
+ * Eligibility applies to combat reservists; self-employed reservists are eligible
+ * and claim it on the annual return (Form 1301). See field-miluim calculator.
  * ────────────────────────────────────────────────────────────────────────── */
 export interface MiluimCreditTier {
   minDays: number;
@@ -425,24 +433,50 @@ export interface MiluimCreditTier {
 /** First tax year the miluim credit-point benefit exists. */
 export const MILUIM_CREDIT_FIRST_YEAR = 2026;
 
-/** Day-banded miluim credit tiers for tax years 2026–2027 (descending). */
+/**
+ * Dedicated point value for the miluim credit (₪). Held separately from the
+ * general credit-point value because תיקון 283 froze the miluim point at 2,904 ₪
+ * for 2026–2027 specifically — if the general point is later indexed, the miluim
+ * point must NOT follow it silently.
+ */
+export const MILUIM_CREDIT_POINT_VALUE = 2904;
+
+/** Base day-bands for the linear ladder (descending). Documentation of the
+ * fixed-point bands below 50; the >50 progression is computed in the function. */
 export const MILUIM_CREDIT_TIERS_2026: MiluimCreditTier[] = [
   { minDays: 50, points: 1.0 },
   { minDays: 40, points: 0.75 },
   { minDays: 30, points: 0.5 },
 ];
 
+/** Minimum combat days for any credit under the base ladder (2026–2027). */
+const MILUIM_MIN_DAYS = 30;
+/** Maximum credit points (reached at 110 days). */
+const MILUIM_MAX_POINTS = 4.0;
+
 /**
- * Resolve miluim combat-reserve credit points for a tax year + days served.
- * Returns 0 for years before 2026 (benefit did not exist) or below the 30-day
- * minimum. For 2028+ the tiers change — this still applies the 2026–2027 table
- * and should be revisited when 2028 is modelled.
+ * Resolve miluim combat-reserve credit POINTS for a given TAX YEAR + combat days
+ * served in the qualifying (prior) year. Implements the full base ladder
+ * including the +0.25-per-5-days progression above 50 days, capped at 4.0.
+ * Returns 0 before 2026 or below the 30-day minimum.
+ *
+ * NOTE: `combatReserveDays` must already be the PRIOR-year (N-1) figure — use
+ * `miluimCreditPointsForFiling` to resolve it from a persona's reserveDaysByYear.
  */
-export function miluimCreditPoints(year: number, combatReserveDays: number): number {
-  if (year < MILUIM_CREDIT_FIRST_YEAR) return 0;
-  if (!combatReserveDays || combatReserveDays <= 0) return 0;
-  const tier = MILUIM_CREDIT_TIERS_2026.find((t) => combatReserveDays >= t.minDays);
-  return tier ? tier.points : 0;
+export function miluimCreditPoints(taxYear: number, combatReserveDays: number): number {
+  if (taxYear < MILUIM_CREDIT_FIRST_YEAR) return 0;
+  const days = combatReserveDays || 0;
+  if (days < MILUIM_MIN_DAYS) return 0;
+  if (days < 40) return 0.5;
+  if (days < 50) return 0.75;
+  // 50+ : 1.0 at 50, +0.25 per full 5 days beyond 50, capped at 4.0 (110 days).
+  const extraSteps = Math.floor((days - 50) / 5);
+  return Math.min(MILUIM_MAX_POINTS, 1.0 + extraSteps * 0.25);
+}
+
+/** The service year whose days feed the credit on a given filing (tax) year. */
+export function miluimServiceYear(taxYear: number): number {
+  return taxYear - 1;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

@@ -21,6 +21,9 @@
     "soldierDischargeDate": null,
     "academicDegreeYear": null,
     "aliyahDate": null,
+    "reserveDaysByYear": {
+      "2025": { "combatDays": 45, "nonCombatDays": 0 }
+    },
     "children": []
   },
 

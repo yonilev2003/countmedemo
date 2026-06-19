@@ -24,8 +24,21 @@ export interface PersonaPersonal {
   isEilatResident: boolean;
   isSoldierDischarged: boolean;
   soldierDischargeDate: string | null;
+  /** Length of regular military service in months — drives the discharged-soldier
+   * credit's full (1/6) vs partial (1/12) per-month rate. Absent ⇒ assume full. */
+  soldierServiceMonths?: number | null;
   academicDegreeYear: number | null;
   aliyahDate?: string | null;  // date of aliyah (ISO), for עולה חדש/ה credit
+  /**
+   * Combat ("לוחם") reserve days served, keyed by SERVICE year (e.g. "2025").
+   * The miluim credit (תיקון 283) for tax year N is based on days served in N-1,
+   * so the calculator looks up reserveDaysByYear[N-1]. `nonCombatDays` is captured
+   * for future benefits but does NOT feed the current combat-only credit.
+   */
+  reserveDaysByYear?: Record<string, { combatDays: number; nonCombatDays?: number }>;
+  /** @deprecated Legacy single-year combat days — superseded by reserveDaysByYear.
+   * Read only as a fallback when reserveDaysByYear has no entry for the year. */
+  combatReserveDays?: number | null;
   /** List of children for credit point calculations */
   children: { birthYear: number }[];
 }
