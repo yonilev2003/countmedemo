@@ -6,6 +6,7 @@ import { Reveal } from "@/components/brand/motion";
 import { CheckIcon, SparklesIcon } from "@/components/brand/icons";
 import { TRACKS, type Feature } from "@/lib/billing/tracks";
 import { isBillingEnabled } from "@/lib/billing/entitlement";
+import { ProCheckoutButton } from "./checkout-button";
 
 export const metadata: Metadata = {
   title: "מחירים — CountMe",
@@ -95,9 +96,7 @@ export default function PricingPage() {
               ))}
             </ul>
             {billingLive ? (
-              <Link href="/checkout" className={btn("gold", "md", "mt-7 w-full")}>
-                למסלול המלא
-              </Link>
+              <ProCheckoutButton />
             ) : (
               <button
                 type="button"
