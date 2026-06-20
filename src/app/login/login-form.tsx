@@ -53,6 +53,19 @@ export function LoginForm() {
           לא הצלחנו לפתוח את חלון ההתחברות. נסו שוב.
         </p>
       )}
+
+      {/* First-time path: try the product by filling data, without signing in. */}
+      <div className="mt-1 flex items-center gap-3 text-white/50">
+        <span className="h-px flex-1 bg-white/20" />
+        <span className="text-xs">פעם ראשונה?</span>
+        <span className="h-px flex-1 bg-white/20" />
+      </div>
+      <a
+        href="/setup"
+        className="flex h-[48px] w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      >
+        התחילו במילוי הנתונים →
+      </a>
     </div>
   );
 }
