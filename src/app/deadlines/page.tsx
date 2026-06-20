@@ -27,6 +27,7 @@ import {
   type Authority,
   type FilerType,
 } from "@/lib/deadlines/calendar";
+import { googleCalendarUrl, icsDataUrl } from "@/lib/deadlines/calendar-links";
 import {
   getNotes,
   addNote,
@@ -219,14 +220,40 @@ function DeadlineCard({ d }: { d: UpcomingDeadline }) {
         </StatusBadge>
       </div>
 
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-deep transition-colors hover:text-teal-600"
-      >
-        <ClipboardCheckIcon className="size-4" />
-        פולו-אפ / הערות{openCount > 0 ? ` (${openCount} פתוחות)` : ""}
-        <ChevronDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} />
-      </button>
+      <div className="mt-3 flex items-center gap-4 flex-wrap">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-deep transition-colors hover:text-teal-600"
+        >
+          <ClipboardCheckIcon className="size-4" />
+          פולו-אפ / הערות{openCount > 0 ? ` (${openCount} פתוחות)` : ""}
+          <ChevronDownIcon className={cn("size-4 transition-transform", open && "rotate-180")} />
+        </button>
+        <a
+          href={googleCalendarUrl({
+            title: `countme — ${d.titleHe}`,
+            date: d.nextDueDate,
+            details: `${d.dueRule}${d.notesHe ? ` · ${d.notesHe}` : ""}`,
+          })}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-deep transition-colors hover:text-teal-600"
+        >
+          <CalendarIcon className="size-4" />
+          הוסף ליומן Google
+        </a>
+        <a
+          href={icsDataUrl({
+            title: `countme — ${d.titleHe}`,
+            date: d.nextDueDate,
+            details: `${d.dueRule}${d.notesHe ? ` · ${d.notesHe}` : ""}`,
+          })}
+          download={`countme-${d.id}.ics`}
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-faint transition-colors hover:text-brand-deep"
+        >
+          הורדת .ics
+        </a>
+      </div>
 
       {open && (
         <div className="mt-2 rounded-xl bg-cream border border-line p-3">
