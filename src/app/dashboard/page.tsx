@@ -32,6 +32,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { Reveal } from "@/components/brand/motion";
+import { calculate } from "@/lib/calculators";
 import {
   BellIcon,
   CalendarIcon,
@@ -325,7 +326,12 @@ export default function DashboardPage() {
       <div className="space-y-2.5 text-sm">
         {[
           { label: "מחזור לשדה 238", value: pl.totalRevenue },
-          { label: "הכנסה חייבת (שדה 150)", value: pl.netProfit },
+          {
+            label: "הכנסה חייבת (שדה 150)",
+            // Use the canonical field-150 calculator (zeir-aware: 70% of turnover
+            // for עוסק זעיר), NOT raw netProfit which ignores the 30% rule.
+            value: Number(calculate("field-150-business-income", persona)?.value ?? pl.netProfit),
+          },
         ].map((row) => (
           <div
             key={row.label}
