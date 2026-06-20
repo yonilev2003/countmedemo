@@ -31,6 +31,7 @@ import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { Reveal } from "@/components/brand/motion";
 import {
   BellIcon,
   CalendarIcon,
@@ -440,9 +441,9 @@ export default function DashboardPage() {
         */}
 
         {/* Top: income vs ceiling */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <IncomeCeilingCard persona={persona} />
-        </div>
+        </Reveal>
 
         {/* Hero + status + list. Order utilities honor each mockup:
             mobile = hero first; desktop = status | hero | list. */}
@@ -478,14 +479,14 @@ export default function DashboardPage() {
         <div className="mb-5">{kpiStrip}</div>
 
         {/* Expense-ratio insight (zeir track 30% rule) */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
-        </div>
+        </Reveal>
 
         {/* Forward-looking advances forecast */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <ForecastCard persona={persona} />
-        </div>
+        </Reveal>
 
         {/* Charts + Eitan + quick-actions rail (rail only shows on lg) */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

@@ -10,6 +10,7 @@ import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, SparklesIcon } from "@/components/brand/icons";
 import { Form1219Preview } from "@/components/form-1219/form-preview";
+import { CountUp } from "@/components/brand/motion";
 
 const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
 
@@ -92,9 +93,9 @@ export default function Form1219Page() {
           <>
             {/* Net-capital highlight */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 mb-6">
-              <SummaryStat label="סך נכסים" value={ils(totalAssets)} tone="navy" />
-              <SummaryStat label="סך התחייבויות" value={ils(totalLiabilities)} tone="muted" />
-              <SummaryStat label="הון נקי" value={ils(netCapital)} tone="gold" />
+              <SummaryStat label="סך נכסים" value={totalAssets} tone="navy" />
+              <SummaryStat label="סך התחייבויות" value={totalLiabilities} tone="muted" />
+              <SummaryStat label="הון נקי" value={netCapital} tone="gold" />
             </div>
 
             {/* The form in the countme beige frame (signals "this is countme, not gov.il") */}
@@ -124,7 +125,7 @@ function SummaryStat({
   tone,
 }: {
   label: string;
-  value: string;
+  value: number;
   tone: "navy" | "muted" | "gold";
 }) {
   const toneCls =
@@ -136,12 +137,11 @@ function SummaryStat({
   return (
     <div className={`rounded-xl border p-4 text-center shadow-sm ${toneCls}`}>
       <div className="text-xs font-semibold text-muted mb-1">{label}</div>
-      <div
+      <CountUp
+        value={value}
+        format={ils}
         className="text-xl font-extrabold text-brand-navy"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
-        {value}
-      </div>
+      />
     </div>
   );
 }
