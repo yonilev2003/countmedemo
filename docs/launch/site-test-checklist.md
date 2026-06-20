@@ -90,13 +90,16 @@ service-role + ANTHROPIC_API_KEY). Without it, the app runs in localStorage-pers
 | 6.5 | Click the value → formula cites days → points → ₪, and the service year (2025) | desktop | |
 | 6.6 | Below 30 days → "אין זיכוי"; the 2027 entry-tier is intentionally not modelled (TODO Roy) | — | |
 
-## 6b. Form 1219 / capital declaration (workstream C — IN PROGRESS)
+## 6b. Form 1219 / capital declaration (workstream C — DONE)
 
 | # | What to check | Device | Your notes |
 |---|---|---|---|
-| 6b.1 | `/file/1219` renders the capital-declaration form (gov.il-faithful) | all | *pending C UI* |
-| 6b.2 | Asset/liability subtotals + net capital compute and are clickable | desktop | *pending* |
-| 6b.3 | `/setup` captures assets/liabilities | all | *pending* |
+| 6b.1 | `/file` shows a "הצהרת הון — טופס 1219" card → opens `/file/1219` | all | |
+| 6b.2 | `/file/1219` shows net-capital highlight (Dana: assets 1,836,000 − liab 751,000 = **net 1,085,000**) | all | |
+| 6b.3 | Form renders in the countme beige frame, 3 tabs (נכסים/התחייבויות/סיכום) | all | |
+| 6b.4 | Each subtotal is clickable → shows the items + evidence that fed it | desktop | |
+| 6b.5 | `/setup/assets` adds/edits/removes assets+liabilities; live net updates; "שמירה וצפייה" → 1219 reflects it | all | |
+| 6b.6 | With no declaration → `/file/1219` shows empty-state → `/setup/assets` | all | |
 
 ## 6c. Billing / pricing (workstream B — gated OFF)
 
