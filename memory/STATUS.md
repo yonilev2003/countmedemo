@@ -1,14 +1,19 @@
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-06-17 · ענף עבודה: `claude/beta-launch-prep-z2m6f5` · ספרינט הכנה-לבטא פעיל.
-> מקור-אמת לספרינט: `docs/launch/sprint-checklist.md` (צ׳קליסט בוקר לכל סשן).
+> עודכן: 2026-06-20 · ענף עבודה: `claude/beta-launch-prep-z2m6f5` · ספרינט הכנה-לבטא פעיל.
+> מקור-אמת: `docs/launch/status-vs-plan.md` (סטטוס A–H) + `docs/launch/sprint-checklist.md`.
 
-## 🏃 ספרינט בטא (4 ימים) — יום 1 הושלם
-תוכנית: 4 workstreams — עיצוב/motion · auth+תשלומים (Tranzila ready-to-connect, כבוי) ·
-הצהרת הון (1219 מלא) · הקשחה+אנליטיקס. **build ירוק, tsc נקי.** פירוט מלא ב-sprint-checklist.
-- ⚠️ **חוסם:** ה-Supabase MCP מחובר לחשבון שרואה רק `akfgudspliyymiysajoh`+`BlondeShell`
-  (שניהם paused), **לא** את `hbsgzelipeawkvtcazdr` ה"חי". **המיגרציות (billing+events) לא הוחלו** —
-  יוני צריך לאמת איזה פרויקט חי ולהחיל ידנית + לרגנרט database.types.
+## 🏃 ספרינט בטא — סטטוס A–H (2026-06-20)
+A 🟡30% · **B ✅90%** · **C ✅95%** · **D 🟡60%** · E ✅95% · F 🟡20% (PWA done) · **G ✅100%** · H ✅95%.
+**build ירוק, tsc נקי, 32 routes.**
+
+נסגר בסשנים האחרונים: G (מילואים מלא, N-1, סולם עד 4.0, צפי), C (1219: `/file/1219` + `/setup/assets` +
+דוגמת דנה נטו ₪1,085,000), B (routes `/api/billing/{checkout,webhook}` idempotent + `requirePlan` + CTA),
+D (add-to-calendar; chat rate-limit/ולידציה + error boundaries כבר היו), A (motion: dashboard Reveals + 1219 CountUp).
+
+- ✅ **יישור Supabase:** ה-backend האמיתי = **`hbsgzelipeawkvtcazdr`** (akfg ננטש — חשבון אחר ש-MCP רואה).
+  ה-MCP לא רואה את hbsgz → **billing+events צריך להריץ ידנית ב-SQL Editor של hbsgz** (SQL מוכן; ראה `connect-supabase-hbsgz.md`).
+- **נשאר:** A/F ליטוש ויזואלי (דורש עין על הדיפלוי) · D תזכורות-מייל (צריך תשתית שליחה) · תנאים: SQL על hbsgz, טרנזילה חי, פרטיות (יעל).
 
 ---
 
