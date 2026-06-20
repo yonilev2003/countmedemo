@@ -84,7 +84,7 @@ export default function Form1219Page() {
             <p className="text-sm text-muted mb-5">
               כדי שנמלא עבורך את טופס 1219, הוסף/י את הנכסים וההתחייבויות שלך.
             </p>
-            <Link href="/setup" className={btn("primary", "sm")}>
+            <Link href="/setup/assets" className={btn("primary", "sm")}>
               להוספת נתוני הון
             </Link>
           </div>
@@ -106,7 +106,10 @@ export default function Form1219Page() {
             </div>
 
             <p className="mt-4 text-center text-xs text-faint">
-              לחצו על כל ערך מחושב כדי לראות מאילו פריטים הוא מורכב.
+              לחצו על כל ערך מחושב כדי לראות מאילו פריטים הוא מורכב ·{" "}
+              <Link href="/setup/assets" className="text-brand-deep hover:underline">
+                עריכת נתוני הון
+              </Link>
             </p>
           </>
         )}
