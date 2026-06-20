@@ -205,7 +205,8 @@ export async function POST(request: Request) {
               event.type === "content_block_delta" &&
               event.delta.type === "text_delta"
             ) {
-              enqueue(event.delta.text);
+              // JSON-encode so newlines in a delta don't break SSE framing.
+              enqueue(JSON.stringify(event.delta.text));
             }
           }
 
