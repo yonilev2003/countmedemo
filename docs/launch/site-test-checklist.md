@@ -79,12 +79,37 @@ service-role + ANTHROPIC_API_KEY). Without it, the app runs in localStorage-pers
 | 5.4 | Default active tab = פרטים אישיים; no שלח/בדיקה toolbar (only המשך CTA) | all | |
 | 5.5 | Form is usable on phone (horizontal scroll acceptable but tabs reachable) | phone | |
 
-## 6. Miluim (workstream G — FROZEN, should be UNCHANGED)
+## 6. Miluim credit points (workstream G — IMPLEMENTED)
 
 | # | What to check | Device | Your notes |
 |---|---|---|---|
-| 6.1 | Confirm NOTHING miluim-related changed in the form yet (G is frozen pending your verification) | — | |
-| 6.2 | Read `docs/launch/miluim-knowledge.md` and answer the 3 questions in it | — | *see needed-from-you* |
+| 6.1 | `/setup` step 2 (נקודות זיכוי) has a **"ימי מילואים כלוחם/ת"** input; enter e.g. 45 | all | |
+| 6.2 | `/demo` credit-points section (יג) shows a **"זיכוי מילואים ללוחם"** row | desktop | |
+| 6.3 | On the **2025** return: row shows it's a **forecast** ("צפי לדוח 2026: … ₪"), not an active credit | desktop | |
+| 6.4 | Dana (45 days, 2025) → forecast = **0.75 נק' = 2,178 ₪** for the 2026 return | desktop | |
+| 6.5 | Click the value → formula cites days → points → ₪, and the service year (2025) | desktop | |
+| 6.6 | Below 30 days → "אין זיכוי"; the 2027 entry-tier is intentionally not modelled (TODO Roy) | — | |
+
+## 6b. Form 1219 / capital declaration (workstream C — IN PROGRESS)
+
+| # | What to check | Device | Your notes |
+|---|---|---|---|
+| 6b.1 | `/file/1219` renders the capital-declaration form (gov.il-faithful) | all | *pending C UI* |
+| 6b.2 | Asset/liability subtotals + net capital compute and are clickable | desktop | *pending* |
+| 6b.3 | `/setup` captures assets/liabilities | all | *pending* |
+
+## 6c. Billing / pricing (workstream B — gated OFF)
+
+| # | What to check | Device | Your notes |
+|---|---|---|---|
+| 6c.1 | `/pricing` Free vs Pro; Pro CTA disabled "חינם בזמן הבטא" while billing off | all | |
+| 6c.2 | No real checkout occurs (no PSP redirect) while `BILLING_ENABLED=false` | desktop | |
+
+## 6d. Analytics (workstream D)
+
+| # | What to check | Device | Your notes |
+|---|---|---|---|
+| 6d.1 | A run-through (setup → 1301 → coach) writes rows to the `events` table | desktop | *needs hbsgz + login* |
 
 ## 7. PWA / responsive (workstream F)
 
