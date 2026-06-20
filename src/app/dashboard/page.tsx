@@ -32,7 +32,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { Reveal } from "@/components/brand/motion";
-import { calculate } from "@/lib/calculators";
+import { calculate, estimateTaxLiability } from "@/lib/calculators";
 import {
   BellIcon,
   CalendarIcon,
@@ -226,8 +226,11 @@ export default function DashboardPage() {
       />
       <KPI
         label="מס הכנסה משוער"
-        value={fmt(Math.round(filteredNet * 0.2))}
-        sub="הערכה בלבד"
+        // Real annual estimate (zeir-aware taxable + brackets + credit points +
+        // deductions) — income tax is annual, so this is the yearly figure, not
+        // net×20%. Was a flat 20% of net profit, which ignored zeir + brackets.
+        value={fmt(estimateTaxLiability(persona).taxAfterCredits)}
+        sub="הערכה שנתית"
         color="text-muted"
         dot="bg-due"
         icon={<PercentIcon className="size-4" />}
