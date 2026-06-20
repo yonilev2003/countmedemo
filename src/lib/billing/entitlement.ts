@@ -39,6 +39,22 @@ function planEntitlement(plan: PlanId): Entitlement {
 }
 
 /**
+ * Guard for paid features (API routes / server actions). Resolves the user's
+ * entitlement and returns whether the feature is allowed, so callers can fence
+ * a feature in one line:
+ *   const { allowed } = await requirePlan(userId, "form_1219_full");
+ *   if (!allowed) return NextResponse.json({ error: "upgrade_required" }, { status: 402 });
+ * While BILLING_ENABLED is off everyone is allowed (free beta).
+ */
+export async function requirePlan(
+  userId: string | null | undefined,
+  feature: Feature,
+): Promise<{ allowed: boolean; entitlement: Entitlement }> {
+  const entitlement = await getEntitlement(userId);
+  return { allowed: entitlement.has(feature), entitlement };
+}
+
+/**
  * Resolve a user's entitlement. Server-only.
  * - Billing off → fully entitled (free beta).
  * - Billing on  → look up the active subscription; default to free.
