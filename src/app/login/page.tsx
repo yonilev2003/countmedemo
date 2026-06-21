@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { LogoMark } from "@/components/brand/logo";
-import { AlertTriangleIcon, ShieldIcon } from "@/components/brand/icons";
+import {
+  AlertTriangleIcon,
+  ShieldIcon,
+  SparklesIcon,
+  FileTextIcon,
+} from "@/components/brand/icons";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
@@ -116,6 +121,32 @@ export default async function LoginPage({
           )}
 
           <LoginForm />
+
+          {/* What happens next — quiet reassurance that deepens first-time trust */}
+          <ul className="mt-6 space-y-2.5 text-start">
+            {[
+              {
+                icon: <SparklesIcon className="size-4 text-brand" />,
+                text: "מתחברים פעם אחת — בכל כניסה הבאה נוחתים ישר על קיצורי הדרך",
+              },
+              {
+                icon: <FileTextIcon className="size-4 text-brand" />,
+                text: "אנחנו ממלאים מראש את הדוח השנתי — אתם רק מאשרים",
+              },
+              {
+                icon: <ShieldIcon className="size-4 text-brand" />,
+                text: "עובדות, לא עצות — והנתונים שלכם נשמרים מאובטחים",
+              },
+            ].map((item) => (
+              <li
+                key={item.text}
+                className="flex items-start gap-2.5 text-[13px] leading-snug text-aqua/85"
+              >
+                <span className="mt-0.5 shrink-0">{item.icon}</span>
+                {item.text}
+              </li>
+            ))}
+          </ul>
 
           <p className="mt-6 text-xs leading-relaxed text-aqua/70">
             בהתחברות אתם מאשרים את תנאי השימוש ומדיניות הפרטיות של countme.

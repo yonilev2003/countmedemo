@@ -301,6 +301,169 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          id: string
+          name_he: string
+          description_he: string | null
+          price_agorot: number
+          billing_interval: string
+          provider: string | null
+          is_active: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name_he: string
+          description_he?: string | null
+          price_agorot?: number
+          billing_interval?: string
+          provider?: string | null
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name_he?: string
+          description_he?: string | null
+          price_agorot?: number
+          billing_interval?: string
+          provider?: string | null
+          is_active?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          plan_id: string
+          status: string
+          current_period_end: string | null
+          cancel_at_period_end: boolean
+          psp: string | null
+          psp_subscription_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          plan_id: string
+          status?: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          psp?: string | null
+          psp_subscription_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          plan_id?: string
+          status?: string
+          current_period_end?: string | null
+          cancel_at_period_end?: boolean
+          psp?: string | null
+          psp_subscription_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          id: string
+          user_id: string
+          subscription_id: string | null
+          amount_agorot: number
+          currency: string
+          status: string
+          psp: string | null
+          psp_transaction_id: string | null
+          tax_invoice_number: string | null
+          tax_invoice_url: string | null
+          paid_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          subscription_id?: string | null
+          amount_agorot: number
+          currency?: string
+          status?: string
+          psp?: string | null
+          psp_transaction_id?: string | null
+          tax_invoice_number?: string | null
+          tax_invoice_url?: string | null
+          paid_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          subscription_id?: string | null
+          amount_agorot?: number
+          currency?: string
+          status?: string
+          psp?: string | null
+          psp_transaction_id?: string | null
+          tax_invoice_number?: string | null
+          tax_invoice_url?: string | null
+          paid_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          id: string
+          user_id: string | null
+          name: string
+          props: Json
+          path: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          name: string
+          props?: Json
+          path?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          name?: string
+          props?: Json
+          path?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

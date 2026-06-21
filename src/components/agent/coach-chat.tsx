@@ -285,7 +285,14 @@ export function CoachChat({ persona }: Props) {
             return;
           }
 
-          accumulated += data;
+          // Text deltas are JSON-encoded (newline-safe); control msgs handled above.
+          let text = data;
+          try {
+            text = JSON.parse(data) as string;
+          } catch {
+            /* fall back to raw data if it isn't JSON */
+          }
+          accumulated += text;
           setStreamingText(accumulated);
         }
       }

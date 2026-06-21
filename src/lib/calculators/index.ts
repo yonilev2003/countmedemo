@@ -14,8 +14,11 @@ import {
   TAX_YEAR_2024,
   getTaxYearConstants,
   miluimCreditPoints,
+  miluimServiceYear,
   MILUIM_CREDIT_FIRST_YEAR,
+  MILUIM_CREDIT_POINT_VALUE,
 } from "./types";
+import { capitalCalculators } from "./capital";
 
 export type { CalcResult, TaxEstimate } from "./types";
 
@@ -29,20 +32,16 @@ const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
  * ────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Optional persona.personal fields the credit-point calcs read, without
- * widening the shared Persona type (kept out of scope of this audit). When a
- * real persona omits them the calcs fall back to sensible defaults:
- *   - soldierServiceMonths: length of regular service in months. Drives the
- *     full (1/6) vs partial (1/12) per-month rate. Absent ⇒ assume full service.
- *   - combatReserveDays: combat reserve days served in the tax year, for the
- *     miluim credit (תיקון 283, from 2026). Absent ⇒ 0.
+ * Combat reserve days that feed the miluim credit on the persona's FILING year.
+ * The credit in tax year N is based on days served in N-1 (תיקון 283), so we read
+ * reserveDaysByYear[N-1].combatDays, falling back to the legacy single-year
+ * `combatReserveDays` field, then 0.
  */
-interface SoldierMiluimInputs {
-  soldierServiceMonths?: number | null;
-  combatReserveDays?: number | null;
-}
-function soldierMiluimInputs(p: Persona): SoldierMiluimInputs {
-  return p.personal as unknown as SoldierMiluimInputs;
+function combatReserveDaysForFiling(p: Persona): number {
+  const serviceYear = String(miluimServiceYear(p.income.year));
+  const entry = p.personal.reserveDaysByYear?.[serviceYear];
+  if (entry) return entry.combatDays ?? 0;
+  return p.personal.combatReserveDays ?? 0;
 }
 
 /** Base resident points: female 2.75, male 2.25 (israeli-tax-returns). */
@@ -73,7 +72,7 @@ function soldierCreditPoints(p: Persona): number {
   const year = p.income.year;
 
   // Per-month fraction depends on service length. Absent → assume full service.
-  const months = soldierMiluimInputs(p).soldierServiceMonths;
+  const months = p.personal.soldierServiceMonths;
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -161,7 +160,7 @@ export function totalCreditPoints(p: Persona): number {
       soldierCreditPoints(p) +
       childCreditPoints(p) +
       newOlehCreditPoints(p) +
-      miluimCreditPoints(p.income.year, soldierMiluimInputs(p).combatReserveDays ?? 0),
+      miluimCreditPoints(p.income.year, combatReserveDaysForFiling(p)),
   );
 }
 
@@ -358,7 +357,7 @@ export const field068Soldier: Calculator = (p) => {
     };
   }
   const TC = getTaxYearConstants(p.income.year);
-  const months = soldierMiluimInputs(p).soldierServiceMonths;
+  const months = p.personal.soldierServiceMonths;
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -401,21 +400,36 @@ export const field068Soldier: Calculator = (p) => {
 
 /* ============================================================
  * זיכוי נקודות למשרתי מילואים (לוחמים) — תיקון 283
- * רלוונטי משנת המס 2026 בלבד (בגין מילואים שבוצעו ב-2025).
- * 30–39 ימים → 0.5 · 40–49 → 0.75 · 50+ → 1.0 נקודה.
+ * הזיכוי בשנת מס N מבוסס על ימי המילואים שבוצעו בשנה הקודמת (N-1).
+ * רלוונטי משנת המס 2026 (בגין מילואים 2025) ואילך.
+ * סולם בסיס: 30–39 ימים → 0.5 · 40–49 → 0.75 · 50 → 1.0,
+ * ועוד 0.25 לכל 5 ימים מעל 50, עד תקרה של 4.0 נקודות (110 ימים).
  * ============================================================ */
 export const fieldMiluimCredit: Calculator = (p) => {
   const year = p.income.year;
-  const days = soldierMiluimInputs(p).combatReserveDays ?? 0;
-  const TC = getTaxYearConstants(year);
+  const serviceYear = miluimServiceYear(year);
+  const days = combatReserveDaysForFiling(p);
 
+  // Pre-2026 return: no active credit line. If days were recorded for THIS year
+  // (which feeds the NEXT year's return), surface a forward-looking forecast so
+  // the user can plan cash-flow — value, not just a passive note.
   if (year < MILUIM_CREDIT_FIRST_YEAR) {
+    const nextYear = year + 1;
+    const daysThisYear = p.personal.reserveDaysByYear?.[String(year)]?.combatDays ?? 0;
+    const forecastPoints = miluimCreditPoints(nextYear, daysThisYear);
+    const notes = ["ההטבה אושרה בכנסת ב-19.11.2025 וחלה על שנות המס 2026–2027 (בגין שירות 2025–2026)."];
+    if (forecastPoints > 0) {
+      notes.unshift(
+        `צפי לדוח ${nextYear}: על בסיס ${daysThisYear} ימי מילואים כלוחם ב-${year} מחכה לך זיכוי של ` +
+          `${forecastPoints} נק' (${ils(Math.round(forecastPoints * MILUIM_CREDIT_POINT_VALUE))}).`,
+      );
+    }
     return {
       value: false,
-      formula: `זיכוי מילואים חל משנת המס ${MILUIM_CREDIT_FIRST_YEAR} ואילך — לא רלוונטי לשנת ${year}`,
+      formula: `זיכוי מילואים חל משנת המס ${MILUIM_CREDIT_FIRST_YEAR} ואילך — לא רלוונטי לדוח ${year}`,
       sources: [{ label: "תיקון 283 — תחילה משנת המס 2026" }],
       confidence: "high",
-      notes: ["ההטבה אושרה בכנסת ב-19.11.2025 וחלה על שנות המס 2026–2027 (בגין שירות 2025–2026)."],
+      notes,
     };
   }
 
@@ -425,20 +439,23 @@ export const fieldMiluimCredit: Calculator = (p) => {
       value: false,
       formula:
         days > 0
-          ? `${days} ימי מילואים < סף מינימלי (30 ימים) — אין זיכוי`
-          : "לא הוזנו ימי מילואים כלוחם",
-      sources: [{ label: "personal.combatReserveDays", detail: days > 0 ? `${days} ימים` : "0" }],
+          ? `${days} ימי מילואים (${serviceYear}) < סף מינימלי (30 ימים) — אין זיכוי`
+          : `לא הוזנו ימי מילואים כלוחם לשנת השירות ${serviceYear}`,
+      sources: [{ label: `ימי מילואים כלוחם ${serviceYear}`, detail: days > 0 ? `${days} ימים` : "0" }],
       confidence: "high",
-      notes: ["נדרשים לפחות 30 ימי מילואים כלוחם בשנת המס לקבלת הזיכוי (2026–2027)."],
+      notes: [`נדרשים לפחות 30 ימי מילואים כלוחם בשנת ${serviceYear} לקבלת הזיכוי בדוח ${year}.`],
     };
   }
 
   return {
     value: true,
-    formula: `${days} ימי מילואים כלוחם → ${points} נקודות זיכוי (${ils(Math.round(points * TC.pointValueAnnual))})`,
-    sources: [{ label: "ימי מילואים כלוחם בשנת המס", detail: `${days} ימים` }],
+    formula: `${days} ימי מילואים כלוחם (${serviceYear}) → ${points} נק' זיכוי בדוח ${year} (${ils(Math.round(points * MILUIM_CREDIT_POINT_VALUE))})`,
+    sources: [{ label: `ימי מילואים כלוחם בשנת ${serviceYear}`, detail: `${days} ימים` }],
     confidence: "high",
-    notes: ["מדרגות 2026–2027: 30–39 ימים=0.5 · 40–49=0.75 · 50+=1.0. משנת 2028 הסף יורד ל-20 ימים."],
+    notes: [
+      "סולם 2026–2027: 30–39=0.5 · 40–49=0.75 · 50=1.0 · +0.25 לכל 5 ימים מעל 50, עד 4.0 (110 ימים).",
+      "מדרגת-כניסה של 20 ימים לשנת 2027 — TODO(Roy): טרם אומתה הטבלה הרשמית, לא ממודלת.",
+    ],
   };
 };
 
@@ -703,6 +720,8 @@ export const calculators: Record<string, Calculator> = {
   "field-miluim-credit": fieldMiluimCredit,
   "field-297-form-6111": field297Form6111,
   "field-364-donations-carried": field364DonationsCarried,
+  // הצהרת הון (Form 1219) — asset/liability subtotals + net capital.
+  ...capitalCalculators,
 };
 
 /** Run a calculator by its identifier in the form schema. */

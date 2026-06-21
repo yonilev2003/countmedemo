@@ -2,7 +2,7 @@
   "name": "CountMe — המלווה לדו״ח שלך",
   "short_name": "CountMe",
   "description": "המוצר שמלווה עצמאים ישראלים במילוי דו״חות מס",
-  "start_url": "/",
+  "start_url": "/home",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a3f6a",
@@ -20,9 +20,21 @@
   "categories": ["finance", "productivity"],
   "shortcuts": [
     {
+      "name": "קיצורי דרך",
+      "short_name": "בית",
+      "url": "/home",
+      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
+    },
+    {
       "name": "דשבורד",
       "short_name": "דשבורד",
       "url": "/dashboard",
+      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
+    },
+    {
+      "name": "חשבונית / קבלה",
+      "short_name": "חשבונית",
+      "url": "/invoices/new",
       "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
     },
     {

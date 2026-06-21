@@ -2,6 +2,27 @@
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 17/06/2026 — ספרינט הכנה-לבטא, יום 1 (foundations)
+
+ענף `claude/beta-launch-prep-z2m6f5`. מטרה: לקחת את המוצר לרמת בטא פרטי (יוני+שותפה) ואז 50 חברים,
+ב~4 ימים. תוכנית מלאה: `/root/.claude/plans/eager-hopping-blum.md`; צ׳קליסט יומי: `docs/launch/sprint-checklist.md`.
+
+**נבנה (יום 1, build ירוק):**
+- **תשלומים (כבוי):** seam אגנוסטי-לספק `src/lib/billing/` — `provider.ts`+`tranzila.ts`
+  (**Tranzila ready-to-connect, לא חי** לפי בקשת יוני), `tracks.ts` (מפת מסלול→אינטגרציה→פיצ׳רים),
+  `entitlement.ts`. דגל `BILLING_ENABLED`. מיגרציית `plans/subscriptions/payments` (+חשבונית מס).
+- **הצהרת הון (1219):** פרסונה הורחבה (נכסים/התחייבויות), `lib/calculators/capital.ts` (הון נקי),
+  `lib/form-1219/schema.ts` (מנוע 1301 הגנרי בשימוש חוזר).
+- **אנליטיקס:** `lib/analytics/track.ts` + `/api/track` + מיגרציית `events`.
+- **עיצוב:** framer-motion 12.40 + `components/brand/motion.tsx` (Reveal/Stagger/CountUp, reduced-motion).
+- **GTM כ-vault של Obsidian:** `docs/gtm/` (index+notes), נתפס כחי/בר-שינוי.
+
+**החלטות סשן:** תשלומים=Tranzila (כבוי) · בטא חינם, תשלום בנוי-כבוי · מסלולים מרובים, כל אחד עם
+אינטגרציה ברורה משלו · GTM=Obsidian חי.
+
+**חוסם שהתגלה:** ה-Supabase MCP על חשבון שלא רואה את `hbsgzelipeawkvtcazdr` — **מיגרציות לא הוחלו**.
+הקוד סובלני (אנליטיקס best-effort, entitlement fail-safe) אז ה-build ירוק בלי הטבלאות.
+
 ## סבב 10/06/2026 — מילסטון: דמו → פיילוט SaaS חי בפרודקשן
 
 יום ענק. עברנו מ-דמו-localStorage ל-**פלטפורמת SaaS חיה ומאובטחת** ב-`countmedemo-eight.vercel.app`. **10 PRs מוזגו ל-main, אפס שבירות.**

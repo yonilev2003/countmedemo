@@ -24,8 +24,21 @@ export interface PersonaPersonal {
   isEilatResident: boolean;
   isSoldierDischarged: boolean;
   soldierDischargeDate: string | null;
+  /** Length of regular military service in months — drives the discharged-soldier
+   * credit's full (1/6) vs partial (1/12) per-month rate. Absent ⇒ assume full. */
+  soldierServiceMonths?: number | null;
   academicDegreeYear: number | null;
   aliyahDate?: string | null;  // date of aliyah (ISO), for עולה חדש/ה credit
+  /**
+   * Combat ("לוחם") reserve days served, keyed by SERVICE year (e.g. "2025").
+   * The miluim credit (תיקון 283) for tax year N is based on days served in N-1,
+   * so the calculator looks up reserveDaysByYear[N-1]. `nonCombatDays` is captured
+   * for future benefits but does NOT feed the current combat-only credit.
+   */
+  reserveDaysByYear?: Record<string, { combatDays: number; nonCombatDays?: number }>;
+  /** @deprecated Legacy single-year combat days — superseded by reserveDaysByYear.
+   * Read only as a fallback when reserveDaysByYear has no entry for the year. */
+  combatReserveDays?: number | null;
   /** List of children for credit point calculations */
   children: { birthYear: number }[];
 }
@@ -143,6 +156,58 @@ export interface PersonaDeductions {
   lossOfWorkCapacityPremium?: number;     // for field 112 (אובדן כושר עבודה)
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * הצהרת הון — Capital declaration (Form 1219)
+ *
+ * A point-in-time snapshot of everything the taxpayer owns (assets) and owes
+ * (liabilities). The Tax Authority compares two declarations across years to
+ * check that the change in net worth is explained by declared income. countme
+ * computes the SUBTOTALS and NET CAPITAL from the user's own entries — it states
+ * facts, not advice; valuation rules are flagged to the רו"ח (israeli-tax-returns).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export type AssetCategory =
+  | "cash-and-deposits" // מזומן, עו"ש, פיקדונות, חסכונות
+  | "securities" // ניירות ערך וקרנות
+  | "provident-and-pension" // קופ"ג, קרן השתלמות, פנסיה
+  | "real-estate" // נדל"ן (דירות, מגרשים)
+  | "vehicles" // כלי רכב
+  | "business-capital" // הון בעסק (מלאי, ציוד, יתרת לקוחות)
+  | "loans-receivable" // הלוואות שנתן הנישום
+  | "life-insurance" // ביטוח חיים — ערך פדיון
+  | "personal-property" // מטלטלין, תכשיטים, אומנות
+  | "other-assets";
+
+export type LiabilityCategory =
+  | "mortgage" // משכנתא
+  | "bank-loan" // הלוואה בנקאית
+  | "private-loan" // הלוואה מאחר/קרוב
+  | "credit-balance" // יתרת אשראי/כרטיסים
+  | "supplier-debt" // חוב לספקים
+  | "other-liability";
+
+export interface AssetItem {
+  category: AssetCategory;
+  description: string;
+  value: number; // ₪ at the declaration date
+  /** Provenance of the number (bank statement, appraisal…) — feeds CalcResult sources. */
+  evidence?: string;
+}
+
+export interface LiabilityItem {
+  category: LiabilityCategory;
+  description: string;
+  value: number;
+  evidence?: string;
+}
+
+export interface PersonaCapitalDeclaration {
+  /** Snapshot date of the declaration, ISO (e.g. "2024-12-31"). */
+  declarationDate: string;
+  assets: AssetItem[];
+  liabilities: LiabilityItem[];
+}
+
 export interface Persona {
   id: string;
   displayName: string;
@@ -156,6 +221,8 @@ export interface Persona {
     annualTurnoverWithoutVat: number;
     isAbove6111Threshold: boolean;
   };
+  /** הצהרת הון (Form 1219). Optional — only present once the user fills it. */
+  capitalDeclaration?: PersonaCapitalDeclaration;
   invoiceCounter?: number;   // next invoice number to use
 }
 

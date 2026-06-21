@@ -125,6 +125,28 @@ export default function FilePage() {
           </Link>
         </div>
 
+        {/* Capital declaration — separate form (1219) */}
+        <Link
+          href="/file/1219"
+          className="group mt-6 flex items-center gap-4 rounded-2xl border border-line bg-paper p-6 shadow-brand transition-all hover:border-brand/60 hover:shadow-brand-lg"
+        >
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-beige-100 text-beige-600">
+            <ClipboardCheckIcon className="size-5" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-display text-xl font-bold text-brand-navy mb-1">
+              הצהרת הון — טופס 1219
+            </h2>
+            <p className="text-sm text-muted leading-relaxed">
+              נכסים והתחייבויות מסוכמים אוטומטית להון נקי, עם מקור לכל מספר. נדרש
+              כשרשות המסים מבקשת הצהרת הון.
+            </p>
+          </div>
+          <div className="text-sm font-medium text-beige-600 group-hover:underline whitespace-nowrap">
+            למילוי 1219
+          </div>
+        </Link>
+
         <p className="mt-8 text-center text-xs text-faint">
           אחרי שמילאת את הנתונים —{" "}
           <Link href="/demo" className="text-brand-deep hover:underline">

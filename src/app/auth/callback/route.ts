@@ -12,8 +12,10 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // `next` lets callers send the user somewhere specific post-login.
   // Guard against open-redirects: only honor same-origin absolute paths.
+  // Default → /home (the shortcuts hub), which itself forwards first-timers
+  // with no persona on to /setup, so returning users land on shortcuts directly.
   const nextParam = searchParams.get("next");
-  const next = nextParam && nextParam.startsWith("/") ? nextParam : "/setup";
+  const next = nextParam && nextParam.startsWith("/") ? nextParam : "/home";
 
   if (code) {
     const supabase = await createClient();

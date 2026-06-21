@@ -21,6 +21,9 @@
     "soldierDischargeDate": null,
     "academicDegreeYear": null,
     "aliyahDate": null,
+    "reserveDaysByYear": {
+      "2025": { "combatDays": 45, "nonCombatDays": 0 }
+    },
     "children": []
   },
 
@@ -139,5 +142,22 @@
     "annualTurnoverWithoutVat": 248500,
     "isAbove6111Threshold": false,
     "_note": "Field 297 (form 6111) triggers when turnover > 256,410 ILS. Dana is just below."
+  },
+
+  "capitalDeclaration": {
+    "_comment": "Form 1219 sample. Illustrative-but-plausible. Net capital = assets - liabilities.",
+    "declarationDate": "2025-12-31",
+    "assets": [
+      { "category": "cash-and-deposits", "description": "עו\"ש + פיקדון בנק הפועלים", "value": 84000, "evidence": "דף חשבון 31/12/2025" },
+      { "category": "securities", "description": "תיק ני\"ע ומק\"מ (IBI)", "value": 62000, "evidence": "אישור יתרות ברוקר" },
+      { "category": "provident-and-pension", "description": "קרן השתלמות + פנסיה (מיטב)", "value": 138000, "evidence": "דוח רבעוני" },
+      { "category": "real-estate", "description": "דירה בתל אביב (חלק יחסי 50%)", "value": 1450000, "evidence": "שווי מוצהר" },
+      { "category": "vehicles", "description": "רכב פרטי יונדאי i20 2022", "value": 78000, "evidence": "מחירון לוי יצחק" },
+      { "category": "business-capital", "description": "ציוד עיצוב + יתרת לקוחות", "value": 24000, "evidence": "ספרי העסק" }
+    ],
+    "liabilities": [
+      { "category": "mortgage", "description": "משכנתא דירת תל אביב (חלק יחסי)", "value": 720000, "evidence": "לוח סילוקין בנק" },
+      { "category": "bank-loan", "description": "הלוואה לרכב", "value": 31000, "evidence": "דף הלוואה" }
+    ]
   }
 }

@@ -26,7 +26,12 @@ export default function Home() {
               <SparklesIcon className="size-4 text-beige-600" /> איתן
             </NavAnchor>
             <NavAnchor href="#social">קהילה</NavAnchor>
-            <NavAnchor href="#pricing">מחירים</NavAnchor>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-[10px] px-[13px] py-2 text-[14.5px] font-semibold text-muted transition-colors hover:bg-cream hover:text-brand-navy"
+            >
+              מחירים
+            </Link>
           </nav>
           <div className="flex items-center gap-2.5">
             <Link href="/login" className={btn("secondary", "sm")}>
@@ -360,6 +365,7 @@ export default function Home() {
                   { label: "מילוי 1301", href: "/file" },
                   { label: "דשבורד", href: "/dashboard" },
                   { label: "חשבוניות", href: "/invoices" },
+                  { label: "מחירים", href: "/pricing" },
                   { label: "איתן", href: "/coach" },
                 ]}
               />

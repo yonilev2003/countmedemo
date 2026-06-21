@@ -31,6 +31,8 @@ import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { Reveal } from "@/components/brand/motion";
+import { calculate, estimateTaxLiability } from "@/lib/calculators";
 import {
   BellIcon,
   CalendarIcon,
@@ -224,8 +226,11 @@ export default function DashboardPage() {
       />
       <KPI
         label="מס הכנסה משוער"
-        value={fmt(Math.round(filteredNet * 0.2))}
-        sub="הערכה בלבד"
+        // Real annual estimate (zeir-aware taxable + brackets + credit points +
+        // deductions) — income tax is annual, so this is the yearly figure, not
+        // net×20%. Was a flat 20% of net profit, which ignored zeir + brackets.
+        value={fmt(estimateTaxLiability(persona).taxAfterCredits)}
+        sub="הערכה שנתית"
         color="text-muted"
         dot="bg-due"
         icon={<PercentIcon className="size-4" />}
@@ -324,7 +329,12 @@ export default function DashboardPage() {
       <div className="space-y-2.5 text-sm">
         {[
           { label: "מחזור לשדה 238", value: pl.totalRevenue },
-          { label: "הכנסה חייבת (שדה 150)", value: pl.netProfit },
+          {
+            label: "הכנסה חייבת (שדה 150)",
+            // Use the canonical field-150 calculator (zeir-aware: 70% of turnover
+            // for עוסק זעיר), NOT raw netProfit which ignores the 30% rule.
+            value: Number(calculate("field-150-business-income", persona)?.value ?? pl.netProfit),
+          },
         ].map((row) => (
           <div
             key={row.label}
@@ -440,9 +450,9 @@ export default function DashboardPage() {
         */}
 
         {/* Top: income vs ceiling */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <IncomeCeilingCard persona={persona} />
-        </div>
+        </Reveal>
 
         {/* Hero + status + list. Order utilities honor each mockup:
             mobile = hero first; desktop = status | hero | list. */}
@@ -478,14 +488,14 @@ export default function DashboardPage() {
         <div className="mb-5">{kpiStrip}</div>
 
         {/* Expense-ratio insight (zeir track 30% rule) */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
-        </div>
+        </Reveal>
 
         {/* Forward-looking advances forecast */}
-        <div className="mb-5">
+        <Reveal className="mb-5">
           <ForecastCard persona={persona} />
-        </div>
+        </Reveal>
 
         {/* Charts + Eitan + quick-actions rail (rail only shows on lg) */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

@@ -18,6 +18,7 @@ import type { Database } from "./database.types";
 
 /** Pathname prefixes that require an authenticated user. */
 const PROTECTED_PREFIXES = [
+  "/home",
   "/demo",
   "/setup",
   "/business-expenses",
