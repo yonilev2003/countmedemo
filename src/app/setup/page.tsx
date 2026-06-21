@@ -66,6 +66,7 @@ interface Step1Data {
 interface Step2Data {
   isSoldierDischarged: boolean;
   soldierDischargeDate: string;
+  soldierServiceMonths: string;
   isNewResident: boolean;
   aliyahDate: string;
   academicDegreeYear: string;
@@ -224,6 +225,7 @@ export default function SetupPage() {
   const [s2, setS2] = useState<Step2Data>({
     isSoldierDischarged: false,
     soldierDischargeDate: "",
+    soldierServiceMonths: "",
     isNewResident: false,
     aliyahDate: "",
     academicDegreeYear: "",
@@ -275,6 +277,7 @@ export default function SetupPage() {
     setS2({
       isSoldierDischarged: saved.personal.isSoldierDischarged,
       soldierDischargeDate: saved.personal.soldierDischargeDate ?? "",
+      soldierServiceMonths: saved.personal.soldierServiceMonths?.toString() ?? "",
       isNewResident: saved.personal.isNewResident,
       aliyahDate: saved.personal.aliyahDate ?? "",
       academicDegreeYear: saved.personal.academicDegreeYear?.toString() ?? "",
@@ -494,6 +497,10 @@ export default function SetupPage() {
         soldierDischargeDate: s2.isSoldierDischarged
           ? s2.soldierDischargeDate || null
           : null,
+        soldierServiceMonths:
+          s2.isSoldierDischarged && s2.soldierServiceMonths
+            ? Number(s2.soldierServiceMonths)
+            : null,
         academicDegreeYear: s2.academicDegreeYear
           ? Number(s2.academicDegreeYear)
           : null,
@@ -892,6 +899,32 @@ export default function SetupPage() {
                         max={new Date().toISOString().split("T")[0]}
                       />
                       <ErrorMsg msg={errors.soldierDischargeDate} />
+
+                      <div className="mt-3">
+                        <FieldLabel htmlFor="serviceMonths">
+                          כמה חודשי שירות סדיר שירת/ה?
+                        </FieldLabel>
+                        <input
+                          id="serviceMonths"
+                          type="number"
+                          min={0}
+                          max={60}
+                          value={s2.soldierServiceMonths}
+                          onChange={(e) =>
+                            setS2({
+                              ...s2,
+                              soldierServiceMonths: e.target.value,
+                            })
+                          }
+                          className={inputCls(false)}
+                          dir="ltr"
+                          placeholder="לדוגמה: 32"
+                        />
+                        <p className="mt-1 text-xs text-muted">
+                          שירות מלא (גברים 23+ ח׳, נשים 22+ ח׳) → 2 נק׳ זיכוי לשנה;
+                          שירות חלקי → 1 נק׳ לשנה. יחסי למספר החודשים בחלון 36 ח׳ מהשחרור.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
