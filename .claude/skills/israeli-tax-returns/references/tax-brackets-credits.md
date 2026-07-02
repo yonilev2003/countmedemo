@@ -76,7 +76,21 @@ These brackets apply to active income (employment, self-employment, business inc
 | Academic degree (MA) | 0.5 | For 2 years after completion (graduates 2023+). Graduates 2014-2022: 1 year only |
 | Vocational certificate | 1.0 | Per year, for up to 3 years matching study duration (graduates 2023+). Graduates 2014-2022: 1 year only |
 | Disability (100% or blind) | 2.0 | Permanent disability |
-| Combat reserve soldiers (from 2026) | 0.5-1.0 | 0.5 for 20+ days, 0.75 for 45+ days, 1.0 for 60+ days |
+| Combat reserve soldiers (from 2026, Amendment 283) | 0.5-4.0 | Based on combat days served in the PRIOR year: 0.5 for 30-39 days, 0.75 for 40-49, 1.0 for 50, then +0.25 per full 5 days above 50, capped at 4.0 points (110 days). Corrected 2026-07-02 per gov.il (pa181225-1) + kolzchut — the previous 20/45/60 ladder in this file was wrong. A possible lower 20-day entry tier for tax year 2027 is pending official confirmation. |
+
+## Donations Credit (Section 46)
+
+- **Rate:** 35% of recognised donations to approved institutions (individuals)
+- **Minimum:** 207 NIS total donations per year (2024-2025; indexed — verify yearly)
+- **Ceiling:** the lower of 30% of taxable income or the absolute cap (~9,350,000 NIS in 2025); excess carries forward up to 3 years
+- Sources: kolzchut "זיכוי ממס הכנסה בשל תרומה (סעיף 46)", PKF year-end circular (retrieved 2026-07-02)
+- From 2026-01-01 institutions must report all donations to the Tax Authority's digital donations system (gov.il sa251225-1)
+
+## Life Insurance Premium Credit (Section 45a(a)(1))
+
+- **Rate:** 25% of premiums paid for life insurance on the taxpayer's or spouse's life (NOT 5% — a 5% figure previously circulated here was wrong)
+- Subject to the Section 45a qualifying-premium ceiling (interacts with the pension credit base)
+- Sources: Income Tax Circular 19/2004, kolzchut (retrieved 2026-07-02)
 
 ## Rental Income Tax Tracks (Residential)
 

@@ -17,16 +17,6 @@
 import { Persona } from "@/lib/persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 
-/**
- * Baseline 2024–2025 values, exported for callers that need a constant outside a
- * persona context. The actual numbers used inside computeExpenseRatio are
- * resolved PER TAX YEAR from getTaxYearConstants(persona.income.year) — never
- * hardcode the rate/ceiling, they are year-keyed (the ceiling is CPI-indexed:
- * 120,000 for 2024–2025, 122,833 from 2026).
- */
-export const ZEIR_RECOGNITION_RATE = 0.30;
-export const ZEIR_REVENUE_CEILING = 120_000;
-
 export type RatioStatus = "below-30" | "around-30" | "30-to-50" | "50-to-80" | "above-80";
 
 export interface ExpenseRatioInsight {

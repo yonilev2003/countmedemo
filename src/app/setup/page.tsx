@@ -547,9 +547,12 @@ export default function SetupPage() {
         bookkeepingMethod: "single-entry",
         bookkeepingType: "computerized",
         isSmallBusiness: totalRevenue < 100000,
-        // Explicit toggle from step 3 — only valid if עוסק פטור AND under 120k threshold
+        // Explicit toggle from step 3 — only valid if עוסק פטור AND under the
+        // year-keyed ceiling (120,000 for 2024–2025, 122,833 from 2026).
         isOsekZeir:
-          s3.isOsekZeir && s3.osekType === "patur" && totalRevenue <= 120000,
+          s3.isOsekZeir &&
+          s3.osekType === "patur" &&
+          totalRevenue <= getTaxYearConstants(selectedYear).osekZeirThreshold,
         hasEmployees: false,
         employerNames: [],
       },

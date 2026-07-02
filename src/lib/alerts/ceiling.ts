@@ -36,11 +36,14 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
   const percent = threshold > 0 ? Math.round((turnover / threshold) * 100) : 0;
   const remaining = Math.max(0, threshold - turnover);
 
+  // Level from EXACT figures, not the display-rounded percent: 119,999 ₪ is
+  // 99.999% (rounds to 100) but has NOT exceeded the ceiling. "Exceeded" means
+  // strictly above the ceiling — the ceiling itself is still within עוסק פטור.
   let level: CeilingLevel;
-  if (percent >= 100) level = "exceeded";
-  else if (percent >= 90) level = "critical";
-  else if (percent >= 80) level = "warning";
-  else if (percent >= 60) level = "approaching";
+  if (turnover > threshold) level = "exceeded";
+  else if (turnover * 10 >= threshold * 9) level = "critical"; // ≥90%
+  else if (turnover * 10 >= threshold * 8) level = "warning"; // ≥80%
+  else if (turnover * 10 >= threshold * 6) level = "approaching"; // ≥60%
   else level = "safe";
 
   const fmt = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
