@@ -14,6 +14,7 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Persona } from "@/lib/persona";
+import { ils as formatIls } from "@/lib/utils";
 import {
   calculate,
   estimateTaxLiability,
@@ -25,7 +26,8 @@ import { getTaxYearConstants } from "@/lib/calculators/types";
 import { getUpcomingDeadlines, type FilerType } from "@/lib/deadlines/calendar";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 
-const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ש"ח`;
+// Rendered into the LLM system prompt only (no UI surface); standardized on ₪.
+const ils = (n: number) => formatIls(Math.round(n));
 
 /** Friendly 1301 field code → calculator id in the dispatcher. */
 const FIELD_TO_CALCULATOR: Record<string, string> = {

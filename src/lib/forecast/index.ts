@@ -17,6 +17,7 @@
  */
 
 import { Persona } from "@/lib/persona";
+import { ils } from "@/lib/utils";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { estimateTaxLiability } from "@/lib/calculators/index";
 
@@ -144,7 +145,7 @@ export function planVsActual(scenario: ForecastScenario, paid: number): PlanVsAc
   const gap = due - paid;
   // 8% band counts as "on track".
   const band = Math.max(2000, due * 0.08);
-  const fmt = (n: number) => `${Math.abs(Math.round(n)).toLocaleString("he-IL")} ₪`;
+  const fmt = (n: number) => ils(Math.abs(Math.round(n)));
 
   if (Math.abs(gap) <= band) {
     return {

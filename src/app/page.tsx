@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { BRAND_COLORS } from "@/components/brand/colors";
 import {
   SparklesIcon,
   ReceiptIcon,
@@ -164,7 +165,7 @@ export default function Home() {
             className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[46px]"
           >
             {/* form mock */}
-            <div className="overflow-hidden rounded-[22px] border border-line bg-paper shadow-lg">
+            <div className="overflow-hidden rounded-[22px] border border-line bg-paper shadow-brand">
               <div className="flex items-center justify-between bg-brand-navy px-6 py-[18px] text-white">
                 <div>
                   <div className="text-base font-bold">טופס 1301 · דו״ח שנתי</div>
@@ -481,7 +482,7 @@ function ShortcutCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-[20px] border border-line bg-paper p-[26px] shadow-sm transition-all hover:-translate-y-1 hover:border-aqua hover:shadow-lg"
+      className="group flex flex-col rounded-[20px] border border-line bg-paper p-[26px] shadow-brand-sm transition-all hover:-translate-y-1 hover:border-aqua hover:shadow-brand"
     >
       <span
         className={
@@ -581,7 +582,7 @@ type Testimonial = {
 const TESTIMONIALS: Testimonial[] = [
   {
     initial: "ר",
-    avatarColor: "#407E8C",
+    avatarColor: BRAND_COLORS.teal,
     name: "רותם לוי",
     handle: "@rotem.designs",
     platform: "instagram",
@@ -595,7 +596,7 @@ const TESTIMONIALS: Testimonial[] = [
   },
   {
     initial: "א",
-    avatarColor: "#083A4F",
+    avatarColor: BRAND_COLORS.navy,
     name: "אבי כהן",
     handle: "Avi Cohen",
     platform: "linkedin",
@@ -609,7 +610,7 @@ const TESTIMONIALS: Testimonial[] = [
   },
   {
     initial: "מ",
-    avatarColor: "#AD9A7B",
+    avatarColor: BRAND_COLORS.beige600,
     name: "מאיה ברק",
     handle: "@maya.studio",
     platform: "instagram",
@@ -623,7 +624,7 @@ const TESTIMONIALS: Testimonial[] = [
   },
   {
     initial: "ד",
-    avatarColor: "#3E8E78",
+    avatarColor: BRAND_COLORS.success,
     name: "דניאל פרץ",
     handle: "Daniel Peretz",
     platform: "linkedin",
@@ -632,7 +633,7 @@ const TESTIMONIALS: Testimonial[] = [
   },
   {
     initial: "ש",
-    avatarColor: "#356A77",
+    avatarColor: BRAND_COLORS.teal600,
     name: "שירה אזולאי",
     handle: "@shira.creative",
     platform: "instagram",
@@ -656,7 +657,7 @@ function PostCard({
   body,
 }: Testimonial) {
   return (
-    <div className="w-[336px] shrink-0 overflow-hidden rounded-[20px] bg-paper text-ink shadow-lg">
+    <div className="w-[336px] shrink-0 overflow-hidden rounded-[20px] bg-paper text-ink shadow-brand">
       <div className="flex items-center gap-[11px] px-4 py-3.5">
         <span
           className="flex size-10 shrink-0 items-center justify-center rounded-full text-[15px] font-extrabold text-white"

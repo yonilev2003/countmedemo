@@ -11,8 +11,9 @@ import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, SparklesIcon } from "@/components/brand/icons";
 import { Form1219Preview } from "@/components/form-1219/form-preview";
 import { CountUp } from "@/components/brand/motion";
+import { ils as formatIls } from "@/lib/utils";
 
-const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
+const ils = (n: number) => formatIls(Math.round(n));
 
 export default function Form1219Page() {
   const router = useRouter();
@@ -99,10 +100,7 @@ export default function Form1219Page() {
             </div>
 
             {/* The form in the countme beige frame (signals "this is countme, not gov.il") */}
-            <div
-              className="rounded-lg p-2 sm:p-3"
-              style={{ border: "3px dashed #C8B59A", background: "#fbfaf8" }}
-            >
+            <div className="rounded-lg border-[3px] border-dashed border-brand bg-paper p-2 sm:p-3">
               <Form1219Preview persona={p} />
             </div>
 

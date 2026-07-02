@@ -18,10 +18,9 @@ import {
   MILUIM_CREDIT_POINT_VALUE,
 } from "./types";
 import { capitalCalculators } from "./capital";
+import { ils } from "@/lib/utils";
 
 export type { CalcResult, TaxEstimate } from "./types";
-
-const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared credit-point helpers — ONE source of truth for nekudot zikui so the

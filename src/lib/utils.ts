@@ -21,6 +21,17 @@ export function formatCurrency(n: number): string {
   });
 }
 
+/**
+ * Canonical ILS display format for countme surfaces: "12,345 ₪".
+ * NOTE: intentionally NOT the same output as formatCurrency — Intl's currency
+ * style emits bidi marks ("‏12,345 ‏₪") and the form-1301/demo surfaces
+ * already render that. Don't merge the two without a visual audit.
+ * Rounding is a call-site decision: pass Math.round(n) where needed.
+ */
+export function ils(n: number): string {
+  return `${n.toLocaleString("he-IL")} ₪`;
+}
+
 /** Format an integer with Hebrew thousands separators. */
 export function formatNumber(n: number): string {
   return n.toLocaleString("he-IL");

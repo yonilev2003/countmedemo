@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { loadPersona } from "@/lib/setup-storage";
+import { ils } from "@/lib/utils";
 import { Persona } from "@/lib/persona";
 import {
   calculatePL,
@@ -170,7 +171,7 @@ export default function DashboardPage() {
   const filteredExpenses = filteredMonthly.reduce((s, m) => s + m.expenses, 0);
   const filteredNet = filteredRevenue - filteredExpenses;
 
-  const fmt = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+  const fmt = ils;
 
   // Auto-detected active months — only show period buttons for months with activity
   const activeMonths = pl.hasDatedData

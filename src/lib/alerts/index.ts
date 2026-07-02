@@ -174,7 +174,7 @@ export function generateVatAdvancesAlert(
     detailHe,
     cta:
       isInReminderWindow
-        ? { labelHe: "לדוח 1301 ←", href: "/demo" }
+        ? { labelHe: "לדוח 1301", href: "/demo" }
         : undefined,
   };
 }
@@ -236,7 +236,7 @@ export function generateMonthlyExpenseReminder(
         severity: "warn",
         headlineHe: `האם רשמת את הוצאות ${lastMonthLabel}?`,
         detailHe: `אנחנו בתחילת החודש — זמן טוב לסגור את ה-${lastMonthLabel}. לא זוהו הוצאות מהחודש שעבר. כל הוצאה מוכרת מקטינה את חבות המס שלך.`,
-        cta: { labelHe: "לדשבורד ←", href: "/dashboard" },
+        cta: { labelHe: "לדשבורד", href: "/dashboard" },
       };
     }
   }
@@ -245,7 +245,7 @@ export function generateMonthlyExpenseReminder(
     return {
       id: "monthly-expense-reminder",
       severity: "ok",
-      headlineHe: `הוצאות ${monthLabel} — נרשמו ✓`,
+      headlineHe: `הוצאות ${monthLabel} — נרשמו`,
       detailHe: `יש לך הוצאות רשומות עבור ${monthLabel}. כל הכבוד! שמור/י להוסיף קבלות חדשות ברגע שמתקבלות.`,
     };
   }
@@ -255,7 +255,7 @@ export function generateMonthlyExpenseReminder(
     severity: "info",
     headlineHe: `האם הכנסת הוצאות ל-${monthLabel}?`,
     detailHe: `לא זוהו הוצאות עבור ${monthLabel}. אם יש לך הוצאות עסקיות החודש — כגון תוכנות, נסיעות או ציוד — כדאי לרשום אותן עכשיו. כל ₪ מוכר מקטין את המס.`,
-    cta: { labelHe: "לדשבורד ←", href: "/dashboard" },
+    cta: { labelHe: "לדשבורד", href: "/dashboard" },
   };
 }
 
@@ -296,7 +296,7 @@ export function generateDeadlineAlerts(
           ? `היום: ${d.titleHe}`
           : `בעוד ${d.daysUntilDue} ימים: ${d.titleHe}`,
       detailHe: `מועד הגשה: ${dueLabel} (${d.dueRule}).${d.notesHe ? " " + d.notesHe : ""}`,
-      cta: { labelHe: "ללוח המועדים ←", href: "/deadlines" },
+      cta: { labelHe: "ללוח המועדים", href: "/deadlines" },
     };
   });
 }

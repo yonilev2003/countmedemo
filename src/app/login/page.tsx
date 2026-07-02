@@ -85,7 +85,7 @@ export default async function LoginPage({
 
         {/* glass auth card */}
         <div
-          className="relative mx-auto w-full max-w-md rounded-[26px] border border-white/15 bg-white/[0.07] p-8 text-center shadow-lg backdrop-blur-2xl md:p-10"
+          className="relative mx-auto w-full max-w-md rounded-[26px] border border-white/15 bg-white/[0.07] p-8 text-center shadow-brand backdrop-blur-2xl md:p-10"
           style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,.14)" }}
         >
           {/* logo lockup — shown inside the card on mobile where the panel is hidden */}

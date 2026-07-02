@@ -222,7 +222,7 @@ function SlotCard({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="w-full rounded-xl border border-line bg-paper hover:bg-sand text-brand-navy text-xs font-medium py-2 transition-colors flex items-center justify-center gap-1.5"
+            className={btn("secondary", "sm", "w-full")}
           >
             <UploadIcon className="size-3.5" />
             גררי קובץ או לחצי לבחירה
@@ -247,7 +247,7 @@ function SlotCard({
             <button
               type="button"
               onClick={onClear}
-              className="text-muted hover:text-ink text-[11px] underline"
+              className={btn("ghost", "sm")}
             >
               החלף קובץ
             </button>
@@ -265,7 +265,7 @@ function SlotCard({
           <button
             type="button"
             onClick={onClear}
-            className="text-[11px] text-alert underline"
+            className={btn("ghost", "sm")}
           >
             נסי קובץ אחר
           </button>

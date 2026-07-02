@@ -42,7 +42,7 @@ export function LoginForm() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
-        className="flex h-[54px] w-full items-center justify-center gap-3 rounded-full bg-white px-6 text-base font-bold text-brand-navy shadow-lg transition-all hover:-translate-y-px hover:bg-aqua-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:pointer-events-none disabled:opacity-60"
+        className="flex h-[54px] w-full items-center justify-center gap-3 rounded-full bg-white px-6 text-base font-bold text-brand-navy shadow-brand transition-all hover:-translate-y-px hover:bg-aqua-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:pointer-events-none disabled:opacity-60"
       >
         <GoogleGlyph />
         {loading ? "מעביר ל-Google…" : "התחברות עם Google"}

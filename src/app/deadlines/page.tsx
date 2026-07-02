@@ -8,6 +8,7 @@ import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
 import {
+  ArrowLeftIcon,
   BellIcon,
   CalendarIcon,
   ChevronDownIcon,
@@ -62,7 +63,7 @@ const AUTHORITY_STYLE: Record<Authority, string> = {
  */
 const ICON_CELL_TINT: Record<Status, string> = {
   "on-track": "bg-success-light text-success",
-  due: "bg-due-bg text-[#7d6422]",
+  due: "bg-due-bg text-due-ink",
   overdue: "bg-overdue-bg text-alert",
   plan: "bg-teal-100 text-teal-600",
 };
@@ -117,7 +118,8 @@ export default function DeadlinesPage() {
               <BellIcon className="size-4" /> התראות
             </Link>
             <Link href="/dashboard" className={btn("secondary", "sm")}>
-              דשבורד ←
+              דשבורד
+              <ArrowLeftIcon className="size-4" />
             </Link>
           </div>
         </div>

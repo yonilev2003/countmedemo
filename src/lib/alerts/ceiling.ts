@@ -10,6 +10,7 @@
  */
 
 import { Persona } from "@/lib/persona";
+import { ils } from "@/lib/utils";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 
 export type CeilingLevel = "safe" | "approaching" | "warning" | "critical" | "exceeded";
@@ -46,7 +47,7 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
   else if (turnover * 10 >= threshold * 6) level = "approaching"; // ≥60%
   else level = "safe";
 
-  const fmt = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+  const fmt = ils;
 
   const headlineHe: string = {
     safe: `מחזור ${percent}% מהתקרה — בטווח עוסק פטור`,

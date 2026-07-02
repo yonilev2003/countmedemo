@@ -19,6 +19,7 @@ import {
   AlertTriangleIcon,
   InfoIcon,
   CheckCircleIcon,
+  ArrowLeftIcon,
 } from "@/components/brand/icons";
 
 // ─── Severity → brand status mapping ─────────────────────────────────────────
@@ -101,6 +102,7 @@ function AlertCard({ alert }: { alert: Alert }) {
             className={btn("secondary", "sm")}
           >
             {alert.cta.labelHe}
+            <ArrowLeftIcon className="size-4" />
           </Link>
         </div>
       )}

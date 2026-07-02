@@ -16,6 +16,7 @@
  */
 
 import { cn } from "@/lib/utils";
+import { BRAND_COLORS } from "@/components/brand/colors";
 import type { UpcomingDeadline } from "@/lib/deadlines/calendar";
 import { deadlineStatus } from "./deadline-meta";
 
@@ -68,7 +69,8 @@ export function PeriodStatusCard({
   const circumference = 2 * Math.PI * r;
   const dash = (pct / 100) * circumference;
   // Ring color follows the most pressing bucket.
-  const ringColor = urgent > 0 ? "#C05B45" : due > 0 ? "#A88A3F" : "#3E8E78";
+  const ringColor =
+    urgent > 0 ? BRAND_COLORS.alert : due > 0 ? BRAND_COLORS.due : BRAND_COLORS.success;
 
   return (
     <section
@@ -92,7 +94,7 @@ export function PeriodStatusCard({
               cy="37"
               r={r}
               fill="none"
-              stroke="#E7E2DA"
+              stroke={BRAND_COLORS.line}
               strokeWidth="9"
             />
             <circle

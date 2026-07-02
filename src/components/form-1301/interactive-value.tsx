@@ -99,7 +99,7 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
           role="dialog"
           aria-label="פרטי החישוב"
           style={tooltipStyle}
-          className="rounded-xl border border-stone-200 bg-white p-4 text-right shadow-xl"
+          className="rounded-xl border border-stone-200 bg-white p-4 text-right shadow-brand"
         >
           <div className="mb-3 flex items-center justify-between">
             {result.confidence === "high" ? (

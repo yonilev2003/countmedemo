@@ -16,8 +16,9 @@ import { ASSET_CATEGORY_HE, LIABILITY_CATEGORY_HE } from "@/lib/calculators/capi
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon } from "@/components/brand/icons";
+import { ils as formatIls } from "@/lib/utils";
 
-const ils = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
+const ils = (n: number) => formatIls(Math.round(n));
 const ASSET_CATS = Object.keys(ASSET_CATEGORY_HE) as AssetCategory[];
 const LIAB_CATS = Object.keys(LIABILITY_CATEGORY_HE) as LiabilityCategory[];
 

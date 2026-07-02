@@ -14,14 +14,21 @@ import {
 } from "recharts";
 import { MonthlyPL, PLSummary } from "@/lib/p-and-l/index";
 import { BarChartIcon, PieChartIcon } from "@/components/brand/icons";
+import { BRAND_COLORS } from "@/components/brand/colors";
 
 // Brand palette for the pie slices (navy → teal → beige → aqua → terracotta).
-const COLORS = ["#083A4F", "#407E8C", "#C8B59A", "#C0D5D6", "#C05B45"];
-const GRID_STROKE = "#E7E2DA"; // --color-line
-const AXIS_TICK = "#6A7A80"; // --color-muted
-const NAVY = "#083A4F"; // brand-navy
-const TEAL = "#407E8C"; // brand-deep (teal)
-const PAPER = "#FBFAF8"; // --color-paper (pie slice divider)
+const COLORS = [
+  BRAND_COLORS.navy,
+  BRAND_COLORS.teal,
+  BRAND_COLORS.beige,
+  BRAND_COLORS.aqua,
+  BRAND_COLORS.alert,
+];
+const GRID_STROKE = BRAND_COLORS.line;
+const AXIS_TICK = BRAND_COLORS.muted;
+const NAVY = BRAND_COLORS.navy;
+const TEAL = BRAND_COLORS.teal;
+const PAPER = BRAND_COLORS.paper; // pie slice divider
 
 interface Props {
   monthlyData: MonthlyPL[];
@@ -86,11 +93,11 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
               cursor={{ fill: "rgba(8,40,55,.04)" }}
               contentStyle={{
                 borderRadius: 12,
-                border: "1px solid #E7E2DA",
+                border: `1px solid ${BRAND_COLORS.line}`,
                 boxShadow: "0 12px 28px -16px rgba(8,40,55,.18)",
                 fontSize: 12,
               }}
-              labelStyle={{ color: "#083A4F", fontWeight: 700 }}
+              labelStyle={{ color: BRAND_COLORS.navy, fontWeight: 700 }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(v: any) =>
                 typeof v === "number" ? `₪${v.toLocaleString("he-IL")}` : String(v ?? "")
@@ -146,11 +153,11 @@ export function PLChart({ monthlyData, expenseBreakdown }: Props) {
               <Tooltip
                 contentStyle={{
                   borderRadius: 12,
-                  border: "1px solid #E7E2DA",
+                  border: `1px solid ${BRAND_COLORS.line}`,
                   boxShadow: "0 12px 28px -16px rgba(8,40,55,.18)",
                   fontSize: 12,
                 }}
-                labelStyle={{ color: "#083A4F", fontWeight: 700 }}
+                labelStyle={{ color: BRAND_COLORS.navy, fontWeight: 700 }}
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(v: any) =>
                   typeof v === "number" ? `₪${v.toLocaleString("he-IL")}` : String(v ?? "")
