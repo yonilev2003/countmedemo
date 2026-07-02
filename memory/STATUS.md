@@ -1,5 +1,27 @@
 # status — איפה אנחנו עכשיו
 
+> עודכן: 2026-07-02 · ענף עבודה: `claude/tax-product-architecture-9s3gyk` · סבב ארכיטקטורה/אבטחה/דיוק.
+
+## 🏗️ סבב 02/07 — hardening לפני משתמשים (build ירוק, tsc נקי, 80/80 golden tests)
+
+- ✅ **WS4 מנוע דטרמיניסטי מוכח:** vitest + 80 golden tests (מדרגות 2025+2026 ±1₪, מס יסף, נק' זיכוי,
+  תקרות, תרומות, מילואים). כל קבוע-מס עכשיו ב-`types.ts` בלבד. **תיקוני דיוק (מאומתים, מקורות בקוד):**
+  רצפת תרומות 200→**207 ₪** + תקרת 30% מהכנסה חייבת · זיכוי ביטוח חיים 5%→**25%** (45א) ·
+  ceiling-alert לא מכריז "חרגת" ב-99.999% · תקרת זעיר ב-setup עכשיו year-keyed · סולם מילואים בסקיל תוקן.
+- ✅ **WS2 אבטחה:** security headers (+CSP report-only) · auth על ה-API tied ל-`AUTH_GATING_ENABLED` ·
+  rate-limiter משותף (user-id/platform-IP, לא XFF) · magic-bytes ב-upload · **next 16.2.4→16.2.10** (advisories).
+- ✅ **WS5 סוכן רגולציה:** cross-ref ≥2 מקורות/מקור-ראשי + patch-proposal (diff ל-types.ts באישיו, human-merge).
+- ✅ **WS8 קופי:** `<LegalNote>` אחד במקום 8 באנרים · פרומפט איתן לא "מחליף רו"ח" · aligned "מחשבון מדויק. לא ייעוץ מס."
+  **הכל DRAFT — צריך את יעל.**
+- ✅ **WS6/WS1:** טוקנים due-ink/alert-ink · `brand/colors.ts` לגרפים · `ils()` אחד · dead exports הוסרו.
+- 📄 **דוחות ב-`docs/reviews/2026-07-02-*`:** WS1+WS2 (must-fix list) · WS7 Supabase (7 טבלאות מתות, PII plan) ·
+  WS8 audit · WS9 learning-loop · WS5 demo.
+- ⚠️ **נשאר חוסם (בעלים):** gating=true (יוני) · מיגרציות billing+events על hbsgz (יוני/רוי — MCP לא רואה את hbsgz) ·
+  Tranzila webhook signature לפני BILLING_ENABLED · PII minimization לפני משתמשים-לא-מייסדים (תוכנית ב-WS7) ·
+  testimonials פיקטיביים בדף הבית (שיקול יוני) · FLAG(Roy): תקרות פנסיה 25,608/12,804, רצפת תרומות 2026.
+
+---
+
 > עודכן: 2026-06-20 · ענף עבודה: `claude/beta-launch-prep-z2m6f5` · ספרינט הכנה-לבטא פעיל.
 > מקור-אמת: `docs/launch/status-vs-plan.md` (סטטוס A–H) + `docs/launch/sprint-checklist.md`.
 

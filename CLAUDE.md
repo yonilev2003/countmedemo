@@ -47,7 +47,7 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Stack | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Anthropic SDK + framer-motion | Latest, fast, deploys to Vercel. framer-motion (12.x) added 2026-06-17 for the beta-launch UX polish — animation lives ONLY in `src/components/brand/motion.tsx` (Reveal/Stagger/CountUp), all reduced-motion-aware |
 | Payments | Israeli PSP via a provider-agnostic seam (`src/lib/billing/`) — **Tranzila** is the chosen integration, **ready-to-connect but NOT live**. Gated by `BILLING_ENABLED` (off = free beta). Tracks→integration→features map in `src/lib/billing/tracks.ts` | Israel needs a real חשבונית מס; Stripe can't. Multiple paid tracks may use different integrations — kept explicit (added 2026-06-17) |
 | Hosting | Vercel | Project email account (NOT yoni's personal) |
-| Database | Supabase | Postponed — connecting Day 2+ |
+| Database | Supabase — **LIVE**, project `hbsgzelipeawkvtcazdr` (clients in `src/lib/supabase/`, migrations in `supabase/migrations/`, RLS on every table) | Went live 2026-06-10 (supersedes "Day 2+"). Note: the Supabase MCP account does NOT see this project — see `memory/STATUS.md` |
 | AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
 | Lang/dir | Hebrew, RTL only | Target market |
 | Fonts | Assistant (single variable, body + display) | Google Fonts, native Hebrew, replaced Heebo/Rubik (2026-06-03) |
@@ -239,7 +239,7 @@ When other team members start contributing code:
 
 1. **Branch naming:** `claude/<short-name>` for AI-assisted work, `feat/<short-name>` for hand-written, `fix/<bug-description>` for bugfixes
 2. **Each PR:** describe what changed in 3 bullets max, link the related issue if any
-3. **Always run before pushing:** `npm run build` (catches type errors and Next.js issues)
+3. **Always run before pushing:** `npm run build` AND `npm test` (vitest golden tests in `tests/unit/` — the contract on the tax engine; a tax-constant change without a matching golden-test update in the same commit is a bug)
 4. **Don't commit secrets:** `.env.local` is gitignored. API keys live in Vercel env vars.
 5. **Env-var hygiene:** Every variable added to `.env` must also appear (with an empty value) in `.env.template`. The template is committed and serves as documentation for new developers. `.env` is gitignored and never committed.
 6. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
@@ -351,14 +351,19 @@ Pages:
 
 ## What's NOT done yet
 
-See `NEXT_STEPS.md` for the prioritized list. High-level:
+(`NEXT_STEPS.md` was retired — current state lives in `memory/STATUS.md`; review reports in `docs/reviews/`.)
 
-1. Wire `app/api/chat/route.ts` to Anthropic SDK with prompt caching
-2. Build the **input flow** — page where the user enters their persona data via calculators
-3. Connect Vercel + Supabase
-4. Polish form preview to match screenshots more closely (currently approximate)
-5. Install `context-mode` for token savings during long sessions
-6. Add Playwright tests for the demo flow (one-shot, end-to-end, doesn't break before EY)
+Superseded: chat IS wired (tool-use loop over the deterministic calculators), Vercel+Supabase ARE live, Playwright e2e EXISTS and is green (`npm run test:e2e`; in managed web containers set `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` plus dummy `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+
+Actually open (2026-07-02):
+
+1. Flip `AUTH_GATING_ENABLED=true` in Vercel (Yoni) — until then pages, APIs, and the Anthropic budget are open
+2. Apply billing+events migrations on `hbsgz` + run the WS7 blocked-checks checklist (`docs/reviews/2026-07-02-ws7-*`)
+3. PII minimization before non-founder users (plan in the WS7 report); Tranzila webhook signature before `BILLING_ENABLED`
+4. Legal review (Yael) of all `DRAFT — NEEDS LEGAL REVIEW` copy (`<LegalNote>`, scope statement in `docs/reviews/2026-07-02-ws8-*`)
+5. `FLAG(Roy)` burn-down in `lib/calculators/types.ts`: 2025/2026 pension caps, 2026 donations floor, §45א life-insurance ceiling
+6. Durable rate limiting (Vercel WAF now, Supabase counter later) + CSP enforce after report-only monitoring
+7. Install `context-mode` for token savings during long sessions
 
 ## Source of truth for the form structure
 
