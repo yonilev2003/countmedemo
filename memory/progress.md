@@ -2,6 +2,17 @@
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 02/07/2026 ערב — merge, אימות תפעולי, הכנה לסשן הבא
+
+PR #23 מוזג ל-main (CI ירוק, ריצת בכורה). אימותים מול production אחרי ה-merge:
+- ה-headers/קופי החדשים חיים; אפס runtime errors.
+- **גייטינג עדיין כבוי:** הוכח פעמיים (200 על /dashboard בלי סשן; דיפלוי production יחיד מאז ה-merge
+  ⇒ לא בוצע Redeploy אחרי הגדרת המשתנה). הפתרון: Redeploy, לא שינוי קוד.
+- **Supabase MCP נכשל אצל יוני:** שם חבילה שגוי (`@modelcontextprotocol/server-supabase` לא קיים ב-npm);
+  הנכון `@supabase/mcp-server-supabase`. תקרית: טוקן גישה הודבק בצ׳אט → בוטל מיידית (Mistake/Fix ברשומת WS9).
+- נוספו ל-backlog: ביקורת UX מלאה (פרטיות/תנאים/התמדת-סשן), פערי דומיין — intake להכנסות פסיביות,
+  תגמולי מילואים לעצמאי (ב"ל). תדריך פתיחה מלא לסשן הבא — בראש STATUS.md.
+
 ## סבב 02/07/2026 — ארכיטקטורה, אבטחה, דיוק המנוע (8 workstreams)
 
 ענף `claude/tax-product-architecture-9s3gyk`. סבב co-founder טכני: discovery מלא → gate-approved plan → ביצוע.
