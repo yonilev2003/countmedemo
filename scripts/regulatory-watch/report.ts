@@ -24,6 +24,10 @@ export interface RunSummary {
   newPublications: number;
   relevantFindings: Finding[];
   irrelevantPublications: { title: string; source: string; reason: string }[];
+  /** "enabled" | "env-blocked: ANTHROPIC_API_KEY" — why items may be unclassified. */
+  classifyStatus?: string;
+  /** Per-source provenance for the run: what each fetcher returned and when. */
+  sourceCounts?: { id: string; label: string; items: number; fetchedAt: string }[];
 }
 
 export interface Finding {
@@ -35,6 +39,14 @@ export interface Finding {
   confidence: "high" | "medium" | "low";
   issueUrl: string;
   changeType: string;
+  /** WS5: who produced the item and when this run fetched it. */
+  provenance?: { source: string; sourceLabel: string; fetchedAt: string };
+  /** WS5: cross-reference verdict (primary-source / multi-source / single-source). */
+  corroboration?: {
+    corroborated: boolean;
+    kind: "primary-source" | "multi-source" | "single-source";
+    matchedSources: string[];
+  };
 }
 
 /** Resolve the directory reports are written to (env-overridable for CI). */
@@ -75,6 +87,12 @@ const CONFIDENCE_LABEL: Record<Finding["confidence"], string> = {
   high: "ודאות גבוהה",
   medium: "ודאות בינונית",
   low: "ודאות נמוכה",
+};
+
+const CORROBORATION_LABEL: Record<string, string> = {
+  "primary-source": "מקור ראשוני",
+  "multi-source": "הצלבת מקורות",
+  "single-source": "מקור יחיד",
 };
 
 /** Format an ISO date as a Hebrew long date, falling back to the raw string. */
@@ -127,6 +145,8 @@ function renderFinding(f: Finding, index: number): string {
       <div class="finding__meta">
         <span class="meta__item"><strong>סוג שינוי:</strong> ${esc(f.changeType)}</span>
         <span class="meta__item"><strong>פורסם:</strong> ${formatDateHe(f.publishedAt)}</span>
+        ${f.provenance ? `<span class="meta__item"><strong>מקור:</strong> ${esc(f.provenance.sourceLabel)} · נשלף ${formatDateHe(f.provenance.fetchedAt)}</span>` : ""}
+        ${f.corroboration ? `<span class="meta__item"><strong>אימות צולב:</strong> ${esc(CORROBORATION_LABEL[f.corroboration.kind] ?? f.corroboration.kind)}</span>` : ""}
         <span class="meta__item"><a href="${esc(f.sourceUrl)}" target="_blank" rel="noopener">מקור</a></span>
         <span class="meta__item"><a href="${esc(f.issueUrl)}" target="_blank" rel="noopener">Issue</a></span>
       </div>
