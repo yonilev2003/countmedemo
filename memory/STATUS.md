@@ -19,7 +19,10 @@ rate-limiter, קופי מכויל, runbooks ב-`docs/runbooks/2026-07-02-yoni-su
 בשום שיחה. אחרי חיבור: dump → מיגרציות billing+events → צ׳קליסט WS7.
 
 **Backlog הסשן הבא (לפי סדר):**
-1. סגירת חוסמים 1+2 + WAF rules + branch protection (`ci` required) — הכל ב-runbooks.
+1. סגירת חוסמים 1+2 + WAF rules + branch protection — הכל ב-runbooks.
+   ⚠️ ב-branch protection, ה-required status checks הם שמות ה-**jobs** בדיוק: `build-and-unit` ו-`e2e`
+   (לבחור מהרשימה המוצעת, לא להקליד ידנית). "ci / build-and-unit" שמוקלד ידנית לא יתאים לעולם
+   ויחסום כל merge ב-"Expected — Waiting" (קרה ב-02/07, תוקן).
 2. **ביקורת חווית-לקוח מלאה (בקשת יוני 02/07):** אין עמוד מדיניות-פרטיות · אין עמוד תנאים/הסתייגויות
    משפטיות (בעיקר התנערויות) — ה-scope statement המוכן ב-`docs/reviews/2026-07-02-ws8-copy-audit.md` הוא
    הבסיס · התמדת סשן (להישאר מחובר; לחיצה על הלוגו לא מנתקת/מאבדת מצב) · ליטוש חוויה כללי.
