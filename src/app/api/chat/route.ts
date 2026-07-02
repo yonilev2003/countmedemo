@@ -5,6 +5,12 @@ import {
   runEitanTool,
   buildRichContext,
 } from "@/lib/agent/tools";
+import { requireUserIfGated } from "@/lib/security/api-guard";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
 
 const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה עוזר AI לעצמאים בישראל שממלאים דוח שנתי 1301.
 אתה מכיר את כל נתוני המשתמש ואת הדוח שלו. תענה בעברית, בגוף שני נקבה, בצורה ידידותית ומקצועית.
@@ -12,45 +18,9 @@ const SYSTEM_PROMPT = `אתה המלווה הפיננסי של countme. אתה �
 כתוב טקסט רגיל בלבד. אפשר להשתמש בסוגריים ובפסיקים. אל תפתח תשובה עם מקף.
 אם שאלה לא קשורה למיסים או עסק, ציין שאתה מתמחה בנושאים פיננסיים בלבד.`;
 
-/* ──────────────────────────────────────────────────────────
-   Rate limiting — in-memory, per-IP. Resets when the function
-   instance recycles. Good enough for a demo before EY; switch
-   to Upstash/Vercel KV once we're under real load.
-   ────────────────────────────────────────────────────────── */
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 12;  // per IP per window
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  const real = request.headers.get("x-real-ip");
-  if (real) return real.trim();
-  return "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    // Clean up old buckets occasionally to avoid memory leak
-    if (ipBuckets.size > 1000) {
-      for (const [k, v] of ipBuckets.entries()) {
-        if (now > v.resetAt) ipBuckets.delete(k);
-      }
-    }
-    return { allowed: true };
-  }
-
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-
-  bucket.count += 1;
-  return { allowed: true };
-}
+// Rate limiting via the shared in-memory limiter (lib/security/rate-limit):
+// per-instance only on serverless — see its JSDoc for durable follow-ups.
+const RATE_LIMIT_MAX_REQUESTS = 12; // per client per minute
 
 /* ──────────────────────────────────────────────────────────
    Input validation — narrow JSON body to expected shape.
@@ -132,17 +102,15 @@ export async function POST(request: Request) {
   }
 
   // Rate limit BEFORE parsing/validating the body — cheapest reject possible
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
+  const rl = checkRateLimit("chat", resolveClientKey(request), RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
+    return rateLimitResponse(rl.retryAfter);
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
+  // before we spend a Supabase round-trip or Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
 
   let raw: unknown;
   try {

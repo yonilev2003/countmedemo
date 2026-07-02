@@ -1,4 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { requireUserIfGated } from "@/lib/security/api-guard";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
 
 /**
  * Voice-to-invoice parser.
@@ -28,34 +34,9 @@ const SYSTEM_PROMPT = `אתה מסייע ב-CountMe להוצאת חשבוניו�
 - שמות בעברית/אנגלית — שמור על האיות המקורי.
 - אם השדה חסר, החזר מחרוזת ריקה (או 0 ל-amount), אל תמציא.`;
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 12;
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip")?.trim() ?? "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    if (ipBuckets.size > 1000) {
-      for (const [k, v] of ipBuckets.entries()) {
-        if (now > v.resetAt) ipBuckets.delete(k);
-      }
-    }
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
-}
+// Rate limiting via the shared in-memory limiter (lib/security/rate-limit):
+// per-instance only on serverless — see its JSDoc for durable follow-ups.
+const RATE_LIMIT_MAX_REQUESTS = 12; // per client per minute
 
 interface ParsedInvoice {
   customerName: string;
@@ -85,17 +66,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
+  const rl = checkRateLimit(
+    "parse-invoice",
+    resolveClientKey(request),
+    RATE_LIMIT_MAX_REQUESTS,
+  );
   if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
+    return rateLimitResponse(rl.retryAfter);
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
+  // before we spend a Supabase round-trip or Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
 
   let raw: unknown;
   try {

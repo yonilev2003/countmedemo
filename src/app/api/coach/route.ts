@@ -5,6 +5,12 @@ import {
   runEitanTool,
   buildRichContext,
 } from "@/lib/agent/tools";
+import { requireUserIfGated } from "@/lib/security/api-guard";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
 
 /**
  * /api/coach — Eitan, the unified digital partner for countme.
@@ -86,40 +92,10 @@ const SYSTEM_DASHBOARD_INSIGHTS = `אתה איתן. אתה מסתכל על דש�
 "טרם תועדו הפקדות לקרן השתלמות לשנה זו."
 בלי markdown. שלוש נקודות מקסימום. עברית נקייה.`;
 
-/* ──────────────────────────────────────────────────────────
-   Rate limiting — same shape as /api/chat. Separate bucket so
-   coach + form-filling chats don't share a budget.
-   ────────────────────────────────────────────────────────── */
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_REQUESTS = 12;
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  const real = request.headers.get("x-real-ip");
-  if (real) return real.trim();
-  return "unknown";
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    if (ipBuckets.size > 1000) {
-      for (const [k, v] of ipBuckets.entries()) {
-        if (now > v.resetAt) ipBuckets.delete(k);
-      }
-    }
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
-}
+// Rate limiting via the shared limiter (lib/security/rate-limit). The "coach"
+// namespace keeps a separate bucket so coach + form-filling chats don't share
+// a budget. In-memory = per-instance on serverless — see the lib's JSDoc.
+const RATE_LIMIT_MAX_REQUESTS = 12; // per client per minute
 
 const MAX_MESSAGE_CHARS = 2000;
 const MAX_HISTORY_ITEMS = 40;
@@ -258,17 +234,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
+  const rl = checkRateLimit("coach", resolveClientKey(request), RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי בקשות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
+    return rateLimitResponse(rl.retryAfter);
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
+  // before we spend a Supabase round-trip or Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
 
   let raw: unknown;
   try {
