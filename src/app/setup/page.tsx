@@ -1646,7 +1646,7 @@ function OsekTypeChoice({
   ];
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5" role="radiogroup" aria-label="סוג עוסק">
       {options.map((opt) => {
         const active = selected === opt.key;
         return (

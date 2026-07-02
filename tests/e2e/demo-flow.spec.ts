@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import danaCohen from "../../personas/dana-cohen.json";
 
 /**
@@ -94,7 +94,7 @@ test.describe("/demo — gov.il-faithful form preview", () => {
     await firstCalc.click();
 
     await expect(page.getByText("איך הגענו לזה")).toBeVisible();
-    await expect(page.getByText("מקור")).toBeVisible();
+    await expect(page.getByText("מקור", { exact: true })).toBeVisible();
   });
 
   test("manual fields are eliminated — no 'למילוי ידני' anywhere on the form", async ({ page }) => {
@@ -113,7 +113,7 @@ test.describe("/setup — wizard", () => {
     await page.goto("/setup");
     await expect(page.getByText("מסלול מהיר — אופציונלי")).toBeVisible();
     await expect(page.getByText("דו״ח הכנסות תקופתי")).toBeVisible();
-    await expect(page.getByText("אקסל הוצאות")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "אקסל הוצאות" })).toBeVisible();
   });
 
   test("step 1 blocks advance when required fields are empty", async ({ page }) => {
@@ -125,40 +125,47 @@ test.describe("/setup — wizard", () => {
     await page.getByRole("button", { name: /הבא/ }).click();
 
     await expect(page.getByText("שדה חובה").first()).toBeVisible();
-    await expect(page.getByText("פרטים אישיים")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "פרטים אישיים" })).toBeVisible();
   });
 
-  test("עוסק זעיר checkbox appears only when עוסק פטור is selected", async ({ page }) => {
-    await page.goto("/setup");
-
+  /** Fill step 1 and advance to step 3 (פרטי עסק), asserting each arrival. */
+  async function goToBusinessStep(page: Page) {
     await page.getByRole("button", { name: /דלג על העלאה/ }).click();
     await page.getByLabel("שם פרטי").fill("טסט");
     await page.getByLabel("שם משפחה").fill("טסטסון");
-    await page.getByLabel("תעודת זהות").fill("318274561");
+    // Must pass the israeli-id check-digit validation (the previous fixture
+    // value 318274561 was invalid, so step 1 silently blocked the advance).
+    await page.getByLabel("תעודת זהות").fill("123456782");
     await page.getByLabel("תאריך לידה").fill("1996-08-14");
     await page.getByRole("button", { name: /הבא/ }).click();
+    await expect(page.getByRole("heading", { name: "מעמד ומשפחה" })).toBeVisible();
     await page.getByRole("button", { name: /הבא/ }).click();
+    await expect(page.getByRole("heading", { name: "פרטי עסק" })).toBeVisible();
+  }
 
-    await expect(page.getByText("פרטי עסק")).toBeVisible();
-    await expect(page.getByText("מסלול עוסק זעיר")).toBeVisible();
+  test("עוסק זעיר is offered; its info box follows the chosen track", async ({ page }) => {
+    await page.goto("/setup");
+    await goToBusinessStep(page);
 
-    await page.getByLabel("סוג עוסק").selectOption("morshe");
-    await expect(page.getByText("מסלול עוסק זעיר")).toHaveCount(0);
+    // Default track is עוסק פטור — the zeir info box is hidden.
+    await expect(page.getByRole("radio", { name: /עוסק זעיר/ })).toBeVisible();
+    await expect(page.getByText("מסלול עוסק זעיר:")).toHaveCount(0);
+
+    // Choosing זעיר reveals the info box; switching to מורשה hides it again.
+    await page.getByRole("radio", { name: /עוסק זעיר/ }).check();
+    await expect(page.getByText("מסלול עוסק זעיר:")).toBeVisible();
+    await page.getByRole("radio", { name: /עוסק מורשה/ }).check();
+    await expect(page.getByText("מסלול עוסק זעיר:")).toHaveCount(0);
   });
 
-  test("חברה בע״מ option is no longer available", async ({ page }) => {
+  test("חברה בע״מ is not offered — individuals-only osek tracks", async ({ page }) => {
     await page.goto("/setup");
-    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
-    await page.getByLabel("שם פרטי").fill("טסט");
-    await page.getByLabel("שם משפחה").fill("טסטסון");
-    await page.getByLabel("תעודת זהות").fill("318274561");
-    await page.getByLabel("תאריך לידה").fill("1996-08-14");
-    await page.getByRole("button", { name: /הבא/ }).click();
-    await page.getByRole("button", { name: /הבא/ }).click();
+    await goToBusinessStep(page);
 
-    const options = await page.getByLabel("סוג עוסק").locator("option").allTextContents();
-    expect(options).not.toContain("חברה בע\"מ");
-    expect(options).toEqual(expect.arrayContaining(["עוסק פטור", "עוסק מורשה"]));
+    const tracks = page.getByRole("radiogroup", { name: "סוג עוסק" }).getByRole("radio");
+    await expect(tracks).toHaveCount(3); // זעיר / פטור / מורשה
+    await expect(page.getByText("חברה בע\"מ")).toHaveCount(0);
+    await expect(page.getByRole("radio", { name: /עוסק מורשה/ })).toBeVisible();
   });
 });
 
