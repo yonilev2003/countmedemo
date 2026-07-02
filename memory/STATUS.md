@@ -7,16 +7,20 @@
 **מה מוזג וחי ב-main:** מנוע מס עם 94 golden tests + 18 e2e, CI gate על כל PR ל-main, security headers,
 rate-limiter, קופי מכויל, runbooks ב-`docs/runbooks/2026-07-02-yoni-supabase-waf.md`.
 
-**חוסם #1 — גייטינג עדיין כבוי בפועל (מאומת פעמיים מול production):** מאז ה-merge (18:28Z) היה
-בדיוק דיפלוי production אחד — **אף Redeploy לא בוצע**, אז `AUTH_GATING_ENABLED` שהוגדר לא נכנס לתוקף.
-תיקון: Vercel → env var בדיוק `true` ל-Production → **Redeploy מפורש** → אימות: גלישה בסתר ל-`/dashboard`
-חייבת להחזיר redirect ל-`/login` (לא ל-`/setup` — זה ה-redirect הצד-לקוחי שרץ כשהגייטינג כבוי).
-ה-middleware תקין — אל תיגעו בו.
+**חוסם #2 — Supabase MCP: ✅ נסגר (02/07 לילה).** חובר ב-OAuth; "list tables" מחזיר **12 טבלאות**
+= בדיוק כל הטבלאות מ-3 המיגרציות (8 init + 3 billing + 1 events; ה"13" בדוח WS7 היה ספירה שגויה) ⇒
+**מיגרציות billing+events ככל הנראה כבר הוחלו על hbsgz.** כל הטבלאות ריקות ⇒ אין עדיין דאטה אמיתי
+של משתמשים — **חלון הזדמנות: לבצע PII-minimization (תוכנית WS7) עכשיו, לפני שקיים דאטה להעביר.**
+נותר לוודא: `select * from plans` — אם ריק, ה-seed לא רץ → להריץ שוב את מיגרציית billing (idempotent).
 
-**חוסם #2 — Supabase MCP מקומי:** שם החבילה היה שגוי. הנכון:
-`npx -y @supabase/mcp-server-supabase@latest --project-ref=hbsgzelipeawkvtcazdr --read-only`
-+ `SUPABASE_ACCESS_TOKEN` ב-env בלבד. ⚠️ טוקן אחד הודלף בצ׳אט ב-02/07 — בוטל; לוודא שהחדש לא מודבק
-בשום שיחה. אחרי חיבור: dump → מיגרציות billing+events → צ׳קליסט WS7.
+**חוסם #1 — גייטינג עדיין כבוי (נבדק 3 פעמים, האחרונה 02/07 לילה: /dashboard → /setup).**
+ה-middleware תקין — לא לגעת בו. סדר האבחון מחר:
+1. **החשד המרכזי — הפרויקט הכפול ב-Vercel:** קיימים שני פרויקטים שבונים את הריפו. הקנוני הוא
+   **`countmedemo` תחת `yonilev2003s-projects`** (מארח את `countmedemo-eight.vercel.app`).
+   ייתכן שהמשתנה הוגדר בפרויקט הכפול (`countmes-projects`) — לוודא שעורכים את הנכון!
+2. במשתנה: הערך בדיוק `true` (בלי רווחים), מסומן **Production**, ואז **Redeploy מפורש** (env לא חל בלי).
+3. בדיקה: גלישה בסתר `/dashboard` → חייב `/login`. אם עדיין `/setup` אחרי redeploy מאומת —
+   רק אז לפתוח debug (שורת header זמנית ב-middleware שחושפת את מצב הדגל).
 
 **Backlog הסשן הבא (לפי סדר):**
 1. סגירת חוסמים 1+2 + WAF rules + branch protection — הכל ב-runbooks.
@@ -51,6 +55,18 @@ rate-limiter, קופי מכויל, runbooks ב-`docs/runbooks/2026-07-02-yoni-su
 
 **הבהרה למונח FLAG(Roy):** סימון בקוד (`lib/calculators/types.ts`) על קבועי-מס שטרם אומתו ע"י רועי
 (co-founder) — לא תכנון פיננסי אישי של יוני. אין קשר ל-Obsidian.
+
+**פרטים שטרם התעמקנו בהם (זוהו בסריקת-עומק 02/07 לילה — לטפל בסשן הבא):**
+- **סיכון פיצול מס-בריאות (intake):** שדה 030 מנכה 52% מ-`annualPaid` בהנחה שזה רכיב הב"ל בלבד,
+  אבל הוויזרד שואל "כמה שילמת לביטוח לאומי" — משתמש אמיתי יקליד את הסכום המשולב מהשובר (ב"ל+בריאות)
+  → ניכוי מנופח. FLAG קיים ב-persona.ts; הפתרון: לפצל את השאלה בוויזרד או להסביר ליד השדה.
+- **Preview deployments עוקפים גייטינג:** אם `AUTH_GATING_ENABLED` מוגדר רק ל-Production, כל Preview
+  (כולל של הפרויקט הכפול!) נשאר פתוח עם מפתחות אמיתיים — לסמן את המשתנה גם ל-Preview, ולוודא
+  שלפרויקט הכפול אין `ANTHROPIC_API_KEY` משלו (כפל חשיפת תקציב).
+- **זיכוי ביטוח חיים ללא תקרה:** תוקן ל-25% אבל תקרת 45א טרם ממודלת → בפרמיות גבוהות התצוגה
+  עלולה להפריז בזיכוי (confidence=medium + הערה קיימת). FLAG(Roy) לתקרה.
+- **מדרגת-כניסה 20 ימים למילואים 2027** — לא ממודלת בכוונה (טבלה רשמית טרם אושרה); לוודא בסוכן הרגולציה.
+- **הפרויקט הכפול ב-Vercel** — מעבר לבלבול, הוא שורף builds כפולים ועלול להיות מקור תקלת הגייטינג. לנתק.
 
 ## 🏗️ סבב 02/07 — hardening לפני משתמשים (build ירוק, tsc נקי, 80/80 golden tests)
 
