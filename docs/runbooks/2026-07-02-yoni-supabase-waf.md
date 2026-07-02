@@ -11,7 +11,8 @@ The current Supabase MCP session is authenticated against the account that owns 
 3. Re-point the MCP server to that token. Where the Supabase MCP is configured (Claude Code: `claude mcp list` to find it; it's typically an HTTP server entry with `SUPABASE_ACCESS_TOKEN`), replace the token env with the new one. If it was added via OAuth from claude.ai integrations instead: remove the integration and re-add it while logged into the correct Supabase account in the browser.
 4. Optional but recommended — least privilege: the MCP supports project scoping. Configure the server URL/args with `--project-ref hbsgzelipeawkvtcazdr` and `--read-only` for review sessions; drop `--read-only` only for a session that intentionally applies migrations.
 5. Verify in a fresh Claude session: `list_projects` should now show the project; then run the WS7 blocked-checks list (`docs/reviews/2026-07-02-ws7-supabase-architecture.md` §4): `list_migrations`, RLS/policies dump, `get_advisors`, plans-seed check.
-6. While there, apply the pending `billing` + `events` migrations (SQL editor or `apply_migration`) — they may never have been applied; the app fails silent without them.
+6. **Before touching the schema: take a full backup.** Dashboard → Database → Backups (verify a recent daily backup exists), or a manual dump: `supabase db dump --db-url <production connection string> -f pre-billing-migration.sql` (connection string from Dashboard → Connect; treat it as a secret). Production `apply_migration` without a dump is the classic way to lose data.
+7. Then apply the pending `billing` + `events` migrations (SQL editor or `apply_migration`) — they may never have been applied; the app fails silent without them. Both are idempotent (`create ... if not exists`), so re-running is safe.
 
 ## 2. Vercel WAF / rate-limit hardening for the AI routes
 
