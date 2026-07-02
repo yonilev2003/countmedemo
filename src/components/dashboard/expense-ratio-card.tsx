@@ -7,39 +7,14 @@
  *
  * Color comes from `tone` ("ok" → success | "info" → teal | "warn" → due/gold | "alert" → alert).
  *
- * "Facts, not advice" (product decision): the insight copy is produced in
- * lib/p-and-l/expense-ratio.ts (owned elsewhere) and still contains imperative
- * advice phrases ("מומלץ לבטל...", "שקול/י...", "כדאיות..."). We neutralize
- * those at the render layer via neutralizeAdvice() so this surface states facts
- * only. The numbers and the legal disclaimer are untouched. If the source copy
- * is later made factual, neutralizeAdvice() becomes a harmless no-op.
+ * "Facts, not advice" (product decision): the insight copy in
+ * lib/p-and-l/expense-ratio.ts is factual at source (WS8 copy audit, O8-O10),
+ * so this card renders headlineHe/detailHe as-is — the old render-layer
+ * neutralizeAdvice() shim was removed once the source copy was fixed.
  */
 
 import { ExpenseRatioInsight } from "@/lib/p-and-l/expense-ratio";
 import { PercentIcon } from "@/components/brand/icons";
-
-/**
- * Replace known advice/recommendation phrasing coming from the insight source
- * with neutral, factual equivalents. Keeps every number; removes only the
- * "what you should do" framing.
- */
-function neutralizeAdvice(text: string): string {
-  return text
-    // "...מסלול זעיר יכיר רק ב-X ₪ — Y ₪ פשוט לא יוכרו. מומלץ לבטל את המסלול ולדווח כעוסק/ת פטור/ה רגיל/ה."
-    .replace(
-      /\s*מומלץ לבטל את המסלול ולדווח כעוסק\/ת פטור\/ה רגיל\/ה\.?/g,
-      "",
-    )
-    // headline: "...— שקול/י מסלול זעיר" → neutral factual framing
-    .replace(/—\s*שקול\/י מסלול זעיר/g, "— מתחת לסף מסלול זעיר")
-    // above-80 detail advice → factual
-    .replace(
-      /סימן שיש כדאיות לבחון את מבנה ההוצאות\.\s*/g,
-      "",
-    )
-    .replace(/\s+\./g, ".")
-    .trim();
-}
 
 const TONE_STYLES: Record<ExpenseRatioInsight["tone"], {
   accent: string; bar: string; chip: string;
@@ -87,7 +62,7 @@ export function ExpenseRatioCard({ insight }: { insight: ExpenseRatioInsight }) 
               יחס הוצאות / הכנסות
             </p>
             <p className="text-sm font-bold text-brand-navy mt-0.5">
-              {neutralizeAdvice(insight.headlineHe)}
+              {insight.headlineHe}
             </p>
           </div>
         </div>
@@ -124,7 +99,7 @@ export function ExpenseRatioCard({ insight }: { insight: ExpenseRatioInsight }) 
       </div>
 
       <p className="text-xs text-ink leading-relaxed">
-        {neutralizeAdvice(insight.detailHe)}
+        {insight.detailHe}
       </p>
 
       {insight.isMarkedZeir && !insight.isZeirFavorable && (

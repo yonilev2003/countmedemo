@@ -1388,8 +1388,10 @@ export default function SetupPage() {
 
                 {previewNet !== null && (
                   <div className="countme-frame px-4 py-3 mt-4">
+                    {/* WS8 audit H11 — exact calculator output, not an estimate;
+                        the honest caveat is input-completeness only. */}
                     <div className="text-xs text-muted mb-1">
-                      הכנסה חייבת (הערכה לשדה 150)
+                      הכנסה חייבת (חישוב לשדה 150, לפי הנתונים שהזנת עד כה)
                     </div>
                     <div
                       className={cn(

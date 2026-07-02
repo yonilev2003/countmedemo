@@ -15,6 +15,7 @@ import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote } from "@/components/brand/legal-note";
 import {
   ArrowLeftIcon,
   SettingsIcon,
@@ -229,13 +230,15 @@ function ruleDisplayLabel(c: ExpenseCategory): string {
 }
 
 function FooterDisclaimer({ year }: { year: number }) {
+  // WS8 audit H8 — keep the genuine scope caveat, canonical one-liner instead
+  // of the gendered "התייעצי עם רואה חשבון" sentence.
   return (
     <div className="mt-8 text-center text-[11px] text-faint leading-relaxed">
       <p>
         המידע המוצג מבוסס על פקודת מס הכנסה ({year}) ופרסומים פומביים של רשות המסים.
-        קטגוריות והכרה ספציפית עשויות להשתנות לפי מצב העסק. לפני הגשת הדו״ח —
-        התייעצי עם רואה חשבון.
+        קטגוריות והכרה ספציפית עשויות להשתנות לפי מצב העסק.
       </p>
+      <LegalNote variant="line" className="mt-1 text-[11px]" />
     </div>
   );
 }

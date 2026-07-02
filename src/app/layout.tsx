@@ -13,8 +13,9 @@ const assistant = Assistant({
 
 export const metadata: Metadata = {
   title: "countme — המלווה לדו״ח שלך",
+  // Copy per docs/reviews/2026-07-02-ws8-copy-audit.md (O1) — DRAFT — NEEDS LEGAL REVIEW
   description:
-    "המוצר שמלווה עצמאים בישראל במילוי דו״חות מס בלי רואה חשבון. מבוסס על AI שלוקח את כל הנתונים שלך ומציג בדיוק מה למלא בכל שדה.",
+    "המוצר שמלווה עצמאים בישראל בהכנת דו״ח המס השנתי. AI שלוקח את הנתונים שלך ומראה בדיוק מה למלא בכל שדה — מחשבון מדויק, לא ייעוץ מס.",
   manifest: "/manifest.json",
 };
 

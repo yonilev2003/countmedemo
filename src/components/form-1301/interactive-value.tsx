@@ -15,7 +15,7 @@ interface Props {
 
 /**
  * The "clickable number" — the wow factor of the demo.
- * Click → shows formula, sources, confidence.
+ * Click → shows formula, sources, and data coverage (full/partial inputs).
  * Tooltip renders via React portal to escape any overflow clipping.
  */
 export function InteractiveValue({ result, variant = "currency", fieldCode }: Props) {
@@ -35,11 +35,14 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
     return String(result.value ?? "—");
   })();
 
-  const confidenceColor = {
-    high: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  // WS8 audit H10 — the chip describes DATA COVERAGE, not calculation
+  // confidence: the arithmetic is deterministic; at most the inputs are
+  // incomplete. For the normal (full-data) case no chip is shown — the
+  // formula + sources are the trust signal.
+  const coverageChipColor = {
     medium: "bg-amber-100 text-amber-900 border-amber-300",
     low: "bg-rose-100 text-rose-900 border-rose-300",
-  }[result.confidence];
+  } as const;
 
   // Measure button position and set tooltip position
   useEffect(() => {
@@ -99,16 +102,22 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
           className="rounded-xl border border-stone-200 bg-white p-4 text-right shadow-xl"
         >
           <div className="mb-3 flex items-center justify-between">
-            <span
-              className={cn(
-                "rounded-full border px-2 py-0.5 text-xs font-medium",
-                confidenceColor,
-              )}
-            >
-              {result.confidence === "high" && "ביטחון גבוה"}
-              {result.confidence === "medium" && "ביטחון בינוני"}
-              {result.confidence === "low" && "ביטחון נמוך"}
-            </span>
+            {result.confidence === "high" ? (
+              <span
+                className="rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900"
+              >
+                מבוסס על נתונים מלאים
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-xs font-medium",
+                  coverageChipColor[result.confidence],
+                )}
+              >
+                מבוסס על נתונים חלקיים
+              </span>
+            )}
             <button
               onClick={() => setOpen(false)}
               className="text-stone-400 hover:text-stone-700"

@@ -31,6 +31,7 @@ import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote } from "@/components/brand/legal-note";
 import { Reveal } from "@/components/brand/motion";
 import { calculate, estimateTaxLiability } from "@/lib/calculators";
 import {
@@ -38,7 +39,6 @@ import {
   CalendarIcon,
   FileTextIcon,
   SparklesIcon,
-  AlertTriangleIcon,
   DownloadIcon,
   ArrowLeftIcon,
   WalletIcon,
@@ -401,16 +401,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Disclaimer */}
+      {/* Legal note — the ONE banner on this page (WS8 audit H5) */}
       <div className="mx-auto max-w-screen-xl px-4 pt-4 sm:px-6">
-        <div className="flex items-start gap-2 rounded-2xl border border-line bg-sand px-5 py-2.5 text-[11px] text-muted leading-relaxed">
-          <AlertTriangleIcon className="size-4 shrink-0 text-due mt-px" />
-          <span>
-            <span className="font-semibold text-ink">הצהרת אחריות: </span>
-            הנתונים המוצגים מבוססים על נתונים שהוזנו ידנית ועל הערכות — אינם מהווים ייעוץ מס או ייעוץ פיננסי מקצועי.{" "}
-            לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
-          </span>
-        </div>
+        <LegalNote variant="full" />
       </div>
 
       <main className="mx-auto max-w-screen-xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:pb-8">

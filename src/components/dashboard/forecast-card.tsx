@@ -8,6 +8,7 @@ import {
   type ForecastBasis,
 } from "@/lib/forecast/index";
 import { TrendingUpIcon } from "@/components/brand/icons";
+import { LegalNote } from "@/components/brand/legal-note";
 
 const BASIS_META: Record<ForecastBasis, { label: string; hint: string }> = {
   strong: { label: "חודש חזק", hint: "הקרנה זהירה־כלפי־מעלה — משלמים יותר עכשיו, פחות הפתעות בסוף השנה" },
@@ -113,10 +114,14 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         </div>
       )}
 
-      <p className="mt-3 text-[10px] text-faint leading-relaxed">
-        הערכה בלבד, לא ייעוץ מס. המקדמות בפועל נקבעות ע״י רשות המסים לפי שיעור מקדמה שנתי; התחזית כאן
-        מבוססת על תכנון ההכנסה הצפויה.
-      </p>
+      {/* WS8 audit K1 — shared estimate note + the factual "who sets the real number" */}
+      <div className="mt-3">
+        <LegalNote variant="estimate" />
+        <p className="mt-0.5 text-[10px] text-faint leading-relaxed">
+          המקדמות בפועל נקבעות ע״י רשות המסים לפי שיעור מקדמה שנתי; התחזית כאן מבוססת על תכנון
+          ההכנסה הצפויה.
+        </p>
+      </div>
     </section>
   );
 }
