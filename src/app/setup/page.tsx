@@ -51,8 +51,10 @@ function getStepSubtitles(year: number): string[] {
   ];
 }
 
-/** Tax years available in the selector. Add future years here when constants are confirmed. */
-const AVAILABLE_TAX_YEARS: number[] = [2024, 2025];
+/** Tax years available in the selector. Add future years here when constants are confirmed.
+ * 2026 exposes the in-year/forecast flow (miluim credit, expanded brackets, indexed
+ * ceiling); some 2026 constants still carry FLAG(Roy) in lib/calculators/types.ts. */
+const AVAILABLE_TAX_YEARS: number[] = [2024, 2025, 2026];
 
 interface Step1Data {
   firstName: string;

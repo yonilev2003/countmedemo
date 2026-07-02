@@ -252,21 +252,25 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   // longer credits it (see estimateTaxLiability). Do not treat 48% as a credit.
   bituachLeumiCreditRate: 0.48,         // legacy/display only — NOT credited in tax calc
   blMonthlyThreshold1: 7522,            // CONFIRMED 2025 (= 90,264 ₪/yr, 60% avg wage)
-  blMonthlyMax: 49030,                  // CONFIRMED 2025 (= 588,360 ₪/yr contribution ceiling)
+  // CORRECTED 2026-07-02: the 2025 max insurable income is 50,695 ₪/mo (kolzchut
+  // "דמי ביטוח לאומי לעצמאי" + btl.gov.il 2025 circular). 49,030 was the 2024
+  // figure, previously carried here with a wrong CONFIRMED mark. DORMANT constant
+  // (no calculator consumes it) — display/provenance only.
+  blMonthlyMax: 50695,                  // CONFIRMED 2025 (was wrongly 49,030 = the 2024 value)
   // blRate1/blRate2 are DORMANT (defined for shape/provenance; no calculator
   // consumes them — the 030/137 calcs deduct from the persona's paid figure).
   blRate1: 0.0712,                      // CONFIRMED 2025 reduced total: 3.89% B"L + 3.23% health
   blRate2: 0.1783,                      // CONFIRMED 2025 full total: 12.83% B"L + 5.00% health
 
   // Pension — rates stable; caps index-linked.
-  // FLAG(Roy): the 2025 indexed pension caps are NOT confirmed by any owned
-  // skill (israeli-tax-returns/tax-brackets-credits.md lists brackets + credit-
-  // point value but no pension-cap figure). Carried at the 2024 values until
-  // confirmed — do NOT treat 25,608 / 12,804 as verified 2025 numbers.
+  // CONFIRMED 2025 (2026-07-02, FLAG(Roy) resolved): the qualifying-income cap
+  // (הכנסה מזכה) is 232,800 ₪ for 2024–2025 (kolzchut pension-benefits page +
+  // mvs.co.il) → deduction cap 11% × 232,800 = 25,608; credit-base cap
+  // 5.5% × 232,800 = 12,804. The carried values were correct.
   pensionDeductionRate: 0.11,           // stable
-  pensionDeductionCap: 25608,           // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
+  pensionDeductionCap: 25608,           // CONFIRMED 2025 (= 11% × 232,800)
   pensionCreditRate: 0.055,             // stable
-  pensionCreditCap: 12804,              // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
+  pensionCreditCap: 12804,              // CONFIRMED 2025 (= 5.5% × 232,800)
   pensionCreditPercent: 0.35,           // stable
 
   // Form 6111 obligation threshold — CONFIRMED 256,410 ₪ (ex-VAT) for 2025.
@@ -377,10 +381,16 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   // Bituach Leumi — FLAG(Roy): 2026 thresholds unconfirmed (carried 2025).
   bituachLeumiDeductibleRate: 0.52,     // stable (סעיף 47א)
   bituachLeumiCreditRate: 0.48,         // legacy/display only — NOT credited in tax calc
-  blMonthlyThreshold1: 7703,            // israeli-bituach-leumi 2026: 60% avg wage = 7,703
-  blMonthlyMax: 51910,                  // israeli-bituach-leumi 2026: max insurable = 51,910
-  blRate1: 0.0597,                      // FLAG(Roy): 2026 self-employed rates shifted (Amend. 252)
-  blRate2: 0.1783,                      // FLAG(Roy): 2026 self-employed rates shifted (Amend. 252)
+  // FLAG(Roy): threshold candidates conflict — 7,703 (israeli-bituach-leumi skill)
+  // vs 7,710 (jobcalc.co.il 2026 calculator, = 60% avg wage). Kept 7,703 until a
+  // btl.gov.il primary source settles it. DORMANT constant.
+  blMonthlyThreshold1: 7703,            // FLAG(Roy): confirm 2026 (7,703 vs 7,710)
+  blMonthlyMax: 51910,                  // CONFIRMED 2026 (kolzchut + jobcalc: 51,910 ₪/mo)
+  // CONFIRMED 2026 (2026-07-02): self-employed B"L 4.47% reduced / 12.83% full
+  // (Amend. 252 increase) + health 3.23% / 5.00% → combined 7.70% / 17.83%
+  // (kolzchut, jobcalc, ICPAS 2025→2026 tables). Was carried 5.97% with FLAG.
+  blRate1: 0.0770,                      // CONFIRMED 2026 (4.47% B"L + 3.23% health)
+  blRate2: 0.1783,                      // CONFIRMED 2026 (12.83% B"L + 5.00% health)
 
   // Pension — FLAG(Roy): 2026 caps unconfirmed (carried 2025).
   pensionDeductionRate: 0.11,           // stable

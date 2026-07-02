@@ -282,9 +282,9 @@ export default function Home() {
       >
         <div className="mx-auto max-w-screen-xl px-8">
           <SectionHead
-            eyebrow="קהילה"
-            title="עצמאים מספרים"
-            subtitle="מה אומרים מי שכבר הורידו את הלחץ של הבירוקרטיה."
+            eyebrow="תרחישים"
+            title="מה עושים עם countme"
+            subtitle="דוגמאות שימוש מתוך המוצר — להמחשה. לא ציטוטי לקוחות."
             dark
           />
         </div>
@@ -298,7 +298,7 @@ export default function Home() {
           }}
         >
           <div className="cm-marquee flex w-max gap-5">
-            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
+            {[...SCENARIOS, ...SCENARIOS].map((t, i) => (
               <PostCard key={i} {...t} />
             ))}
           </div>
@@ -569,79 +569,74 @@ function ChatBubble({
   );
 }
 
-type Testimonial = {
+// Illustrative product scenarios — NOT customer testimonials. The previous
+// version showed fictional named people with social handles and a specific
+// refund figure; replaced 2026-07-02 (misleading-advertising exposure, product
+// decision). Roles only, no names, capability statements the product actually
+// delivers. Copy: DRAFT — NEEDS LEGAL REVIEW.
+type Scenario = {
   initial: string;
   avatarColor: string;
-  name: string;
-  handle: string;
-  platform: "instagram" | "linkedin";
+  role: string;
+  tag: string;
   quote: string;
   body: React.ReactNode;
 };
 
-const TESTIMONIALS: Testimonial[] = [
+const SCENARIOS: Scenario[] = [
   {
-    initial: "ר",
+    initial: "ק",
     avatarColor: BRAND_COLORS.teal,
-    name: "רותם לוי",
-    handle: "@rotem.designs",
-    platform: "instagram",
-    quote: "סוף סוף הפסקתי לפחד מהמע״מ",
+    role: "עצמאית בתחום הקריאייטיב",
+    tag: "עוסקת פטורה",
+    quote: "מעקב תקרת עוסק פטור בזמן אמת",
     body: (
       <>
-        כל דיווח בזמן, בלי לרדוף אחרי רואה חשבון.{" "}
-        <span className="font-semibold text-teal-600">#עצמאים #שקט_נפשי</span>
+        התראה לפני שמתקרבים לתקרה — כולל כמה נשאר עד המעבר למורשה.
       </>
     ),
   },
   {
-    initial: "א",
+    initial: "י",
     avatarColor: BRAND_COLORS.navy,
-    name: "אבי כהן",
-    handle: "Avi Cohen",
-    platform: "linkedin",
-    quote: "החזר מס שלא ידעתי שמגיע לי",
+    role: "יועץ עסקי עצמאי",
+    tag: "עוסק מורשה",
+    quote: "מאתר ניכויים וזיכויים לפי הנתונים",
     body: (
       <>
-        איתן מצא ₪2,300 שפספסתי.{" "}
-        <b className="font-bold text-brand-navy">המלצה חמה.</b>
+        קרן השתלמות, ביטוח לאומי, תרומות — כל סעיף עם הנוסחה והמקור שלו.
       </>
     ),
   },
   {
     initial: "מ",
     avatarColor: BRAND_COLORS.beige600,
-    name: "מאיה ברק",
-    handle: "@maya.studio",
-    platform: "instagram",
-    quote: "מילאתי 1301 ב-3 דקות",
+    role: "מפתחת פרילנסרית",
+    tag: "טופס 1301",
+    quote: "כל שדה בטופס — עם חישוב ומקור",
     body: (
       <>
-        בלי קודים סתומים, הכול מוסבר בעברית.{" "}
-        <span className="font-semibold text-teal-600">#פרילנס</span>
+        בלי קודים סתומים: לוחצים על ערך ורואים בדיוק איך הוא חושב.
       </>
     ),
   },
   {
-    initial: "ד",
+    initial: "ע",
     avatarColor: BRAND_COLORS.success,
-    name: "דניאל פרץ",
-    handle: "Daniel Peretz",
-    platform: "linkedin",
+    role: "עוסק זעיר",
+    tag: "לוח מועדים",
     quote: "כל המועדים במקום אחד",
-    body: <>מקדמות, ביטוח לאומי, מע״מ — אף פעם לא מאחר.</>,
+    body: <>מקדמות, ביטוח לאומי, דוח שנתי — עם תזכורות ליומן.</>,
   },
   {
-    initial: "ש",
+    initial: "א",
     avatarColor: BRAND_COLORS.teal600,
-    name: "שירה אזולאי",
-    handle: "@shira.creative",
-    platform: "instagram",
-    quote: "כאילו יש לי רואה חשבון בכיס",
+    role: "מטפלת עצמאית",
+    tag: "צ׳אט איתן",
+    quote: "שאלה בעברית, תשובה עם מספרים",
     body: (
       <>
-        שואלת כל שאלה, מקבלת תשובה בגובה העיניים.{" "}
-        <span className="font-semibold text-teal-600">#עצמאית</span>
+        עובדות מתוך הנתונים שלך — בגובה העיניים, בלי ז׳רגון.
       </>
     ),
   },
@@ -650,12 +645,11 @@ const TESTIMONIALS: Testimonial[] = [
 function PostCard({
   initial,
   avatarColor,
-  name,
-  handle,
-  platform,
+  role,
+  tag,
   quote,
   body,
-}: Testimonial) {
+}: Scenario) {
   return (
     <div className="w-[336px] shrink-0 overflow-hidden rounded-[20px] bg-paper text-ink shadow-brand">
       <div className="flex items-center gap-[11px] px-4 py-3.5">
@@ -666,16 +660,13 @@ function PostCard({
           {initial}
         </span>
         <div>
-          <div className="text-sm font-bold text-brand-navy">{name}</div>
-          <div className="text-xs text-faint">{handle}</div>
+          <div className="text-sm font-bold text-brand-navy">{role}</div>
+          <div className="text-xs text-faint">{tag}</div>
         </div>
-        <span className="ms-auto text-faint">
-          {platform === "instagram" ? <InstagramGlyph /> : <LinkedInGlyph />}
-        </span>
       </div>
       <div className="flex h-[180px] items-center justify-center bg-cream px-[22px] text-center">
         <p className="text-[19px] font-extrabold leading-[1.3] tracking-[-0.01em] text-brand-navy">
-          “{quote}”
+          {quote}
         </p>
       </div>
       <div className="px-4 pb-[18px] pt-3.5">
@@ -707,43 +698,5 @@ function FooterCol({
         </Link>
       ))}
     </div>
-  );
-}
-
-/** Brand-style social glyphs (line, currentColor) — no emoji. */
-function InstagramGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="size-5"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-function LinkedInGlyph() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="size-5"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="3" />
-      <path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 0 1 4 0v4M11 11v6" />
-    </svg>
   );
 }

@@ -12,7 +12,7 @@
   rate-limiter משותף (user-id/platform-IP, לא XFF) · magic-bytes ב-upload · **next 16.2.4→16.2.10** (advisories).
 - ✅ **WS5 סוכן רגולציה:** cross-ref ≥2 מקורות/מקור-ראשי + patch-proposal (diff ל-types.ts באישיו, human-merge).
 - ✅ **WS8 קופי:** `<LegalNote>` אחד במקום 8 באנרים · פרומפט איתן לא "מחליף רו"ח" · aligned "מחשבון מדויק. לא ייעוץ מס."
-  **הכל DRAFT — צריך את יעל.**
+  **הכל DRAFT — סקירה משפטית חיצונית (02/07: אין יותר יעל; פערים משפטיים מרוכזים ברשימה בסוף כל פלט AI).**
 - ✅ **WS6/WS1:** טוקנים due-ink/alert-ink · `brand/colors.ts` לגרפים · `ils()` אחד · dead exports הוסרו.
 - 📄 **דוחות ב-`docs/reviews/2026-07-02-*`:** WS1+WS2 (must-fix list) · WS7 Supabase (7 טבלאות מתות, PII plan) ·
   WS8 audit · WS9 learning-loop · WS5 demo.
