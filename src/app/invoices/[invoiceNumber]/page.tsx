@@ -75,7 +75,7 @@ export default function InvoicePrintPage() {
 
       {/* Invoice document — this is what prints */}
       <div className="docwrap mx-auto max-w-3xl px-6 py-10">
-        <div className="invoice-document mx-auto bg-paper shadow-lg border border-line rounded-xl overflow-hidden no-print-shadow" dir="rtl">
+        <div className="invoice-document mx-auto bg-paper shadow-brand border border-line rounded-xl overflow-hidden no-print-shadow" dir="rtl">
 
           {/* Document header: two columns — issuer (right) + recipient/title (left, navy bg) */}
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.1fr]">

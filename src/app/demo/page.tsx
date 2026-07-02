@@ -12,6 +12,7 @@ import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote, LEGAL_NOTE_ESTIMATE } from "@/components/brand/legal-note";
 import {
   SparklesIcon,
   ReceiptIcon,
@@ -88,18 +89,9 @@ export default function DemoPage() {
         </div>
       </header>
 
-      {/* Legal disclaimer banner */}
+      {/* Legal note — the ONE banner on this page (WS8 audit H1: one per page, max) */}
       <div className="mx-auto max-w-screen-2xl px-6 pt-4">
-        <div className="flex items-start gap-2 rounded-xl border border-line bg-paper px-5 py-3 text-[11px] leading-relaxed text-muted">
-          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-due" />
-          <p>
-            <span className="font-semibold text-ink">הצהרת אחריות: </span>
-            המידע המוצג מבוסס על נתונים שהוזנו ידנית ועל מקורות ציבוריים ברשת — הוא אינו מהווה
-            ייעוץ מס, ייעוץ משפטי, או ייעוץ פיננסי מקצועי.{" "}
-            <strong>האחריות על נכונות כל הפרטים המוגשים לרשות המסים חלה על הממלא/ת בלבד.</strong>{" "}
-            לפני הגשת הדוח, מומלץ להתייעץ עם רואה חשבון מוסמך.
-          </p>
-        </div>
+        <LegalNote variant="full" />
       </div>
 
       {/* Main content — split: right = main area, left = chat */}
@@ -115,7 +107,7 @@ export default function DemoPage() {
                       <SparklesIcon className="size-4" /> countme
                     </span>
                     <span>·</span>
-                    <span>כל ערך מחושב הוא לחיץ — לחץ לראות פירוט, מקורות וביטחון החישוב</span>
+                    <span>כל ערך מחושב הוא לחיץ — לחץ לראות את הנוסחה והמקורות</span>
                   </div>
                   <button
                     onClick={() => setPhase("estimate")}
@@ -142,11 +134,7 @@ export default function DemoPage() {
 
       <footer className="mx-auto max-w-screen-2xl px-6 pb-8 pt-2 text-center text-[10px] leading-relaxed text-faint space-y-1">
         <p>countme · גרסת דמו · שנת מס {persona.income.year}</p>
-        <p>
-          המידע אינו מהווה ייעוץ מס או ייעוץ משפטי. countme מבוסס על מידע זמין לציבור
-          ואינו אחראי לטעויות, שינויי חקיקה, או אי-דיוקים בנתונים. הגשת הדוח ומילוי הפרטים
-          הנכונים הינה באחריות הממלא/ת בלבד.
-        </p>
+        <LegalNote variant="line" />
       </footer>
     </div>
   );
@@ -180,9 +168,7 @@ function TaxEstimateGate({
             <h2 className="font-display text-lg font-extrabold text-white">
               הערכת מס שנתית · {persona.income.year}
             </h2>
-            <p className="mt-1 text-[12px] text-aqua">
-              לפי הנתונים והערכים בדו״ח — ההערכה אינה מחייבת ואינה מהווה ייעוץ מס
-            </p>
+            <p className="mt-1 text-[12px] text-aqua">{LEGAL_NOTE_ESTIMATE}</p>
           </div>
           <div className={cn(
             "rounded-xl border-2 px-5 py-3 text-center",
@@ -266,9 +252,6 @@ function TaxEstimateGate({
         <p>
           ההערכה מבוססת על הנתונים שהזנת בלבד. <strong>הסכום הסופי עשוי להשתנות</strong> בשל הפרשי
           הצמדה וריבית על מקדמות, הכנסות שלא הוזנו, זיכויים מיוחדים, שינויי מצב משפחתי, או מס שבח.
-        </p>
-        <p>
-          ערכים אלה <strong>אינם מחייבים ואינם מהווים ייעוץ מס</strong>. לפני הגשה — התייעץ עם רואה חשבון.
         </p>
       </div>
 

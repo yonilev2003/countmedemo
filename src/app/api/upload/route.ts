@@ -1,5 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import ExcelJS from "exceljs";
+import { requireUserIfGated } from "@/lib/security/api-guard";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
 
 /**
  * /api/upload — extract structured tax data from user-uploaded reports.
@@ -12,29 +18,23 @@ import ExcelJS from "exceljs";
  * setup wizard's persona-in-progress.
  */
 
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX_UPLOADS = 8; // per IP per minute
+// Rate limiting via the shared limiter (lib/security/rate-limit) — this also
+// fixes the previously unbounded bucket map here (the shared limiter sweeps
+// and caps its maps). In-memory = per-instance on serverless; see its JSDoc.
+const RATE_LIMIT_MAX_UPLOADS = 8; // per client per minute
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
-const ipBuckets = new Map<string, { count: number; resetAt: number }>();
 
-function getClientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
-}
+/* ──────────────────────────────────────────────────────────
+   Magic-byte (file signature) checks — the extension/MIME
+   checks below trust the client; these read the actual bytes.
+   ────────────────────────────────────────────────────────── */
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]; // "PK\x03\x04" — .xlsx is a ZIP container
 
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const bucket = ipBuckets.get(ip);
-  if (!bucket || now > bucket.resetAt) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true };
-  }
-  if (bucket.count >= RATE_LIMIT_MAX_UPLOADS) {
-    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
-  }
-  bucket.count += 1;
-  return { allowed: true };
+function hasMagic(buf: ArrayBuffer, magic: number[]): boolean {
+  if (buf.byteLength < magic.length) return false;
+  const head = new Uint8Array(buf, 0, magic.length);
+  return magic.every((byte, i) => head[i] === byte);
 }
 
 export interface ExtractedData {
@@ -61,17 +61,15 @@ export interface ExtractedData {
 }
 
 export async function POST(request: Request) {
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(ip);
+  const rl = checkRateLimit("upload", resolveClientKey(request), RATE_LIMIT_MAX_UPLOADS);
   if (!rl.allowed) {
-    return Response.json(
-      { error: "יותר מדי העלאות. נסי שוב בעוד כמה שניות." },
-      {
-        status: 429,
-        headers: rl.retryAfter ? { "Retry-After": String(rl.retryAfter) } : undefined,
-      },
-    );
+    return rateLimitResponse(rl.retryAfter, "יותר מדי העלאות. נסי שוב בעוד כמה שניות.");
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
+  // before we touch the multipart body or spend Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
 
   let formData: FormData;
   try {
@@ -104,9 +102,11 @@ export async function POST(request: Request) {
   const arrayBuffer = await file.arrayBuffer();
   const isPdf =
     file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-  const isXlsx =
-    file.name.toLowerCase().endsWith(".xlsx") ||
-    file.name.toLowerCase().endsWith(".xls");
+  // .xlsx only. Legacy .xls (OLE2 container, magic D0 CF 11 E0) is
+  // intentionally NOT supported: exceljs can only read xlsx/csv
+  // (wb.xlsx.load), so an .xls upload always failed downstream with a
+  // cryptic error anyway — now it's rejected up front with a clear message.
+  const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
 
   try {
     if (kind === "expenses-excel") {
@@ -116,12 +116,24 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      // Magic-byte check: a real .xlsx is a ZIP container. Catches renamed
+      // files that the extension check above happily lets through.
+      if (!hasMagic(arrayBuffer, ZIP_MAGIC)) {
+        return Response.json(
+          { error: "הקובץ אינו קובץ Excel תקין (.xlsx)" },
+          { status: 415 },
+        );
+      }
       const data = await parseExpensesExcel(arrayBuffer);
       return Response.json({ ok: true, data });
     }
 
     if (!isPdf) {
       return Response.json({ error: "צרי קובץ PDF" }, { status: 400 });
+    }
+    // Magic-byte check: every valid PDF starts with "%PDF-".
+    if (!hasMagic(arrayBuffer, PDF_MAGIC)) {
+      return Response.json({ error: "הקובץ אינו PDF תקין" }, { status: 415 });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;

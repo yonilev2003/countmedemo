@@ -51,8 +51,10 @@ function getStepSubtitles(year: number): string[] {
   ];
 }
 
-/** Tax years available in the selector. Add future years here when constants are confirmed. */
-const AVAILABLE_TAX_YEARS: number[] = [2024, 2025];
+/** Tax years available in the selector. Add future years here when constants are confirmed.
+ * 2026 exposes the in-year/forecast flow (miluim credit, expanded brackets, indexed
+ * ceiling); some 2026 constants still carry FLAG(Roy) in lib/calculators/types.ts. */
+const AVAILABLE_TAX_YEARS: number[] = [2024, 2025, 2026];
 
 interface Step1Data {
   firstName: string;
@@ -547,9 +549,12 @@ export default function SetupPage() {
         bookkeepingMethod: "single-entry",
         bookkeepingType: "computerized",
         isSmallBusiness: totalRevenue < 100000,
-        // Explicit toggle from step 3 — only valid if עוסק פטור AND under 120k threshold
+        // Explicit toggle from step 3 — only valid if עוסק פטור AND under the
+        // year-keyed ceiling (120,000 for 2024–2025, 122,833 from 2026).
         isOsekZeir:
-          s3.isOsekZeir && s3.osekType === "patur" && totalRevenue <= 120000,
+          s3.isOsekZeir &&
+          s3.osekType === "patur" &&
+          totalRevenue <= getTaxYearConstants(selectedYear).osekZeirThreshold,
         hasEmployees: false,
         employerNames: [],
       },
@@ -1385,8 +1390,10 @@ export default function SetupPage() {
 
                 {previewNet !== null && (
                   <div className="countme-frame px-4 py-3 mt-4">
+                    {/* WS8 audit H11 — exact calculator output, not an estimate;
+                        the honest caveat is input-completeness only. */}
                     <div className="text-xs text-muted mb-1">
-                      הכנסה חייבת (הערכה לשדה 150)
+                      הכנסה חייבת (חישוב לשדה 150, לפי הנתונים שהזנת עד כה)
                     </div>
                     <div
                       className={cn(
@@ -1641,7 +1648,7 @@ function OsekTypeChoice({
   ];
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2.5" role="radiogroup" aria-label="סוג עוסק">
       {options.map((opt) => {
         const active = selected === opt.key;
         return (

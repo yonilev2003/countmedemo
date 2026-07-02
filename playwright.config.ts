@@ -24,6 +24,13 @@ export default defineConfig({
     trace: "on-first-retry",
     // Real form is RTL; pin viewport so layout assertions are stable.
     viewport: { width: 1440, height: 900 },
+    // Managed containers pre-install Chromium at a fixed path that may not
+    // match the exact build this @playwright/test version pins. Set
+    // PLAYWRIGHT_CHROMIUM_PATH (e.g. /opt/pw-browsers/chromium) to use it
+    // instead of downloading browsers.
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+      : undefined,
   },
 
   projects: [

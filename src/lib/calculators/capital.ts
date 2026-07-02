@@ -15,8 +15,7 @@ import type {
   LiabilityItem,
 } from "@/lib/persona";
 import type { Calculator, CalcResult, CalcSource } from "./types";
-
-const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+import { ils } from "@/lib/utils";
 
 export const ASSET_CATEGORY_HE: Record<AssetCategory, string> = {
   "cash-and-deposits": "מזומן, עו״ש ופיקדונות",

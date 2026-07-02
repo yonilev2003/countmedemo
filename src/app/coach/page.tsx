@@ -7,6 +7,7 @@ import { loadPersona } from "@/lib/setup-storage";
 import { CoachChat } from "@/components/agent/coach-chat";
 import { ChatNavRail } from "@/components/agent/chat-nav-rail";
 import { btn } from "@/components/brand/button";
+import { LegalNote } from "@/components/brand/legal-note";
 import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
 
 export default function CoachPage() {
@@ -74,10 +75,8 @@ export default function CoachPage() {
             </div>
           )}
 
-          <p className="mt-3 px-2 text-center text-[10px] leading-relaxed text-faint">
-            המידע אינו מהווה ייעוץ מס. countme מבוסס על מקורות פומביים ופקודת מס
-            הכנסה 2024. לפני הגשה — התייעצי עם רואה חשבון.
-          </p>
+          {/* WS8 audit H7 — one-line canonical note (no tax-year hardcoding) */}
+          <LegalNote variant="line" className="mt-3 px-2 text-center" />
         </main>
       </div>
 

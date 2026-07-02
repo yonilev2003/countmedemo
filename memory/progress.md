@@ -2,6 +2,32 @@
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 02/07/2026 — ארכיטקטורה, אבטחה, דיוק המנוע (8 workstreams)
+
+ענף `claude/tax-product-architecture-9s3gyk`. סבב co-founder טכני: discovery מלא → gate-approved plan → ביצוע.
+**מצב סיום: build ירוק · tsc נקי · 80/80 golden tests · 18/18 e2e.** דוחות: `docs/reviews/2026-07-02-*`.
+
+**נבנה:**
+- **WS4 (הליבה):** vitest + 80 golden tests על המנוע (מדרגות 2025+2026 בקצוות ±1₪, מס יסף, נק' זיכוי כולל
+  פרורציה של חייל משוחרר וסולם מילואים מלא, תקרות ניכויים, אומדן end-to-end). כל קבוע-מס מרוכז ב-
+  `getTaxYearConstants`. **תיקוני דיוק מאומתים (מקורות בקוד):** רצפת תרומות 200→207 ₪ + תקרת 30%
+  מהכנסה חייבת (kolzchut) · ביטוח חיים 5%→**25%** (חוזר מ"ה 19/2004 — היה מוצג פי-5 נמוך) · ceiling-alert
+  הכריז "חרגת" ב-119,999 (עיגול) · תקרת זעיר ב-setup היתה קשיחה 120,000 (שבור ל-2026) · סולם המילואים
+  בסקיל israeli-tax-returns היה שגוי (20/45/60) — תוקן מול gov.il.
+- **WS2:** headers+CSP(RO) · auth ל-API בדגל `AUTH_GATING_ENABLED` · rate-limiter משותף · magic-bytes ·
+  **next 16.2.4→16.2.10** (advisories חמורים כולל middleware bypass).
+- **WS5:** cross-ref (≥2 מקורות/ראשי) + הצעות-patch ל-types.ts כ-diff באישיו (human-merge). הודגם E2E
+  (fetch חי חסום ב-proxy של הקונטיינר; עובד ב-CI).
+- **WS8:** `<LegalNote>` אחד (full/line/estimate) במקום 8 באנרים · פרומפט איתן: לא "מחליף רו"ח", בלי
+  "בשקט", תוקן כלל הביגוד · חישובים מדויקים לא מתויגים "הערכה". **הכל DRAFT — יעל.**
+- **WS6/WS1:** טוקנים due-ink/alert-ink · `brand/colors.ts` · `ils()` יחיד (13 כפילויות אוחדו) · צללים/גליפים/btn().
+- **e2e הוחיה:** הסוויטה מעולם לא רצה באמת — ת"ז פיקטיבית לא-תקינה חסמה את הוויזרד, בדיקות מול select
+  שהוחלף מזמן. תוקנה + `PLAYWRIGHT_CHROMIUM_PATH` לקונטיינרים. 18/18.
+
+**התגלה/נשאר:** ה-MCP של Supabase לא רואה את `hbsgz` (חשבון אחר) — WS7 סטטי בלבד: 7 מ-13 טבלאות מתות,
+PII-minimization plan מוכן, checklist לאימות חי. חוסמים: gating (יוני) · מיגרציות על hbsgz · Tranzila signature
+לפני billing · FLAG(Roy): תקרות פנסיה, רצפת תרומות 2026, תקרת 45א לביטוח חיים.
+
 ## סבב 17/06/2026 — ספרינט הכנה-לבטא, יום 1 (foundations)
 
 ענף `claude/beta-launch-prep-z2m6f5`. מטרה: לקחת את המוצר לרמת בטא פרטי (יוני+שותפה) ואז 50 חברים,

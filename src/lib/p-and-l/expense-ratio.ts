@@ -17,16 +17,6 @@
 import { Persona } from "@/lib/persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 
-/**
- * Baseline 2024–2025 values, exported for callers that need a constant outside a
- * persona context. The actual numbers used inside computeExpenseRatio are
- * resolved PER TAX YEAR from getTaxYearConstants(persona.income.year) — never
- * hardcode the rate/ceiling, they are year-keyed (the ceiling is CPI-indexed:
- * 120,000 for 2024–2025, 122,833 from 2026).
- */
-export const ZEIR_RECOGNITION_RATE = 0.30;
-export const ZEIR_REVENUE_CEILING = 120_000;
-
 export type RatioStatus = "below-30" | "around-30" | "30-to-50" | "50-to-80" | "above-80";
 
 export interface ExpenseRatioInsight {
@@ -52,7 +42,7 @@ export interface ExpenseRatioInsight {
   status: RatioStatus;
   /** One-line headline in Hebrew. Different copy for zeir-marked vs not. */
   headlineHe: string;
-  /** Longer recommendation/explanation in Hebrew. */
+  /** Longer factual explanation in Hebrew — facts only, no advice verbs (WS8). */
   detailHe: string;
   /** "ok" | "info" | "warn" | "alert" — drives card colour. */
   tone: "ok" | "info" | "warn" | "alert";
@@ -97,20 +87,22 @@ export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
   let detailHe: string;
   let tone: ExpenseRatioInsight["tone"];
 
+  // Copy is facts-only at source (WS8 audit O8-O10) — numbers, no advice verbs.
+  // Any consumer of this lib renders it as-is; no render-layer neutralizing.
   if (isMarkedZeir) {
     if (isZeirFavorable) {
       tone = "ok";
       headlineHe = `יחס הוצאות ${ratioPercent}% — מסלול זעיר משתלם לך`;
-      detailHe = `ההוצאות שלך (${totalExpenses.toLocaleString("he-IL")} ₪) נמוכות מסף ה-30% (${zeirCapAmount.toLocaleString("he-IL")} ₪) — זעיר מכיר לך יותר ממה שצברת בפועל. שמרי על המסלול.`;
+      detailHe = `ההוצאות שלך (${totalExpenses.toLocaleString("he-IL")} ₪) נמוכות מסף ה-30% (${zeirCapAmount.toLocaleString("he-IL")} ₪) — זעיר מכיר לך ${zeirCapAmount.toLocaleString("he-IL")} ₪, יותר מ-${totalExpenses.toLocaleString("he-IL")} ₪ ההוצאות שצברת בפועל.`;
     } else {
       tone = "alert";
       headlineHe = `יחס הוצאות ${ratioPercent}% — את מפסידה במסלול זעיר`;
-      detailHe = `הוצאותיך (${totalExpenses.toLocaleString("he-IL")} ₪) גבוהות מסף ה-30% (${zeirCapAmount.toLocaleString("he-IL")} ₪). מסלול זעיר יכיר רק ב-${zeirRecognized.toLocaleString("he-IL")} ₪ — ${zeirLostDeduction.toLocaleString("he-IL")} ₪ פשוט לא יוכרו. מומלץ לבטל את המסלול ולדווח כעוסק/ת פטור/ה רגיל/ה.`;
+      detailHe = `הוצאותיך (${totalExpenses.toLocaleString("he-IL")} ₪) גבוהות מסף ה-30% (${zeirCapAmount.toLocaleString("he-IL")} ₪). במסלול זעיר יוכרו ${zeirRecognized.toLocaleString("he-IL")} ₪ בלבד; ${zeirLostDeduction.toLocaleString("he-IL")} ₪ מעבר לתקרה לא ייכללו בחישוב המסלול. בדיווח רגיל מוכרות ההוצאות בפועל.`;
     }
   } else if (isZeirEligible && isZeirFavorable) {
     tone = "info";
-    headlineHe = `יחס הוצאות ${ratioPercent}% — שקול/י מסלול זעיר`;
-    detailHe = `הוצאותיך נמוכות מ-30% מהמחזור. אם תיכנס/י למסלול זעיר תוכל/י להכיר ב-${zeirCapAmount.toLocaleString("he-IL")} ₪ אוטומטית במקום ${totalExpenses.toLocaleString("he-IL")} ₪ שדיווחת — חיסכון פוטנציאלי במס.`;
+    headlineHe = `יחס הוצאות ${ratioPercent}% — מתחת לסף מסלול זעיר`;
+    detailHe = `הוצאותיך נמוכות מ-30% מהמחזור. במסלול זעיר מוכרים ${zeirCapAmount.toLocaleString("he-IL")} ₪ (30% מהמחזור); ההוצאות שדיווחת: ${totalExpenses.toLocaleString("he-IL")} ₪.`;
   } else {
     // not marked, not favorable — just a healthy informational summary
     if (status === "below-30") {
@@ -132,7 +124,7 @@ export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
     } else {
       tone = "alert";
       headlineHe = `יחס הוצאות חריג (${ratioPercent}%)`;
-      detailHe = `ההוצאות עולות על 80% מההכנסות — אם זה לא טעות בדיווח, סימן שיש כדאיות לבחון את מבנה ההוצאות. רשות המסים נוטה לבדיקה ביחסים חריגים.`;
+      detailHe = `ההוצאות עולות על 80% מההכנסות — אם זה לא טעות בדיווח, רשות המסים נוטה לבדיקה ביחסים חריגים.`;
     }
   }
 

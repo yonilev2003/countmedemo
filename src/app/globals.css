@@ -43,8 +43,10 @@
   --color-success-light: #DDEDE6;
   --color-due:           #A88A3F;
   --color-due-bg:        #F1E9D4;
+  --color-due-ink:       #7d6422;   /* darkened due text on tinted (due-bg) surfaces */
   --color-alert:         #C05B45;
   --color-overdue-bg:    #F3DED7;
+  --color-alert-ink:     #9c3826;   /* darkened alert text on tinted (overdue-bg) surfaces */
 
   /* Info chip */
   --color-info:        #DCE9EB;

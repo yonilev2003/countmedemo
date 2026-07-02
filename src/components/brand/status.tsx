@@ -21,13 +21,13 @@ const STYLES: Record<
     text: "text-success",
   },
   due: {
-    pill: "bg-due-bg text-[#7d6422]",
+    pill: "bg-due-bg text-due-ink",
     dot: "bg-due",
     stripe: "bg-due",
     text: "text-due",
   },
   overdue: {
-    pill: "bg-overdue-bg text-[#9c3826]",
+    pill: "bg-overdue-bg text-alert-ink",
     dot: "bg-alert",
     stripe: "bg-alert",
     text: "text-alert",

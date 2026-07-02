@@ -9,6 +9,15 @@
  */
 
 import type { Classification, RegulatoryItem } from "../../src/lib/regulatory/types.ts";
+import { corroborationLabelHe, type CrossRef } from "./cross-ref.ts";
+
+/** Optional enrichments appended to the base issue body. */
+export interface IssueExtras {
+  /** Cross-reference verdict + provenance (WS5 stage 1). */
+  crossRef?: CrossRef;
+  /** Pre-rendered markdown patch-proposal section (WS5 stage 2). */
+  patchSection?: string;
+}
 
 export interface IssueRef {
   url: string;
@@ -58,8 +67,12 @@ export async function ensureLabel(
   }
 }
 
-/** Build the Hebrew issue body from an item + its classification. */
-export function buildIssueBody(item: RegulatoryItem, cls: Classification): string {
+/** Build the Hebrew issue body from an item + its classification (+ WS5 extras). */
+export function buildIssueBody(
+  item: RegulatoryItem,
+  cls: Classification,
+  extras?: IssueExtras,
+): string {
   const diffs =
     cls.affectedConstants.length > 0
       ? cls.affectedConstants
@@ -70,22 +83,51 @@ export function buildIssueBody(item: RegulatoryItem, cls: Classification): strin
           .join("\n")
       : "_לא זוהו קבועים מושפעים_";
 
-  return [
-    `**מקור:** ${item.source}`,
+  const xref = extras?.crossRef;
+  const header = [
+    `**מקור:** ${xref?.provenance.sourceLabel ?? item.source} (\`${item.source}\`)`,
     `**פורסם:** ${item.publishedAt}`,
+    ...(xref ? [`**נשלף:** ${xref.provenance.fetchedAt}`] : []),
     `**קישור:** ${item.url}`,
     `**סוג שינוי:** ${cls.changeType}`,
     `**רמת ודאות:** ${cls.confidence}`,
+  ];
+
+  const body = [
+    ...header,
     "",
     "## סיכום",
     cls.summaryHe,
     "",
     "## קבועים מושפעים",
     diffs,
-    "",
-    "---",
-    "_נפתח אוטומטית על ידי countme Regulatory-Watch._",
-  ].join("\n");
+  ];
+
+  if (xref) {
+    body.push("", "## אימות צולב", `**סטטוס:** ${corroborationLabelHe(xref.kind)}`);
+    if (xref.matches.length > 0) {
+      body.push(
+        "",
+        "פרסומים מקבילים במקורות אחרים:",
+        ...xref.matches.map(
+          (m) =>
+            `- ${m.source}: [${m.title}](${m.url}) — פורסם ${m.publishedAt} (דמיון ${m.similarity})`,
+        ),
+      );
+    } else if (xref.kind === "single-source") {
+      body.push(
+        "",
+        "_אף מקור נוסף לא דיווח על כך בריצה זו — לטפל בזהירות עד לאימות._",
+      );
+    }
+  }
+
+  if (extras?.patchSection) {
+    body.push("", extras.patchSection);
+  }
+
+  body.push("", "---", "_נפתח אוטומטית על ידי countme Regulatory-Watch._");
+  return body.join("\n");
 }
 
 export async function openIssue(opts: {

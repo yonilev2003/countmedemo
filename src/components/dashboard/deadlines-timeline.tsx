@@ -29,7 +29,7 @@ import { AUTHORITY_LABEL, AUTHORITY_CHIP, deadlineStatus, daysBadge } from "./de
 
 const ICON_CELL_TINT: Record<Status, string> = {
   "on-track": "bg-success-light text-success",
-  due: "bg-due-bg text-[#7d6422]",
+  due: "bg-due-bg text-due-ink",
   overdue: "bg-overdue-bg text-alert",
   plan: "bg-teal-100 text-teal-600",
 };

@@ -20,13 +20,13 @@
  */
 
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, ils } from "@/lib/utils";
 import { ArrowLeftIcon } from "@/components/brand/icons";
 import type { Persona } from "@/lib/persona";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 
-const fmt = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
+const fmt = ils;
 
 export function IncomeCeilingCard({
   persona,

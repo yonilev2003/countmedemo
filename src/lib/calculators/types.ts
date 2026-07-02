@@ -125,7 +125,36 @@ export const TAX_YEAR_2024 = {
 
   // Credit points
   residentCreditPoints: 2.25,
+  femaleResidentBonusPoints: 0.5, // female base = male base + 0.5 (2.75 total)
   pointValueAnnual: 2904, // ILS per nekuda, frozen 2024–2027
+
+  // Child credit points by age within the tax year (israeli-tax-returns table).
+  childCreditPointsByAge: {
+    bornDuringYear: 1.5, // year of birth only
+    age1to5: 2.5,
+    age6to17: 1.0,
+    age18: 0.5, // last credited year
+  },
+
+  // Donations credit (סעיף 46): 35% of recognised donations, floor 207 ₪,
+  // ceiling 30% of taxable income (or an absolute cap ~9.35M ₪ — NOT modelled,
+  // irrelevant at our users' scale). Floor CONFIRMED 2024 = 207 ₪ (kolzchut,
+  // retrieved 2026-07-02; the previous hardcoded 200 was the stale 2023 figure).
+  donationsCreditPercent: 0.35,
+  donationsCreditMinimum: 207,
+  donationsCreditIncomeCeilingRate: 0.30,
+
+  // Life-insurance premium credit (סעיף 45א(א)(1)): 25% of the premium.
+  // CORRECTED 2026-07-02 (was 5% — no such rate exists; sources: חוזר מס הכנסה
+  // 19/2004, kolzchut, indigofinance). The 45א qualifying-premium ceiling is
+  // NOT yet modelled — FLAG(Roy): confirm the cap mechanism before high-premium
+  // personas rely on this figure.
+  lifeInsuranceCreditRate: 0.25,
+
+  // Keren-hishtalmut EXEMPT-DEPOSIT cap (capital-gains exemption at withdrawal;
+  // separate from the deductible cap above). FLAG(Roy): 2024 figure unconfirmed —
+  // carried at the 2025 value (display-only note in field137).
+  kerenExemptDepositCap: 20566,
 
   // Oleh / returning resident
   newOlehCreditYear1: 3.0,
@@ -223,21 +252,25 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   // longer credits it (see estimateTaxLiability). Do not treat 48% as a credit.
   bituachLeumiCreditRate: 0.48,         // legacy/display only — NOT credited in tax calc
   blMonthlyThreshold1: 7522,            // CONFIRMED 2025 (= 90,264 ₪/yr, 60% avg wage)
-  blMonthlyMax: 49030,                  // CONFIRMED 2025 (= 588,360 ₪/yr contribution ceiling)
+  // CORRECTED 2026-07-02: the 2025 max insurable income is 50,695 ₪/mo (kolzchut
+  // "דמי ביטוח לאומי לעצמאי" + btl.gov.il 2025 circular). 49,030 was the 2024
+  // figure, previously carried here with a wrong CONFIRMED mark. DORMANT constant
+  // (no calculator consumes it) — display/provenance only.
+  blMonthlyMax: 50695,                  // CONFIRMED 2025 (was wrongly 49,030 = the 2024 value)
   // blRate1/blRate2 are DORMANT (defined for shape/provenance; no calculator
   // consumes them — the 030/137 calcs deduct from the persona's paid figure).
   blRate1: 0.0712,                      // CONFIRMED 2025 reduced total: 3.89% B"L + 3.23% health
   blRate2: 0.1783,                      // CONFIRMED 2025 full total: 12.83% B"L + 5.00% health
 
   // Pension — rates stable; caps index-linked.
-  // FLAG(Roy): the 2025 indexed pension caps are NOT confirmed by any owned
-  // skill (israeli-tax-returns/tax-brackets-credits.md lists brackets + credit-
-  // point value but no pension-cap figure). Carried at the 2024 values until
-  // confirmed — do NOT treat 25,608 / 12,804 as verified 2025 numbers.
+  // CONFIRMED 2025 (2026-07-02, FLAG(Roy) resolved): the qualifying-income cap
+  // (הכנסה מזכה) is 232,800 ₪ for 2024–2025 (kolzchut pension-benefits page +
+  // mvs.co.il) → deduction cap 11% × 232,800 = 25,608; credit-base cap
+  // 5.5% × 232,800 = 12,804. The carried values were correct.
   pensionDeductionRate: 0.11,           // stable
-  pensionDeductionCap: 25608,           // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
+  pensionDeductionCap: 25608,           // CONFIRMED 2025 (= 11% × 232,800)
   pensionCreditRate: 0.055,             // stable
-  pensionCreditCap: 12804,              // FLAG(Roy): 2025 indexed cap unconfirmed (carried 2024)
+  pensionCreditCap: 12804,              // CONFIRMED 2025 (= 5.5% × 232,800)
   pensionCreditPercent: 0.35,           // stable
 
   // Form 6111 obligation threshold — CONFIRMED 256,410 ₪ (ex-VAT) for 2025.
@@ -260,7 +293,29 @@ export const TAX_YEAR_2025: TaxYearConstants = {
 
   // Credit points — FROZEN for 2025 (no linkage)
   residentCreditPoints: 2.25,           // frozen
+  femaleResidentBonusPoints: 0.5,       // statutory, stable
   pointValueAnnual: 2904,               // frozen 2024–2027
+
+  // Child credit points — statutory table, stable (israeli-tax-returns).
+  childCreditPointsByAge: {
+    bornDuringYear: 1.5,
+    age1to5: 2.5,
+    age6to17: 1.0,
+    age18: 0.5,
+  },
+
+  // Donations credit (סעיף 46) — floor CONFIRMED 2025 = 207 ₪ (kolzchut +
+  // PKF year-end circular, retrieved 2026-07-02). Percent + income ceiling stable.
+  donationsCreditPercent: 0.35,
+  donationsCreditMinimum: 207,
+  donationsCreditIncomeCeilingRate: 0.30,
+
+  // Life-insurance credit (סעיף 45א(א)(1)) — 25%, statutory (see 2024 block).
+  lifeInsuranceCreditRate: 0.25,
+
+  // Keren exempt-deposit cap — CONFIRMED 2025 = 20,566 ₪ (kolzchut, pensuni,
+  // retrieved 2026-07-02).
+  kerenExemptDepositCap: 20566,
 
   // Oleh / returning resident — statutory, stable
   newOlehCreditYear1: 3.0,
@@ -316,18 +371,26 @@ const OSEK_EXEMPT_CEILING_2026 = 122833;
  * and flagged. Do not treat them as verified 2026 values.
  */
 export const TAX_YEAR_2026: TaxYearConstants = {
-  // Keren Hishtalmut — FLAG(Roy): 2026 indexed caps unconfirmed (carried 2025).
-  kerenHishtalmutCap: 13203,            // FLAG(Roy): confirm 2026 (likely indexed up)
+  // Keren Hishtalmut — deductible cap CONFIRMED 2026 = 13,203 ₪ (unchanged;
+  // kolzchut + moreinvest "נכון ל-2026", retrieved 2026-07-02). Income ceiling
+  // still FLAG(Roy) (13,203 ÷ 4.5% ≈ 293,400 is consistent but not officially cited).
+  kerenHishtalmutCap: 13203,            // CONFIRMED 2026 (kolzchut, moreinvest)
   kerenHishtalmutIncomeCeiling: 293397, // FLAG(Roy): confirm 2026
   kerenHishtalmutRate: 0.045,           // stable
 
   // Bituach Leumi — FLAG(Roy): 2026 thresholds unconfirmed (carried 2025).
   bituachLeumiDeductibleRate: 0.52,     // stable (סעיף 47א)
   bituachLeumiCreditRate: 0.48,         // legacy/display only — NOT credited in tax calc
-  blMonthlyThreshold1: 7703,            // israeli-bituach-leumi 2026: 60% avg wage = 7,703
-  blMonthlyMax: 51910,                  // israeli-bituach-leumi 2026: max insurable = 51,910
-  blRate1: 0.0597,                      // FLAG(Roy): 2026 self-employed rates shifted (Amend. 252)
-  blRate2: 0.1783,                      // FLAG(Roy): 2026 self-employed rates shifted (Amend. 252)
+  // FLAG(Roy): threshold candidates conflict — 7,703 (israeli-bituach-leumi skill)
+  // vs 7,710 (jobcalc.co.il 2026 calculator, = 60% avg wage). Kept 7,703 until a
+  // btl.gov.il primary source settles it. DORMANT constant.
+  blMonthlyThreshold1: 7703,            // FLAG(Roy): confirm 2026 (7,703 vs 7,710)
+  blMonthlyMax: 51910,                  // CONFIRMED 2026 (kolzchut + jobcalc: 51,910 ₪/mo)
+  // CONFIRMED 2026 (2026-07-02): self-employed B"L 4.47% reduced / 12.83% full
+  // (Amend. 252 increase) + health 3.23% / 5.00% → combined 7.70% / 17.83%
+  // (kolzchut, jobcalc, ICPAS 2025→2026 tables). Was carried 5.97% with FLAG.
+  blRate1: 0.0770,                      // CONFIRMED 2026 (4.47% B"L + 3.23% health)
+  blRate2: 0.1783,                      // CONFIRMED 2026 (12.83% B"L + 5.00% health)
 
   // Pension — FLAG(Roy): 2026 caps unconfirmed (carried 2025).
   pensionDeductionRate: 0.11,           // stable
@@ -350,7 +413,29 @@ export const TAX_YEAR_2026: TaxYearConstants = {
 
   // Credit points — frozen through 2027.
   residentCreditPoints: 2.25,           // frozen
+  femaleResidentBonusPoints: 0.5,       // statutory, stable
   pointValueAnnual: 2904,               // frozen 2024–2027
+
+  // Child credit points — statutory table, stable.
+  childCreditPointsByAge: {
+    bornDuringYear: 1.5,
+    age1to5: 2.5,
+    age6to17: 1.0,
+    age18: 0.5,
+  },
+
+  // Donations credit (סעיף 46) — percent/ceiling stable; floor FLAG(Roy):
+  // 2026 indexed floor unconfirmed, carried at the 2025 value (207 ₪).
+  donationsCreditPercent: 0.35,
+  donationsCreditMinimum: 207,          // FLAG(Roy): confirm 2026 floor
+  donationsCreditIncomeCeilingRate: 0.30,
+
+  // Life-insurance credit (סעיף 45א(א)(1)) — 25%, statutory (see 2024 block).
+  lifeInsuranceCreditRate: 0.25,
+
+  // Keren exempt-deposit cap — CONFIRMED 2026 = 20,566 ₪, unchanged from 2025
+  // (pensuni, analyst, igemel-net — retrieved 2026-07-02).
+  kerenExemptDepositCap: 20566,
 
   // Oleh / returning resident — statutory, stable.
   newOlehCreditYear1: 3.0,

@@ -40,8 +40,14 @@ jobs:
           restore-keys: |
             regwatch-seen-
 
-      # The orchestrator runs the fetch/classify/issue loop and emits the run
-      # summary JSON. Node 22 strips TS types natively, so the .ts runs as-is.
+      # The orchestrator runs the fetch → cross-reference → classify →
+      # patch-proposal → issue loop and emits the run summary JSON. Node 22
+      # strips TS types natively, so the .ts runs as-is.
+      # WS5 notes: cross-ref + patch proposals run INSIDE run.ts (no extra
+      # steps, no extra permissions — issues:write only). Patch proposals are
+      # attached to the issue body as a ```diff for HUMAN review; nothing is
+      # auto-applied or auto-PRed. Without ANTHROPIC_API_KEY the classify +
+      # patch stages are env-blocked and the run still completes.
       - name: Run regulatory-watch
         env:
           REGWATCH_SUMMARY_PATH: ${{ github.workspace }}/.regulatory-watch/last-run.json

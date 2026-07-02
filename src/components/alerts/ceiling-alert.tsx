@@ -1,7 +1,7 @@
 "use client";
 
 import { CeilingAlert } from "@/lib/alerts/ceiling";
-import { cn } from "@/lib/utils";
+import { cn, ils } from "@/lib/utils";
 
 export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
   const bar = Math.min(alert.percent, 100);
@@ -9,8 +9,8 @@ export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
   const colors = {
     ok:   { card: "bg-success-light border-success/30", text: "text-ink",        bar: "bg-success",    badge: "bg-success-light text-success" },
     info: { card: "bg-info border-line",                text: "text-brand-navy", bar: "bg-brand-deep", badge: "bg-teal-100 text-teal-600" },
-    warn: { card: "bg-due-bg border-due/40",            text: "text-ink",        bar: "bg-due",        badge: "bg-due-bg text-[#7d6422]" },
-    alert:{ card: "bg-overdue-bg border-alert/40",      text: "text-ink",        bar: "bg-alert",      badge: "bg-overdue-bg text-[#9c3826]" },
+    warn: { card: "bg-due-bg border-due/40",            text: "text-ink",        bar: "bg-due",        badge: "bg-due-bg text-due-ink" },
+    alert:{ card: "bg-overdue-bg border-alert/40",      text: "text-ink",        bar: "bg-alert",      badge: "bg-overdue-bg text-alert-ink" },
   }[alert.tone];
 
   return (
@@ -39,7 +39,7 @@ export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
 
       <div className="flex justify-between text-[10px] text-muted">
         <span>₪0</span>
-        <span className="font-medium">תקרה {alert.threshold.toLocaleString("he-IL")} ₪</span>
+        <span className="font-medium">תקרה {ils(alert.threshold)}</span>
       </div>
     </div>
   );

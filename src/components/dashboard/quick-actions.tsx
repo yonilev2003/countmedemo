@@ -91,7 +91,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     label: "התראות",
     hint: "התראות וסיכונים שדורשים תשומת לב",
     icon: <BellIcon className="size-[22px]" />,
-    tone: "bg-due-bg text-[#7d6422]",
+    tone: "bg-due-bg text-due-ink",
     kbd: "⌘ A",
   },
   {

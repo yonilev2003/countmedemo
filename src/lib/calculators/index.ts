@@ -11,7 +11,6 @@ import {
   Calculator,
   CalcResult,
   TaxEstimate,
-  TAX_YEAR_2024,
   getTaxYearConstants,
   miluimCreditPoints,
   miluimServiceYear,
@@ -19,10 +18,9 @@ import {
   MILUIM_CREDIT_POINT_VALUE,
 } from "./types";
 import { capitalCalculators } from "./capital";
+import { ils } from "@/lib/utils";
 
 export type { CalcResult, TaxEstimate } from "./types";
-
-const ils = (n: number) => `${n.toLocaleString("he-IL")} ₪`;
 
 /* ──────────────────────────────────────────────────────────────────────────
  * Shared credit-point helpers — ONE source of truth for nekudot zikui so the
@@ -47,9 +45,9 @@ function combatReserveDaysForFiling(p: Persona): number {
 /** Base resident points: female 2.75, male 2.25 (israeli-tax-returns). */
 function residentCreditPoints(p: Persona): number {
   const TC = getTaxYearConstants(p.income.year);
-  // Female gets +0.5 over the male base; TC.residentCreditPoints is the male base.
+  // Female gets the bonus over the male base; TC.residentCreditPoints is the male base.
   return p.personal.gender === "female"
-    ? TC.residentCreditPoints + 0.5
+    ? TC.residentCreditPoints + TC.femaleResidentBonusPoints
     : TC.residentCreditPoints;
 }
 
@@ -120,14 +118,15 @@ function soldierEligibleMonthsInYear(
 /** Child credit points by age within the tax year (israeli-tax-returns). */
 function childCreditPoints(p: Persona): number {
   const year = p.income.year;
+  const bands = getTaxYearConstants(year).childCreditPointsByAge;
   let pts = 0;
   for (const c of p.personal.children ?? []) {
     const age = year - c.birthYear;
     if (age < 0) continue;
-    if (age === 0) pts += 1.5; // born during the tax year
-    else if (age >= 1 && age <= 5) pts += 2.5;
-    else if (age >= 6 && age <= 17) pts += 1.0;
-    else if (age === 18) pts += 0.5;
+    if (age === 0) pts += bands.bornDuringYear;
+    else if (age >= 1 && age <= 5) pts += bands.age1to5;
+    else if (age >= 6 && age <= 17) pts += bands.age6to17;
+    else if (age === 18) pts += bands.age18;
   }
   return pts;
 }
@@ -162,6 +161,40 @@ export function totalCreditPoints(p: Persona): number {
       newOlehCreditPoints(p) +
       miluimCreditPoints(p.income.year, combatReserveDaysForFiling(p)),
   );
+}
+
+/** Breakdown of the §46 donations credit — shared by fields 045/046 and the tax estimate. */
+export interface DonationsCredit {
+  /** Donations paid: current year + carried from prior years. */
+  total: number;
+  /** §46 floor for the persona's tax year (below it → no credit). */
+  minimum: number;
+  /** Ceiling: 30% of taxable income (the ~9.35M ₪ absolute cap is not modelled). */
+  ceiling: number;
+  /** The recognised amount after floor + ceiling. */
+  recognized: number;
+  /** The credit: recognised × 35%. */
+  credit: number;
+}
+
+/**
+ * Canonical §46 donations credit — ONE implementation so the two form fields and
+ * the tax estimate cannot drift (they previously re-implemented 35%/floor 3×).
+ * Rules (kolzchut, verified 2026-07-02): 35% of recognised donations; floor
+ * 207 ₪ (2024–2025); ceiling = 30% of taxable income.
+ */
+export function computeDonationsCredit(p: Persona): DonationsCredit {
+  const TC = getTaxYearConstants(p.income.year);
+  const total =
+    p.deductionsAndCredits.donations.currentYear +
+    (p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0);
+  const ceiling = Math.round(
+    computeTaxableIncome(p) * TC.donationsCreditIncomeCeilingRate,
+  );
+  const recognized =
+    total >= TC.donationsCreditMinimum ? Math.min(total, ceiling) : 0;
+  const credit = Math.round(recognized * TC.donationsCreditPercent);
+  return { total, minimum: TC.donationsCreditMinimum, ceiling, recognized, credit };
 }
 
 /* ============================================================
@@ -292,7 +325,7 @@ export const field137KerenHishtalmut: Calculator = (p) => {
     sources: [{ label: "אישור הפקדה שנתי מקרן ההשתלמות" }],
     confidence: "high",
     notes: [
-      `תקרת הפקדה לפטור ממס רווחי הון: ${ils(20566)} (ניתן להפקיד יותר מהחלק המוכר).`,
+      `תקרת הפקדה לפטור ממס רווחי הון: ${ils(TC.kerenExemptDepositCap)} (ניתן להפקיד יותר מהחלק המוכר).`,
       ...(contribution > allowed ? [`הסכום הנותר (${ils(contribution - allowed)}) אינו מוכר כהוצאה אך גדל פטור ממס.`] : []),
     ],
   };
@@ -312,7 +345,7 @@ export const field020Resident: Calculator = (p) => {
     )} זיכוי שנתי`,
     sources: [
       {
-        label: `סטטוס תושב ישראל (${p.personal.gender === "female" ? "אישה: 2.75 נקודות" : "גבר: 2.25 נקודות"})`,
+        label: `סטטוס תושב ישראל (${p.personal.gender === "female" ? "אישה" : "גבר"}: ${points} נקודות)`,
       },
     ],
     confidence: "high",
@@ -510,24 +543,24 @@ export const field048BituachLeumiCredit: Calculator = (p) => {
 
 /* ============================================================
  * שדה 045 — זיכוי בגין תרומות מוכרות (סעיף 46)
- * 35% מהתרומות למוסדות מוכרים; מינימום 200 ₪
+ * 35% מהתרומות למוסדות מוכרים; מינימום ותקרה נקראים מקבועי השנה
  * ============================================================ */
 export const field045Donations: Calculator = (p) => {
   const current = p.deductionsAndCredits.donations.currentYear;
   const carried = p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0;
-  const total = current + carried;
-  if (total < 200) {
+  const d = computeDonationsCredit(p);
+  if (d.recognized === 0) {
     return {
       value: 0,
-      formula: `תרומות ${ils(total)} < מינימום 200 ₪ — אין זיכוי`,
+      formula: `תרומות ${ils(d.total)} < מינימום ${ils(d.minimum)} — אין זיכוי`,
       sources: [{ label: 'תרומות שנת המס' }],
       confidence: "high",
     };
   }
-  const credit = Math.round(total * 0.35);
+  const capped = d.recognized < d.total;
   return {
-    value: credit,
-    formula: `${ils(total)} × 35% = ${ils(credit)}`,
+    value: d.credit,
+    formula: `${ils(d.recognized)} × 35% = ${ils(d.credit)}`,
     sources: [
       {
         label: `תרומות ${ils(current)} (שנה שוטפת)${carried > 0 ? ` + ${ils(carried)} (מועבר משנה קודמת)` : ""}`,
@@ -535,15 +568,24 @@ export const field045Donations: Calculator = (p) => {
       },
     ],
     confidence: "high",
-    notes: ['שמור קבלות תרומות. רלוונטי למוסדות שקיבלו אישור מרשות המסים.'],
+    notes: [
+      'שמור קבלות תרומות. רלוונטי למוסדות שקיבלו אישור מרשות המסים.',
+      ...(capped
+        ? [`הוכר ${ils(d.recognized)} מתוך ${ils(d.total)} — תקרת הזיכוי היא 30% מההכנסה החייבת; היתרה ניתנת להעברה לשנים הבאות.`]
+        : []),
+    ],
   };
 };
 
 /* ============================================================
- * שדה 072 — זיכוי בגין פרמיית ביטוח חיים (סעיף 40)
- * 5% מהפרמיה ששולמה; לא רלוונטי אם פרמיה = 0
+ * שדה 072 — זיכוי בגין פרמיית ביטוח חיים (סעיף 45א(א)(1))
+ * 25% מהפרמיה ששולמה; לא רלוונטי אם פרמיה = 0
+ * תוקן 2026-07: השיעור הקודם (5%) היה שגוי — הזיכוי הוא 25% מהפרמיה
+ * (חוזר מס הכנסה 19/2004, kolzchut). תקרת הפרמיה המזכה לפי 45א טרם
+ * ממודלת — FLAG(Roy).
  * ============================================================ */
 export const field072LifeInsurance: Calculator = (p) => {
+  const TC = getTaxYearConstants(p.income.year);
   const premium = p.deductionsAndCredits.lifeInsurancePremium ?? 0;
   if (!premium || premium === 0) {
     return {
@@ -553,13 +595,14 @@ export const field072LifeInsurance: Calculator = (p) => {
       confidence: "high",
     };
   }
-  const credit = Math.round(premium * 0.05);
+  const ratePct = Math.round(TC.lifeInsuranceCreditRate * 100);
+  const credit = Math.round(premium * TC.lifeInsuranceCreditRate);
   return {
     value: credit,
-    formula: `${ils(premium)} × 5% = ${ils(credit)} זיכוי`,
-    sources: [{ label: 'פרמיית ביטוח חיים (סעיף 40)', detail: 'שמור את הפוליסה ואישורי תשלום שנתיים' }],
-    confidence: "high",
-    notes: ['תקרת הזיכוי: 5% מהפרמיה ששולמה בפועל.'],
+    formula: `${ils(premium)} × ${ratePct}% = ${ils(credit)} זיכוי`,
+    sources: [{ label: 'פרמיית ביטוח חיים (סעיף 45א)', detail: 'שמור את הפוליסה ואישורי תשלום שנתיים' }],
+    confidence: "medium",
+    notes: [`הזיכוי: ${ratePct}% מהפרמיה ששולמה. קיימת תקרת פרמיה מזכה לפי סעיף 45א שטרם משוקללת כאן — בפרמיות גבוהות הזיכוי בפועל עשוי להיות נמוך יותר.`],
   };
 };
 
@@ -643,18 +686,21 @@ export const field037DonationsCurrent: Calculator = (p) => {
 export const field046DonationsCredit: Calculator = (p) => {
   const current = p.deductionsAndCredits.donations.currentYear;
   const carried = p.deductionsAndCredits.donations.carriedFromPriorYears ?? 0;
-  const total = current + carried;
-  const qualified = total >= 200 ? total : 0;
-  const credit = Math.round(qualified * 0.35);
+  const d = computeDonationsCredit(p);
   return {
-    value: credit,
-    formula: `${total.toLocaleString("he-IL")} ₪ × 35% = ${credit.toLocaleString("he-IL")} ₪ זיכוי`,
+    value: d.credit,
+    formula: `${ils(d.recognized)} × 35% = ${ils(d.credit)} זיכוי`,
     sources: [
       { label: "תרומות השנה", detail: ils(current) },
       { label: "תרומות מועברות", detail: ils(carried) },
     ],
     confidence: "high",
-    notes: total < 200 ? ["סכום תרומות מתחת לסף המינימום (200 ₪)"] : undefined,
+    notes:
+      d.total > 0 && d.recognized === 0
+        ? [`סכום תרומות מתחת לסף המינימום (${ils(d.minimum)})`]
+        : d.recognized < d.total
+          ? [`הוכר ${ils(d.recognized)} מתוך ${ils(d.total)} — תקרת 30% מההכנסה החייבת.`]
+          : undefined,
   };
 };
 
@@ -841,12 +887,8 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
   const creditPoints = totalCreditPoints(persona);
   const creditPointsValue = Math.round(creditPoints * TC.pointValueAnnual);
 
-  // §46 donations credit — 35% of recognised donations (≥ 200 ₪).
-  const donationsTotal =
-    persona.deductionsAndCredits.donations.currentYear +
-    (persona.deductionsAndCredits.donations.carriedFromPriorYears ?? 0);
-  const donationsCredit =
-    donationsTotal >= 200 ? Math.round(donationsTotal * 0.35) : 0;
+  // §46 donations credit — canonical helper (35%, floor + 30%-of-income ceiling).
+  const donationsCredit = computeDonationsCredit(persona).credit;
 
   // §45A pension credit — 35% of the qualifying contribution, qualifying base
   // capped at 5.5% of business income. SEPARATE from the §47 deduction above.
@@ -883,23 +925,3 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
   };
 }
 
-/**
- * Rules for the עוסק זעיר simplified tax track. Threshold/expense-rate are read
- * from the year constants; the 2024 set is used here only for the static text
- * blob (the rate is statutory + stable, the threshold is year-keyed elsewhere
- * via getTaxYearConstants — see ceiling.ts / field calculators).
- */
-export const OSEK_ZEIR_RULES = {
-  threshold: TAX_YEAR_2024.osekZeirThreshold,
-  expenseRate: TAX_YEAR_2024.osekZeirExpenseRate,
-  notes: [
-    "30% מהמחזור מוכרים אוטומטית כהוצאות — ההכנסה החייבת היא 70% מהמחזור",
-    "כולל בתוכו הוצאות ביטוח לאומי — לא ניתן לנכות אותן בנוסף",
-    "לא ניתן לדרוש הפסדים מועברים",
-    "אין חובת מקדמות; קיים מסלול וולונטרי לתשלום מקדמות",
-    "פטור מהגשת הצהרת הון (רשות המסים רשאית לדרוש במקרים מיוחדים)",
-    "יציאה מהמסלול: לא ניתן לחזור אליו בשנתיים הבאות",
-    "חריגה מהתקרה = יציאה אוטומטית; ניכוי 30% חל גם בשנת היציאה",
-    "הפטור חל רק במסלול הדיווח המקוצר",
-  ],
-};

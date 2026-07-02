@@ -4,6 +4,7 @@ import { useState } from "react";
 import { form1301, FormTab } from "@/lib/form-1301/schema";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
+import { LEGAL_NOTE_LINE } from "@/components/brand/legal-note";
 import { SectionCard } from "./govil-section";
 
 interface Props {
@@ -162,11 +163,12 @@ function FileInfoTable({ persona }: { persona: Persona }) {
 }
 
 function DisclaimerFooter() {
+  // gov.il-faithful styling kept (brand-exempt per CLAUDE.md); the TEXT is the
+  // shared canonical string (WS8 audit H9 — import the string, not the styled
+  // component). The ✦ glyph is owned by a later icon pass.
   return (
     <div className="bg-stone-50 border-t border-stone-200 px-4 py-2.5 text-[10px] text-stone-400 leading-relaxed text-center">
-      ✦ ערכים מחושבים ע״י countme מבוססים על נתוני הלקוח — המידע אינו מהווה
-      ייעוץ מס. האחריות על נכונות הפרטים המוגשים לרשות המסים חלה על הממלא/ת
-      בלבד.
+      ✦ ערכים מחושבים ע״י countme מבוססים על נתוני הלקוח. {LEGAL_NOTE_LINE}
     </div>
   );
 }

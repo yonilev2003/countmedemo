@@ -8,6 +8,8 @@ import {
   type ForecastBasis,
 } from "@/lib/forecast/index";
 import { TrendingUpIcon } from "@/components/brand/icons";
+import { LegalNote } from "@/components/brand/legal-note";
+import { ils } from "@/lib/utils";
 
 const BASIS_META: Record<ForecastBasis, { label: string; hint: string }> = {
   strong: { label: "חודש חזק", hint: "הקרנה זהירה־כלפי־מעלה — משלמים יותר עכשיו, פחות הפתעות בסוף השנה" },
@@ -21,7 +23,7 @@ const TONE_STYLES = {
   over: { box: "border-teal-100 bg-info", text: "text-brand-navy" },
 } as const;
 
-const fmt = (n: number) => `${Math.round(n).toLocaleString("he-IL")} ₪`;
+const fmt = (n: number) => ils(Math.round(n));
 
 export function ForecastCard({ persona }: { persona: Persona }) {
   const [basis, setBasis] = useState<ForecastBasis>("average");
@@ -68,7 +70,7 @@ export function ForecastCard({ persona }: { persona: Persona }) {
       <p className="mt-2 text-[11px] text-faint">{BASIS_META[basis].hint}</p>
 
       {!forecast.hasEnoughData && (
-        <div className="mt-3 rounded-xl border border-due/40 bg-due-bg px-3 py-2 text-[11px] text-[#7d6422]">
+        <div className="mt-3 rounded-xl border border-due/40 bg-due-bg px-3 py-2 text-[11px] text-due-ink">
           אין עדיין מספיק פילוח חודשי אמיתי כדי להבדיל בין חודש חזק לחלש — התחזית מבוססת על
           פריסה אחידה של המחזור השנתי. העלאת חשבוניות מתוארכות תחדד אותה.
         </div>
@@ -113,10 +115,14 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         </div>
       )}
 
-      <p className="mt-3 text-[10px] text-faint leading-relaxed">
-        הערכה בלבד, לא ייעוץ מס. המקדמות בפועל נקבעות ע״י רשות המסים לפי שיעור מקדמה שנתי; התחזית כאן
-        מבוססת על תכנון ההכנסה הצפויה.
-      </p>
+      {/* WS8 audit K1 — shared estimate note + the factual "who sets the real number" */}
+      <div className="mt-3">
+        <LegalNote variant="estimate" />
+        <p className="mt-0.5 text-[10px] text-faint leading-relaxed">
+          המקדמות בפועל נקבעות ע״י רשות המסים לפי שיעור מקדמה שנתי; התחזית כאן מבוססת על תכנון
+          ההכנסה הצפויה.
+        </p>
+      </div>
     </section>
   );
 }

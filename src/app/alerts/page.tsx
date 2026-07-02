@@ -9,6 +9,7 @@ import { Alert, AlertSeverity, generateAllAlerts } from "@/lib/alerts/index";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote } from "@/components/brand/legal-note";
 import {
   StatusBadge,
   type Status,
@@ -18,6 +19,7 @@ import {
   AlertTriangleIcon,
   InfoIcon,
   CheckCircleIcon,
+  ArrowLeftIcon,
 } from "@/components/brand/icons";
 
 // ─── Severity → brand status mapping ─────────────────────────────────────────
@@ -100,6 +102,7 @@ function AlertCard({ alert }: { alert: Alert }) {
             className={btn("secondary", "sm")}
           >
             {alert.cta.labelHe}
+            <ArrowLeftIcon className="size-4" />
           </Link>
         </div>
       )}
@@ -210,14 +213,12 @@ export default function AlertsPage() {
           )}
         </div>
 
-        {/* Disclaimer */}
-        <div className="rounded-2xl border border-line bg-paper px-5 py-3 mb-6 flex items-start gap-2">
-          <AlertTriangleIcon className="size-4 shrink-0 mt-0.5 text-due" />
+        {/* Legal note — the ONE note on this page (WS8 audit H6) */}
+        <div className="rounded-2xl border border-line bg-paper px-5 py-3 mb-6">
           <p className="text-[11px] text-muted leading-relaxed">
-            <span className="font-semibold text-ink">הצהרת אחריות: </span>
-            התראות אלו מבוססות על נתונים שהוזנו ידנית ועל היגיון תקופתי בלבד — אינן מהוות ייעוץ מס מקצועי.
-            לפני כל פעולה רגולטורית, מומלץ להתייעץ עם רואה חשבון מוסמך.
+            מועדי ההגשה נלקחים מלוח המועדים הרשמי; ההתראות מחושבות מהנתונים שהזנת.
           </p>
+          <LegalNote variant="line" className="mt-1" />
         </div>
 
         {/* Alerts list */}
