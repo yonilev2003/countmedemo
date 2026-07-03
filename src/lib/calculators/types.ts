@@ -8,8 +8,11 @@
  *
  * Tax-rule constants are year-keyed (see getTaxYearConstants). The product's
  * current calibration target is TAX YEAR 2025 (the pilot files the 2025 annual
- * return); 2024 stays defined as a valid historical filing year and 2026 is
- * defined-but-mostly-flagged (out of scope of the 2025 alignment pass).
+ * return); 2024 stays defined as a valid historical filing year. 2026 was
+ * defined-but-mostly-flagged after the 2025 alignment pass, then CONFIRMED for
+ * nearly every constant in a 2026-07-03 web-verify pass — only the §45א premium-cap
+ * mechanism and the child-credit from-2024 age-band additions remain below-95%/
+ * unmodelled (see the TAX_YEAR_2026 block header for specifics).
  */
 
 import type { Persona } from "@/lib/persona";
@@ -94,7 +97,10 @@ export const TAX_YEAR_2024 = {
   kerenHishtalmutIncomeCeiling: 293397,
   kerenHishtalmutRate: 0.045,
 
-  // Bituach Leumi self-employed: 52% deductible expense, 48% direct tax credit
+  // Bituach Leumi self-employed: 52% deductible expense (סעיף 47א). The remaining
+  // 48% is NOT a real tax credit (verified 2026-06 — see TaxEstimate.blCredit doc
+  // above and estimateTaxLiability, which hardcodes blCredit=0). bituachLeumiCreditRate
+  // is retained only for the shared type shape / field-048 legacy display.
   bituachLeumiDeductibleRate: 0.52,
   bituachLeumiCreditRate: 0.48,
   // B"L rate tiers (monthly thresholds × 12 for annual)
@@ -234,7 +240,7 @@ const OSEK_EXEMPT_CEILING_2025 = 120000;
 export const TAX_YEAR_2025: TaxYearConstants = {
   // Keren Hishtalmut — rate + caps all unchanged 2024→2025 (frozen).
   kerenHishtalmutCap: 13203,            // CONFIRMED 2025 (kolzchut/fnx/financialstar)
-  kerenHishtalmutIncomeCeiling: 293397, // CONFIRMED 2025 (= 13,203 ÷ 4.5%)
+  kerenHishtalmutIncomeCeiling: 293397, // CONFIRMED 2025 (× 4.5% ≈ 13,203; not exactly invertible — 13,203 ÷ 4.5% = 293,400)
   kerenHishtalmutRate: 0.045,           // stable
   // Capital-gains-exemption deposit cap (separate from the deductible cap) is
   // 20,520 ₪ for 2025 (see kerenExemptDepositCap below) — surfaced in field137 notes.
@@ -394,7 +400,7 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   // Keren Hishtalmut — deductible cap CONFIRMED 2026 = 13,203 ₪ (unchanged;
   // kolzchut + moreinvest "נכון ל-2026") and income ceiling 293,397 (frozen, ~93%).
   kerenHishtalmutCap: 13203,            // CONFIRMED 2026 (kolzchut, moreinvest)
-  kerenHishtalmutIncomeCeiling: 293397, // CONFIRMED 2026 (~93%, web-verify): frozen (= 13,203 ÷ 4.5%); analyst "293,397 בשתי השנים"
+  kerenHishtalmutIncomeCeiling: 293397, // CONFIRMED 2026 (~93%, web-verify): frozen (× 4.5% ≈ 13,203); analyst "293,397 בשתי השנים"
   kerenHishtalmutRate: 0.045,           // stable
 
   // Bituach Leumi — 2026 thresholds CONFIRMED (web-verify 2026-07-03): 7,703/mo reduced
@@ -456,8 +462,9 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   // Life-insurance credit (סעיף 45א(א)(1)) — 25%, statutory (see 2024 block).
   lifeInsuranceCreditRate: 0.25,
 
-  // Keren exempt-deposit cap — CONFIRMED 2026 = 20,566 ₪, unchanged from 2025
-  // (pensuni, analyst, igemel-net — retrieved 2026-07-02).
+  // Keren exempt-deposit cap — CONFIRMED 2026 = 20,566 ₪, ROSE from 20,520 in 2025
+  // (own CPI-linked track, separate from the frozen deductible cap) — pensuni,
+  // analyst, igemel-net, retrieved 2026-07-02.
   kerenExemptDepositCap: 20566,
 
   // Oleh / returning resident — statutory, stable.
