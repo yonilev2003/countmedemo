@@ -5,12 +5,92 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-07-03 (צהריים, אחרי merge של PR #26) · ראה גם [[retro-2026-07-03]] · החלטות: [[decisions]]
+> עודכן: 2026-07-05 (ערב, סשן Fable אחרון לפני מעבר לעבודה עצמאית Sonnet/Opus) · ענף: `claude/tax-rules-roadmap-setup-sj36jw` · החלטות: [[decisions]]
 
-## 🎯 הסשן הבא — תדריך פתיחה (לקרוא לפני הכל)
+## 🎯 תדריך v4 — לקרוא לפני הכל (לכל מודל: Sonnet/Opus/אחר)
 
-**פריט ראשון:** יוני שיתף לינק Gemini עם התאמות לתוכנית — **לא נקרא** (חסום 403 מהקונטיינר).
-בקש ממנו להדביק את התוכן כטקסט ולשלב לפני כל עבודה אחרת.
+**כללי-ברזל לכל סשן (יוני עובד עצמאית — אין Fable שישלים פערים):**
+קרא STATUS + decisions, אשר הבנה ב-2 שורות · מספרי-מס רק מ-`types.ts` או מקור מאומת+תאריך ·
+golden test לכל שינוי קבוע · `npm run build && npm test` לפני push · לא נוגעים ב-URL הפרודקשן ·
+gaps בסוף כל פלט · **כל משימה מתועדת ב-`decisions.md` באותו סשן** (רציפות בין מודלים).
+
+**מה נסגר בסשן 05/07 (Fable):**
+- ‏**PR #28 (tax-rules) פתוח, CI ירוק (build-and-unit + e2e) — ממתין רק למיזוג של יוני** — ענף
+  `claude/tax-rules-version-hvnzt3` מוזג עם main (קונפליקטי memory/ נפתרו לטובת main כמתוכנן),
+  ‏101/101 טסטים, build ירוק.
+- ‏**החלטת ה-MCP הוכרעה — אופציה א':** בונים MCP server של countme שעוטף את המנוע. ‏spec מלא:
+  `docs/specs/countme-mcp-server.md`. ‏v0 מתוזמן בתוכנית למטה. (revisitable ע"י יוני.)
+- ‏**נוצרו:** `memory/risk-gap.md` (מפת שבריריות המנוע — false positives, מאומת אדוורסרית מול הקוד) ·
+  `docs/consultation-prep.md` (תדרוך למומחי קרנות/CTO/משפט).
+- ‏**אומת מרחוק (Vercel MCP, שעובד עכשיו מסשני-web על החשבון הנכון!):** הגייטינג **עדיין כבוי** —
+  ‏`/dashboard` בפרודקשן החזיר 200 מלא ב-05/07 15:24 UTC, אחרי redeploy פרודקשן של אותו יום 15:06
+  (מיזוג #27). ⇒ הצעד הידני של יוני טרם בוצע/טרם נקלט.
+- ‏**הפרויקט הכפול אושר סופית:** הריפו מחובר ל-**שני** פרויקטי Vercel שבונים כל PR —
+  ‏`prj_3IlHVinVBsD8s16lXEEdGYUWMujj` (‏team ‏`yonilev2003s-projects`, הפרודקשן `countmedemo-eight`) +
+  ‏`prj_mz1uoMEjNU7fRpJObK1NK5nBv3gi` (‏team ‏`countmes-projects` — חשבון אחר, ה-MCP לא רואה אותו).
+  הוכחה: שתי תגובות vercel[bot] נפרדות על PR #28. ניתוק הכפול = ידני של יוני בחשבון השני.
+- ‏**Supabase MCP מסשני-web עדיין על החשבון הלא-נכון** (רואה רק akfg/BlondeShell, ‏INACTIVE) ⇒
+  ‏plans seed נשאר ידני: אם `select * from public.plans` ריק ב-hbsgz, להריץ את בלוק ה-insert
+  ‏(idempotent) משורות 110–120 של `supabase/migrations/20260617090000_billing.sql` ב-SQL Editor.
+
+**פריט תקוע מסשן קודם:** לינק ה-Gemini של יוני — **עדיין לא נקרא** (403 גם ב-WebFetch וגם ב-curl דרך
+ה-proxy של הקונטיינר; ‏share.gemini.google חסום). **יוני: להדביק את התוכן כטקסט בסשן הבא** — המשבצת
+"שילוב ג'מיני" בתוכנית למטה שמורה לזה.
+
+## 🗺️ תוכנית 7 ימים — 05/07 → 12/07 (משימות אטומיות)
+
+בעלים: 🧑 = יוני ידני · 🤖 = סשן AI (ענף `claude/<topic>` חדש לכל יום עבודה, לפי מדיניות הסשנים) · 🧮 = רועי.
+
+**יום א' 05/07 — ✅ הסשן הזה:** ‏PR #28 · הכרעת MCP + ‏spec · ‏risk-gap.md · ‏consultation-prep.md · תוכנית זו.
+
+**יום ב' 06/07 — סגירת הגייטינג (הכל 🧑, ~40 דק'):**
+1. ‏Vercel → ‏team ‏`yonilev2003s-projects` → פרויקט `countmedemo` → ‏Settings → Env Vars →
+   ‏`AUTH_GATING_ENABLED=true` מסומן **Production + Preview** → ‏Redeploy.
+   ‏DoD: אינקוגניטו `/dashboard` ⇒ נוחת ב-`/login`; ‏`/api/chat` ⇒ 401.
+2. מיזוג PR #28 (אחרי ש-CI ירוק). ‏DoD: הענף נמחק, ‏main מכיל את תיקוני 2025/2026.
+3. ‏plans seed על hbsgz (ה-SQL למעלה). ‏DoD: ‏`select id, price_agorot from plans` מחזיר free+pro.
+4. להדביק את תוכן הג'מיני כטקסט לסשן AI הבא.
+
+**יום ג' 07/07 — 🤖 ניקיון תשתית + שילוב ג'מיני:**
+1. שילוב תוכן הג'מיני בתוכנית (עדכון STATUS + decisions לפי מה שיודבק).
+2. ‏🧑 ניתוק ה-git integration של הפרויקט הכפול (`countmes-projects/countmedemo`) + לוודא שאין שם
+   ‏`ANTHROPIC_API_KEY`/מפתחות Supabase. ‏DoD: ‏PR הבא מקבל תגובת vercel[bot] **אחת**.
+3. ‏🤖 ‏WAF לפי `docs/runbooks/2026-07-02-yoni-supabase-waf.md` §2 (rate-limit durable). ‏DoD: כלל WAF פעיל על `/api/*`.
+4. ‏🤖 ‏`npm audit fix` בענף נפרד (בלי ‎--force!) → ‏build+test → ‏PR.
+
+**יום ד' 08/07 — 🤖 חווית-לקוח (בקשת יוני 02/07):**
+1. עמוד מדיניות-פרטיות + עמוד תנאים/הסתייגויות (בסיס: ה-scope statement ב-
+   `docs/reviews/2026-07-02-ws8-copy-audit.md`; הכל DRAFT-עד-משפטי, `<LegalNote>` קיים). ‏DoD: ‏routes
+   ‏`/privacy` + `/terms` חיים ומקושרים מה-footer.
+2. התמדת סשן: לחיצה על לוגו לא מנתקת/מאבדת מצב; לבדוק שרענון-סשן עובד עכשיו כש-proxy.ts רץ.
+3. ליטוש UX כללי לפי עין של יוני (רשימה חיה בסשן).
+
+**יום ה' 09/07 — 🤖 ‏WS3 שער-מורכבות (ההחלטה מ-03/07):**
+1. שדה `blockSubmission` ב-`CalcResult` (‏`lib/calculators/types.ts`).
+2. טריגרים: ‏032≠0 · ‏isNewResident · זכאות ב"ל-מילואים לא-מוגדרת (הרשימה המלאה: `memory/risk-gap.md`).
+3. ‏UI אוכף (הפניה לרו"ח במקום מספר — לא רק צ'יפ) + ‏golden tests לכל טריגר.
+‏DoD: פרסונה עם שכ"ד ≠ 0 לא מקבלת מספר סופי ב-1301, מקבלת הפניה.
+
+**יום ו' 10/07 (חצי יום) — 🤖 ‏MCP server v0:**
+לפי `docs/specs/countme-mcp-server.md`: ‏5 כלים stdio + ‏smoke tests + ‏`.mcp.json`. ‏DoD כמוגדר בספק.
+🧑 במקביל: מיגרציות billing+events על hbsgz (‏SQL Editor, לפי `docs/launch/connect-supabase-hbsgz.md`) + ‏backup dump לפני.
+
+**שבת 11/07 — מנוחה / רזרבה לגלישות.**
+
+**יום א' 12/07 — 🤖🧮 דיוק מס עם רועי:**
+1. ‏FLAG(Roy) burn-down ב-`types.ts`: תקרות פנסיה 25,608/12,804 · רצפת תרומות 2026 · תקרת 45א
+   (ביטוח חיים) · ‏2025/2026 pension caps. כל אישור ⇒ עדכון קבוע + golden test באותו commit.
+2. פיצול שאלת ב"ל/בריאות בוויזרד (הסיכון המרכזי ב-risk-gap) + golden test.
+3. רטרו שבועי + תכנון שבוע 2 (אפיק גדול הבא: הכנסה פסיבית intake+מנוע — שכ"ד 3 מסלולים, רווחי הון,
+   מס-יסף דו-שכבתי 2026; הפירוט המלא נשמר בתדריך v3 בהיסטוריית git וב-risk-gap.md).
+
+**חוב מתגלגל (לא נכנס לשבוע אלא אם נפער חלון):** ‏PII minimization לפני משתמשים-לא-מייסדים (WS7) ·
+‏Tranzila webhook signature לפני `BILLING_ENABLED` · סקירה משפטית חיצונית (אין סוקר מאז 02/07) ·
+‏testimonials פיקטיביים בדף הבית · ‏context-mode install · ‏CSP enforce אחרי report-only.
+
+---
+
+## 📜 תדריך v3 (03/07) — היסטורי; הפרטים שעוד רלוונטיים קופלו לתדריך v4 ולתוכנית
 
 **מה מוזג וחי ב-main (עד #26):** מנוע מס 94 golden tests + 18 e2e · CI gate + branch protection ·
 security headers · rate-limiter · קופי מכויל · **תיקון ה-proxy (03/07):** ב-Next 16 קובץ `middleware.ts`
