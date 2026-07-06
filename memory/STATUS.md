@@ -57,6 +57,8 @@ gaps בסוף כל פלט · **כל משימה מתועדת ב-`decisions.md` ב
    ‏`ANTHROPIC_API_KEY`/מפתחות Supabase. ‏DoD: ‏PR הבא מקבל תגובת vercel[bot] **אחת**.
 3. ‏🤖 ‏WAF לפי `docs/runbooks/2026-07-02-yoni-supabase-waf.md` §2 (rate-limit durable). ‏DoD: כלל WAF פעיל על `/api/*`.
 4. ‏🤖 ‏`npm audit fix` בענף נפרד (בלי ‎--force!) → ‏build+test → ‏PR.
+5. ‏🤖 סבב אימות משלים ל-29 הממצאים הלא-מאומתים ב-`memory/risk-gap.md` §3 (נעצרו על מגבלת תקציב API).
+   עדיפות: פרומפטי coach (חשד להפרת "LLM לא מחשב") · ‏upload מע"מ/חלקי-שנה · כפל-הטבה פנסיוני בטסט.
 
 **יום ד' 08/07 — 🤖 חווית-לקוח (בקשת יוני 02/07):**
 1. עמוד מדיניות-פרטיות + עמוד תנאים/הסתייגויות (בסיס: ה-scope statement ב-
