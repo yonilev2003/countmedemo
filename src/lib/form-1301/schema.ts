@@ -294,7 +294,7 @@ const tabGeneral: FormTab = {
     {
       letter: 'דו"ח 6111',
       title: 'דו"ח 6111',
-      description: 'נדרש כשהמחזור > 256,410 ₪ (ללא מע"מ)',
+      description: 'נדרש כשהמחזור > 254,237 ₪ (ללא מע"מ, 2025/2026 — 300,000 כולל מע"מ)',
       fields: [
         {
           code: "297",

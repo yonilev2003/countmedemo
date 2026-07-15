@@ -141,7 +141,7 @@
   "vatAndTurnover": {
     "annualTurnoverWithoutVat": 248500,
     "isAbove6111Threshold": false,
-    "_note": "Field 297 (form 6111) triggers when turnover > 256,410 ILS. Dana is just below."
+    "_note": "Field 297 (form 6111) triggers when turnover > 254,237 ILS (=300,000 incl-VAT / 1.18, 2025). Dana (248,500) is below."
   },
 
   "capitalDeclaration": {

@@ -140,9 +140,9 @@ describe("field calculators", () => {
     });
     expect(field150BusinessIncome(p).value).toBe(70_000);
   });
-  it("field297 — form 6111 required strictly ABOVE 256,410 ₪ (2025)", () => {
-    const at = makePersona({ income: { totalRevenue: 256_410 } });
-    const above = makePersona({ income: { totalRevenue: 256_411 } });
+  it("field297 — form 6111 required strictly ABOVE 254,237 ₪ (2025, =300k incl-VAT / 1.18)", () => {
+    const at = makePersona({ income: { totalRevenue: 254_237 } });
+    const above = makePersona({ income: { totalRevenue: 254_238 } });
     expect(field297Form6111(at).value).toBe("לא חייב");
     expect(field297Form6111(above).value).toBe("חייב בטופס 6111");
   });
