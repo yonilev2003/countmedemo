@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { BRAND_COLORS } from "@/components/brand/colors";
@@ -13,13 +14,22 @@ import {
   MicIcon,
 } from "@/components/brand/icons";
 
-export default function Home() {
+export default async function Home() {
+  // Session-aware chrome: a logged-in user clicking the logo/"home" must NOT
+  // see anonymous "כניסה" chrome (reads as a phantom logout — Yoni, 19/07).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="flex flex-1 flex-col bg-paper">
       {/* ===== NAV ===== */}
       <header className="sticky top-0 z-50 border-b border-line bg-paper/80 backdrop-blur-md">
         <div className="mx-auto flex h-[70px] max-w-screen-xl items-center justify-between gap-6 px-6">
-          <Logo size={26} />
+          <Link href="/" aria-label="CountMe — דף הבית">
+            <Logo size={26} />
+          </Link>
           <nav className="hidden items-center gap-1 lg:flex">
             <NavAnchor href="#shortcuts">פעולות מהירות</NavAnchor>
             <NavAnchor href="#form1301">מילוי 1301</NavAnchor>
@@ -35,13 +45,22 @@ export default function Home() {
             </Link>
           </nav>
           <div className="flex items-center gap-2.5">
-            <Link href="/login" className={btn("secondary", "sm")}>
-              כניסה
-            </Link>
-            <Link href="/setup" className={btn("primary", "sm")}>
-              התחילו עכשיו
-              <ArrowLeftIcon className="size-[17px]" />
-            </Link>
+            {user ? (
+              <Link href="/home" className={btn("primary", "sm")}>
+                לאזור האישי
+                <ArrowLeftIcon className="size-[17px]" />
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className={btn("secondary", "sm")}>
+                  כניסה
+                </Link>
+                <Link href="/setup" className={btn("primary", "sm")}>
+                  התחילו עכשיו
+                  <ArrowLeftIcon className="size-[17px]" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -381,8 +400,8 @@ export default function Home() {
               <FooterCol
                 heading="משפטי"
                 links={[
-                  { label: "תנאי שימוש", href: "#" },
-                  { label: "פרטיות", href: "#" },
+                  { label: "תנאי שימוש", href: "/terms" },
+                  { label: "פרטיות", href: "/privacy" },
                 ]}
               />
             </div>

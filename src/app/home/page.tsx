@@ -23,6 +23,7 @@ import { usePersona } from "@/lib/data/use-persona";
 import { QUICK_ACTIONS } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Reveal, Stagger, StaggerItem } from "@/components/brand/motion";
 import { cn } from "@/lib/utils";
 import {
@@ -68,7 +69,7 @@ export default function HomePage() {
               מה תרצו לעשות היום? הכול במקום אחד.
             </p>
           </div>
-          <div className="flex shrink-0 gap-2.5">
+          <div className="flex shrink-0 items-center gap-2.5">
             <Link href="/dashboard" className={btn("primary", "md")}>
               <TrendingUpIcon className="size-[18px]" />
               הדשבורד שלי
@@ -77,6 +78,7 @@ export default function HomePage() {
               <FileTextIcon className="size-[18px]" />
               הגשת הדוח
             </Link>
+            <SignOutButton />
           </div>
         </header>
       </Reveal>

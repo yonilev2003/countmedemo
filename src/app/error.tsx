@@ -36,7 +36,7 @@ export default function Error({
         )}
         <div className="flex items-center justify-center gap-3">
           <button onClick={reset} className={btn("primary", "sm")}>
-            נסי שוב
+            נסו שוב
           </button>
           <Link href="/" className={btn("secondary", "sm")}>
             לדף הבית

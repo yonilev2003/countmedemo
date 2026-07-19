@@ -22,10 +22,17 @@ export function LoginForm() {
     setFailed(false);
     setLoading(true);
     const supabase = createClient();
+    // Preserve the destination the gate redirected from (?next=/invoices …),
+    // so the OAuth callback can send the user back where they were headed.
+    const nextParam = new URLSearchParams(window.location.search).get("next");
+    const next =
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+        ? `?next=${encodeURIComponent(nextParam)}`
+        : "";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${next}`,
       },
     });
     // On success the browser is already navigating to Google; we only land

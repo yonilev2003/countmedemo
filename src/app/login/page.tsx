@@ -149,7 +149,15 @@ export default async function LoginPage({
           </ul>
 
           <p className="mt-6 text-xs leading-relaxed text-aqua/70">
-            בהתחברות אתם מאשרים את תנאי השימוש ומדיניות הפרטיות של countme.
+            בהתחברות אתם מאשרים את{" "}
+            <a href="/terms" className="underline hover:text-white">
+              תנאי השימוש
+            </a>{" "}
+            ואת{" "}
+            <a href="/privacy" className="underline hover:text-white">
+              מדיניות הפרטיות
+            </a>{" "}
+            של countme.
           </p>
         </div>
       </div>

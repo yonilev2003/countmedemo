@@ -47,18 +47,31 @@ export function EitanInsights({ persona, pl }: Props) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
+      let buffer = "";
+      let finished = false;
 
-      while (true) {
+      while (!finished) {
         const { done, value } = await reader.read();
         if (done || cancelled) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") break;
-            if (data.startsWith("[ERROR]")) break;
-            accumulated += data;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+          if (data === "[DONE]" || data.startsWith("[ERROR]")) {
+            finished = true;
+            break;
           }
+          // Text deltas are JSON-encoded (newline-safe) by the server.
+          let text = data;
+          try {
+            text = JSON.parse(data) as string;
+          } catch {
+            /* fall back to raw data if it isn't JSON */
+          }
+          accumulated += text;
         }
         if (!cancelled) setInsights(accumulated);
       }

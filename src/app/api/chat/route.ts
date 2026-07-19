@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { MODEL_SONNET, logAiUsage } from "@/lib/ai/models";
 import { Persona } from "@/lib/persona";
 import {
   EITAN_TOOLS,
@@ -159,9 +160,16 @@ export async function POST(request: Request) {
       try {
         // Tool-use loop (persona is always present here): stream each turn's text;
         // on tool_use, run the tools and feed results back. Bounded rounds.
+        const usageTotal = {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+        };
+        let roundsDone = 0;
         for (let round = 0; ; round++) {
           const anthropicStream = anthropic.messages.stream({
-            model: "claude-sonnet-4-6",
+            model: MODEL_SONNET,
             max_tokens: 1024,
             system: systemBlocks,
             messages,
@@ -179,6 +187,13 @@ export async function POST(request: Request) {
           }
 
           const final = await anthropicStream.finalMessage();
+          roundsDone = round + 1;
+          usageTotal.input_tokens += final.usage.input_tokens;
+          usageTotal.output_tokens += final.usage.output_tokens;
+          usageTotal.cache_creation_input_tokens +=
+            final.usage.cache_creation_input_tokens ?? 0;
+          usageTotal.cache_read_input_tokens +=
+            final.usage.cache_read_input_tokens ?? 0;
 
           if (round < MAX_TOOL_ROUNDS && final.stop_reason === "tool_use") {
             messages.push({ role: "assistant", content: final.content });
@@ -203,6 +218,7 @@ export async function POST(request: Request) {
           break;
         }
 
+        logAiUsage({ route: "chat", model: MODEL_SONNET, rounds: roundsDone, ...usageTotal });
         enqueue("[DONE]");
         controller.close();
       } catch (err) {

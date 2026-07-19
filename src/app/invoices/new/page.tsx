@@ -118,6 +118,13 @@ export default function NewInvoicePage() {
   const amount = Number(form.amount) || 0;
   const totals = calculateInvoiceTotals(amount, persona.business.osekType);
   const isPatur = persona.business.osekType === "patur";
+  // עוסק פטור אינו מפיק חשבונית מס — קבלה בלבד (חסימה רגולטורית, 2026-07-19).
+  const allowedDocTypes = (Object.keys(DOC_TYPE_LABELS) as InvoiceDocType[]).filter(
+    (t) => !isPatur || t !== "tax-invoice-receipt",
+  );
+  // A stale preselected/restored tax-invoice type for a patur user falls back safely.
+  const effectiveDocType: InvoiceDocType =
+    isPatur && docType === "tax-invoice-receipt" ? "receipt" : docType;
 
   function startListening() {
     const Ctor = getRecognitionCtor();
@@ -209,7 +216,7 @@ export default function NewInvoicePage() {
       vat: totals.vat,
       total: totals.total,
       category: form.category || undefined,
-      docType,
+      docType: effectiveDocType,
     };
 
     // Sync: also push the revenue into monthlyBreakdown so the dashboard
@@ -346,7 +353,7 @@ export default function NewInvoicePage() {
           <div className="flex items-start justify-between gap-4 border-b border-line bg-paper px-7 py-6">
             <div>
               <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy">
-                {DOC_TYPE_LABELS[docType].title} · {persona.business.tradeName}
+                {DOC_TYPE_LABELS[effectiveDocType].title} · {persona.business.tradeName}
               </h2>
               <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-[13.5px] text-muted">
                 <span>מטבע: <b className="font-bold text-brand-navy">שקל</b></span>
@@ -375,9 +382,9 @@ export default function NewInvoicePage() {
             <div className="border-b border-line py-7">
               <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">סוג המסמך</h3>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(Object.keys(DOC_TYPE_LABELS) as InvoiceDocType[]).map(t => {
+                {allowedDocTypes.map(t => {
                   const labels = DOC_TYPE_LABELS[t];
-                  const active = docType === t;
+                  const active = effectiveDocType === t;
                   return (
                     <button
                       key={t}
@@ -399,6 +406,12 @@ export default function NewInvoicePage() {
                   );
                 })}
               </div>
+              {isPatur && (
+                <p className="mt-3 text-xs leading-relaxed text-muted">
+                  {/* DRAFT — NEEDS LEGAL REVIEW */}
+                  עוסק פטור מפיק קבלה, לא חשבונית מס.
+                </p>
+              )}
             </div>
 
             {/* Document details block */}
@@ -534,7 +547,7 @@ export default function NewInvoicePage() {
             {/* Actions — mockup `.ed-actions`: centered pills */}
             <div className="flex flex-col items-center gap-3 border-t border-line pt-7 sm:flex-row sm:justify-center">
               <button onClick={handleSubmit} className={btn("primary", "md")}>
-                {DOC_TYPE_LABELS[docType].cta}
+                {DOC_TYPE_LABELS[effectiveDocType].cta}
               </button>
               <Link href="/invoices" className={btn("secondary", "md")}>
                 ביטול

@@ -30,6 +30,7 @@ import { NextDeadlineCard } from "@/components/dashboard/next-deadline-card";
 import { PeriodStatusCard } from "@/components/dashboard/period-status-card";
 import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
@@ -384,6 +385,7 @@ export default function DashboardPage() {
             <Link href="/coach" className={btn("gold", "sm")}>
               <SparklesIcon className="size-4" /> שוחח עם איתן
             </Link>
+            <SignOutButton />
           </div>
           {/* Mobile: condensed — the rest of the actions live in the bottom bar */}
           <div className="flex items-center gap-2 lg:hidden">

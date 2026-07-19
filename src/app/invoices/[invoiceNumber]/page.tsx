@@ -39,13 +39,9 @@ export default function InvoicePrintPage() {
   const docType = invoice.docType ?? "tax-invoice-receipt";
   const docTitle = docType === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
   const isReceipt = docType === "receipt";
-  // SHAAM allocation number — required for invoices > 25K from 2024+. Mock for demo.
-  const showAllocation = docType === "tax-invoice-receipt" && invoice.total > 25000;
-  const mockAllocation = showAllocation
-    ? `IL${invoice.invoiceNumber.replace(/\D/g, "")}${String(
-        invoice.invoiceNumber.replace(/\D/g, "").split("").reduce((a, c) => (a + Number(c)) % 900, 1) + 100
-      ).padStart(3, "0")}`
-    : null;
+  // SHAAM allocation numbers: a REAL allocation must come from the Tax
+  // Authority API (phase 2). Never display an invented number on a document —
+  // the previous mock here was a regulatory exposure (removed 2026-07-19).
 
   // Initial of the trade name for the issuer monogram (mockup: navy circle, beige glyph).
   const monogram = persona.business.tradeName?.trim().charAt(0) || "C";
@@ -211,10 +207,6 @@ export default function InvoicePrintPage() {
               </div>
             </div>
 
-            {/* SHAAM allocation */}
-            {mockAllocation && (
-              <p className="text-xs text-faint mb-1 font-mono">מספר הקצאה (שע&quot;מ): {mockAllocation}</p>
-            )}
           </div>
 
           {/* Footer */}
@@ -238,7 +230,12 @@ export default function InvoicePrintPage() {
           {isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
           {!isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
           <p>חתימה דיגיטלית: {persona.business.tradeName} · {new Date().toISOString().split("T")[0]}</p>
-          <p className="text-[10px]">הופק באמצעות countme · countmedemo.vercel.app</p>
+          <p className="text-[10px]">
+            הופק באמצעות countme
+            {process.env.NEXT_PUBLIC_APP_URL
+              ? ` · ${new URL(process.env.NEXT_PUBLIC_APP_URL).hostname}`
+              : ""}
+          </p>
         </div>
       </div>
 

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- CountMe app icon: brand navy tile, beige ¢ mark (Brand Kit geometry) -->
+  <rect width="128" height="128" rx="28" fill="#083A4F"/>
+  <g transform="translate(14, 8)">
+    <path d="M72.1 31.5 A33 33 0 1 0 72.1 80.5" stroke="#C8B59A" stroke-width="11" stroke-linecap="round" fill="none"/>
+    <line x1="50" y1="15" x2="50" y2="97" stroke="#C8B59A" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>
