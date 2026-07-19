@@ -1,10 +1,68 @@
-import { Persona, InvoiceLine } from "@/lib/persona";
+import { Persona, InvoiceLine, InvoiceDocType, DocStatus } from "@/lib/persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 
 /** Returns next sequential invoice number string like "2024-0042" */
 export function nextInvoiceNumber(persona: Persona): string {
   const counter = (persona.invoiceCounter ?? 1);
   return `${new Date().getFullYear()}-${String(counter).padStart(4, "0")}`;
+}
+
+/** Number-series prefixes for the non-tax docs. The two payment docs keep the
+ *  legacy shared un-prefixed series (numbering continuity; split pending Roy). */
+const SERIES_PREFIX: Record<"business-account" | "quote", string> = {
+  "business-account": "BA-",
+  quote: "Q-",
+};
+
+/**
+ * Next document number for a given kind. Quotes and business-accounts run on
+ * their own sequences (a quote must never consume the invoice sequence);
+ * receipts/tax-invoices keep the legacy shared counter.
+ */
+export function nextDocNumber(persona: Persona, docType: InvoiceDocType): string {
+  if (docType === "quote" || docType === "business-account") {
+    const counter = persona.docCounters?.[docType] ?? 1;
+    return `${SERIES_PREFIX[docType]}${new Date().getFullYear()}-${String(counter).padStart(4, "0")}`;
+  }
+  return nextInvoiceNumber(persona);
+}
+
+/** Persona counter updates to persist alongside a newly created document. */
+export function bumpDocCounter(
+  persona: Persona,
+  docType: InvoiceDocType,
+): Pick<Persona, "invoiceCounter" | "docCounters"> {
+  if (docType === "quote" || docType === "business-account") {
+    return {
+      invoiceCounter: persona.invoiceCounter,
+      docCounters: {
+        ...persona.docCounters,
+        [docType]: (persona.docCounters?.[docType] ?? 1) + 1,
+      },
+    };
+  }
+  return {
+    invoiceCounter: (persona.invoiceCounter ?? 1) + 1,
+    docCounters: persona.docCounters,
+  };
+}
+
+/** Payment-received tax docs — the ONLY kinds that count as revenue. */
+export function isRevenueDoc(docType: InvoiceDocType | undefined): boolean {
+  const t = docType ?? "tax-invoice-receipt";
+  return t === "tax-invoice-receipt" || t === "receipt";
+}
+
+/** Initial stored status per kind: payment docs are born paid, demands/offers open. */
+export function initialDocStatus(docType: InvoiceDocType): DocStatus {
+  return isRevenueDoc(docType) ? "paid" : "sent";
+}
+
+/** Which document kinds an osek may issue (patur never issues a tax invoice). */
+export function allowedDocTypesFor(osekType: "patur" | "morshe"): InvoiceDocType[] {
+  return osekType === "patur"
+    ? ["receipt", "business-account", "quote"]
+    : ["tax-invoice-receipt", "receipt", "business-account", "quote"];
 }
 
 /** Validates the invoice fields — returns array of error strings */
@@ -14,8 +72,14 @@ export function validateInvoice(invoice: Partial<InvoiceLine>): string[] {
   if (!invoice.description?.trim()) errors.push("תיאור השירות נדרש");
   if (!invoice.amount || invoice.amount <= 0) errors.push("סכום חייב להיות גדול מ-0");
   if (!invoice.date) errors.push("תאריך נדרש");
-  // Israeli rule: for invoices > 5,000 ILS the customer ID is required
-  if (invoice.amount && invoice.amount > 5000 && !invoice.customerTaxId) {
+  // Israeli rule: for TAX documents > 5,000 ILS the customer ID is required.
+  // Quotes/business-accounts are not tax documents — rule doesn't apply.
+  if (
+    invoice.amount &&
+    invoice.amount > 5000 &&
+    !invoice.customerTaxId &&
+    isRevenueDoc(invoice.docType)
+  ) {
     errors.push("לחשבוניות מעל 5,000 ₪ נדרש מספר ת.ז. / ח.פ. של הלקוח");
   }
   return errors;

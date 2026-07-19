@@ -37,8 +37,17 @@ export default function InvoicePrintPage() {
   const isPatur = persona.business.osekType === "patur";
   // Default legacy invoices to combined "tax-invoice-receipt" (305 — most common)
   const docType = invoice.docType ?? "tax-invoice-receipt";
-  const docTitle = docType === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
+  const docTitle =
+    docType === "receipt"
+      ? "קבלה"
+      : docType === "business-account"
+        ? "חשבון עסקה"
+        : docType === "quote"
+          ? "הצעת מחיר"
+          : "חשבונית מס/קבלה";
   const isReceipt = docType === "receipt";
+  // Payment-received tax docs; quotes/business-accounts are NOT tax documents.
+  const isPaymentDoc = docType === "receipt" || docType === "tax-invoice-receipt";
   // SHAAM allocation numbers: a REAL allocation must come from the Tax
   // Authority API (phase 2). Never display an invented number on a document —
   // the previous mock here was a regulatory exposure (removed 2026-07-19).
@@ -103,9 +112,25 @@ export default function InvoicePrintPage() {
               )}
               <div className="h-px bg-aqua/30 my-[22px]" />
               <h1 className="font-display text-[30px] font-extrabold tracking-tight leading-tight">{docTitle} {invoice.invoiceNumber}</h1>
-              <p className="text-[13.5px] text-aqua mt-1">העתק נאמן למקור</p>
-              {!isReceipt && (
+              {isPaymentDoc && (
+                <p className="text-[13.5px] text-aqua mt-1">העתק נאמן למקור</p>
+              )}
+              {docType === "tax-invoice-receipt" && (
                 <p className="text-[13px] text-aqua mt-[18px]">לתשלום עד {formatHebrewDate(invoice.date)}</p>
+              )}
+              {docType === "business-account" && (
+                <p className="text-[13px] text-aqua mt-[18px]">
+                  {invoice.dueDate
+                    ? `לתשלום עד ${formatHebrewDate(invoice.dueDate)}`
+                    : "דרישת תשלום"}
+                </p>
+              )}
+              {docType === "quote" && (
+                <p className="text-[13px] text-aqua mt-[18px]">
+                  {invoice.validUntil
+                    ? `ההצעה בתוקף עד ${formatHebrewDate(invoice.validUntil)}`
+                    : "הצעה ללא התחייבות"}
+                </p>
               )}
               {isReceipt && (
                 <p className="text-[13px] text-aqua mt-[18px]">התקבל במלואו · תודה על התשלום</p>
@@ -196,16 +221,19 @@ export default function InvoicePrintPage() {
               </div>
             </div>
 
-            {/* Payment confirmation block — for receipt + combined */}
-            <div className="mb-4 rounded-xl border border-success/30 bg-success-light px-4 py-3 flex items-start gap-3">
-              <CheckCircleIcon className="size-5 text-success shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-success">קבלת תשלום מאושרת</p>
-                <p className="text-xs text-success/80 mt-0.5">
-                  מאשרים בזאת קבלת סך {invoice.total.toLocaleString("he-IL")} &#x20AA; עבור השירות המפורט לעיל.
-                </p>
+            {/* Payment confirmation block — payment docs ONLY (a quote or a
+                business-account attests nothing about payment) */}
+            {isPaymentDoc && (
+              <div className="mb-4 rounded-xl border border-success/30 bg-success-light px-4 py-3 flex items-start gap-3">
+                <CheckCircleIcon className="size-5 text-success shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-success">קבלת תשלום מאושרת</p>
+                  <p className="text-xs text-success/80 mt-0.5">
+                    מאשרים בזאת קבלת סך {invoice.total.toLocaleString("he-IL")} &#x20AA; עבור השירות המפורט לעיל.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
 
@@ -227,8 +255,15 @@ export default function InvoicePrintPage() {
 
         {/* Legal footer text — visible below card */}
         <div className="no-print mx-auto mt-6 px-2 text-xs text-faint leading-relaxed space-y-1">
-          {isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
-          {!isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          {isPaymentDoc && isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
+          {isPaymentDoc && !isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          {/* DRAFT — NEEDS LEGAL REVIEW (Roy: חשבונית ישראל / doc requirements) */}
+          {docType === "business-account" && (
+            <p>חשבון עסקה — דרישת תשלום בלבד; אינו מסמך מס. קבלה תופק עם קבלת התשלום.</p>
+          )}
+          {docType === "quote" && (
+            <p>הצעת מחיר — אינה מסמך מס ואינה מחייבת עד לאישור ההזמנה.</p>
+          )}
           <p>חתימה דיגיטלית: {persona.business.tradeName} · {new Date().toISOString().split("T")[0]}</p>
           <p className="text-[10px]">
             הופק באמצעות countme

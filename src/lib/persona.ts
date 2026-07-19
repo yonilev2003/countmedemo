@@ -43,10 +43,25 @@ export interface PersonaPersonal {
   children: { birthYear: number }[];
 }
 
-export type InvoiceDocType = "tax-invoice-receipt" | "receipt";
+/**
+ * Document kinds (beta, CEO plan §3.3):
+ * - "tax-invoice-receipt" (305) / "receipt" (320) — payment-received tax docs.
+ * - "business-account" (חשבון עסקה) — a payment demand; NOT a tax document.
+ * - "quote" (הצעת מחיר) — a non-binding offer; NOT a tax document.
+ * Only the first two count as revenue (payment actually received).
+ */
+export type InvoiceDocType =
+  | "tax-invoice-receipt"
+  | "receipt"
+  | "business-account"
+  | "quote";
+
+/** Stored document status. "overdue"/"expired" are DERIVED at render time
+ *  (from dueDate/validUntil) — never stored, so no cron is needed. */
+export type DocStatus = "sent" | "paid";
 
 export interface InvoiceLine {
-  invoiceNumber: string;       // e.g. "2024-0042"
+  invoiceNumber: string;       // e.g. "2024-0042" (Q-/BA- prefixes for quote/business-account)
   date: string;                // ISO date
   customerName: string;
   customerTaxId?: string;      // teudat zehut or company number
@@ -55,8 +70,23 @@ export interface InvoiceLine {
   vat: number;                 // 0 for עוסק פטור
   total: number;               // amount + vat
   category?: string;           // e.g. "ייעוץ", "עיצוב"
-  /** SHAAM doc type — "tax-invoice-receipt" (305, default) or "receipt" (320) */
+  /** Doc kind — "tax-invoice-receipt" (305, default) or "receipt" (320),
+   *  plus the non-tax docs "business-account" / "quote" (beta 2026-07). */
   docType?: InvoiceDocType;
+  /** "paid" for payment-received docs (receipts); "sent" for open
+   *  business-accounts/quotes. Absent on legacy rows ⇒ treated as "paid". */
+  status?: DocStatus;
+  /** business-account only: payment due date (user-chosen, no default —
+   *  Yoni 19/07). When past and status!=="paid", the doc renders as overdue. */
+  dueDate?: string;
+  /** quote only: offer validity end date. Past ⇒ renders as expired. */
+  validUntil?: string;
+  /** Set when the user marks a business-account as paid. */
+  paidDate?: string;
+  /** Conversion chain link (quote → business-account → receipt). */
+  relatedDocNumber?: string;
+  /** Reminder log for "מי לא שילם לי" (wa.me/mailto sends). */
+  remindersSent?: { date: string; tone: "gentle" | "matter" | "assertive" }[];
 }
 
 export interface ExpenseLine {
@@ -223,7 +253,12 @@ export interface Persona {
   };
   /** הצהרת הון (Form 1219). Optional — only present once the user fills it. */
   capitalDeclaration?: PersonaCapitalDeclaration;
-  invoiceCounter?: number;   // next invoice number to use
+  invoiceCounter?: number;   // next invoice number to use (legacy shared series
+                             // for tax-invoice-receipt + receipt — kept for
+                             // numbering continuity; series split pending Roy)
+  /** Separate numbering sequences for the non-tax docs (quotes must never
+   *  consume the invoice sequence). Key absent ⇒ next number is 1. */
+  docCounters?: Partial<Record<"business-account" | "quote", number>>;
 }
 
 /**

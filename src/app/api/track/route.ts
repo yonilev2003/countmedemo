@@ -20,6 +20,11 @@ const ALLOWED: ReadonlySet<string> = new Set<EventName>([
   "pricing_viewed",
   "checkout_started",
   "subscription_activated",
+  "doc_created",
+  "doc_marked_paid",
+  "reminder_sent",
+  "receivables_viewed",
+  "dashboard_viewed",
 ]);
 
 export async function POST(request: NextRequest) {
