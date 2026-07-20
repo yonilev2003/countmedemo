@@ -55,6 +55,54 @@ export default function InvoicePrintPage() {
   // Initial of the trade name for the issuer monogram (mockup: navy circle, beige glyph).
   const monogram = persona.business.tradeName?.trim().charAt(0) || "C";
 
+  // Share via signed public link (approved 19/07); falls back to text-only
+  // when DOC_LINK_SECRET is not configured on the server.
+  async function shareDoc(channel: "whatsapp" | "email") {
+    if (!persona || !invoice) return;
+    const shareTitle = `${docTitle} ${invoice.invoiceNumber} — ${persona.business.tradeName}`;
+    let link = "";
+    try {
+      const res = await fetch("/api/doc-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc: {
+            invoiceNumber: invoice.invoiceNumber,
+            date: invoice.date,
+            customerName: invoice.customerName,
+            description: invoice.description,
+            amount: invoice.amount,
+            vat: invoice.vat,
+            total: invoice.total,
+            docType,
+            ...(invoice.dueDate ? { dueDate: invoice.dueDate } : {}),
+            ...(invoice.validUntil ? { validUntil: invoice.validUntil } : {}),
+          },
+          business: {
+            tradeName: persona.business.tradeName,
+            osekType: persona.business.osekType,
+          },
+        }),
+      });
+      if (res.ok) {
+        const { token } = (await res.json()) as { token: string };
+        link = `${window.location.origin}/d/${encodeURIComponent(token)}`;
+      }
+    } catch {
+      /* text-only fallback */
+    }
+    const text =
+      `שלום ${invoice.customerName}, מצורף ${docTitle} ${invoice.invoiceNumber} ` +
+      `על סך ${invoice.total.toLocaleString("he-IL")} ₪ מאת ${persona.business.tradeName}.` +
+      (link ? `\nלצפייה במסמך: ${link}` : "");
+    const encoded = encodeURIComponent(text);
+    if (channel === "whatsapp") {
+      window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener");
+    } else {
+      window.location.href = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encoded}`;
+    }
+  }
+
   return (
     <div className="min-h-screen bg-cream">
       {/* Print/screen header — hidden in print */}
@@ -68,13 +116,21 @@ export default function InvoicePrintPage() {
             חזרה לרשימה
           </Link>
           <Logo size={22} />
-          <button
-            onClick={() => window.print()}
-            className={btn("secondary", "sm")}
-          >
-            <DownloadIcon className="size-4" />
-            הדפס / שמור כ-PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => shareDoc("whatsapp")} className={btn("primary", "sm")}>
+              שיתוף בוואטסאפ
+            </button>
+            <button onClick={() => shareDoc("email")} className={btn("ghost", "sm")}>
+              במייל
+            </button>
+            <button
+              onClick={() => window.print()}
+              className={btn("secondary", "sm")}
+            >
+              <DownloadIcon className="size-4" />
+              הדפס / PDF
+            </button>
+          </div>
         </div>
       </div>
 

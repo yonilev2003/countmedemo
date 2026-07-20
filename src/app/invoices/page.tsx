@@ -10,6 +10,7 @@ import { effectiveStatus } from "@/lib/receivables/summary";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
+import { EitanFab } from "@/components/agent/eitan-fab";
 import { SearchIcon, XIcon, PlusIcon, ReceiptIcon, ArrowLeftIcon } from "@/components/brand/icons";
 
 const MONTH_LABELS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
@@ -309,6 +310,7 @@ export default function InvoicesPage() {
           </>
         )}
       </main>
+      <EitanFab />
     </div>
   );
 }

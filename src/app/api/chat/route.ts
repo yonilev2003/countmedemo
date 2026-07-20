@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { MODEL_SONNET, logAiUsage } from "@/lib/ai/models";
+import { MODEL_SONNET, logAiUsage, withMessageCacheBreakpoint } from "@/lib/ai/models";
 import { Persona } from "@/lib/persona";
 import {
   EITAN_TOOLS,
@@ -172,7 +172,7 @@ export async function POST(request: Request) {
             model: MODEL_SONNET,
             max_tokens: 1024,
             system: systemBlocks,
-            messages,
+            messages: withMessageCacheBreakpoint(messages),
             ...(round < MAX_TOOL_ROUNDS ? { tools: EITAN_TOOLS } : {}),
           });
 

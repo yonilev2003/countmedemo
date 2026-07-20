@@ -27,6 +27,7 @@ import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
+import { EitanFab } from "@/components/agent/eitan-fab";
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
@@ -376,6 +377,7 @@ export default function ReceivablesPage() {
           </div>
         )}
       </main>
+      <EitanFab />
     </div>
   );
 }

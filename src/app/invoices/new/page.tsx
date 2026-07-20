@@ -7,6 +7,7 @@ import { loadPersona } from "@/lib/setup-storage";
 import { persistPersona } from "@/lib/data/persona-store";
 import { nextDocNumber, bumpDocCounter, initialDocStatus, isRevenueDoc, allowedDocTypesFor, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
+import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
@@ -276,6 +277,7 @@ export default function NewInvoicePage() {
     };
 
     persistPersona(updatedPersona);
+    trackClient("doc_created", { docType: effectiveDocType });
     router.push(`/invoices/${invoiceNumber}`);
   }
 

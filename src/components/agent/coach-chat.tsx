@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { trackClient } from "@/lib/analytics/track-client";
 import Link from "next/link";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
@@ -198,6 +199,7 @@ export function CoachChat({ persona }: Props) {
     const history = historyRef.current.slice(-20);
 
     try {
+      trackClient("coach_question_asked");
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
