@@ -136,9 +136,6 @@ export default function DashboardPage() {
             <Link href="/coach" className={btn("gold", "sm")}>
               <SparklesIcon className="size-4" /> איתן
             </Link>
-            <Link href="/dashboard/pro" className={btn("ghost", "sm")}>
-              מצב מורחב
-            </Link>
             <SignOutButton />
           </div>
         </div>

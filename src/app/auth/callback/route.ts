@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const next =
     nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
       ? nextParam
-      : "/home";
+      : "/dashboard";
 
   if (code) {
     const supabase = await createClient();

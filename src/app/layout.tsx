@@ -11,10 +11,10 @@ const assistant = Assistant({
   display: "swap",
 });
 
-const APP_TITLE = "countme — המלווה לדו״ח שלך";
+const APP_TITLE = "countme — הכספים של העסק שלך";
 // Copy per docs/reviews/2026-07-02-ws8-copy-audit.md (O1) — DRAFT — NEEDS LEGAL REVIEW
 const APP_DESCRIPTION =
-  "המוצר שמלווה עצמאים בישראל בהכנת דו״ח המס השנתי. AI שלוקח את הנתונים שלך ומראה בדיוק מה למלא בכל שדה — מחשבון מדויק, לא ייעוץ מס.";
+  "חשבוניות, קבלות, הוצאות ומי לא שילם לי — הכספים של העסק העצמאי שלך, בשפה של בני אדם. מחשבון מדויק, לא ייעוץ מס.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(

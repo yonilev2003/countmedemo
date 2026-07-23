@@ -32,7 +32,6 @@ export default async function Home() {
           </Link>
           <nav className="hidden items-center gap-1 lg:flex">
             <NavAnchor href="#shortcuts">פעולות מהירות</NavAnchor>
-            <NavAnchor href="#form1301">מילוי 1301</NavAnchor>
             <NavAnchor href="#eitan">
               <SparklesIcon className="size-4 text-beige-600" /> איתן
             </NavAnchor>
@@ -46,7 +45,7 @@ export default async function Home() {
           </nav>
           <div className="flex items-center gap-2.5">
             {user ? (
-              <Link href="/home" className={btn("primary", "sm")}>
+              <Link href="/dashboard" className={btn("primary", "sm")}>
                 לאזור האישי
                 <ArrowLeftIcon className="size-[17px]" />
               </Link>
@@ -136,7 +135,7 @@ export default async function Home() {
           />
           <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-4">
             <ShortcutCard
-              href="/invoices/new"
+              href="/invoices/new?type=receipt"
               tone="teal"
               icon={<ReceiptIcon className="size-[26px]" />}
               title="קבלה"
@@ -144,7 +143,7 @@ export default async function Home() {
               kbd="⌘ R"
             />
             <ShortcutCard
-              href="/invoices/new"
+              href="/invoices/new?type=business-account"
               tone="beige"
               icon={<FileTextIcon className="size-[26px]" />}
               title="חשבון עסקה"
@@ -152,7 +151,7 @@ export default async function Home() {
               kbd="⌘ I"
             />
             <ShortcutCard
-              href="/invoices/new"
+              href="/invoices/new?type=quote"
               tone="green"
               icon={<ClipboardCheckIcon className="size-[26px]" />}
               title="הצעת מחיר"
@@ -164,76 +163,25 @@ export default async function Home() {
               tone="navy"
               icon={<BarChartIcon className="size-[26px]" />}
               title="לוח הבקרה"
-              desc="תמונת מצב מלאה — הכנסות, מועדים וסטטוס."
+              desc="הכנסות, הוצאות ומי לא שילם — במסך אחד."
               kbd="⌘ D"
             />
           </div>
         </div>
       </section>
 
-      {/* ===== 1301 + EITAN ===== */}
-      <section id="form1301" className="bg-paper py-24 md:py-[96px]">
+      {/* ===== EITAN ===== */}
+      <section id="eitan-section" className="bg-paper py-24 md:py-[96px]">
         <div className="mx-auto max-w-screen-xl px-8">
           <SectionHead
-            eyebrow="מילוי טופס 1301"
-            title="איתן מסביר כל מספר"
-            subtitle="במקום שדות מבלבלים וקודים סתומים, איתן הנציג הדיגיטלי שלנו מלווה אותך שדה-שדה, בשפה פשוטה, ומחשב הכול מהנתונים שלך."
+            eyebrow="איתן"
+            title="שאלה של שנייה, תשובה בגובה העיניים"
+            subtitle="מה זה מקדמות? מה מוכר כהוצאה? מי עוד לא שילם לי? איתן, הנציג הדיגיטלי שלנו, עונה בשפה של בני אדם — צמוד לנתונים האמיתיים של העסק."
           />
           <div
             id="eitan"
-            className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-[46px]"
+            className="mx-auto grid max-w-xl grid-cols-1 items-center gap-8"
           >
-            {/* form mock */}
-            <div className="overflow-hidden rounded-[22px] border border-line bg-paper shadow-brand">
-              <div className="flex items-center justify-between bg-brand-navy px-6 py-[18px] text-white">
-                <div>
-                  <div className="text-base font-bold">טופס 1301 · דו״ח שנתי</div>
-                  <div className="mt-px text-[12.5px] text-aqua">שנת מס 2024</div>
-                </div>
-                <span className="rounded-full bg-brand px-3 py-[5px] text-xs font-bold text-brand-navy">
-                  מולא אוטומטית
-                </span>
-              </div>
-              <div className="px-[22px] py-[18px]">
-                <FormRow
-                  code="158"
-                  label="הכנסה מעסק או משלח יד"
-                  sub="סך הכנסות 2024"
-                  value="₪248,900"
-                />
-                <FormRow
-                  code="170"
-                  label="הוצאות מוכרות"
-                  sub="קוזזו אוטומטית"
-                  value="₪71,300"
-                />
-                <FormRow
-                  code="042"
-                  label="מקדמות ששולמו"
-                  sub="איתן מצא עוד ₪2,300 להחזר"
-                  value="₪18,400"
-                  highlight
-                />
-                <FormRow
-                  code="036"
-                  label="ניכוי במקור"
-                  sub="מתוך אישורי לקוחות"
-                  value="₪6,150"
-                />
-              </div>
-              <div className="flex items-center justify-between border-t border-line bg-cream px-[22px] py-4">
-                <span className="text-sm font-semibold text-muted">
-                  החזר מס צפוי
-                </span>
-                <span
-                  className="text-[22px] font-extrabold text-brand-navy"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  ₪2,300
-                </span>
-              </div>
-            </div>
-
             {/* Eitan chat preview */}
             <div className="flex flex-col gap-[15px]">
               <div className="mb-0.5 flex items-center gap-[13px]">
@@ -253,18 +201,18 @@ export default async function Home() {
 
               <div className="flex flex-col gap-3">
                 <ChatBubble from="bot">
-                  בדקתי את הדו״ח שלך לשנת 2024. שמתי לב למשהו חשוב —{" "}
-                  <b className="font-bold">מגיע לך החזר מס</b>.
+                  שני חשבונות עסקה עדיין פתוחים החודש —{" "}
+                  <b className="font-bold">5,900 ₪ בחוץ</b>.
                 </ChatBubble>
-                <ChatBubble from="me">כמה ולמה?</ChatBubble>
+                <ChatBubble from="me">מה עושים עם זה?</ChatBubble>
                 <ChatBubble from="bot">
                   <span className="mb-[7px] inline-flex items-center gap-1.5 rounded-lg bg-teal-100 px-[9px] py-[3px] text-[12.5px] font-bold text-teal-600">
                     <CheckCircleIcon className="size-[13px]" />
-                    החזר צפוי ₪2,300
+                    תזכורת מוכנה לשליחה
                   </span>
                   <br />
-                  שילמת מקדמות גבוהות מדי ביחס להכנסה החייבת. הגשתי את זה בשדה 042
-                  — הכול מחושב מהנתונים שלך.
+                  הכנתי נוסח מנומס לוואטסאפ — רואים אותו, מאשרים, ונשלח. ברגע
+                  שהתשלום נכנס, הקבלה מחכה בלחיצה.
                 </ChatBubble>
               </div>
 
@@ -283,12 +231,9 @@ export default async function Home() {
           </div>
 
           <div className="mt-12 flex flex-wrap justify-center gap-3">
-            <Link href="/file" className={btn("primary")}>
-              למסלול המילוי
+            <Link href="/setup" className={btn("primary")}>
+              התחילו עכשיו
               <ArrowLeftIcon className="size-[18px]" />
-            </Link>
-            <Link href="/demo" className={btn("secondary")}>
-              ראה/י דמו 1301
             </Link>
           </div>
         </div>
@@ -382,9 +327,9 @@ export default async function Home() {
               <FooterCol
                 heading="מוצר"
                 links={[
-                  { label: "מילוי 1301", href: "/file" },
                   { label: "דשבורד", href: "/dashboard" },
-                  { label: "חשבוניות", href: "/invoices" },
+                  { label: "חשבוניות וקבלות", href: "/invoices" },
+                  { label: "מי לא שילם לי", href: "/receivables" },
                   { label: "מחירים", href: "/pricing" },
                   { label: "איתן", href: "/coach" },
                 ]}
@@ -393,8 +338,6 @@ export default async function Home() {
                 heading="חברה"
                 links={[
                   { label: "אודות", href: "/about" },
-                  { label: "דמו 1301", href: "/demo" },
-                  { label: "מועדים", href: "/deadlines" },
                 ]}
               />
               <FooterCol

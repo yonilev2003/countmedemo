@@ -27,7 +27,7 @@ export default function NotFound() {
           <Link href="/" className={btn("primary", "sm")}>
             לדף הבית
           </Link>
-          <Link href="/home" className={btn("secondary", "sm")}>
+          <Link href="/dashboard" className={btn("secondary", "sm")}>
             לאזור האישי
           </Link>
         </div>

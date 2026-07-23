@@ -74,9 +74,9 @@ export default function HomePage() {
               <TrendingUpIcon className="size-[18px]" />
               הדשבורד שלי
             </Link>
-            <Link href="/file" className={btn("secondary", "md")}>
+            <Link href="/receivables" className={btn("secondary", "md")}>
               <FileTextIcon className="size-[18px]" />
-              הגשת הדוח
+              מי לא שילם לי
             </Link>
             <SignOutButton />
           </div>
@@ -85,7 +85,8 @@ export default function HomePage() {
 
       {/* Shortcut grid — the hub. 2-up on phones, 3-up on desktop. */}
       <Stagger className="grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-3">
-        {QUICK_ACTIONS.map((a) => (
+        {/* Beta (Yoni 23/07): lean scope — hide the tax-calendar tiles; docs+expenses+Eitan only */}
+        {QUICK_ACTIONS.filter((a) => !["/deadlines", "/alerts"].includes(a.href)).map((a) => (
           <StaggerItem key={a.href}>
             <Link
               href={a.href}
