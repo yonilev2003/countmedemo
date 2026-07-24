@@ -15,8 +15,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import { Persona, ExpenseLine } from "@/lib/persona";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
@@ -43,19 +42,12 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona, setPersona } = useRequiredPersona();
   const [expenseOpen, setExpenseOpen] = useState(false);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
     trackClient("dashboard_viewed");
-  }, [router]);
+  }, []);
 
   const summary = useMemo(
     () => (persona ? computeMonthSummary(persona) : null),
@@ -129,7 +121,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-cream">
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Logo size={26} />
           </Link>
           <div className="flex items-center gap-2">

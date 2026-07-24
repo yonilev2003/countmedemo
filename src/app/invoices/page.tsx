@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona, InvoiceLine } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import { InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate, isRevenueDoc } from "@/lib/invoice-generator/index";
 import { effectiveStatus } from "@/lib/receivables/summary";
 import { Logo } from "@/components/brand/logo";
@@ -19,23 +18,18 @@ function invoiceYear(inv: InvoiceLine) { return new Date(inv.date).getFullYear()
 function invoiceMonth(inv: InvoiceLine) { return new Date(inv.date).getMonth() + 1; }
 
 export default function InvoicesPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [filterYear, setFilterYear] = useState<number | null>(null);
   const [filterMonth, setFilterMonth] = useState<number | null>(null);
   const [filterCustomer, setFilterCustomer] = useState("");
 
+  // Default the year filter to the latest year that actually has documents.
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) { router.push("/setup"); return; }
-    setPersona(p);
-    // Default to the latest year
-    const invoices = p.income.invoices ?? [];
-    if (invoices.length > 0) {
-      const years = [...new Set(invoices.map(invoiceYear))].sort((a, b) => b - a);
-      setFilterYear(years[0]);
-    }
-  }, [router]);
+    const invoices = persona?.income.invoices ?? [];
+    if (invoices.length === 0) return;
+    const years = [...new Set(invoices.map(invoiceYear))].sort((a, b) => b - a);
+    setFilterYear(years[0]);
+  }, [persona]);
 
   const allInvoices: InvoiceLine[] = useMemo(
     () => [...(persona?.income.invoices ?? [])].reverse(),
@@ -96,7 +90,7 @@ export default function InvoicesPage() {
     <div className="min-h-screen bg-cream">
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Logo size={24} />
             <span className="text-base font-semibold text-muted">· חשבוניות</span>
           </Link>

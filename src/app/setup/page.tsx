@@ -485,8 +485,14 @@ export default function SetupPage() {
     const netIncome = totalRevenue - totalDeductibleExpenses;
     const bituach = Number(s5.bituachLeumiAnnualPaid) || 0;
 
+    // The wizard edits SETTINGS. It must never destroy transactional data:
+    // a returning user re-running it (e.g. "עדכן נתונים") would otherwise lose
+    // every invoice/receipt/quote/expense — on this device AND in the DB — and
+    // reset the numbering counters so the next document reuses a used number.
+    const existing = loadPersona();
+
     return {
-      id: "user-" + Date.now(),
+      id: existing?.id ?? "user-" + Date.now(),
       displayName: `${s1.firstName} ${s1.lastName}`.trim(),
       personal: {
         firstName: s1.firstName,
@@ -575,9 +581,13 @@ export default function SetupPage() {
         totalRevenue,
         totalDeductibleExpenses,
         netIncome,
-        invoiceCount: 0,
-        expenseCount: 0,
-        monthlyBreakdown: [],
+        // Preserve everything the wizard does not own (documents, expenses and
+        // the derived monthly series) — see the note above buildPersona().
+        invoices: existing?.income?.invoices ?? [],
+        expenses: existing?.income?.expenses ?? [],
+        invoiceCount: existing?.income?.invoices?.length ?? 0,
+        expenseCount: existing?.income?.expenses?.length ?? 0,
+        monthlyBreakdown: existing?.income?.monthlyBreakdown ?? [],
       },
       deductionsAndCredits: {
         kerenHishtalmut: {
@@ -604,6 +614,17 @@ export default function SetupPage() {
         annualTurnoverWithoutVat: totalRevenue,
         isAbove6111Threshold: totalRevenue > getTaxYearConstants(selectedYear).form6111Threshold,
       },
+      // Document numbering counters + data the wizard never collects: carried
+      // over verbatim so re-running setup can't reissue a used document number
+      // or drop the capital declaration / contact details.
+      ...(existing?.invoiceCounter !== undefined
+        ? { invoiceCounter: existing.invoiceCounter }
+        : {}),
+      ...(existing?.docCounters ? { docCounters: existing.docCounters } : {}),
+      ...(existing?.contact ? { contact: existing.contact } : {}),
+      ...(existing?.capitalDeclaration
+        ? { capitalDeclaration: existing.capitalDeclaration }
+        : {}),
     };
   }
 
@@ -680,7 +701,7 @@ export default function SetupPage() {
     <div className="min-h-screen bg-cream flex flex-col">
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={32} />
           </Link>
           <div className="text-sm text-muted">הגדרת פרופיל</div>

@@ -55,7 +55,7 @@ export default function BusinessExpensesPage() {
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center">
+            <Link href="/dashboard" className="flex items-center">
               <Logo size={28} />
             </Link>
             <span className="text-[11px] text-muted leading-tight">

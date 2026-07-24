@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona, InvoiceLine } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import { InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate } from "@/lib/invoice-generator/index";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -13,17 +13,17 @@ import { ArrowRightIcon, DownloadIcon, CheckCircleIcon } from "@/components/bran
 export default function InvoicePrintPage() {
   const params = useParams();
   const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [invoice, setInvoice] = useState<InvoiceLine | null>(null);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) { router.push("/setup"); return; }
-    const inv = p.income.invoices?.find(i => i.invoiceNumber === params.invoiceNumber);
-    if (!inv) { router.push("/invoices"); return; }
-    setPersona(p);
+    if (!persona) return;
+    const inv = persona.income.invoices?.find(
+      (i) => i.invoiceNumber === params.invoiceNumber,
+    );
+    if (!inv) { router.replace("/invoices"); return; }
     setInvoice(inv);
-  }, [params.invoiceNumber, router]);
+  }, [persona, params.invoiceNumber, router]);
 
   if (!persona || !invoice) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">

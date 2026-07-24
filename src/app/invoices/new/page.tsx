@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import { nextDocNumber, bumpDocCounter, initialDocStatus, isRevenueDoc, allowedDocTypesFor, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
@@ -82,7 +82,7 @@ function monthFromIsoDate(iso: string): string | null {
 
 export default function NewInvoicePage() {
   const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [docType, setDocType] = useState<InvoiceDocType>("tax-invoice-receipt");
   const [form, setForm] = useState({
     customerName: "",
@@ -105,19 +105,21 @@ export default function NewInvoicePage() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) { router.push("/setup"); return; }
-    setPersona(p);
     setVoiceSupported(getRecognitionCtor() !== null);
-    // ?type= deep link from the dashboard action buttons.
+  }, []);
+
+  // ?type= deep link from the dashboard action buttons (needs the persona to
+  // know which document kinds this osek type may issue).
+  useEffect(() => {
+    if (!persona) return;
     const requested = new URLSearchParams(window.location.search).get("type");
     if (
       requested &&
-      allowedDocTypesFor(p.business.osekType).includes(requested as InvoiceDocType)
+      allowedDocTypesFor(persona.business.osekType).includes(requested as InvoiceDocType)
     ) {
       setDocType(requested as InvoiceDocType);
     }
-  }, [router]);
+  }, [persona]);
 
   useEffect(() => {
     return () => {
