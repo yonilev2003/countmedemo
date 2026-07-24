@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loadPersona } from "@/lib/setup-storage";
 import { persistPersona } from "@/lib/data/persona-store";
-import { nextInvoiceNumber, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
+import { nextDocNumber, bumpDocCounter, initialDocStatus, isRevenueDoc, allowedDocTypesFor, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
+import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
@@ -30,6 +31,16 @@ const DOC_TYPE_LABELS: Record<InvoiceDocType, { title: string; sub: string; cta:
     title: "קבלה",
     sub: "אישור על קבלת תשלום בלבד (320) — בעיקר אחרי הפקת חשבונית מס נפרדת",
     cta: "הפק קבלה",
+  },
+  "business-account": {
+    title: "חשבון עסקה",
+    sub: "דרישת תשלום לפני קבלת הכסף — לא מסמך מס; קבלה מופקת כשמשולם",
+    cta: "הפק חשבון עסקה",
+  },
+  quote: {
+    title: "הצעת מחיר",
+    sub: "הצעה לא מחייבת ללקוח — ספרור נפרד, לא נספרת כהכנסה",
+    cta: "הפק הצעת מחיר",
   },
 };
 
@@ -80,6 +91,8 @@ export default function NewInvoicePage() {
     amount: "",
     date: new Date().toISOString().split("T")[0],
     category: "",
+    dueDate: "",      // business-account only — user-chosen, no default (Yoni 19/07)
+    validUntil: "",   // quote only
   });
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -96,6 +109,14 @@ export default function NewInvoicePage() {
     if (!p) { router.push("/setup"); return; }
     setPersona(p);
     setVoiceSupported(getRecognitionCtor() !== null);
+    // ?type= deep link from the dashboard action buttons.
+    const requested = new URLSearchParams(window.location.search).get("type");
+    if (
+      requested &&
+      allowedDocTypesFor(p.business.osekType).includes(requested as InvoiceDocType)
+    ) {
+      setDocType(requested as InvoiceDocType);
+    }
   }, [router]);
 
   useEffect(() => {
@@ -118,6 +139,11 @@ export default function NewInvoicePage() {
   const amount = Number(form.amount) || 0;
   const totals = calculateInvoiceTotals(amount, persona.business.osekType);
   const isPatur = persona.business.osekType === "patur";
+  // עוסק פטור אינו מפיק חשבונית מס (חסימה רגולטורית, 2026-07-19).
+  const allowedDocTypes = allowedDocTypesFor(persona.business.osekType);
+  // A stale preselected/restored tax-invoice type for a patur user falls back safely.
+  const effectiveDocType: InvoiceDocType =
+    isPatur && docType === "tax-invoice-receipt" ? "receipt" : docType;
 
   function startListening() {
     const Ctor = getRecognitionCtor();
@@ -195,10 +221,10 @@ export default function NewInvoicePage() {
 
   function handleSubmit() {
     if (!persona) return;
-    const errs = validateInvoice({ ...form, amount });
+    const errs = validateInvoice({ ...form, amount, docType: effectiveDocType });
     if (errs.length > 0) { setErrors(errs); return; }
 
-    const invoiceNumber = nextInvoiceNumber(persona);
+    const invoiceNumber = nextDocNumber(persona, effectiveDocType);
     const newInvoice: InvoiceLine = {
       invoiceNumber,
       date: form.date,
@@ -209,36 +235,49 @@ export default function NewInvoicePage() {
       vat: totals.vat,
       total: totals.total,
       category: form.category || undefined,
-      docType,
+      docType: effectiveDocType,
+      status: initialDocStatus(effectiveDocType),
+      ...(effectiveDocType === "business-account" && form.dueDate
+        ? { dueDate: form.dueDate }
+        : {}),
+      ...(effectiveDocType === "quote" && form.validUntil
+        ? { validUntil: form.validUntil }
+        : {}),
     };
+    const countsAsRevenue = isRevenueDoc(effectiveDocType);
 
     // Sync: also push the revenue into monthlyBreakdown so the dashboard
     // chart reflects the new invoice immediately (it currently uses
     // monthlyBreakdown as authoritative when ≥ 6 months exist).
+    // Only payment docs count as revenue, and turnover is EX-VAT (net) —
+    // the previous code added the VAT-inclusive total (inflated מחזור for morshe).
     const monthKey = monthFromIsoDate(form.date);
     const mb = [...(persona.income.monthlyBreakdown ?? [])];
-    if (monthKey) {
+    if (countsAsRevenue && monthKey) {
       const idx = mb.findIndex((r) => String(r.month) === monthKey);
       if (idx >= 0) {
-        mb[idx] = { ...mb[idx], revenue: mb[idx].revenue + totals.total };
+        mb[idx] = { ...mb[idx], revenue: mb[idx].revenue + totals.net };
       } else {
-        mb.push({ month: monthKey, revenue: totals.total, expenses: 0 });
+        mb.push({ month: monthKey, revenue: totals.net, expenses: 0 });
       }
     }
 
     const updatedPersona: Persona = {
       ...persona,
-      invoiceCounter: (persona.invoiceCounter ?? 1) + 1,
+      ...bumpDocCounter(persona, effectiveDocType),
       income: {
         ...persona.income,
         invoices: [...(persona.income.invoices ?? []), newInvoice],
-        totalRevenue: persona.income.totalRevenue + totals.total,
-        invoiceCount: (persona.income.invoiceCount ?? 0) + 1,
+        totalRevenue:
+          persona.income.totalRevenue + (countsAsRevenue ? totals.net : 0),
+        invoiceCount:
+          (persona.income.invoiceCount ?? 0) + (countsAsRevenue ? 1 : 0),
         monthlyBreakdown: mb,
       },
     };
 
     persistPersona(updatedPersona);
+    trackClient("doc_created", { docType: effectiveDocType });
     router.push(`/invoices/${invoiceNumber}`);
   }
 
@@ -346,7 +385,7 @@ export default function NewInvoicePage() {
           <div className="flex items-start justify-between gap-4 border-b border-line bg-paper px-7 py-6">
             <div>
               <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy">
-                {DOC_TYPE_LABELS[docType].title} · {persona.business.tradeName}
+                {DOC_TYPE_LABELS[effectiveDocType].title} · {persona.business.tradeName}
               </h2>
               <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-[13.5px] text-muted">
                 <span>מטבע: <b className="font-bold text-brand-navy">שקל</b></span>
@@ -375,9 +414,9 @@ export default function NewInvoicePage() {
             <div className="border-b border-line py-7">
               <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">סוג המסמך</h3>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(Object.keys(DOC_TYPE_LABELS) as InvoiceDocType[]).map(t => {
+                {allowedDocTypes.map(t => {
                   const labels = DOC_TYPE_LABELS[t];
-                  const active = docType === t;
+                  const active = effectiveDocType === t;
                   return (
                     <button
                       key={t}
@@ -399,6 +438,12 @@ export default function NewInvoicePage() {
                   );
                 })}
               </div>
+              {isPatur && (
+                <p className="mt-3 text-xs leading-relaxed text-muted">
+                  {/* DRAFT — NEEDS LEGAL REVIEW */}
+                  עוסק פטור מפיק קבלה, לא חשבונית מס.
+                </p>
+              )}
             </div>
 
             {/* Document details block */}
@@ -448,12 +493,47 @@ export default function NewInvoicePage() {
                 </div>
               </div>
 
-              {/* Customer tax id — second row */}
+              {/* Customer tax id + per-kind date — second row */}
               <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                {effectiveDocType === "business-account" && (
+                  <div>
+                    <label className={fieldLabel}>תאריך יעד לתשלום (לא חובה)</label>
+                    <div className={ulineClass}>
+                      <CalendarIcon className="size-[18px] shrink-0 text-faint" />
+                      <input
+                        type="date"
+                        value={form.dueDate}
+                        onChange={e => setForm({...form, dueDate: e.target.value})}
+                        className={ulineInput}
+                        dir="ltr"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-faint">
+                      כשעובר התאריך, המסמך יסומן ב&quot;מי לא שילם לי&quot; כבאיחור
+                    </p>
+                  </div>
+                )}
+                {effectiveDocType === "quote" && (
+                  <div>
+                    <label className={fieldLabel}>ההצעה בתוקף עד (לא חובה)</label>
+                    <div className={ulineClass}>
+                      <CalendarIcon className="size-[18px] shrink-0 text-faint" />
+                      <input
+                        type="date"
+                        value={form.validUntil}
+                        onChange={e => setForm({...form, validUntil: e.target.value})}
+                        className={ulineInput}
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="sm:col-span-1">
                   <label className={fieldLabel}>
                     ת.ז. / ח.פ. לקוח
-                    {amount > 5000 && <span className="ms-1 text-xs text-alert">— נדרש מעל 5,000 ₪</span>}
+                    {amount > 5000 && isRevenueDoc(effectiveDocType) && (
+                      <span className="ms-1 text-xs text-alert">— נדרש מעל 5,000 ₪</span>
+                    )}
                   </label>
                   <div className={ulineClass}>
                     <UserIcon className="size-[18px] shrink-0 text-faint" />
@@ -534,7 +614,7 @@ export default function NewInvoicePage() {
             {/* Actions — mockup `.ed-actions`: centered pills */}
             <div className="flex flex-col items-center gap-3 border-t border-line pt-7 sm:flex-row sm:justify-center">
               <button onClick={handleSubmit} className={btn("primary", "md")}>
-                {DOC_TYPE_LABELS[docType].cta}
+                {DOC_TYPE_LABELS[effectiveDocType].cta}
               </button>
               <Link href="/invoices" className={btn("secondary", "md")}>
                 ביטול

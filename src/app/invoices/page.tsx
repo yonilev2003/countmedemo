@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { loadPersona } from "@/lib/setup-storage";
 import { Persona, InvoiceLine } from "@/lib/persona";
-import { formatHebrewDate } from "@/lib/invoice-generator/index";
+import { formatHebrewDate, isRevenueDoc } from "@/lib/invoice-generator/index";
+import { effectiveStatus } from "@/lib/receivables/summary";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
+import { EitanFab } from "@/components/agent/eitan-fab";
 import { SearchIcon, XIcon, PlusIcon, ReceiptIcon, ArrowLeftIcon } from "@/components/brand/icons";
 
 const MONTH_LABELS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
@@ -68,8 +70,10 @@ export default function InvoicesPage() {
     });
   }, [allInvoices, filterYear, filterMonth, filterCustomer]);
 
-  const filteredTotal = filtered.reduce((s, i) => s + i.total, 0);
-  const filteredNet = filtered.reduce((s, i) => s + i.amount, 0);
+  // Money strip counts PAYMENT docs only — quotes/business-accounts are not income.
+  const filteredPayment = filtered.filter((i) => isRevenueDoc(i.docType));
+  const filteredTotal = filteredPayment.reduce((s, i) => s + i.total, 0);
+  const filteredNet = filteredPayment.reduce((s, i) => s + i.amount, 0);
 
   // Chip class helper — mockup uses navy pill for active, paper outline otherwise.
   const chip = (active: boolean) =>
@@ -96,10 +100,15 @@ export default function InvoicesPage() {
             <Logo size={24} />
             <span className="text-base font-semibold text-muted">· חשבוניות</span>
           </Link>
-          <Link href="/invoices/new" className={btn("primary", "sm")}>
-            <PlusIcon className="size-4" />
-            חשבונית חדשה
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/receivables" className={btn("secondary", "sm")}>
+              מי לא שילם לי
+            </Link>
+            <Link href="/invoices/new" className={btn("primary", "sm")}>
+              <PlusIcon className="size-4" />
+              מסמך חדש
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -204,7 +213,10 @@ export default function InvoicesPage() {
             {filtered.length > 0 && (
               <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl bg-aqua-soft border border-line px-5 py-3 text-sm">
                 <span className="text-muted">
-                  <span className="font-bold text-brand-navy">{filtered.length}</span> חשבוניות
+                  <span className="font-bold text-brand-navy">{filtered.length}</span> מסמכים
+                  {filteredPayment.length !== filtered.length && (
+                    <span className="text-faint"> ({filteredPayment.length} תקבולים)</span>
+                  )}
                 </span>
                 <span className="text-muted">
                   סה&quot;כ לפני מע&quot;מ:{" "}
@@ -241,17 +253,37 @@ export default function InvoicesPage() {
                   <tbody>
                     {filtered.map((inv) => {
                       const dt = inv.docType ?? "tax-invoice-receipt";
-                      const dtLabel = dt === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
+                      const dtLabel =
+                        dt === "receipt"
+                          ? "קבלה"
+                          : dt === "business-account"
+                            ? "חשבון עסקה"
+                            : dt === "quote"
+                              ? "הצעת מחיר"
+                              : "חשבונית מס/קבלה";
+                      const st = effectiveStatus(inv);
+                      const stBadge =
+                        st === "paid"
+                          ? { status: "on-track" as const, label: "שולם" }
+                          : st === "overdue"
+                            ? { status: "overdue" as const, label: "באיחור" }
+                            : st === "expired"
+                              ? { status: "due" as const, label: "פג תוקף" }
+                              : { status: "plan" as const, label: "פתוח" };
                       return (
                         <tr key={inv.invoiceNumber} className="border-b border-line-soft last:border-0 transition-colors hover:bg-aqua-soft/40">
                           <td className="px-5 py-3.5 font-mono text-xs text-faint tabular-nums">{inv.invoiceNumber}</td>
                           <td className="px-5 py-3.5">
-                            <StatusBadge
-                              status={dt === "receipt" ? "on-track" : "plan"}
-                              showDot={false}
-                            >
-                              {dtLabel}
-                            </StatusBadge>
+                            <span className="inline-flex items-center gap-1.5">
+                              <StatusBadge status="plan" showDot={false}>
+                                {dtLabel}
+                              </StatusBadge>
+                              {!isRevenueDoc(dt) && (
+                                <StatusBadge status={stBadge.status} showDot={false}>
+                                  {stBadge.label}
+                                </StatusBadge>
+                              )}
+                            </span>
                           </td>
                           <td className="px-5 py-3.5 text-muted tabular-nums">{formatHebrewDate(inv.date)}</td>
                           <td className="px-5 py-3.5 font-semibold text-ink">{inv.customerName}</td>
@@ -278,6 +310,7 @@ export default function InvoicesPage() {
           </>
         )}
       </main>
+      <EitanFab />
     </div>
   );
 }

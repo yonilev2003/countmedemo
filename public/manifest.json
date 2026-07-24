@@ -1,47 +1,72 @@
 {
-  "name": "CountMe — המלווה לדו״ח שלך",
+  "name": "CountMe — הכספים של העסק שלך",
   "short_name": "CountMe",
-  "description": "המוצר שמלווה עצמאים ישראלים במילוי דו״חות מס",
-  "start_url": "/home",
+  "description": "חשבוניות, קבלות, הוצאות ומי לא שילם לי — בשפה של בני אדם",
+  "id": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1a3f6a",
+  "background_color": "#F1EFEA",
+  "theme_color": "#083A4F",
   "lang": "he",
   "dir": "rtl",
   "icons": [
     {
-      "src": "/countme-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [],
-  "categories": ["finance", "productivity"],
+  "categories": [
+    "finance",
+    "productivity"
+  ],
   "shortcuts": [
     {
-      "name": "קיצורי דרך",
-      "short_name": "בית",
-      "url": "/home",
-      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
-    },
-    {
-      "name": "דשבורד",
+      "name": "הדשבורד שלי",
       "short_name": "דשבורד",
       "url": "/dashboard",
-      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/countme-logo.svg",
+          "sizes": "any"
+        }
+      ]
     },
     {
       "name": "חשבונית / קבלה",
       "short_name": "חשבונית",
       "url": "/invoices/new",
-      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
+      "icons": [
+        {
+          "src": "/countme-logo.svg",
+          "sizes": "any"
+        }
+      ]
     },
     {
-      "name": "הגש דוח",
-      "short_name": "דוח",
-      "url": "/file",
-      "icons": [{ "src": "/countme-logo.svg", "sizes": "any" }]
+      "name": "מי לא שילם לי",
+      "short_name": "תשלומים",
+      "url": "/receivables",
+      "icons": [
+        {
+          "src": "/countme-logo.svg",
+          "sizes": "any"
+        }
+      ]
     }
   ]
 }

@@ -268,6 +268,11 @@ export default function SetupPage() {
     if (!saved) return;
     // Returning user already has a persona — skip the upload step and go straight to the wizard
     setStep(1);
+    // Restore the saved tax year too — otherwise a returning 2024 filer silently
+    // re-saves everything as the default year (risk-gap #6).
+    if (AVAILABLE_TAX_YEARS.includes(saved.income.year)) {
+      setSelectedYear(saved.income.year);
+    }
     setS1({
       firstName: saved.personal.firstName,
       lastName: saved.personal.lastName,
@@ -583,7 +588,9 @@ export default function SetupPage() {
           annualContribution: Number(s5.pensionContributions) || 0,
         },
         bituachLeumiSelfEmployed: {
-          annualPaid: bituach || Math.round(netIncome * 0.12),
+          // Only what the user actually entered — never invent an estimate
+          // (the old 12%-of-net fallback fabricated a "paid" amount; risk-gap #3).
+          annualPaid: bituach,
         },
         bituachLifeOrCancerPolicy: 0,
         lifeInsurancePremium: 0,
@@ -1322,7 +1329,9 @@ export default function SetupPage() {
                       />
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
                       <p className="mt-1 text-xs text-muted">
-                        52% מהסכום מוכר לניכוי
+                        {/* DRAFT — pending Roy: ב"ל/בריאות split (persona.ts FLAG) */}
+                        שימו לב: הסכום בשובר השנתי כולל גם דמי ביטוח בריאות —
+                        הניכוי (52%) חל על רכיב דמי הביטוח הלאומי בלבד
                       </p>
                     </div>
 
@@ -1535,7 +1544,11 @@ export default function SetupPage() {
                     </div>
                   </div>
                   <p className="mt-3 text-xs text-faint text-center">
-                    הנתונים נשמרים מקומית בדפדפן שלך, אין שמירה בשרת
+                    {/* DRAFT — NEEDS LEGAL REVIEW (storage/consent line) */}
+                    הנתונים נשמרים בדפדפן שלך, ולמחוברים — גם בחשבון האישי, לפי{" "}
+                    <a href="/privacy" className="underline hover:text-brand-deep">
+                      מדיניות הפרטיות
+                    </a>
                   </p>
                 </div>
               </div>

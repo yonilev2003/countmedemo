@@ -21,8 +21,15 @@ const PROTECTED_PREFIXES = [
   "/home",
   "/demo",
   "/setup",
+  "/onboarding",
   "/business-expenses",
   "/dashboard",
+  "/invoices",
+  "/coach",
+  "/deadlines",
+  "/alerts",
+  "/file",
+  "/receivables",
 ] as const;
 
 function isProtectedPath(pathname: string): boolean {
@@ -78,7 +85,11 @@ export async function updateSession(request: NextRequest) {
     isProtectedPath(request.nextUrl.pathname)
   ) {
     const url = request.nextUrl.clone();
+    // Preserve the intended destination so login can send the user back.
+    const next = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", next);
     return NextResponse.redirect(url);
   }
 

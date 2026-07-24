@@ -24,7 +24,13 @@ export type EventName =
   | "coach_answer_escalated"
   | "pricing_viewed"
   | "checkout_started"
-  | "subscription_activated";
+  | "subscription_activated"
+  // beta sprint 2026-07 — documents + receivables + dashboard funnel
+  | "doc_created"
+  | "doc_marked_paid"
+  | "reminder_sent"
+  | "receivables_viewed"
+  | "dashboard_viewed";
 
 export interface TrackOptions {
   userId?: string | null;

@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { MODEL_HAIKU, logAiUsage } from "@/lib/ai/models";
 import ExcelJS from "exceljs";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
@@ -248,7 +249,7 @@ async function parsePdfWithClaude(
   const prompt = pdfExtractionPrompt(kind);
 
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: MODEL_HAIKU,
     max_tokens: 1024,
     messages: [
       {
@@ -269,6 +270,15 @@ async function parsePdfWithClaude(
   });
 
   const textBlock = response.content.find((b) => b.type === "text");
+  logAiUsage({
+    route: "upload",
+    model: MODEL_HAIKU,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+  });
+
   if (!textBlock || textBlock.type !== "text") {
     throw new Error("Claude returned no text");
   }

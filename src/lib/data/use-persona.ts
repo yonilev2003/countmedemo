@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Persona } from "@/lib/persona";
-import { loadPersona as loadLocal } from "@/lib/setup-storage";
+import { loadPersona as loadLocal, getPersonaOwner } from "@/lib/setup-storage";
 import { persistPersona, syncPersonaFromDb } from "./persona-store";
 
 export type PersonaSource = "loading" | "db" | "local" | "empty";
@@ -19,12 +19,18 @@ export function usePersona() {
   useEffect(() => {
     let cancelled = false;
     const local = loadLocal();
-    if (local) setPersona(local); // instant cache paint
+    // Instant cache paint ONLY for an anonymous / not-yet-claimed cache (no
+    // owner stamp). If the cache is stamped to a user, hold the skeleton until
+    // syncPersonaFromDb confirms it belongs to the CURRENT session — otherwise a
+    // previous user's persona could flash on a shared device before reconcile.
+    if (local && !getPersonaOwner()) setPersona(local);
     (async () => {
       const resolved = await syncPersonaFromDb();
       if (cancelled) return;
-      setPersona(resolved ?? local ?? null);
-      setSource(resolved ? "db" : local ? "local" : "empty");
+      // Trust the reconcile result verbatim: never fall back to `local`, which
+      // syncPersonaFromDb may have just dropped as a foreign-owned cache.
+      setPersona(resolved);
+      setSource(resolved ? "db" : "empty");
     })();
     return () => {
       cancelled = true;

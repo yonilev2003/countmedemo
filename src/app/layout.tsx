@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Assistant } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
@@ -11,12 +11,42 @@ const assistant = Assistant({
   display: "swap",
 });
 
+const APP_TITLE = "countme — הכספים של העסק שלך";
+// Copy per docs/reviews/2026-07-02-ws8-copy-audit.md (O1) — DRAFT — NEEDS LEGAL REVIEW
+const APP_DESCRIPTION =
+  "חשבוניות, קבלות, הוצאות ומי לא שילם לי — הכספים של העסק העצמאי שלך, בשפה של בני אדם. מחשבון מדויק, לא ייעוץ מס.";
+
 export const metadata: Metadata = {
-  title: "countme — המלווה לדו״ח שלך",
-  // Copy per docs/reviews/2026-07-02-ws8-copy-audit.md (O1) — DRAFT — NEEDS LEGAL REVIEW
-  description:
-    "המוצר שמלווה עצמאים בישראל בהכנת דו״ח המס השנתי. AI שלוקח את הנתונים שלך ומראה בדיוק מה למלא בכל שדה — מחשבון מדויק, לא ייעוץ מס.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://countmedemo-eight.vercel.app",
+  ),
+  title: APP_TITLE,
+  description: APP_DESCRIPTION,
   manifest: "/manifest.json",
+  openGraph: {
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
+    type: "website",
+    locale: "he_IL",
+    siteName: "countme",
+  },
+  twitter: {
+    card: "summary",
+    title: APP_TITLE,
+    description: APP_DESCRIPTION,
+  },
+  appleWebApp: {
+    capable: true,
+    title: "CountMe",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#083A4F",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

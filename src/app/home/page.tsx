@@ -23,6 +23,7 @@ import { usePersona } from "@/lib/data/use-persona";
 import { QUICK_ACTIONS } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Reveal, Stagger, StaggerItem } from "@/components/brand/motion";
 import { cn } from "@/lib/utils";
 import {
@@ -68,22 +69,24 @@ export default function HomePage() {
               מה תרצו לעשות היום? הכול במקום אחד.
             </p>
           </div>
-          <div className="flex shrink-0 gap-2.5">
+          <div className="flex shrink-0 items-center gap-2.5">
             <Link href="/dashboard" className={btn("primary", "md")}>
               <TrendingUpIcon className="size-[18px]" />
               הדשבורד שלי
             </Link>
-            <Link href="/file" className={btn("secondary", "md")}>
+            <Link href="/receivables" className={btn("secondary", "md")}>
               <FileTextIcon className="size-[18px]" />
-              הגשת הדוח
+              מי לא שילם לי
             </Link>
+            <SignOutButton />
           </div>
         </header>
       </Reveal>
 
       {/* Shortcut grid — the hub. 2-up on phones, 3-up on desktop. */}
       <Stagger className="grid grid-cols-2 gap-3.5 sm:gap-4 lg:grid-cols-3">
-        {QUICK_ACTIONS.map((a) => (
+        {/* Beta (Yoni 23/07): lean scope — hide the tax-calendar tiles; docs+expenses+Eitan only */}
+        {QUICK_ACTIONS.filter((a) => !["/deadlines", "/alerts"].includes(a.href)).map((a) => (
           <StaggerItem key={a.href}>
             <Link
               href={a.href}

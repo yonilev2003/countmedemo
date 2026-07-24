@@ -25,7 +25,11 @@ import type {
 } from "./types.ts";
 import { listTaxConstants, type TaxConstantEntry } from "../calculators/types.ts";
 
-const MODEL = "claude-sonnet-4-6";
+// Relative + explicit .ts — this module also runs via the regulatory-watch
+// script (Node type-stripping), where the "@/" alias doesn't resolve.
+import { MODEL_SONNET, logAiUsage } from "../ai/models.ts";
+
+const MODEL = MODEL_SONNET;
 const MAX_TOKENS = 1024;
 
 export interface ClassifyDeps {
@@ -226,6 +230,15 @@ export async function classifyItem(
       tools: [CLASSIFY_TOOL],
       tool_choice: { type: "tool", name: "classify" },
       messages: [{ role: "user", content: buildUserMessage(item) }],
+    });
+
+    logAiUsage({
+      route: "regulatory-classify",
+      model: MODEL,
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+      cache_creation_input_tokens: message.usage.cache_creation_input_tokens ?? 0,
+      cache_read_input_tokens: message.usage.cache_read_input_tokens ?? 0,
     });
 
     const toolUse = message.content.find(

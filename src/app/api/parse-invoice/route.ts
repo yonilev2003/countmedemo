@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { MODEL_HAIKU, logAiUsage } from "@/lib/ai/models";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
   checkRateLimit,
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
+      model: MODEL_HAIKU,
       max_tokens: 400,
       system: [
         {
@@ -116,6 +117,15 @@ export async function POST(request: Request) {
         },
       ],
       messages: [{ role: "user", content: transcript }],
+    });
+
+    logAiUsage({
+      route: "parse-invoice",
+      model: MODEL_HAIKU,
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+      cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
     });
 
     const textBlock = response.content.find((b) => b.type === "text");

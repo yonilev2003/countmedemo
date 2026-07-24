@@ -60,9 +60,9 @@ export default function CoachPage() {
                 <ClipboardCheckIcon className="size-3.5" />
                 <span className="hidden sm:inline">מדריך הוצאות</span>
               </Link>
-              <Link href="/demo" className={btn("secondary", "sm", "gap-1.5")}>
+              <Link href="/dashboard" className={btn("secondary", "sm", "gap-1.5")}>
                 <ArrowRightIcon className="size-3.5" />
-                לדוח 1301
+                לדשבורד
               </Link>
             </div>
           </div>

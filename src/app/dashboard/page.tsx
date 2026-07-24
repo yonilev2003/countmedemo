@@ -1,127 +1,51 @@
 "use client";
 
+/**
+ * /dashboard — the light daily-life dashboard (CEO plan §3.2 + §5).
+ *
+ * One screen. Three numbers: הכנסות, הוצאות, יחס. Four action buttons:
+ * חשבון עסקה, קבלה, הצעת מחיר, העלאת הוצאה. No tabs, no charts.
+ * The empty state is THE most important screen of the beta — honest zeros,
+ * a warm Eitan line, and an obvious first action.
+ *
+ * Everything is deterministic (lib/dashboard/summary + lib/receivables) —
+ * zero LLM calls from this screen. The rich tax dashboard lives at
+ * /dashboard/pro ("מצב מורחב").
+ */
+
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { loadPersona } from "@/lib/setup-storage";
-import { ils } from "@/lib/utils";
-import { Persona } from "@/lib/persona";
-import {
-  calculatePL,
-  filterByQuarter,
-  filterByMonth,
-  MonthlyPL,
-  PLSummary,
-} from "@/lib/p-and-l/index";
-import {
-  getUpcomingDeadlines,
-  type FilerType,
-  type UpcomingDeadline,
-} from "@/lib/deadlines/calendar";
-import { EitanInsights } from "@/components/dashboard/eitan-insights";
-import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
-import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
-import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
-import { computeCeilingAlert } from "@/lib/alerts/ceiling";
-import { ForecastCard } from "@/components/dashboard/forecast-card";
-import { IncomeCeilingCard } from "@/components/dashboard/income-ceiling-card";
-import { NextDeadlineCard } from "@/components/dashboard/next-deadline-card";
-import { PeriodStatusCard } from "@/components/dashboard/period-status-card";
-import { DeadlinesTimeline } from "@/components/dashboard/deadlines-timeline";
-import { QuickActions } from "@/components/dashboard/quick-actions";
+import { persistPersona } from "@/lib/data/persona-store";
+import { Persona, ExpenseLine } from "@/lib/persona";
+import { allowedDocTypesFor } from "@/lib/invoice-generator";
+import { computeMonthSummary, eitanMonthLine } from "@/lib/dashboard/summary";
+import { getReceivablesSummary } from "@/lib/receivables/summary";
+import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
-import { LegalNote } from "@/components/brand/legal-note";
-import { Reveal } from "@/components/brand/motion";
-import { calculate, estimateTaxLiability } from "@/lib/calculators";
+import { SignOutButton } from "@/components/auth/sign-out-button";
+import { Reveal, Stagger, StaggerItem } from "@/components/brand/motion";
 import {
-  BellIcon,
-  CalendarIcon,
-  FileTextIcon,
-  SparklesIcon,
-  DownloadIcon,
-  ArrowLeftIcon,
   WalletIcon,
   ReceiptIcon,
+  FileTextIcon,
+  PlusIcon,
+  SparklesIcon,
+  ArrowLeftIcon,
   TrendingUpIcon,
-  PercentIcon,
 } from "@/components/brand/icons";
 
-// Dynamic import to avoid SSR issues with Recharts
-const PLChart = dynamic(
-  () => import("@/components/dashboard/pl-chart").then((m) => ({ default: m.PLChart })),
-  { ssr: false },
-);
-
-type Granularity = "year" | "quarter" | "month";
-type Filter =
-  | { kind: "year" }
-  | { kind: "quarter"; q: 1 | 2 | 3 | 4 }
-  | { kind: "month"; m: number };
-
-function KPI({
-  label,
-  value,
-  sub,
-  color,
-  dot,
-  icon,
-  iconChip,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  color?: string;
-  /** Tailwind bg-* class for the accent dot next to the label (mockup `.stat .sd`). */
-  dot?: string;
-  /** Optional line-icon rendered in the top-corner chip (mockup stat accent). */
-  icon?: React.ReactNode;
-  /** Tailwind classes for the icon chip (bg + text). */
-  iconChip?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs font-semibold text-muted">
-          {dot && <span className={`size-2 shrink-0 rounded-full ${dot}`} />}
-          {label}
-        </div>
-        {icon && (
-          <span
-            className={`flex size-7 items-center justify-center rounded-lg ${iconChip ?? "bg-teal-100 text-brand-deep"}`}
-          >
-            {icon}
-          </span>
-        )}
-      </div>
-      <div
-        className={`font-display text-2xl font-extrabold tabular-nums tracking-tight ${color ?? "text-brand-navy"}`}
-      >
-        {value}
-      </div>
-      {sub && <div className="mt-0.5 text-xs text-faint">{sub}</div>}
-    </div>
-  );
-}
-
-const MONTH_LABELS = ["ינו׳","פבר׳","מרץ","אפר׳","מאי","יוני","יולי","אוג׳","ספט׳","אוק׳","נוב׳","דצמ׳"];
-
-/** Time-of-day Hebrew greeting, matching the mockups' "בוקר טוב". */
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "בוקר טוב";
-  if (h < 17) return "צהריים טובים";
-  if (h < 21) return "ערב טוב";
-  return "לילה טוב";
-}
+const MONTH_NAMES = [
+  "ינואר","פברואר","מרץ","אפריל","מאי","יוני",
+  "יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר",
+];
 
 export default function DashboardPage() {
   const router = useRouter();
   const [persona, setPersona] = useState<Persona | null>(null);
-  const [granularity, setGranularity] = useState<Granularity>("year");
-  const [filter, setFilter] = useState<Filter>({ kind: "year" });
-  const [pl, setPL] = useState<PLSummary | null>(null);
+  const [expenseOpen, setExpenseOpen] = useState(false);
 
   useEffect(() => {
     const p = loadPersona();
@@ -130,405 +54,364 @@ export default function DashboardPage() {
       return;
     }
     setPersona(p);
-    setPL(calculatePL(p));
+    trackClient("dashboard_viewed");
   }, [router]);
 
-  // Upcoming deadlines, derived from the persona's filer type (no new plumbing).
-  const deadlines: UpcomingDeadline[] = useMemo(() => {
-    if (!persona) return [];
-    const filer: FilerType =
-      persona.business.osekType === "patur" ? "osek-patur" : "osek-murshe";
-    return getUpcomingDeadlines(new Date(), filer, 12);
-  }, [persona]);
-
-  // The near-term window the status ring + list summarize.
-  const imminentDeadlines = useMemo(
-    () => deadlines.filter((d) => d.daysUntilDue >= 0 && d.daysUntilDue <= 45),
-    [deadlines],
+  const summary = useMemo(
+    () => (persona ? computeMonthSummary(persona) : null),
+    [persona],
   );
-  const nextDeadline = imminentDeadlines[0] ?? deadlines[0] ?? null;
-
-  if (!persona || !pl) return (
-    <div className="min-h-screen bg-cream flex items-center justify-center">
-      <div className="space-y-4 w-full max-w-screen-xl px-6 animate-pulse">
-        <div className="h-8 rounded-lg bg-sand w-64" />
-        <div className="grid grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-sand" />)}
-        </div>
-        <div className="h-64 rounded-2xl bg-sand" />
-      </div>
-    </div>
+  const receivables = useMemo(
+    () => (persona ? getReceivablesSummary(persona) : null),
+    [persona],
   );
 
-  const filteredMonthly: MonthlyPL[] =
-    filter.kind === "year"
-      ? pl.monthlyData
-      : filter.kind === "quarter"
-        ? filterByQuarter(pl.monthlyData, filter.q)
-        : filterByMonth(pl.monthlyData, filter.m);
-
-  const filteredRevenue = filteredMonthly.reduce((s, m) => s + m.revenue, 0);
-  const filteredExpenses = filteredMonthly.reduce((s, m) => s + m.expenses, 0);
-  const filteredNet = filteredRevenue - filteredExpenses;
-
-  const fmt = ils;
-
-  // Auto-detected active months — only show period buttons for months with activity
-  const activeMonths = pl.hasDatedData
-    ? pl.monthlyData.filter((m) => m.revenue > 0 || m.expenses > 0).map((m) => m.month)
-    : Array.from({ length: 12 }, (_, i) => i + 1);
-  const activeQuarters = Array.from(
-    new Set(activeMonths.map((m) => Math.ceil(m / 3))),
-  ).sort();
-
-  function setGranularityAndFilter(g: Granularity) {
-    setGranularity(g);
-    if (g === "year") setFilter({ kind: "year" });
-    else if (g === "quarter") setFilter({ kind: "quarter", q: (activeQuarters[0] ?? 1) as 1 | 2 | 3 | 4 });
-    else setFilter({ kind: "month", m: activeMonths[0] ?? 1 });
-  }
-
-  const periodLabel =
-    filter.kind === "year"
-      ? "כל השנה"
-      : filter.kind === "quarter"
-        ? `רבעון ${filter.q}`
-        : MONTH_LABELS[filter.m - 1];
-
-  const ceilingAlert = computeCeilingAlert(persona);
-
-  // ── Reusable blocks shared by both layouts ───────────────────────────────
-
-  const kpiStrip = (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <KPI
-        label="הכנסות"
-        value={fmt(filteredRevenue)}
-        color="text-brand-deep"
-        dot="bg-brand-deep"
-        icon={<WalletIcon className="size-4" />}
-        iconChip="bg-teal-100 text-brand-deep"
-      />
-      <KPI
-        label="הוצאות"
-        value={fmt(filteredExpenses)}
-        color="text-ink"
-        dot="bg-brand"
-        icon={<ReceiptIcon className="size-4" />}
-        iconChip="bg-beige-100 text-beige-600"
-      />
-      <KPI
-        label="רווח נקי"
-        value={fmt(filteredNet)}
-        color={filteredNet >= 0 ? "text-success" : "text-alert"}
-        dot={filteredNet >= 0 ? "bg-success" : "bg-alert"}
-        icon={<TrendingUpIcon className="size-4" />}
-        iconChip={filteredNet >= 0 ? "bg-success-light text-success" : "bg-overdue-bg text-alert"}
-      />
-      <KPI
-        label="מס הכנסה משוער"
-        // Real annual estimate (zeir-aware taxable + brackets + credit points +
-        // deductions) — income tax is annual, so this is the yearly figure, not
-        // net×20%. Was a flat 20% of net profit, which ignored zeir + brackets.
-        value={fmt(estimateTaxLiability(persona).taxAfterCredits)}
-        sub="הערכה שנתית"
-        color="text-muted"
-        dot="bg-due"
-        icon={<PercentIcon className="size-4" />}
-        iconChip="bg-due-bg text-due"
-      />
-    </div>
-  );
-
-  const granularityControls = (
-    <div className="flex flex-col gap-2 items-end">
-      {/* Granularity toggle */}
-      <div className="flex gap-1 rounded-full bg-cream p-1">
-        {(["year", "quarter", "month"] as Granularity[]).map((g) => (
-          <button
-            key={g}
-            onClick={() => setGranularityAndFilter(g)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              granularity === g
-                ? "bg-paper text-brand-navy shadow-sm"
-                : "text-muted hover:text-ink"
-            }`}
-          >
-            {g === "year" ? "שנה" : g === "quarter" ? "רבעון" : "חודש"}
-          </button>
-        ))}
-      </div>
-      {/* Period selector — shown only for quarter/month */}
-      {granularity === "quarter" && (
-        <div className="flex gap-1">
-          {activeQuarters.map((q) => (
-            <button
-              key={q}
-              onClick={() => setFilter({ kind: "quarter", q: q as 1 | 2 | 3 | 4 })}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                filter.kind === "quarter" && filter.q === q
-                  ? "bg-brand-navy text-white"
-                  : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
-              }`}
-            >
-              Q{q}
-            </button>
-          ))}
-        </div>
-      )}
-      {granularity === "month" && (
-        <div className="flex flex-wrap gap-1 max-w-[400px] justify-end">
-          {activeMonths.map((m) => (
-            <button
-              key={m}
-              onClick={() => setFilter({ kind: "month", m })}
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
-                filter.kind === "month" && filter.m === m
-                  ? "bg-brand-navy text-white"
-                  : "bg-paper border border-line text-muted hover:border-brand-deep hover:bg-aqua-soft"
-              }`}
-            >
-              {MONTH_LABELS[m - 1]}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const periodBanner = (
-    <div className="flex items-center gap-2 rounded-2xl bg-info border border-teal-100 px-4 py-2.5 text-xs text-brand-navy">
-      <CalendarIcon className="size-4 shrink-0 text-brand-deep" />
-      <span>
-        תצוגה: <span className="font-bold">{periodLabel}</span>
-        {pl.hasDatedData ? (
-          <span className="text-muted"> · נתונים אמיתיים מתוך החשבוניות וההוצאות</span>
-        ) : (
-          <span className="text-muted"> · פילוג מוערך — יוצג מדויק עם העלאת חשבוניות תאריכיות</span>
-        )}
-      </span>
-    </div>
-  );
-
-  const plChartCard = (
-    <div className="rounded-2xl bg-paper border border-line p-5 shadow-brand">
-      <PLChart
-        monthlyData={filteredMonthly}
-        expenseBreakdown={pl.expenseBreakdown}
-      />
-    </div>
-  );
-
-  const annualSummaryCard = (
-    <div className="rounded-2xl border border-line bg-paper p-5 shadow-brand">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-base font-bold text-brand-navy">סיכום שנתי</h3>
-        <span className="text-xs font-semibold text-faint">
-          שנת {persona.income.year}
-        </span>
-      </div>
-      <div className="space-y-2.5 text-sm">
-        {[
-          { label: "מחזור לשדה 238", value: pl.totalRevenue },
-          {
-            label: "הכנסה חייבת (שדה 150)",
-            // Use the canonical field-150 calculator (zeir-aware: 70% of turnover
-            // for עוסק זעיר), NOT raw netProfit which ignores the 30% rule.
-            value: Number(calculate("field-150-business-income", persona)?.value ?? pl.netProfit),
-          },
-        ].map((row) => (
-          <div
-            key={row.label}
-            className="flex items-center justify-between rounded-xl border border-line-soft bg-cream px-3 py-2.5"
-          >
-            <span className="font-semibold text-muted">{row.label}</span>
-            <span className="font-display font-extrabold tabular-nums text-brand-navy">
-              {fmt(row.value)}
-            </span>
+  if (!persona || !summary || !receivables)
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="w-full max-w-md space-y-4 px-6 animate-pulse">
+          <div className="h-8 w-40 rounded-lg bg-sand" />
+          <div className="grid grid-cols-3 gap-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-24 rounded-2xl bg-sand" />
+            ))}
           </div>
-        ))}
+          <div className="h-40 rounded-2xl bg-sand" />
+        </div>
       </div>
-      <Link href="/file" className={btn("primary", "sm", "mt-3 w-full")}>
-        עבור/י למילוי הדוח <ArrowLeftIcon className="size-4" />
-      </Link>
-    </div>
+    );
+
+  const monthName = MONTH_NAMES[new Date().getMonth()];
+  const firstName = persona.personal.firstName?.trim();
+  const canTaxInvoice = allowedDocTypesFor(persona.business.osekType).includes(
+    "tax-invoice-receipt",
   );
+
+  // The ratio, phrased so it feels informative — never alarming (CEO §3.2).
+  const ratioLine =
+    summary.ratio === null
+      ? "עוד אין ממה לחשב יחס החודש"
+      : `על כל 100 ₪ שנכנסו, יצאו ${Math.round(summary.ratio * 100)} ₪`;
+
+  const actions = [
+    {
+      href: "/invoices/new?type=business-account",
+      label: "חשבון עסקה",
+      hint: "דרישת תשלום ללקוח",
+      icon: <WalletIcon className="size-5" />,
+      tone: "bg-teal-100 text-brand-deep",
+    },
+    {
+      href: "/invoices/new?type=receipt",
+      label: canTaxInvoice ? "קבלה / חשבונית" : "קבלה",
+      hint: "התקבל תשלום? מתעדים",
+      icon: <ReceiptIcon className="size-5" />,
+      tone: "bg-success-light text-success",
+      highlight: summary.isFirstUse,
+    },
+    {
+      href: "/invoices/new?type=quote",
+      label: "הצעת מחיר",
+      hint: "הצעה ללקוח חדש",
+      icon: <FileTextIcon className="size-5" />,
+      tone: "bg-cream text-beige-600",
+    },
+    {
+      onClick: () => setExpenseOpen(true),
+      label: "העלאת הוצאה",
+      hint: "קבלה מספק? שומרים",
+      icon: <PlusIcon className="size-5" />,
+      tone: "bg-overdue-bg/40 text-alert-ink",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-cream">
-      {/* Header */}
       <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <Logo size={28} />
-            <span className="hidden text-base font-semibold text-muted sm:inline">· דשבורד</span>
+            <Logo size={26} />
           </Link>
-          {/* Desktop toolbar */}
-          <div className="hidden items-center gap-2 lg:flex">
-            <Link href="/alerts" className={btn("secondary", "sm")}>
-              <BellIcon className="size-4" /> התראות
-            </Link>
-            <Link href="/deadlines" className={btn("secondary", "sm")}>
-              <CalendarIcon className="size-4" /> מועדים
-            </Link>
-            <Link
-              href="/dashboard/pl-report"
-              className={btn("secondary", "sm")}
-              title="דוח רווח והפסד בפורמט ישראלי תקני, מוכן להדפסה / שמירה כ-PDF"
-            >
-              <FileTextIcon className="size-4" /> דוח רו&quot;ה תקני
-            </Link>
-            <Link href="/file" className={btn("secondary", "sm")}>
-              מילוי הדוח <ArrowLeftIcon className="size-4" />
-            </Link>
-            <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> שוחח עם איתן
-            </Link>
-          </div>
-          {/* Mobile: condensed — the rest of the actions live in the bottom bar */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <Link
-              href="/alerts"
-              aria-label="התראות"
-              className="relative grid size-10 place-items-center rounded-full border border-line bg-paper text-brand-navy"
-            >
-              <BellIcon className="size-5" />
-              <span className="absolute end-2.5 top-2.5 size-2 rounded-full border-[1.5px] border-paper bg-alert" />
-            </Link>
+          <div className="flex items-center gap-2">
             <Link href="/coach" className={btn("gold", "sm")}>
               <SparklesIcon className="size-4" /> איתן
             </Link>
+            <SignOutButton />
           </div>
         </div>
       </header>
 
-      {/* Legal note — the ONE banner on this page (WS8 audit H5) */}
-      <div className="mx-auto max-w-screen-xl px-4 pt-4 sm:px-6">
-        <LegalNote variant="full" />
-      </div>
+      <main className="mx-auto w-full max-w-screen-md px-4 pb-16 pt-6 sm:px-6">
+        <Reveal>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
+            {firstName ? `שלום, ${firstName}` : "שלום"}
+          </h1>
+          <p className="mt-1 text-sm text-muted">{monthName} · {persona.business.tradeName}</p>
+        </Reveal>
 
-      <main className="mx-auto max-w-screen-xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:pb-8">
-        {/* Greeting */}
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-[26px] font-extrabold tracking-tight text-brand-navy sm:text-[30px]">
-              {greeting()}, {persona.personal.firstName}
-            </h1>
-            <p className="mt-0.5 text-sm font-medium text-muted">
-              {imminentDeadlines.length > 0 ? (
-                <>
-                  יש לך{" "}
-                  <b className="font-bold text-due">
-                    {imminentDeadlines.length} מועדים
-                  </b>{" "}
-                  שדורשים מעקב · שנת מס {persona.income.year}
-                </>
+        {/* ── The three numbers ── */}
+        <Stagger className="mt-6 grid grid-cols-3 gap-3">
+          <StaggerItem>
+            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                <span className="size-2 rounded-full bg-brand-deep" />
+                הכנסות
+              </div>
+              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-deep sm:text-2xl" dir="ltr">
+                ₪{summary.revenue.toLocaleString("he-IL")}
+              </div>
+              <div className="mt-0.5 text-[11px] text-faint">החודש, לפני מע&quot;מ</div>
+            </div>
+          </StaggerItem>
+          <StaggerItem>
+            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                <span className="size-2 rounded-full bg-brand" />
+                הוצאות
+              </div>
+              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-ink sm:text-2xl" dir="ltr">
+                ₪{summary.expenses.toLocaleString("he-IL")}
+              </div>
+              <div className="mt-0.5 text-[11px] text-faint">החודש</div>
+            </div>
+          </StaggerItem>
+          <StaggerItem>
+            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                <span className="size-2 rounded-full bg-brand-navy" />
+                היחס
+              </div>
+              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
+                {summary.ratio === null ? "—" : `${Math.round(summary.ratio * 100)}%`}
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-faint">{ratioLine}</div>
+            </div>
+          </StaggerItem>
+        </Stagger>
+
+        {/* ── Eitan line (deterministic — no LLM on this screen) ── */}
+        <Reveal className="mt-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-line bg-aqua-soft p-4 shadow-brand">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-navy text-brand shadow-brand">
+              <SparklesIcon className="size-5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
+                איתן אומר
+              </div>
+              <p className="mt-0.5 text-sm leading-relaxed text-ink">
+                {eitanMonthLine(summary, firstName)}
+              </p>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* ── מי לא שילם לי chip ── */}
+        <Reveal className="mt-4">
+          <Link
+            href="/receivables"
+            className="flex items-center justify-between rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep"
+          >
+            <div>
+              <div className="text-sm font-bold text-brand-navy">מי לא שילם לי</div>
+              <div className="mt-0.5 text-xs text-muted">
+                {receivables.openCount === 0
+                  ? "אין תשלומים פתוחים"
+                  : `${receivables.openCount} חשבונות פתוחים` +
+                    (receivables.overdueCount > 0
+                      ? ` · ${receivables.overdueCount} באיחור`
+                      : "")}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-display text-lg font-extrabold tabular-nums ${
+                  receivables.overdueTotal > 0 ? "text-alert-ink" : "text-brand-navy"
+                }`}
+                dir="ltr"
+              >
+                ₪{receivables.outstandingTotal.toLocaleString("he-IL")}
+              </span>
+              <ArrowLeftIcon className="size-4 text-brand-deep" />
+            </div>
+          </Link>
+        </Reveal>
+
+        {/* ── The four actions ── */}
+        <h2 className="mt-7 mb-3 text-sm font-bold text-brand-navy">מה עושים עכשיו?</h2>
+        <Stagger className="grid grid-cols-2 gap-3">
+          {actions.map((a) => (
+            <StaggerItem key={a.label}>
+              {a.href ? (
+                <Link
+                  href={a.href}
+                  className={`group flex min-h-[104px] flex-col justify-between rounded-2xl border bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep ${
+                    a.highlight ? "border-brand ring-2 ring-brand/30" : "border-line"
+                  }`}
+                >
+                  <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
+                    {a.icon}
+                  </span>
+                  <span className="mt-2">
+                    <span className="block text-sm font-bold text-brand-navy">{a.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted">{a.hint}</span>
+                  </span>
+                </Link>
               ) : (
-                <>שנת מס {persona.income.year} · אין מועדים דחופים כרגע</>
+                <button
+                  onClick={a.onClick}
+                  className="group flex min-h-[104px] w-full flex-col justify-between rounded-2xl border border-line bg-paper p-4 text-start shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep"
+                >
+                  <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
+                    {a.icon}
+                  </span>
+                  <span className="mt-2">
+                    <span className="block text-sm font-bold text-brand-navy">{a.label}</span>
+                    <span className="mt-0.5 block text-xs text-muted">{a.hint}</span>
+                  </span>
+                </button>
               )}
-            </p>
-          </div>
-        </div>
+            </StaggerItem>
+          ))}
+        </Stagger>
 
-        {/*
-          ── Desktop (lg+): multi-column dashboard, per CountMe Dashboard Web ──
-          Top: income-vs-ceiling spans full width. Then a 3-col row:
-            [ period status ] | [ next-deadline hero ] | [ deadlines list ].
-          Finance below (filter + KPIs + chart) with a side column carrying
-          Eitan insights, the quick-actions rail, and the annual summary.
-
-          ── Mobile (<lg): stacked, per CountMe Dashboard App ──
-          income → next-deadline hero → period status → deadlines list →
-          finance KPIs/chart → forecast → insights/summary. Quick-actions
-          live in a fixed bottom bar (rendered once, outside the grid).
-        */}
-
-        {/* Top: income vs ceiling */}
-        <Reveal className="mb-5">
-          <IncomeCeilingCard persona={persona} />
-        </Reveal>
-
-        {/* Hero + status + list. Order utilities honor each mockup:
-            mobile = hero first; desktop = status | hero | list. */}
-        <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="order-1 lg:order-2">
-            <NextDeadlineCard deadline={nextDeadline} className="h-full" />
-          </div>
-          <div className="order-2 lg:order-1">
-            <PeriodStatusCard deadlines={imminentDeadlines} showLegend className="h-full" />
-          </div>
-          <div className="order-3 lg:order-3">
-            <DeadlinesTimeline deadlines={imminentDeadlines.slice(0, 5)} className="h-full" />
-          </div>
-        </div>
-
-        {/* עוסק פטור ceiling alert — only for patur */}
-        {ceilingAlert && (
-          <div className="mb-5">
-            <CeilingAlertCard alert={ceilingAlert} />
-          </div>
+        {/* ── First-use welcome (the most important screen of the beta) ── */}
+        {summary.isFirstUse && (
+          <Reveal className="mt-6">
+            <div className="rounded-2xl border-2 border-dashed border-brand/60 bg-paper p-5 text-center shadow-brand">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-aqua-soft">
+                <TrendingUpIcon className="size-6 text-brand-deep" />
+              </div>
+              <p className="text-sm font-bold text-brand-navy">
+                המספרים למעלה אמיתיים — פשוט עוד לא קרה כלום
+              </p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
+                ברגע שתפיקו קבלה ראשונה או תתעדו הוצאה, הכול מתחיל לזוז.
+                שתי דקות, מבטיחים.
+              </p>
+            </div>
+          </Reveal>
         )}
-
-        {/* Finance section: title + filter, KPIs, chart, side column */}
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-xl font-extrabold tracking-tight text-brand-navy">
-            סקירה כספית — רווח והפסד
-          </h2>
-          {granularityControls}
-        </div>
-
-        <div className="mb-4">{periodBanner}</div>
-
-        <div className="mb-5">{kpiStrip}</div>
-
-        {/* Expense-ratio insight (zeir track 30% rule) */}
-        <Reveal className="mb-5">
-          <ExpenseRatioCard insight={computeExpenseRatio(persona)} />
-        </Reveal>
-
-        {/* Forward-looking advances forecast */}
-        <Reveal className="mb-5">
-          <ForecastCard persona={persona} />
-        </Reveal>
-
-        {/* Charts + Eitan + quick-actions rail (rail only shows on lg) */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2">{plChartCard}</div>
-          <div className="space-y-5">
-            <EitanInsights persona={persona} pl={pl} />
-            {/* Quick-actions side rail — desktop only (mobile uses the bottom bar) */}
-            <QuickActions variant="rail" className="hidden lg:block" />
-            {annualSummaryCard}
-          </div>
-        </div>
-
-        {/* Print button */}
-        <div className="mt-6 text-center no-print">
-          <button onClick={() => window.print()} className={btn("secondary", "md")}>
-            <DownloadIcon className="size-[18px]" /> הדפס / שמור כ-PDF
-          </button>
-        </div>
       </main>
 
-      {/* Quick-actions bottom bar — mobile only (desktop uses the side rail) */}
-      <QuickActions variant="bar" className="lg:hidden" />
+      {expenseOpen && (
+        <ExpenseSheet
+          persona={persona}
+          onClose={() => setExpenseOpen(false)}
+          onSaved={(p) => {
+            setPersona(p);
+            setExpenseOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
-      {/* Print styles */}
-      <style jsx global>{`
-        @media print {
-          header,
-          button,
-          .no-print {
-            display: none !important;
-          }
-          main {
-            padding: 0 !important;
-          }
-          .bg-cream {
-            background: white !important;
-          }
-        }
-      `}</style>
+/**
+ * Minimal expense capture (DSH-9): vendor, amount, date, note. Appends an
+ * ExpenseLine to persona.income.expenses (localStorage + DB write-through).
+ * Category refinement comes with Tomi's occupation lists (CEO §3.5 phase 2).
+ */
+function ExpenseSheet({
+  persona,
+  onClose,
+  onSaved,
+}: {
+  persona: Persona;
+  onClose: () => void;
+  onSaved: (p: Persona) => void;
+}) {
+  const [vendor, setVendor] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function save() {
+    const amt = Number(amount);
+    if (!vendor.trim()) return setError("ממי ההוצאה? שם ספק חסר");
+    if (!amt || amt <= 0) return setError("סכום חייב להיות גדול מ-0");
+    if (!date) return setError("תאריך חסר");
+
+    const line: ExpenseLine = {
+      date,
+      vendorName: vendor.trim(),
+      description: note.trim() || vendor.trim(),
+      amount: amt,
+      category: "כללי",
+      deductionRule: "full",
+    };
+    const updated: Persona = {
+      ...persona,
+      income: {
+        ...persona.income,
+        expenses: [...(persona.income.expenses ?? []), line],
+      },
+    };
+    persistPersona(updated);
+    onSaved(updated);
+  }
+
+  const field =
+    "w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink placeholder:text-faint focus:border-brand-deep focus:outline-none";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-navy/40 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-t-3xl border border-line bg-cream p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-brand sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line sm:hidden" />
+        <h3 className="font-display text-lg font-bold text-brand-navy">העלאת הוצאה</h3>
+        <p className="mt-0.5 text-xs text-muted">
+          תיעוד מהיר — קטגוריות מפורטות מגיעות בקרוב.
+        </p>
+        <div className="mt-4 space-y-3">
+          <input
+            value={vendor}
+            onChange={(e) => setVendor(e.target.value)}
+            placeholder="שם הספק / בית העסק"
+            className={field}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="סכום ₪"
+              type="number"
+              min={0}
+              dir="ltr"
+              className={field}
+            />
+            <input
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              type="date"
+              dir="ltr"
+              className={field}
+            />
+          </div>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="מה קניתם? (לא חובה)"
+            className={field}
+          />
+          {error && <p className="text-sm text-alert">{error}</p>}
+        </div>
+        <div className="mt-5 flex gap-2">
+          <button onClick={save} className={btn("primary", "md", "flex-1")}>
+            שמירת הוצאה
+          </button>
+          <button onClick={onClose} className={btn("ghost", "md")}>
+            ביטול
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

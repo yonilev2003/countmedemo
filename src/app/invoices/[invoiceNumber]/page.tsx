@@ -37,18 +37,71 @@ export default function InvoicePrintPage() {
   const isPatur = persona.business.osekType === "patur";
   // Default legacy invoices to combined "tax-invoice-receipt" (305 — most common)
   const docType = invoice.docType ?? "tax-invoice-receipt";
-  const docTitle = docType === "receipt" ? "קבלה" : "חשבונית מס/קבלה";
+  const docTitle =
+    docType === "receipt"
+      ? "קבלה"
+      : docType === "business-account"
+        ? "חשבון עסקה"
+        : docType === "quote"
+          ? "הצעת מחיר"
+          : "חשבונית מס/קבלה";
   const isReceipt = docType === "receipt";
-  // SHAAM allocation number — required for invoices > 25K from 2024+. Mock for demo.
-  const showAllocation = docType === "tax-invoice-receipt" && invoice.total > 25000;
-  const mockAllocation = showAllocation
-    ? `IL${invoice.invoiceNumber.replace(/\D/g, "")}${String(
-        invoice.invoiceNumber.replace(/\D/g, "").split("").reduce((a, c) => (a + Number(c)) % 900, 1) + 100
-      ).padStart(3, "0")}`
-    : null;
+  // Payment-received tax docs; quotes/business-accounts are NOT tax documents.
+  const isPaymentDoc = docType === "receipt" || docType === "tax-invoice-receipt";
+  // SHAAM allocation numbers: a REAL allocation must come from the Tax
+  // Authority API (phase 2). Never display an invented number on a document —
+  // the previous mock here was a regulatory exposure (removed 2026-07-19).
 
   // Initial of the trade name for the issuer monogram (mockup: navy circle, beige glyph).
   const monogram = persona.business.tradeName?.trim().charAt(0) || "C";
+
+  // Share via signed public link (approved 19/07); falls back to text-only
+  // when DOC_LINK_SECRET is not configured on the server.
+  async function shareDoc(channel: "whatsapp" | "email") {
+    if (!persona || !invoice) return;
+    const shareTitle = `${docTitle} ${invoice.invoiceNumber} — ${persona.business.tradeName}`;
+    let link = "";
+    try {
+      const res = await fetch("/api/doc-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc: {
+            invoiceNumber: invoice.invoiceNumber,
+            date: invoice.date,
+            customerName: invoice.customerName,
+            description: invoice.description,
+            amount: invoice.amount,
+            vat: invoice.vat,
+            total: invoice.total,
+            docType,
+            ...(invoice.dueDate ? { dueDate: invoice.dueDate } : {}),
+            ...(invoice.validUntil ? { validUntil: invoice.validUntil } : {}),
+          },
+          business: {
+            tradeName: persona.business.tradeName,
+            osekType: persona.business.osekType,
+          },
+        }),
+      });
+      if (res.ok) {
+        const { token } = (await res.json()) as { token: string };
+        link = `${window.location.origin}/d/${encodeURIComponent(token)}`;
+      }
+    } catch {
+      /* text-only fallback */
+    }
+    const text =
+      `שלום ${invoice.customerName}, מצורף ${docTitle} ${invoice.invoiceNumber} ` +
+      `על סך ${invoice.total.toLocaleString("he-IL")} ₪ מאת ${persona.business.tradeName}.` +
+      (link ? `\nלצפייה במסמך: ${link}` : "");
+    const encoded = encodeURIComponent(text);
+    if (channel === "whatsapp") {
+      window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener");
+    } else {
+      window.location.href = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encoded}`;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -63,13 +116,21 @@ export default function InvoicePrintPage() {
             חזרה לרשימה
           </Link>
           <Logo size={22} />
-          <button
-            onClick={() => window.print()}
-            className={btn("secondary", "sm")}
-          >
-            <DownloadIcon className="size-4" />
-            הדפס / שמור כ-PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => shareDoc("whatsapp")} className={btn("primary", "sm")}>
+              שיתוף בוואטסאפ
+            </button>
+            <button onClick={() => shareDoc("email")} className={btn("ghost", "sm")}>
+              במייל
+            </button>
+            <button
+              onClick={() => window.print()}
+              className={btn("secondary", "sm")}
+            >
+              <DownloadIcon className="size-4" />
+              הדפס / PDF
+            </button>
+          </div>
         </div>
       </div>
 
@@ -107,9 +168,25 @@ export default function InvoicePrintPage() {
               )}
               <div className="h-px bg-aqua/30 my-[22px]" />
               <h1 className="font-display text-[30px] font-extrabold tracking-tight leading-tight">{docTitle} {invoice.invoiceNumber}</h1>
-              <p className="text-[13.5px] text-aqua mt-1">העתק נאמן למקור</p>
-              {!isReceipt && (
+              {isPaymentDoc && (
+                <p className="text-[13.5px] text-aqua mt-1">העתק נאמן למקור</p>
+              )}
+              {docType === "tax-invoice-receipt" && (
                 <p className="text-[13px] text-aqua mt-[18px]">לתשלום עד {formatHebrewDate(invoice.date)}</p>
+              )}
+              {docType === "business-account" && (
+                <p className="text-[13px] text-aqua mt-[18px]">
+                  {invoice.dueDate
+                    ? `לתשלום עד ${formatHebrewDate(invoice.dueDate)}`
+                    : "דרישת תשלום"}
+                </p>
+              )}
+              {docType === "quote" && (
+                <p className="text-[13px] text-aqua mt-[18px]">
+                  {invoice.validUntil
+                    ? `ההצעה בתוקף עד ${formatHebrewDate(invoice.validUntil)}`
+                    : "הצעה ללא התחייבות"}
+                </p>
               )}
               {isReceipt && (
                 <p className="text-[13px] text-aqua mt-[18px]">התקבל במלואו · תודה על התשלום</p>
@@ -200,21 +277,20 @@ export default function InvoicePrintPage() {
               </div>
             </div>
 
-            {/* Payment confirmation block — for receipt + combined */}
-            <div className="mb-4 rounded-xl border border-success/30 bg-success-light px-4 py-3 flex items-start gap-3">
-              <CheckCircleIcon className="size-5 text-success shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-success">קבלת תשלום מאושרת</p>
-                <p className="text-xs text-success/80 mt-0.5">
-                  מאשרים בזאת קבלת סך {invoice.total.toLocaleString("he-IL")} &#x20AA; עבור השירות המפורט לעיל.
-                </p>
+            {/* Payment confirmation block — payment docs ONLY (a quote or a
+                business-account attests nothing about payment) */}
+            {isPaymentDoc && (
+              <div className="mb-4 rounded-xl border border-success/30 bg-success-light px-4 py-3 flex items-start gap-3">
+                <CheckCircleIcon className="size-5 text-success shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-success">קבלת תשלום מאושרת</p>
+                  <p className="text-xs text-success/80 mt-0.5">
+                    מאשרים בזאת קבלת סך {invoice.total.toLocaleString("he-IL")} &#x20AA; עבור השירות המפורט לעיל.
+                  </p>
+                </div>
               </div>
-            </div>
-
-            {/* SHAAM allocation */}
-            {mockAllocation && (
-              <p className="text-xs text-faint mb-1 font-mono">מספר הקצאה (שע&quot;מ): {mockAllocation}</p>
             )}
+
           </div>
 
           {/* Footer */}
@@ -235,10 +311,22 @@ export default function InvoicePrintPage() {
 
         {/* Legal footer text — visible below card */}
         <div className="no-print mx-auto mt-6 px-2 text-xs text-faint leading-relaxed space-y-1">
-          {isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
-          {!isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          {isPaymentDoc && isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
+          {isPaymentDoc && !isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          {/* DRAFT — NEEDS LEGAL REVIEW (Roy: חשבונית ישראל / doc requirements) */}
+          {docType === "business-account" && (
+            <p>חשבון עסקה — דרישת תשלום בלבד; אינו מסמך מס. קבלה תופק עם קבלת התשלום.</p>
+          )}
+          {docType === "quote" && (
+            <p>הצעת מחיר — אינה מסמך מס ואינה מחייבת עד לאישור ההזמנה.</p>
+          )}
           <p>חתימה דיגיטלית: {persona.business.tradeName} · {new Date().toISOString().split("T")[0]}</p>
-          <p className="text-[10px]">הופק באמצעות countme · countmedemo.vercel.app</p>
+          <p className="text-[10px]">
+            הופק באמצעות countme
+            {process.env.NEXT_PUBLIC_APP_URL
+              ? ` · ${new URL(process.env.NEXT_PUBLIC_APP_URL).hostname}`
+              : ""}
+          </p>
         </div>
       </div>
 

@@ -15,7 +15,11 @@ export async function GET(request: Request) {
   // Default → /home (the shortcuts hub), which itself forwards first-timers
   // with no persona on to /setup, so returning users land on shortcuts directly.
   const nextParam = searchParams.get("next");
-  const next = nextParam && nextParam.startsWith("/") ? nextParam : "/home";
+  // "/path" is ok; "//host" (protocol-relative) is not.
+  const next =
+    nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+      ? nextParam
+      : "/dashboard";
 
   if (code) {
     const supabase = await createClient();

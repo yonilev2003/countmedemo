@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getPersonaOwner, clearLocalPersona } from "@/lib/setup-storage";
 
 /**
  * The interactive part of the login screen: a single "sign in with Google"
@@ -18,14 +19,30 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
 
+  // Shared-device safety: anyone reaching /login is (re)authenticating, so a
+  // persona cache stamped to a PREVIOUS user must not survive into the next
+  // session — it would flash on the sync-reader pages before PersonaHydrator's
+  // async reconcile clears it. An anonymous cache (no owner stamp, e.g. the
+  // signup → /setup hand-off) is preserved.
+  useEffect(() => {
+    if (getPersonaOwner()) clearLocalPersona();
+  }, []);
+
   async function handleGoogleSignIn() {
     setFailed(false);
     setLoading(true);
     const supabase = createClient();
+    // Preserve the destination the gate redirected from (?next=/invoices …),
+    // so the OAuth callback can send the user back where they were headed.
+    const nextParam = new URLSearchParams(window.location.search).get("next");
+    const next =
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+        ? `?next=${encodeURIComponent(nextParam)}`
+        : "";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${next}`,
       },
     });
     // On success the browser is already navigating to Google; we only land
