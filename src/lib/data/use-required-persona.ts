@@ -1,0 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Persona } from "@/lib/persona";
+import { loadPersona } from "@/lib/setup-storage";
+import { syncPersonaFromDb } from "./persona-store";
+
+/**
+ * Persona for a protected app page, with a DB check before giving up.
+ *
+ * The pages used to do `const p = loadPersona(); if (!p) router.push("/setup")`
+ * synchronously. On a SECOND DEVICE (or a fresh browser / cleared cache) the
+ * localStorage cache is empty while `profiles.persona` in Supabase is fully
+ * populated — so the user was thrown into the setup wizard, and completing it
+ * overwrote their real server data. PersonaHydrator does reconcile, but it runs
+ * asynchronously and always lost that race.
+ *
+ * Here we consult the DB before routing anyone to /setup. Only a user who has
+ * no persona locally AND none in the DB is genuinely new.
+ */
+export function useRequiredPersona() {
+  const router = useRouter();
+  const [persona, setPersona] = useState<Persona | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const local = loadPersona();
+    if (local) {
+      setPersona(local);
+      return;
+    }
+
+    (async () => {
+      const remote = await syncPersonaFromDb();
+      if (cancelled) return;
+      if (remote) setPersona(remote);
+      else router.replace("/setup");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  return { persona, setPersona };
+}

@@ -145,9 +145,9 @@ function ChatNavSideRail({ className }: { className?: string }) {
     >
       {/* Brand wordmark → home */}
       <Link
-        href="/"
+        href="/dashboard"
         className="mb-5 flex items-center gap-2.5 px-1 transition-opacity hover:opacity-80"
-        aria-label="CountMe — דף הבית"
+        aria-label="CountMe — לדשבורד"
       >
         <Logo size={26} />
       </Link>

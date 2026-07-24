@@ -11,8 +11,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import { Persona, InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate } from "@/lib/invoice-generator/index";
@@ -41,20 +40,13 @@ const TONE_LABELS: Record<ReminderTone, string> = {
 };
 
 export default function ReceivablesPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona, setPersona } = useRequiredPersona();
   const [reminderFor, setReminderFor] = useState<string | null>(null);
   const [tone, setTone] = useState<ReminderTone>("gentle");
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
     trackClient("receivables_viewed");
-  }, [router]);
+  }, []);
 
   const summary = useMemo(
     () => (persona ? getReceivablesSummary(persona) : null),
@@ -137,7 +129,7 @@ export default function ReceivablesPage() {
     <div className="min-h-screen bg-cream">
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Logo size={24} />
             <span className="hidden text-base font-semibold text-muted sm:inline">
               · מי לא שילם לי
