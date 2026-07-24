@@ -33,7 +33,15 @@ export function useRequiredPersona() {
     }
 
     (async () => {
-      const remote = await syncPersonaFromDb();
+      // Never leave the user staring at a skeleton: if the DB round-trip fails
+      // (offline, Supabase down, missing env), fall back to the old behaviour
+      // and send them to /setup rather than hanging forever.
+      let remote: Persona | null = null;
+      try {
+        remote = await syncPersonaFromDb();
+      } catch {
+        remote = null;
+      }
       if (cancelled) return;
       if (remote) setPersona(remote);
       else router.replace("/setup");
