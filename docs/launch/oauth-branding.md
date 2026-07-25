@@ -34,10 +34,13 @@ updated: 2026-06-19
    - *למה לא Production:* גוגל לא תאשר מעבר ל-Production עם דומיין משותף כמו `vercel.app`
      (דורש Top-Level Domain מאומת ב-Search Console). זה לשלב ההשקה המלאה, לא לבטא.
 
-## ✅ שלב 2 — Supabase Auth על פרויקט **akfgudspliyymiysajoh** (אפשר עכשיו)
+## ✅ שלב 2 — Supabase Auth על פרויקט **hbsgzelipeawkvtcazdr** (אפשר עכשיו)
 
-> חשוב: מבצעים את זה על הפרויקט **akfg** (ה-backend שאליו אנחנו מתחברים — ראו
-> `connect-supabase-akfg.md`), לא על hbsgz.
+> **תיקון 2026-07-25:** הגרסה הקודמת של המסמך הזה הפנתה לפרויקט `akfgudspliyymiysajoh`
+> ("akfg"). התברר שזה היה חיבור שגוי של כלי ה-MCP לחשבון Supabase לא נכון — הפרויקט
+> הלייב האמיתי, המתועד ב-`memory/decisions.md`, הוא **`hbsgzelipeawkvtcazdr`** ("hbsgz").
+> קובץ `connect-supabase-akfg.md` הוסר; ראו `connect-supabase-hbsgz.md`. אם ביצעת בעבר
+> את השלבים למטה מול akfg — הם לא השפיעו על הפרודקשן האמיתי ויש לחזור עליהם מול hbsgz.
 
 1. **Authentication → URL Configuration:**
    - **Site URL** = `https://countmedemo.vercel.app`
@@ -45,7 +48,7 @@ updated: 2026-06-19
      ו-`http://localhost:3000/auth/callback` (לפיתוח).
 2. **Authentication → Providers → Google:** הזן **Client ID + Client Secret** מאותו פרויקט Google
    של שלב 1 (חייב להיות אותו פרויקט). ב-Google Cloud → Credentials → OAuth client →
-   **Authorized redirect URI** = `https://akfgudspliyymiysajoh.supabase.co/auth/v1/callback`.
+   **Authorized redirect URI** = `https://hbsgzelipeawkvtcazdr.supabase.co/auth/v1/callback`.
 
 ## ⛔ שלב 3 — להעלים את ה-`supabase.co` הקטן (דחוי, לא חינמי)
 
@@ -58,7 +61,7 @@ updated: 2026-06-19
 
 ## אימות
 - גלישה נקייה → `/login` → "התחברות עם Google" → במסך ההסכמה: **"להמשיך אל CountMe"**
-  (עם `supabase.co` קטן מתחת — תקין לבטא) → חזרה ל-`/auth/callback` → נחיתה על `/home`.
+  (עם `supabase.co` קטן מתחת — תקין לבטא) → חזרה ל-`/auth/callback` → נחיתה על `/dashboard`.
 
 ## שורה תחתונה
 שלב 1 (בלי לוגו, Testing + test users) + שלב 2 (עם `countmedemo.vercel.app`) = הכותרת
