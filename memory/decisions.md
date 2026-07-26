@@ -8,6 +8,20 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## סשן 26/07/2026 (Sonnet) — קיצור CLAUDE.md, סריקת-תשתית, Routine יומי
+
+| החלטה / משימה | ערך | סטטוס + תוצר |
+|---|---|---|
+| CLAUDE.md | קוצר 372→142 שורות לפי מחקר context-engineering; נוסף כלל "משימות מפוצלות → dynamic Workflows" | בוצע, נדחף ל-`claude/system-beta-preparation-oiyzpy` |
+| Routine יומי — ביקורת קוד | סוכן read-only (אבטחה + UX + הצעות), רץ 03:00 UTC יומי, סשן חדש כל פעם, push notification | **נוצר**, `trig_015E885nv2xuKdhxTd9am8tV` — revisitable ע"י יוני; מודל/effort לא ניתנים לכפייה דרך ה-Routine (`model_update_disabled`), רץ בברירת-המחדל |
+| Bitwarden Teams / ניהול secrets | יוני: לא כרגע, בלי הוצאה נוספת | נדחה ע"י יוני 26/07; חלופה חינמית מומלצת = מנהל שני בכל פלטפורמה |
+| Google OAuth: Testing מול Production | אושר סופית (מחקר + `oauth-branding.md` הקיים) — Production חסום בלי דומיין אמיתי מאומת ב-Search Console; `vercel.app` משותף לא ניתן לאימות | Testing + test users ידניים ממשיך; מסלול-עתיד = קניית דומיין → חיבור חינם ל-Vercel → אימות → Production |
+| תיקון מסמך שגוי | `docs/launch/oauth-branding.md` הצביע על פרויקט Supabase נטוש (akfg) במקום hbsgz הלייב | תוקן ונדחף |
+| **⚠️ נמצא, טרם תוקן:** Supabase Redirect URLs (hbsgz) חסר את הדומיין הקנוני האמיתי | `get_project` ב-Vercel מאשר שהפרויקט הקנוני מחזיק ב-`countmedemo-eight.vercel.app`, לא ב-`countmedemo.vercel.app` שמופיע היום ברשימת ה-Redirect URLs | **ממתין ליוני** — להוסיף `https://countmedemo-eight.vercel.app/auth/callback` לפני QA/שחרור |
+| ניקוי לינקים ל-1301/דמו מהיקף הבטא | מאושר ע"י יוני 26/07 | בוצע: `chat-nav-rail.tsx`, `coach-chat.tsx`, `setup/page.tsx`, `about/page.tsx`, `pricing/page.tsx`, `business-expenses/page.tsx`; tsc+build+147/147 ירוקים |
+| מעקב רגולטורי | מסמך חדש שמרכז אילו מסמכים/חובות משפטיות צריך + סטטוס, כדי שסשן AI הבא יוכל לגשת | נוצר `memory/regulatory-status.md`, מקושר מ-[[STATUS]] |
+| הפרויקט הכפול ב-Vercel | אומת מחדש: ה-MCP המחובר רואה team אחד בלבד (`yonilev2003s-projects`); הכפול תחת team אחר (`countmes-projects`) לגמרי לא נגיש | לא ניתן לניתוק ע"י Claude — פעולה ידנית של יוני בלבד (איתור ה-login דרך תגובת vercel[bot] השנייה) |
+
 ## סשן 19/07/2026 (Fable) — פיבוט בטא לפי המסמך האסטרטגי של תומי
 
 | החלטה / משימה | ערך | סטטוס + תוצר |

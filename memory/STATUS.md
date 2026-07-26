@@ -1,11 +1,48 @@
 ---
 tags: [status, countme]
-related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
+related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]] · [[regulatory-status]]"
 ---
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-07-19 (Fable) · ענף: `claude/system-beta-preparation-oiyzpy` · החלטות: [[decisions]]
+> עודכן: 2026-07-26 · ענף: `claude/system-beta-preparation-oiyzpy` · החלטות: [[decisions]]
+> מעקב רגולטורי/משפטי (אילו מסמכים צריך + סטטוס): [[regulatory-status]]
+
+## 🎯 26/07 — CLAUDE.md קוצר, סריקת-תשתית + באג דומיין ב-Supabase, ניקוי לינקים
+
+- **CLAUDE.md קוצר מ-372 ל-142 שורות** (מחקר על context-engineering/context-rot), נוסף כלל
+  "משימות מפוצלות → dynamic Workflows". נדחף.
+- **תוקן `docs/launch/oauth-branding.md`:** שלב 2 הצביע על פרויקט Supabase נטוש (`akfg…`) במקום
+  הלייב (`hbsgz…`) — היה יכול לגרום לחיבור Google OAuth לbackend מת. תוקן + `/home`→`/dashboard`.
+- **⚠️ באג פעיל שנמצא, טרם תוקן (Yoni to fix in Supabase dashboard):** Redirect URLs ב-Supabase
+  Auth (hbsgz) מכילים רק `https://countmedemo.vercel.app/auth/callback` — אבל הפרויקט הקנוני
+  (`prj_3IlH…`, Next.js, זה שבאמת רץ) **לא מחזיק בדומיין הזה בכלל** (`get_project` מציג רק
+  `countmedemo-eight.vercel.app` + שני דומייני fallback). כלומר login בדומיין האמיתי עלול להיכשל
+  כי ה-redirect לא ברשימה המורשית. **צריך להוסיף `https://countmedemo-eight.vercel.app/auth/callback`
+  ל-Redirect URLs לפני ריצת ה-QA/שחרור לתומי.**
+- **פרויקט Vercel כפול:** אומת מחדש — ה-MCP המחובר רואה רק team `yonilev2003s-projects` (9
+  פרויקטים, כולם ישנים/לא-קשורים חוץ מ-`countmedemo`). הכפול-שבונה-כל-PR נשאר תחת team אחר
+  (`countmes-projects`) שלגמרי לא נגיש מכאן — **לא ניתן לניתוק ע"י Claude**, פעולה ידנית בלבד
+  של יוני (למצוא איזה login זה, דרך תגובת ה-vercel[bot] השנייה על PR כלשהו).
+- **Google OAuth Production:** אושר סופית (גם ע"י מחקר וגם ע"י `oauth-branding.md` שכבר נבדק
+  בפועל ב-06/2026) שאי-אפשר Production בלי דומיין אמיתי מאומת ב-Search Console — `vercel.app`
+  משותף לא ניתן לאימות. Testing + test users ידניים = היחיד האפשרי כרגע. מסלול לעתיד: לקנות
+  דומיין (`countme.co.il`/`.ai`) → לחבר חינם ל-Vercel → לאמת → לפרסם.
+- **Bitwarden Teams — יוני החליט לא כרגע** (בלי הוצאה כספית נוספת). חלופה חינמית: מנהל/בעלים שני
+  בכל אחת מ-5 הפלטפורמות (Vercel/Supabase/GitHub/GCP/Anthropic Console).
+- **ניקוי לינקים ל-1301/דמו מהיקף הבטא (מאושר ע"י יוני, בוצע):** `chat-nav-rail.tsx` (הוחלפו
+  /deadlines,/alerts → /receivables), `coach-chat.tsx` (CTA "לטופס 1301"→/demo הוחלף ל-/dashboard),
+  `setup/page.tsx` (הוסר "דלגי לדמו"), `about/page.tsx` (רשימת הדפים עודכנה למציאות), `pricing/page.tsx`
+  (/home→/setup), `business-expenses/page.tsx` (/demo→/dashboard). ‏tsc+build+147/147 טסטים ירוקים.
+- **Routine יומי חדש (אוטומציה מחוץ לקוד — לזכור שזה קיים!):** `trig_015E885nv2xuKdhxTd9am8tV`,
+  "countme daily code audit — security & UX", רץ כל יום 03:00 UTC (06:00 IL), סשן חדש כל פעם,
+  read-only, בודק אבטחה + UX + הצעות. **לא הצלחתי לקבוע מודל (Opus 5)/effort ברמת ה-Routine —
+  חסום ע"י המערכת (`model_update_disabled`), ירוץ במודל ברירת-המחדל.** push notification דלוק.
+- **נוצר `memory/regulatory-status.md`** — מעקב אחרי אילו מסמכים/חובות רגולטוריות (פרטיות/תיקון
+  13/אבטחת-מידע/נגישות) צריך ומה הסטטוס. חוסם-על: אין סוקר משפטי חיצוני מאז 02/07.
+- **ממתין ליוני:** לתקן את Redirect URLs ב-Supabase (למעלה), ואז ריצת טלפון-אמיתי + שחרור לתומי.
+
+## 🎯 19/07 — פיבוט בטא: מהדו"ח לחיי היומיום (מסמך אסטרטגי של תומי)
 
 ## 🎯 19/07 — פיבוט בטא: מהדו"ח לחיי היומיום (מסמך אסטרטגי של תומי)
 
