@@ -64,9 +64,9 @@ export default function BusinessExpensesPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/demo" className={btn("secondary", "sm")}>
+            <Link href="/dashboard" className={btn("secondary", "sm")}>
               <ArrowLeftIcon className="size-3.5" />
-              חזור לדו״ח
+              חזור ללוח הבית
             </Link>
             <Link href="/setup" className={btn("ghost", "sm")}>
               <SettingsIcon className="size-3.5" />

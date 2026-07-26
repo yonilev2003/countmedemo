@@ -1613,13 +1613,6 @@ export default function SetupPage() {
               </div>
             )}
           </div>
-
-          <p className="mt-4 text-center text-xs text-faint">
-            רוצה לראות דמו עם נתונים בדיוניים?{" "}
-            <Link href="/demo" className="text-brand-deep hover:underline">
-              דלגי לדמו
-            </Link>
-          </p>
         </div>
       </main>
     </div>

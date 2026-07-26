@@ -8,8 +8,8 @@
  *
  * The mockup's rail listed *past conversations*; we don't persist conversation
  * history yet, so — per the task — the rail instead links to the app's main
- * surfaces, matching the dashboard's quick-actions set (dashboard / invoices /
- * business-expenses / deadlines / alerts). Each row is a real, verified route.
+ * beta-scope surfaces (dashboard / invoices / business-expenses / receivables).
+ * Each row is a real, verified route.
  *
  * One reusable component, two layouts via `variant` (the page picks which to
  * render at which breakpoint — mirrors `dashboard/quick-actions.tsx`):
@@ -33,8 +33,7 @@ import {
   HomeIcon,
   ReceiptIcon,
   WalletIcon,
-  CalendarIcon,
-  BellIcon,
+  ClockIcon,
   SparklesIcon,
   PlusIcon,
 } from "@/components/brand/icons";
@@ -73,16 +72,10 @@ const NAV_ITEMS: NavItem[] = [
     icon: <WalletIcon className="size-[18px]" />,
   },
   {
-    href: "/deadlines",
-    label: "מועדים",
-    hint: "מועדי ההגשה הקרובים",
-    icon: <CalendarIcon className="size-[18px]" />,
-  },
-  {
-    href: "/alerts",
-    label: "התראות",
-    hint: "סיכונים שדורשים תשומת לב",
-    icon: <BellIcon className="size-[18px]" />,
+    href: "/receivables",
+    label: "מי לא שילם לי",
+    hint: "חשבונות פתוחים ותזכורות",
+    icon: <ClockIcon className="size-[18px]" />,
   },
 ];
 
@@ -107,16 +100,16 @@ const BAR_ITEMS: NavItem[] = [
     icon: <ReceiptIcon className="size-[22px]" />,
   },
   {
-    href: "/deadlines",
-    label: "מועדים",
+    href: "/business-expenses",
+    label: "הוצאות",
     hint: "",
-    icon: <CalendarIcon className="size-[22px]" />,
+    icon: <WalletIcon className="size-[22px]" />,
   },
   {
-    href: "/alerts",
-    label: "התראות",
+    href: "/receivables",
+    label: "מי לא שילם",
     hint: "",
-    icon: <BellIcon className="size-[22px]" />,
+    icon: <ClockIcon className="size-[22px]" />,
   },
 ];
 
