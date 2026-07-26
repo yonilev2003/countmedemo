@@ -506,12 +506,12 @@ export function CoachChat({ persona }: Props) {
       {/* CTA bar — contextual links */}
       {persona && (
         <div className="border-t border-line bg-success-light/60 px-4 py-2 text-[11px] text-brand-navy flex items-center justify-between gap-2">
-          <span>סיימת? אפשר לחזור לטופס המלא</span>
+          <span>סיימת? אפשר לחזור ללוח הבקרה</span>
           <Link
-            href="/demo"
+            href="/dashboard"
             className={btn("primary", "sm", "gap-1")}
           >
-            לטופס 1301
+            ללוח הבית
             <ArrowRightIcon className="size-3.5" />
           </Link>
         </div>

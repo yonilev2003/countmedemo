@@ -58,11 +58,9 @@ export default function AboutPage() {
         <Section title="דפים עיקריים">
           <ul className="space-y-2">
             <Bullet href="/setup" name="/setup" desc="אשף הכנסת נתונים — 7 שלבים, כולל העלאת דוחות ו-PDF" />
-            <Bullet href="/demo" name="/demo" desc="תצוגת טופס 1301 הנאמנה ל-gov.il, עם InteractiveValue והעתק וצ׳אט" />
-            <Bullet href="/file" name="/file" desc="Gateway: בחירת מסלול — מהיר (/demo) או מודרך (/file/guided)" />
-            <Bullet href="/file/guided" name="/file/guided" desc="מסלול מודרך עם איתן ב-12 שלבים, עריכה inline + סינכרון אוטומטי" />
-            <Bullet href="/dashboard" name="/dashboard" desc="דשבורד רווח והפסד עם סינון אוטומטי לפי תאריכים" />
-            <Bullet href="/invoices" name="/invoices" desc="הנפקת חשבונית מס/קבלה (305) או קבלה (320) — תואם SHAAM" />
+            <Bullet href="/dashboard" name="/dashboard" desc="לוח הבית: הכנסות/הוצאות/יחס החודש, 4 פעולות מהירות, שורת איתן" />
+            <Bullet href="/invoices" name="/invoices" desc="הנפקת חשבונית מס/קבלה, קבלה, עסקה או הצעת מחיר — תואם SHAAM" />
+            <Bullet href="/receivables" name="/receivables" desc="מי לא שילם לי — גיול חובות, תזכורות, סימון כשולם" />
             <Bullet href="/coach" name="/coach" desc="צ׳אט עם איתן — אבחון, איתור הוצאות, סיכום שיחה" />
             <Bullet href="/business-expenses" name="/business-expenses" desc="הוצאות מוכרות לפי תחום עיסוק עם כללי ניכוי" />
           </ul>
