@@ -7,6 +7,35 @@ related: "[[STATUS]] · [[decisions]] · [[retro-2026-07-03]]"
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 26/07/2026 — קיצור CLAUDE.md, סריקת-תשתית, ניקוי ניווט, Routine יומי
+
+- **CLAUDE.md נכתב מחדש** (372→142 שורות) לפי בקשת יוני + מחקר web אמיתי על context-engineering
+  (context-rot, "would removing this line cause mistakes?", ~200 שורות אידיאלי). נוסף כלל חדש:
+  משימות מפוצלות → dynamic Workflows כברירת-מחדל. כללי-הברזל אורגנו כרשימה אחת קרוב לראש הקובץ.
+- **סקירת תשתית/credentials מלאה (workflow עם 3 סוכני-מחקר במקביל):** מיפוי כל שירות חיצוני
+  (Anthropic/Supabase/Google OAuth/Vercel/Tranzila/GitHub/דומיין), מחקר על ניהול-secrets לצוות קטן
+  (המלצה: Bitwarden Teams ~$12/חודש + מנהל שני בכל פלטפורמה — יוני דחה את ה-Bitwarden, לא כרגע),
+  ומחקר על כללי Google OAuth Testing↔Production 2026. נבנה כ-artifact עם עיצוב "פנקס-חשבונות".
+- **אומת חי מול Supabase:** ה-trigger `handle_new_user`→`profiles` קיים ופעיל; ה-0-שורות ב-profiles
+  הוא כי חשבון יוני היחיד קדם לטבלה, לא כי ההרשמה שבורה.
+- **⚠️ נמצאה בעיה חיה, טרם תוקנה (ממתין ליוני):** Supabase Redirect URLs (hbsgz) מכיל רק
+  `countmedemo.vercel.app` — אבל `get_project` דרך ה-Vercel API מאשר שהפרויקט הקנוני מחזיק ב-
+  `countmedemo-eight.vercel.app` בלבד. login בדומיין האמיתי עלול להיכשל עד שיתוקן.
+- **תוקן מסמך מטעה:** `docs/launch/oauth-branding.md` שלב 2 הצביע על פרויקט Supabase נטוש (akfg)
+  במקום hbsgz הלייב + `/home`→`/dashboard`.
+- **הפרויקט הכפול ב-Vercel אומת מחדש:** ה-MCP רואה team אחד בלבד; הכפול תחת team נפרד לגמרי לא
+  נגיש — ניתוק = פעולה ידנית של יוני, ניתנה שיטה לאיתור (תגובת vercel[bot] השנייה על PR).
+- **ניקוי ניווט:** הוסרו/הוחלפו 6 לינקים ל-1301/דמו שנשארו בהיקף הבטא (רייל הצ'אט, כפתור coach,
+  "דלגי לדמו" ב-setup, "חזור לדו״ח" בהוצאות, רשימות ב-about/pricing). tsc+build+147/147 ירוקים.
+- **Routine יומי חדש נוצר** (`trig_015E885nv2xuKdhxTd9am8tV`) — סוכן read-only שבודק אבטחה+UX+הצעות
+  כל יום 03:00 UTC בסשן טרי, עם push notification. מודל/effort לא ניתנים לכפייה דרך ה-Routine.
+- **נוצר `memory/regulatory-status.md`** — טבלת מעקב אחר כל מסמך/חובה רגולטורית (פרטיות, תיקון 13,
+  רישום מאגר, DPO, DPIA, הסכמי-עיבוד, אבטחת-מידע, נגישות) + סטטוס, מקושר מ-STATUS.
+- **נמסרה רשימת משימות מרוכזת לפי בעלים** (יוני/תומי/רועי) כולל 2 פריטי FLAG(Roy) ישנים שעדיין
+  פתוחים בקוד (תקרת זיכוי ביטוח-חיים 45א, מדרגות נק'-זיכוי-לילדים לפי גיל).
+- 4 קומיטים נדחפו ל-`claude/system-beta-preparation-oiyzpy`: קיצור CLAUDE.md, תיקון oauth-branding,
+  ניקוי ניווט, עדכוני memory.
+
 ## סבב 15/07/2026 ערב — PR #28 + #29 מוזגו, פרודקשן חי
 
 - יוני אישר מפורשות למזג ("bypass אישורים אם צריך") אחרי כ-31 סבבי מעקב אוטומטי על שני ה-PRים.
