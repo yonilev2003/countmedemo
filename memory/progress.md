@@ -7,6 +7,32 @@ related: "[[STATUS]] · [[decisions]] · [[retro-2026-07-03]]"
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 03/08/2026 ערב — תיקון 5 באגים מהאודיט + איחוד 3 שרשורי-זיכרון תקועים
+
+- יוני: "תעבור על התכניות הקודמות, עשיתי סיום סשן בשיחה אחרת — תיקח משם מה שצריך, תעשה רשימת באגים
+  מה-routines ותתקן מה שאפשר לבד + `/loop` + צ'קליסט ידני". הסשן הזה איתר (`git fetch` יזום, לא היו
+  ב-`git log` המקומי) שני ענפים תקועים לא-ממוזגים: `claude/system-beta-preparation-oiyzpy` (5 קומיטים
+  נוספים אחרי שה-PR שלו כבר מוזג, 25–29/07) ו-`claude/planning-clean-beta-q3k1vl` (סשן-מחקר טהור
+  מוקדם יותר היום עם אודיט Workflow 32-סוכנים, 28/28 ממצאים מאומתים).
+- **`cherry-pick`** של 2 תיקונים בטוחים מהענף הראשון: ניקוי ניווט (לינקים מתים ל-1301/דמו ב-6 קבצים)
+  ותיקון תיעוד `oauth-branding.md` (project ref שגוי). שכתוב CLAUDE.md ו-`regulatory-status.md` **לא
+  נמשכו** — נשארו ל-סשן הבא לבדוק.
+- **Next.js 16.2.10→16.3.0** + `npm audit fix` (בלי ‎--force) — סוגר 7/8 אזהרות (5 חמורות: next/
+  postcss/sharp + brace-expansion/js-yaml/tmp). exceljs/uuid moderate נשאר במכוון (downgrade שובר).
+- **`server-only` guard** ל-`src/lib/supabase/admin.ts`.
+- **תוקן הממצא המשמעותי ביותר מהאודיט:** תיקון "אובדן-נתונים ממכשיר-שני" (`useRequiredPersona`,
+  PR #31) חל במקור על 5/17 דפים בלבד. 12 הדפים הנותרים (coach, business-expenses, alerts, deadlines,
+  dashboard/pro, dashboard/pl-report, demo, setup/assets, כל ה-file/*) עברו ל-`useRequiredPersona()`/
+  `usePersona()` — סוגר גם סיכון אובדן-נתונים וגם דליפת-PII בין-משתמשים במכשיר משותף (ל-`loadPersona()`
+  הסינכרוני אין בדיקת owner-stamp כלל). `setup/page.tsx` לא נגע — ה-`loadPersona()` שלו משרת מיזוג, לא שער.
+- **`/api/doc-link`** קיבל בדיקת-בעלות מול ה-persona האמיתי (RLS-scoped) כש-`AUTH_GATING_ENABLED=true` —
+  לפני כן כל משתמש מאומת יכול היה לחתום קישור ממותג-countme בשם עסק אחר.
+- **Tranzila webhook נשאר stub במכוון** — ניסיתי לאשש את סכמת-החתימה האמיתית של Tranzila ברשת ולא
+  הצלחתי בביטחון מספיק כדי לממש; ניחוש קריפטו לתשלומים גרוע מ-stub מתועד. מחכה ל-terminal secret+
+  תיעוד אמיתיים מיוני.
+- 5 קומיטים, 147/147 טסטים + build ירוקים אחרי כל קומיט. `memory/STATUS.md` עודכן עם רשומה חדשה
+  שמאחדת את כל שלושת השרשורים ומחליפה את הטבלה הישנה "חסום — ממתין" (מ-10/06).
+
 ## סבב 15/07/2026 ערב — PR #28 + #29 מוזגו, פרודקשן חי
 
 - יוני אישר מפורשות למזג ("bypass אישורים אם צריך") אחרי כ-31 סבבי מעקב אוטומטי על שני ה-PRים.

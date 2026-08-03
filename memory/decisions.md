@@ -8,6 +8,15 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## סשן 03/08/2026 (Sonnet) — תיקון-באגים מה-Routine היומי; החלטות ומשימות שבוצעו
+
+| החלטה / משימה | ערך | סטטוס + תוצר |
+|---|---|---|
+| Tranzila webhook signature — לא לממש בניחוש | חיפוש רשת לא אישש את סכמת-החתימה האמיתית של Tranzila בביטחון מספיק; ניחוש קריפטו על webhook תשלומים גרוע יותר מ-stub מתועד ו-fail-closed | **נדחה במכוון** — ממתין ל-terminal secret אמיתי + תיעוד Tranzila מיוני לפני מימוש. לא לנחש שוב בסשנים הבאים בלי המקור |
+| CLAUDE.md rewrite + regulatory-status.md (מ-`claude/system-beta-preparation-oiyzpy`, 26/07) | שכתוב 372→142 שורות + טרקר רגולטורי חדש | **לא נמשכו לענף הזה** — לא נבדקו מספיק בזמן הסשן כדי לסמוך עליהם בעיוורון. regulatory-status.md כנראה עצמאי-בטוח, ה-CLAUDE.md rewrite דורש עין לפני מיזוג |
+| דפוס-תיקון ל-persona בין-מכשירים/בין-משתמשים | `useRequiredPersona()` (חוסם) / `usePersona()` (לא חוסם) הם הדפוס הקנוני מעכשיו לכל דף שקורא persona — **לעולם לא `loadPersona()` סינכרוני ישיר** בדף חדש | נעול — 17/17 דפים תואמים עכשיו; `setup/page.tsx` הוא היוצא-מן-הכלל המתועד (merge logic, לא gate) |
+| `/api/doc-link` — אכיפת-בעלות עסק | תוכן המסמך (סכומים/לקוח) נשאר client-trusted (משקף מה שהלקוח כבר מציג); רק `business.tradeName`/`osekType` נאכף מול ה-persona האמיתי בשרת | נעול — no-op עד `AUTH_GATING_ENABLED=true` |
+
 ## סשן 19/07/2026 (Fable) — פיבוט בטא לפי המסמך האסטרטגי של תומי
 
 | החלטה / משימה | ערך | סטטוס + תוצר |
