@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { ils } from "@/lib/utils";
-import { Persona } from "@/lib/persona";
 import {
   calculatePL,
   filterByQuarter,
@@ -118,21 +116,15 @@ function greeting(): string {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [granularity, setGranularity] = useState<Granularity>("year");
   const [filter, setFilter] = useState<Filter>({ kind: "year" });
   const [pl, setPL] = useState<PLSummary | null>(null);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    setPL(calculatePL(p));
-  }, [router]);
+    if (!persona) return;
+    setPL(calculatePL(persona));
+  }, [persona]);
 
   // Upcoming deadlines, derived from the persona's filer type (no new plumbing).
   const deadlines: UpcomingDeadline[] = useMemo(() => {

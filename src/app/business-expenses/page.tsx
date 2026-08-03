@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Persona } from "@/lib/persona";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import type { Persona } from "@/lib/persona";
 import {
   pickProfile,
   ExpenseCategory,
@@ -25,17 +23,7 @@ import {
 } from "@/components/brand/icons";
 
 export default function BusinessExpensesPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
-
-  useEffect(() => {
-    const saved = loadPersona();
-    if (!saved) {
-      router.replace("/setup");
-      return;
-    }
-    setPersona(saved);
-  }, [router]);
+  const { persona } = useRequiredPersona();
 
   if (!persona) {
     return (

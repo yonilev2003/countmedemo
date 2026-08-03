@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import type {
   Persona,
@@ -29,7 +29,7 @@ const emptyLiab: Row = { category: "mortgage", description: "", value: "", evide
 
 export default function AssetsCapturePage() {
   const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona, setPersona } = useRequiredPersona();
   const [hydrated, setHydrated] = useState(false);
   const [declarationDate, setDeclarationDate] = useState("");
   const [assets, setAssets] = useState<Row[]>([]);
@@ -37,13 +37,8 @@ export default function AssetsCapturePage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    const cd = p.capitalDeclaration;
+    if (!persona) return;
+    const cd = persona.capitalDeclaration;
     setDeclarationDate(cd?.declarationDate ?? new Date().toISOString().slice(0, 10));
     setAssets(
       (cd?.assets ?? []).map((a) => ({
@@ -62,7 +57,7 @@ export default function AssetsCapturePage() {
       })),
     );
     setHydrated(true);
-  }, [router]);
+  }, [persona]);
 
   const totalAssets = assets.reduce((s, r) => s + (Number(r.value) || 0), 0);
   const totalLiab = liabilities.reduce((s, r) => s + (Number(r.value) || 0), 0);

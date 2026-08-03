@@ -1,30 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { SparklesIcon, ClipboardCheckIcon, ArrowRightIcon } from "@/components/brand/icons";
 
 export default function FilePage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const { persona } = useRequiredPersona();
 
-  useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    setHydrated(true);
-  }, [router]);
-
-  if (!hydrated) return (
+  if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="space-y-4 w-full max-w-screen-md px-6 animate-pulse">
         <div className="h-8 rounded-lg bg-sand w-48 mx-auto" />

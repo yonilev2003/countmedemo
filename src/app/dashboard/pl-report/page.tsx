@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { buildIsraeliPLReport, formatNIS, IsraeliPLReport } from "@/lib/p-and-l/israeli-report";
 import { Logo } from "@/components/brand/logo";
@@ -21,16 +19,13 @@ const OSEK_LABEL_EN: Record<"patur" | "morshe", string> = {
 };
 
 export default function PLReportPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [report, setReport] = useState<IsraeliPLReport | null>(null);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) { router.push("/setup"); return; }
-    setPersona(p);
-    setReport(buildIsraeliPLReport(p, calculatePL(p)));
-  }, [router]);
+    if (!persona) return;
+    setReport(buildIsraeliPLReport(persona, calculatePL(persona)));
+  }, [persona]);
 
   if (!persona || !report) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">

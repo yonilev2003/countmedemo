@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { Alert, AlertSeverity, generateAllAlerts } from "@/lib/alerts/index";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
@@ -147,20 +145,14 @@ function SeverityCount({ alerts }: { alerts: Alert[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AlertsPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [now] = useState(() => new Date());
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    setAlerts(generateAllAlerts(p, now));
-  }, [router, now]);
+    if (!persona) return;
+    setAlerts(generateAllAlerts(persona, now));
+  }, [persona, now]);
 
   const urgentCount = alerts.filter(
     (a) => a.severity === "alert" || a.severity === "warn",

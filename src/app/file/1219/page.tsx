@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { calculate } from "@/lib/calculators";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -16,21 +13,9 @@ import { ils as formatIls } from "@/lib/utils";
 const ils = (n: number) => formatIls(Math.round(n));
 
 export default function Form1219Page() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const { persona } = useRequiredPersona();
 
-  useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    setHydrated(true);
-  }, [router]);
-
-  if (!hydrated) {
+  if (!persona) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="w-full max-w-screen-md px-6 animate-pulse space-y-4">
