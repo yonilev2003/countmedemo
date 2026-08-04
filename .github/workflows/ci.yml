@@ -1,8 +1,16 @@
 # CI test gate — the contract on the tax engine.
 #
-# Runs on every PR to main (and pushes to main): build + golden tests + e2e.
-# A red run blocks the merge (enable branch protection on main with this
-# workflow as a required status check — one-time manual step in repo settings).
+# Runs on every PR to main, every push to main, AND every push to a claude/*
+# branch: build + golden tests + e2e. A red run blocks the merge (enable
+# branch protection on main with this workflow as a required status check —
+# one-time manual step in repo settings).
+#
+# The claude/* push trigger exists because CI does NOT run on a branch with no
+# open PR — found 2026-08-03 when a branch (claude/system-beta-preparation-
+# oiyzpy) kept 5 more commits after its own PR had already merged and sat
+# untested for over a week, undetected, since nothing was watching it. Every
+# AI session branch (per CLAUDE.md's `claude/<short-name>` convention) now
+# gets validated the moment it's pushed, whether or not a PR exists yet.
 #
 # The e2e job uses dummy Supabase env values: with AUTH_GATING_ENABLED unset
 # the app runs signed-out, which is exactly the flow the suite covers. No
@@ -15,7 +23,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, "claude/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
