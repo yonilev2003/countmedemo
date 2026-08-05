@@ -1,8 +1,15 @@
 # רָנְבּוּק עלייה לבטא — צעד אחרי צעד
 
-> עודכן 2026-07-24 · אחרי מיזוג PR #30 (`08b5308`) + חיבור ה-MCP לפרויקט hbsgz
+> עודכן 2026-08-03 · אחרי מיזוג PR #30 (`08b5308`) + חיבור ה-MCP לפרויקט hbsgz
 > **קהל היעד: יוני.** הצעדים שנותרו הם פעולות בקונסולה שרק לך יש אליהן גישה.
 > אחרי כל צעד יש **"איך יודעים שזה עבד"** — אל תעבור הלאה בלי לאמת.
+> **הדומיין הקנוני, מאומת דרך Vercel API (03/08 מאוחר) = `countmedemo-eight.vercel.app`.**
+> `countmedemo.vercel.app` אינו domain רשום על אף אחד מ-9 פרויקטי Vercel בחשבון — ראה [[decisions]]
+> לטבלה המלאה. תיקון קודם באותו יום שכתב את זה ל-`countmedemo.vercel.app` **הוחזר**.
+
+> ⚠️ **נוסף 03/08 — נמצא באודיט, עדיין לא מתוקן:** `countmedemo-eight.vercel.app` **חסר** מרשימת
+> ה-Redirect URLs ב-Supabase (hbsgz) → Authentication → URL Configuration. בלי זה, כניסה עם
+> Google בדומיין הקנוני עלולה להיכשל. הפקת-מסמכים לא-אטומית עדיין פתוחה — ראה `memory/STATUS.md`.
 
 ---
 
@@ -16,6 +23,9 @@
 | הקשחת פונקציות `SECURITY DEFINER` | הוחל דרך ה-MCP (24/07) — ‏`auth.uid()` במקום פרמטר, ‏`revoke execute from public` | ✅ ‏advisor נקי |
 | ‏`search_path` על `set_updated_at` | הוחל | ✅ |
 | טריגרים אחרי ההקשחה | נבדק אמפירית — ממשיכים לפעול | ✅ |
+| `AUTH_GATING_ENABLED=true` (שלב 3 למטה) | יוני | ✅ בוצע |
+| תקציב Anthropic — spend limit + usage alert (שלב 4) | יוני | ✅ בוצע |
+| Tranzila | — | **סגור/לא רלוונטי** — אין API של טרנזילה ולא יהיה בקרוב לפי יוני; הפריט הוסר מהמעקב |
 
 > נותרה אזהרה אחת ב-advisor: *Leaked Password Protection Disabled*. **לא רלוונטי**
 > — אנחנו לא משתמשים בסיסמאות בכלל (Google OAuth בלבד). אפשר להדליק בכל זאת
@@ -53,7 +63,7 @@
 
 ---
 
-### שלב 3 — נעילת המערכת (10 דק') · **הצעד הקריטי**
+### שלב 3 — נעילת המערכת · ✅ בוצע
 
 4. באותו מסך: `AUTH_GATING_ENABLED` = `true` — **Production + Preview**.
    > חובה גם Preview. אחרת כל פריוויו נשאר פתוח עם מפתחות אמיתיים.
@@ -70,9 +80,9 @@
 
 ---
 
-### שלב 4 — הגנת תקציב (10 דק')
+### שלב 4 — הגנת תקציב · תקציב Anthropic ✅ בוצע, WAF עדיין פתוח
 
-6. console.anthropic.com → **Billing** → **spend limit** חודשי + **usage alert** למייל.
+6. ~~console.anthropic.com → Billing → spend limit חודשי + usage alert למייל.~~ ✅ בוצע.
 7. Vercel → **Firewall** → כלל **Rate Limit** לפי IP על `/api/*` (הצעה: 60/דקה).
 
 ---

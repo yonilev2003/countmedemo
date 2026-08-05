@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { usePersona } from "@/lib/data/use-persona";
 import Link from "next/link";
-import { Persona } from "@/lib/persona";
-import { loadPersona } from "@/lib/setup-storage";
 import { CoachChat } from "@/components/agent/coach-chat";
 import { ChatNavRail } from "@/components/agent/chat-nav-rail";
 import { btn } from "@/components/brand/button";
@@ -11,13 +9,8 @@ import { LegalNote } from "@/components/brand/legal-note";
 import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
 
 export default function CoachPage() {
-  const [persona, setPersona] = useState<Persona | null>(null);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setPersona(loadPersona());
-    setHydrated(true);
-  }, []);
+  const { persona, loading } = usePersona();
+  const hydrated = !loading;
 
   return (
     <div

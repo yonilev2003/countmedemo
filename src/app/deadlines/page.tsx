@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
@@ -20,8 +19,7 @@ import {
   ShieldIcon,
   XIcon,
 } from "@/components/brand/icons";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import {
   getUpcomingDeadlines,
   type UpcomingDeadline,
@@ -82,20 +80,14 @@ function deadlineStatus(days: number): Status {
 }
 
 export default function DeadlinesPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [deadlines, setDeadlines] = useState<UpcomingDeadline[]>([]);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-    const filer: FilerType = p.business.osekType === "patur" ? "osek-patur" : "osek-murshe";
+    if (!persona) return;
+    const filer: FilerType = persona.business.osekType === "patur" ? "osek-patur" : "osek-murshe";
     setDeadlines(getUpcomingDeadlines(new Date(), filer, 12));
-  }, [router]);
+  }, [persona]);
 
   if (!persona) {
     return (

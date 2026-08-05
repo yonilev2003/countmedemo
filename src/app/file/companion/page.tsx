@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { loadPersona } from "@/lib/setup-storage";
-import { Persona } from "@/lib/persona";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import type { Persona } from "@/lib/persona";
 import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
@@ -68,19 +67,13 @@ function useHebrewSpeech() {
 const COMPANION_STEP_KEY = "countme_companion_step";
 
 export default function CompanionPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona } = useRequiredPersona();
   const [moduleIndex, setModuleIndex] = useState(0);
   const { speaking, supported, speak, stop } = useHebrewSpeech();
   const lastIndexRef = useRef(moduleIndex);
 
   useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
+    if (!persona) return;
     // Restore saved step
     try {
       const saved = localStorage.getItem(COMPANION_STEP_KEY);
@@ -89,7 +82,7 @@ export default function CompanionPage() {
         if (!isNaN(idx) && idx >= 0) setModuleIndex(idx);
       }
     } catch { /* ignore */ }
-  }, [router]);
+  }, [persona]);
 
   useEffect(() => {
     if (lastIndexRef.current !== moduleIndex) {

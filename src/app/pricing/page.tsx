@@ -71,7 +71,7 @@ export default function PricingPage() {
                 <FeatureRow key={f} label={f} />
               ))}
             </ul>
-            <Link href="/home" className={btn("secondary", "md", "mt-7 w-full")}>
+            <Link href="/setup" className={btn("secondary", "md", "mt-7 w-full")}>
               התחילו חינם
             </Link>
           </section>

@@ -92,7 +92,7 @@
    `https://countmedemo-git-*-yonilev2003s-projects.vercel.app/auth/callback`.
    **להימנע** מ‑wildcard רחב `https://*-yonilev2003s-projects.vercel.app/**` — הוא מרחיב open‑redirect/code‑leakage.
 7. לבדוק קודם את Vercel Deployment Protection (preview SSO wall) — הוא שובר OAuth callbacks בפריוויו באופן עצמאי.
-8. Google Console — **לא צריך שינוי** (ה‑authorized redirect הוא ה‑callback הקבוע של supabase.co). פרודקשן (`countmedemo.vercel.app` = Site URL) לא מושפע.
+8. Google Console — **לא צריך שינוי** (ה‑authorized redirect הוא ה‑callback הקבוע של supabase.co). פרודקשן (`countmedemo-eight.vercel.app` = Site URL, **תוקן 05/08** — היה כתוב כאן `countmedemo.vercel.app` שגוי) לא מושפע.
 
 ### ד. Supabase Storage (העלאות receipts/106/PDF)
 9. לוודא ש‑buckets פרטיים + RLS על `storage.objects` + signed URLs — אין להגיש קבצי מס דרך public bucket.

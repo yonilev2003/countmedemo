@@ -4,6 +4,7 @@ import ExcelJS from "exceljs";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
@@ -62,9 +63,14 @@ export interface ExtractedData {
 }
 
 export async function POST(request: Request) {
-  const rl = checkRateLimit("upload", resolveClientKey(request), RATE_LIMIT_MAX_UPLOADS);
+  const clientKey = resolveClientKey(request);
+  const rl = checkRateLimit("upload", clientKey, RATE_LIMIT_MAX_UPLOADS);
   if (!rl.allowed) {
     return rateLimitResponse(rl.retryAfter, "יותר מדי העלאות. נסי שוב בעוד כמה שניות.");
+  }
+  const rlDurable = await checkRateLimitDurable("upload", clientKey, RATE_LIMIT_MAX_UPLOADS);
+  if (!rlDurable.allowed) {
+    return rateLimitResponse(rlDurable.retryAfter, "יותר מדי העלאות. נסי שוב בעוד כמה שניות.");
   }
 
   // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,

@@ -8,6 +8,20 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## סשן 03/08/2026 (Sonnet) — תיקון-באגים מה-Routine היומי; החלטות ומשימות שבוצעו
+
+| החלטה / משימה | ערך | סטטוס + תוצר |
+|---|---|---|
+| Tranzila webhook signature — לא לממש בניחוש | חיפוש רשת לא אישש את סכמת-החתימה האמיתית של Tranzila בביטחון מספיק; ניחוש קריפטו על webhook תשלומים גרוע יותר מ-stub מתועד ו-fail-closed | **הוכרע סופית ע"י יוני (03/08 מאוחר): סגור/לא רלוונטי** — "אין לנו API של טרנזילה ולא יהיה בקרוב". הוסר ממעקב החוסמים; לא לשאול שוב אלא אם יוני יפתח מחדש |
+| CLAUDE.md rewrite (מ-`claude/system-beta-preparation-oiyzpy`, 26/07) | שכתוב 372→142 שורות | **לא נמשך לענף הזה** — לא נבדק מספיק בזמן הסשן כדי לסמוך עליו בעיוורון; דורש עין לפני מיזוג. `regulatory-status.md` מאותו ענף כן נמשך (קובץ עצמאי, ראה שורה למטה) |
+| דפוס-תיקון ל-persona בין-מכשירים/בין-משתמשים | `useRequiredPersona()` (חוסם) / `usePersona()` (לא חוסם) הם הדפוס הקנוני מעכשיו לכל דף שקורא persona — **לעולם לא `loadPersona()` סינכרוני ישיר** בדף חדש | נעול — 17/17 דפים תואמים עכשיו; `setup/page.tsx` הוא היוצא-מן-הכלל המתועד (merge logic, לא gate) |
+| `/api/doc-link` — אכיפת-בעלות עסק | תוכן המסמך (סכומים/לקוח) נשאר client-trusted (משקף מה שהלקוח כבר מציג); רק `business.tradeName`/`osekType` נאכף מול ה-persona האמיתי בשרת | נעול — no-op עד `AUTH_GATING_ENABLED=true` |
+| `regulatory-status.md` נמשך מהענף התקוע | קובץ עצמאי, ללא קוד, בלי קונפליקטים — 12 סעיפים רגולטוריים/משפטיים | נעול — נמשך. **10/12 סעיפים 🔴, כולל "סוקר משפטי חיצוני פעיל"** — יוני אישר (03/08 מאוחר) שעדיין אין סקירה משפטית. לא לשאול כל סשן, זה ידוע |
+| **הדומיין הקנוני = `countmedemo-eight.vercel.app`** — לא `countmedemo.vercel.app` | תוקן פעמיים באותו יום: תחילה שונה ל-`countmedemo.vercel.app` לפי בקשת יוני בלי אימות (טעות שלי); יוני ביקש וידוא; `get_project` על **כל 9** פרויקטי Vercel בחשבון `yonilev2003s-projects` הראה חד-משמעית ש-`countmedemo.vercel.app` לא שייך לאף אחד מהם | **נעול, מאומת מול Vercel API בפועל (לא ניחוש)** — הוחזר ב-`layout.tsx`/`.env.template`/runbook. ראה טבלת-דומיינים למטה |
+| טבלת דומיינים אמיתיים — 9 פרויקטי Vercel בחשבון `yonilev2003s-projects` (`get_project`, 03/08) | `countmedemo`→`countmedemo-eight.vercel.app` · `countme-crm`→`countme-crm.vercel.app` · `pillar`→`migdalim.vercel.app` (⚠️ שם-דומיין שונה לגמרי מהפרויקט!) · `countme`→`countme-tau.vercel.app` · `language-coach`→`language-coach-mocha.vercel.app` · `project-9340v`→אין alias נקי, דיפלוי אחרון **ERROR** · `accounting-mvp`→`accounting-mvp-seven.vercel.app` · `psycho-booking`→`psycho-booking.vercel.app` · `countme-demo`→`countme-demo.vercel.app` | עובדתי — אף אחד לא מחזיק `countmedemo.vercel.app`. `pillar`/`countme-crm`/`language-coach`/`accounting-mvp`/`psycho-booking` הם מוצרים **נפרדים ולא-קשורים** (Pillar יש לו PR/ריפו פעיל משלו) — **לא** "כפילויות" של countmedemo, לא למחוק בלי בדיקה פר-פרויקט מפורשת |
+| מחיקת פרויקטי Vercel "לא רלוונטיים" | יוני ביקש למחוק "כל שאר הדברים הלא רלוונטיים" | **לא בוצע — נשאל קודם.** פעולה הרסנית/בלתי-הפיכה על תשתית משותפת; אף פרויקט אחר לא מחזיק את הדומיין המבוקש כך שמחיקה לא תשיג את המטרה, וחלקם מוצרים נפרדים אמיתיים. ממתין להיקף מדויק מיוני לפני כל פעולת מחיקה |
+| `AUTH_GATING_ENABLED=true` + תקציב Anthropic | שני צעדים ידניים מהרשימה | **בוצעו ע"י יוני (03/08 מאוחר)** — אושר בפירוש, לא לשאול שוב |
+
 ## סשן 19/07/2026 (Fable) — פיבוט בטא לפי המסמך האסטרטגי של תומי
 
 | החלטה / משימה | ערך | סטטוס + תוצר |

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Persona } from "@/lib/persona";
-import { loadPersona } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import type { Persona } from "@/lib/persona";
 import { FormPreview } from "@/components/form-1301/form-preview";
 import { ChatPanel } from "@/components/agent/chat-panel";
 import { estimateTaxLiability, TaxEstimate } from "@/lib/calculators";
@@ -22,19 +21,11 @@ import {
 type Phase = "form" | "estimate";
 
 export default function DemoPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  // Setup is mandatory — no anonymous demo viewing. useRequiredPersona()
+  // checks the DB before redirecting, so a second device with an empty local
+  // cache doesn't get bounced into the wizard while it has real server data.
+  const { persona } = useRequiredPersona();
   const [phase, setPhase] = useState<Phase>("form");
-
-  useEffect(() => {
-    const saved = loadPersona();
-    if (!saved) {
-      // Setup is mandatory — no anonymous demo viewing.
-      router.replace("/setup");
-      return;
-    }
-    setPersona(saved);
-  }, [router]);
 
   if (!persona) {
     return (

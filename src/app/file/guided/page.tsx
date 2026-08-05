@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
-import { loadPersona, setPersonaPath } from "@/lib/setup-storage";
+import { setPersonaPath } from "@/lib/setup-storage";
+import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
-import { Persona, readPersonaPath } from "@/lib/persona";
+import { readPersonaPath, type Persona } from "@/lib/persona";
 import { form1301, FormField } from "@/lib/form-1301/schema";
 import { calculate } from "@/lib/calculators/index";
 import { CopyButton } from "@/components/form-1301/copy-button";
@@ -45,19 +45,9 @@ function buildFieldMap(persona: Persona): Map<string, { field: FormField; displa
 }
 
 export default function GuidedPage() {
-  const router = useRouter();
-  const [persona, setPersona] = useState<Persona | null>(null);
+  const { persona, setPersona } = useRequiredPersona();
   const [moduleIndex, setModuleIndex] = useState(0);
   const [savedFlash, setSavedFlash] = useState(false);
-
-  useEffect(() => {
-    const p = loadPersona();
-    if (!p) {
-      router.push("/setup");
-      return;
-    }
-    setPersona(p);
-  }, [router]);
 
   if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">

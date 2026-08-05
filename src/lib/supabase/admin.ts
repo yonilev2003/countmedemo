@@ -3,6 +3,7 @@
 // users, account deletion, writing global tax_rules). NEVER import this from a
 // Client Component, and never expose SUPABASE_SERVICE_ROLE_KEY via NEXT_PUBLIC_*.
 
+import "server-only";
 import { createClient as createBaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 

@@ -60,6 +60,17 @@ export async function POST(request: NextRequest) {
       if (existing) return ack({ duplicate: true });
     }
 
+    // Never trust the charged amount from the PSP payload (result.amountAgorot) —
+    // derive it from our own plan catalog by the verified planId instead, so a
+    // manipulated/replayed payload can't record an inflated or deflated payment.
+    const { data: plan } = await admin
+      .from("plans")
+      .select("price_agorot")
+      .eq("id", planId)
+      .maybeSingle();
+    if (!plan) return ack({ ignored: "unknown_plan" });
+    const amountAgorot = plan.price_agorot;
+
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + (trackFor(planId).planId === "pro" ? 1 : 0));
 
@@ -85,7 +96,7 @@ export async function POST(request: NextRequest) {
     await admin.from("payments").insert({
       user_id: userId,
       subscription_id: (sub as { id?: string } | null)?.id ?? null,
-      amount_agorot: result.amountAgorot ?? 0,
+      amount_agorot: amountAgorot,
       currency: "ILS",
       status: "paid",
       psp: "tranzila",

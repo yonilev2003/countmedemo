@@ -471,6 +471,10 @@ export type Database = {
     Functions: {
       get_next_doc_number: { Args: { p_user_id: string }; Returns: number }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: number }
+      check_rate_limit: {
+        Args: { p_bucket_key: string; p_max: number; p_window_seconds: number }
+        Returns: { allowed: boolean; retry_after: number | null }[]
+      }
     }
     Enums: {
       [_ in never]: never
