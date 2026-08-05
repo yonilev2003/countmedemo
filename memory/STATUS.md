@@ -5,7 +5,19 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-08-05 (Sonnet) · ענף: `claude/routines-countme-bugs-8lxape` · החלטות: [[decisions]]
+> עודכן: 2026-08-05 (Sonnet) · ענף: `claude/routines-countme-bugs-8lxape` (**מוזג ל-main**, PR #32) · החלטות: [[decisions]]
+
+## ✅ 05/08 מאוחר — PR #32 מוזג + פרודקשן אומת חי (סגירת הסשן)
+
+יוני אישר במפורש: "אני רוצה שזה יהיה חלק מהקוד... בוא נעשה את הדחיפה". **PR #32 נפתח, CI ירוק
+(`build-and-unit`+`e2e`), מוזג ל-`main` (`fa0c4498`).** אומת אחרי-מיזוג (לא רק לפני, כמדיניות
+הנעולה): `get_project` על `countmedemo` הראה דיפלוי חדש `target:"production"` שעבר
+`BUILDING`→`READY` תוך כ-80 שניות; `countmedemo-eight.vercel.app` עדיין ברשימת הדומיינים.
+**כל 18 הקומיטים של הסשן חיים בפרודקשן עכשיו** — כולל תיקון דליפת ה-PII (הדחוף ביותר), RLS,
+rate-limiting עמיד, CSP monitoring, ותיקוני הדומיין. גם CI על `push` ל-`claude/**` (מקומיט מוקדם
+יותר בסשן) אומת בפועל — רץ על כל push לענף הזה במהלך הסשן, לא רק על ה-PR.
+**נשאר בדיוק כמו שתועד למעלה ב-05/08** (redirect URL, spend cap, Supabase upgrade, זהות
+`countmedemo.vercel.app`, עוד) — שום דבר לא השתנה מלבד שהכל עכשיו ב-`main`, לא רק בענף.
 
 ## 🎯 05/08 — אודיט מוכנות ל-100 משתמשים (Workflow, 23 סוכנים) + תיקוני domain/RLS/rate-limit
 
