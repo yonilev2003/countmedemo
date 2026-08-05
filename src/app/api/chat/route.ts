@@ -9,6 +9,7 @@ import {
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
@@ -102,10 +103,18 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  // Rate limit BEFORE parsing/validating the body — cheapest reject possible
-  const rl = checkRateLimit("chat", resolveClientKey(request), RATE_LIMIT_MAX_REQUESTS);
+  // Rate limit BEFORE parsing/validating the body — cheapest reject possible.
+  // In-memory first (catches an obvious flood without touching the DB), then
+  // the durable cross-instance check — this route calls Claude, so it's
+  // worth the one extra DB round-trip (see checkRateLimitDurable's JSDoc).
+  const clientKey = resolveClientKey(request);
+  const rl = checkRateLimit("chat", clientKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) {
     return rateLimitResponse(rl.retryAfter);
+  }
+  const rlDurable = await checkRateLimitDurable("chat", clientKey, RATE_LIMIT_MAX_REQUESTS);
+  if (!rlDurable.allowed) {
+    return rateLimitResponse(rlDurable.retryAfter);
   }
 
   // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,

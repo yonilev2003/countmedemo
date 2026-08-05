@@ -10,6 +10,7 @@ import {
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
@@ -238,9 +239,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const rl = checkRateLimit("coach", resolveClientKey(request), RATE_LIMIT_MAX_REQUESTS);
+  const clientKey = resolveClientKey(request);
+  const rl = checkRateLimit("coach", clientKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) {
     return rateLimitResponse(rl.retryAfter);
+  }
+  const rlDurable = await checkRateLimitDurable("coach", clientKey, RATE_LIMIT_MAX_REQUESTS);
+  if (!rlDurable.allowed) {
+    return rateLimitResponse(rlDurable.retryAfter);
   }
 
   // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
