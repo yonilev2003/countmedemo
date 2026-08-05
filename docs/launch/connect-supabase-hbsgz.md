@@ -8,7 +8,7 @@ supersedes: ההחלטה הקודמת על akfg (בוטלה)
 # יישור קו: ה-backend החי הוא `hbsgzelipeawkvtcazdr`
 
 **תיקון:** בסשן קודם החלטתי להשתמש ב-`akfg` כי הוא היחיד שחשבון ה-MCP שלי רואה.
-**זו הייתה טעות.** הפרויקט האמיתי, החי, שעליו רץ `countmedemo.vercel.app` ושבו יוני
+**זו הייתה טעות.** הפרויקט האמיתי, החי, שעליו רץ `countmedemo-eight.vercel.app` (**תוקן 05/08**) ושבו יוני
 עובד בקונסולה, הוא **`hbsgzelipeawkvtcazdr`** — בדיוק כמו ש-`memory/decisions.md` תיעד מלכתחילה.
 
 - ✅ ה-init schema (profiles, RLS, persona, וכו') **כבר קיים** ב-hbsgz — הוא נבנה שם, וה-Google

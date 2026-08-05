@@ -6,6 +6,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { track, type EventName } from "@/lib/analytics/track";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
+
+const RATE_LIMIT_MAX_REQUESTS = 60; // generous — legitimate UI fires several events per page
 
 const ALLOWED: ReadonlySet<string> = new Set<EventName>([
   "setup_started",
@@ -28,6 +35,27 @@ const ALLOWED: ReadonlySet<string> = new Set<EventName>([
 ]);
 
 export async function POST(request: NextRequest) {
+  // Stamp the real user server-side (do not trust a client-supplied id) before
+  // rate limiting, so a signed-in user is throttled per-account rather than
+  // sharing an IP-keyed bucket with everyone else behind the same NAT.
+  let userId: string | null = null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } catch {
+    // anonymous event — fine.
+  }
+
+  const rl = checkRateLimit(
+    "track",
+    resolveClientKey(request, userId),
+    RATE_LIMIT_MAX_REQUESTS,
+  );
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+
   let body: { name?: unknown; props?: unknown; path?: unknown };
   try {
     body = await request.json();
@@ -46,18 +74,6 @@ export async function POST(request: NextRequest) {
       ? (body.props as Record<string, unknown>)
       : {};
   const path = typeof body.path === "string" ? body.path.slice(0, 256) : null;
-
-  // Stamp the real user server-side (do not trust a client-supplied id).
-  let userId: string | null = null;
-  try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    userId = user?.id ?? null;
-  } catch {
-    // anonymous event — fine.
-  }
 
   await track(name as EventName, props, { userId, path });
   return NextResponse.json({ ok: true });

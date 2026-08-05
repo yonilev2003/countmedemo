@@ -14,6 +14,13 @@ import { isBillingEnabled } from "@/lib/billing/entitlement";
 import { trackFor, type PlanId } from "@/lib/billing/tracks";
 import { getProvider } from "@/lib/billing/provider";
 import { track } from "@/lib/analytics/track";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
+
+const RATE_LIMIT_MAX_REQUESTS = 10; // per minute — starting a checkout is a rare, deliberate action
 
 export async function POST(request: NextRequest) {
   let body: { planId?: unknown };
@@ -37,6 +44,17 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   }
+
+  // Rate-limit AFTER auth (unlike the Claude-cost routes) — this route is
+  // already gated on a Supabase round-trip regardless, so there's no cheap
+  // pre-auth reject to preserve, and keying by the real user id (rather than
+  // IP) is strictly better defense here.
+  const rl = checkRateLimit(
+    "billing-checkout",
+    resolveClientKey(request, user.id),
+    RATE_LIMIT_MAX_REQUESTS,
+  );
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
 
   await track("checkout_started", { planId }, { userId: user.id, path: "/api/billing/checkout" });
 

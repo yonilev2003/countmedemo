@@ -15,7 +15,9 @@ updated: 2026-06-19
 בשתי קונסולות בלבד: (1) **App name** ב-Google OAuth consent screen, (2) **המארח** של ה-redirect.
 
 > **מותאם למצב שלנו: Vercel חינמי + בלי דומיין משלנו עדיין + Supabase Free.**
-> מבוסס על בדיקת המגבלות (יוני/Gemini, 2026-06-19). הלייב הנוכחי: `https://countmedemo.vercel.app`.
+> מבוסס על בדיקת המגבלות (יוני/Gemini, 2026-06-19). הלייב הנוכחי: `https://countmedemo-eight.vercel.app`
+> (**תוקן 05/08** — המסמך הזה הפנה בטעות ל-`countmedemo.vercel.app`, שאינו domain רשום על אף
+> פרויקט Vercel בחשבון; אומת מול Vercel API. ראה `memory/decisions.md`).
 
 ---
 
@@ -43,8 +45,8 @@ updated: 2026-06-19
 > את השלבים למטה מול akfg — הם לא השפיעו על הפרודקשן האמיתי ויש לחזור עליהם מול hbsgz.
 
 1. **Authentication → URL Configuration:**
-   - **Site URL** = `https://countmedemo.vercel.app`
-   - **Redirect URLs** = הוסף `https://countmedemo.vercel.app/auth/callback`
+   - **Site URL** = `https://countmedemo-eight.vercel.app`
+   - **Redirect URLs** = הוסף `https://countmedemo-eight.vercel.app/auth/callback`
      ו-`http://localhost:3000/auth/callback` (לפיתוח).
 2. **Authentication → Providers → Google:** הזן **Client ID + Client Secret** מאותו פרויקט Google
    של שלב 1 (חייב להיות אותו פרויקט). ב-Google Cloud → Credentials → OAuth client →
@@ -64,5 +66,5 @@ updated: 2026-06-19
   (עם `supabase.co` קטן מתחת — תקין לבטא) → חזרה ל-`/auth/callback` → נחיתה על `/dashboard`.
 
 ## שורה תחתונה
-שלב 1 (בלי לוגו, Testing + test users) + שלב 2 (עם `countmedemo.vercel.app`) = הכותרת
+שלב 1 (בלי לוגו, Testing + test users) + שלב 2 (עם `countmedemo-eight.vercel.app`) = הכותרת
 "להמשיך אל CountMe" עכשיו, בחינם. שלב 3 דחוי לרכישת דומיין/Pro.

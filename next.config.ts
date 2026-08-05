@@ -5,8 +5,12 @@ import type { NextConfig } from "next";
 // we can watch for violations in the live pilot without breaking anything.
 
 // Content-Security-Policy, report-only for now.
-// TODO(security): after 2+ weeks of monitoring browser console / reports with
-// no violations, rename the header to "Content-Security-Policy" to enforce.
+// TODO(security): monitoring was wired up 2026-08-05 (/api/csp-report,
+// see report-uri below) - before that, this ran report-only for over a
+// month with nowhere for violations to land, so "no violations" was never
+// actually observed. After 2+ weeks of real reports with none, rename the
+// header to "Content-Security-Policy" to enforce AND replace 'unsafe-inline'/
+// 'unsafe-eval' in script-src with nonces/strict-dynamic first.
 const cspReportOnly = [
   // Fallback for anything not listed below — same-origin only.
   "default-src 'self'",
@@ -31,6 +35,11 @@ const cspReportOnly = [
   "base-uri 'self'",
   // Forms only ever submit to ourselves.
   "form-action 'self'",
+  // Send violation reports somewhere the team can actually see them (Vercel
+  // logs), instead of only each visitor's own browser console. Legacy
+  // directive, but still respected by every major browser for report-only
+  // mode — see src/app/api/csp-report/route.ts.
+  "report-uri /api/csp-report",
 ].join("; ");
 
 const securityHeaders = [

@@ -2,7 +2,7 @@
 
 > AI-native financial-ops לעצמאים בישראל — מילוי טופס 1301, ניהול חשבוניות, ודשבורד רווח והפסד.
 
-**דמו חי:** [countmedemo.vercel.app](https://countmedemo.vercel.app)
+**דמו חי:** [countmedemo-eight.vercel.app](https://countmedemo-eight.vercel.app)
 
 ---
 
