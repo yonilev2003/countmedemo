@@ -18,7 +18,7 @@ const APP_DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://countmedemo.vercel.app",
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://countmedemo-eight.vercel.app",
   ),
   title: APP_TITLE,
   description: APP_DESCRIPTION,

@@ -52,11 +52,16 @@ build ירוקים אחרי כל קומיט):**
    (`parseWebhook` תמיד `paid:false`) — defense-in-depth, תואם את הצדקת חיזוק ה-RPCs מ-PR #30.
 8. `ci.yml` — נוסף `push` trigger ל-`claude/**` (לא רק PR ל-main) — זו הסיבה שהשרשור מ-26/07
    "נעלם" בלי שאף אחד ידע. טרייד-אוף מתועד: PR שנפתח על ענף כזה ירוץ פעמיים.
-9. **תיקון דומיין:** `countmedemo-eight.vercel.app` שכתבתי בטעות בקומיטים 4–5 (הועתק מהאודיט
-   של הסשן האחר) **שגוי** — הדומיין הקנוני האמיתי הוא **`countmedemo.vercel.app`** (יוני אישר
-   במפורש). תוקן בקוד (`src/app/layout.tsx` metadataBase fallback + `.env.template`) ובתיעוד
-   (`beta-go-live-runbook.md`). שאר האזכורים הישנים של "eight" ב-`memory/` הם רשומות-יומן
-   היסטוריות (מ-10/06 ואילך, כשזה כן היה הדומיין בפועל) — **לא** לשכתב אותן.
+9. **תיקון דומיין → תוקן שוב, הפעם עם ראיה:** תחילה שיניתי בטעות ל-`countmedemo.vercel.app` לפי
+   בקשת יוני (בלי לאמת). יוני ביקש וידוא — **בדיקה דרך Vercel API (`get_project` על כל 9 הפרויקטים
+   בחשבון `yonilev2003s-projects`) מראה חד-משמעית ש-`countmedemo.vercel.app` אינו domain רשום
+   על אף פרויקט.** הדומיין האמיתי של `countmedemo` (‏`prj_3IlHVinVBsD8s16lXEEdGYUWMujj`) הוא
+   **`countmedemo-eight.vercel.app`** + 2 aliases אוטומטיים. **הוחזר** ב-`src/app/layout.tsx`,
+   `.env.template`, `beta-go-live-runbook.md`. ניסיון לבדוק את `https://countmedemo.vercel.app/`
+   עצמו (curl/WebFetch) נכשל — ה-proxy היוצא של הסביבה חוסם CONNECT ל-vercel.app (403 מה-proxy
+   עצמו, לא בהכרח מהאתר האמיתי) — **לא הצלחתי לאשר/להפריך מה מוצג שם בפועל**, רק שהוא לא שייך
+   לאף אחד מ-9 הפרויקטים של יוני. טבלת כל 9 הדומיינים ב-[[decisions]].
+   שאר האזכורים הישנים של "eight" ב-`memory/` הם רשומות-יומן היסטוריות (מ-10/06 ואילך) — לא נגעתי.
 
 **סטטוס עדכני של החוסמים (יוני אישר 03/08 מאוחר — לא לשאול שוב):**
 - ✅ `AUTH_GATING_ENABLED=true` — בוצע.
