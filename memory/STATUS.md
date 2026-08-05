@@ -5,7 +5,56 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-08-03 (Sonnet) · ענף: `claude/routines-countme-bugs-8lxape` · החלטות: [[decisions]]
+> עודכן: 2026-08-05 (Sonnet) · ענף: `claude/routines-countme-bugs-8lxape` · החלטות: [[decisions]]
+
+## 🎯 05/08 — אודיט מוכנות ל-100 משתמשים (Workflow, 23 סוכנים) + תיקוני domain/RLS/rate-limit
+
+> המשך ישיר של סבב 03/08 (למטה). יוני ביקש "יישור קו רציני... policy... prechecks לדיפלוי כמוצר
+> של ~100 משתמשים". שלושה דברים קרו: (1) וידוא-דומיין דרך Vercel API בפועל, (2) תיקון RLS/FK חי
+> מול hbsgz, (3) Workflow אודיט מקיף (6 מימדים במקביל + אימות-אדוורסרי ל-3 הביטחוניים).
+
+**⚠️ הממצא הקריטי ביותר של כל הסשן:** **הפרודקשן (`main`, מוזג לאחרונה 24/07) עדיין לא כולל את
+תיקון דליפת-ה-PII בין-משתמשים מ-12 הדפים (סבב 03/08 למטה)** — התיקון קיים רק על הענף הזה,
+לא-ממוזג. כלומר הבאג החי (שיתוף-מכשיר יכול להבזיק ת.ז./הכנסה/בנק של משתמש קודם) **עדיין באוויר
+בפרודקשן היום**, 12 יום אחרי שאותר. פתיחת PR + מיזוג + דיפלוי היא החלטה של יוני (CLAUDE.md: לא
+פותחים PR בלי בקשה מפורשת) — **לא פתחתי PR**, רק מתעד את הדחיפות.
+
+**וידוא-דומיין (3 מקורות עצמאיים, לא ניחוש):** `get_project` על כל 9 פרויקטי Vercel בחשבון
+`yonilev2003s-projects` — אף אחד לא מחזיק `countmedemo.vercel.app`. `get_deployment`/
+`web_fetch_vercel_url` (עוקף את ה-proxy הסביבתי, פונה ישירות ל-API של Vercel) על אותו hostname →
+404/"unable to create shareable URL" — **Vercel עצמו לא מזהה אותו כדיפלוי בחשבון הזה בכלל**. סריקת
+30/30 PRs שנפתחו אי-פעם בריפו (כולם מוזגו, האחרון #31 ב-24/07) + תאריך-קומיט-אחרון על כל 52
+הענפים — אין ענף/PR נוסף מהחודש האחרון מעבר למה שכבר ידוע. **מסקנה: `countmedemo-eight.vercel.app`
+הוא הדומיין האמיתי היחיד; `countmedemo.vercel.app` לא קשור לחשבון הזה בכלל** — תוקן בקוד
+(`layout.tsx`, `.env.template`) ובכל התיעוד (`README.md`, `oauth-branding.md` — שהיה מנחה את יוני
+להגדיר Site URL/Redirect URL **שגוי** ב-Supabase, `connect-supabase-hbsgz.md`,
+`multi-tenant-security.md`, `beta-go-live-runbook.md`). מי/מה מגיש בפועל את `countmedemo.vercel.app`
+**עדיין לא ידוע** — לא ניתן לבדוק מכאן (proxy הסביבה חוסם, וה-MCP לא רואה את חשבון `countmes-projects`
+השני). יוני: לבדוק ב-Vercel Dashboard → Domains ישירות.
+
+**"ה-policy" = RLS, אומת ותוקן חי מול hbsgz:** `get_advisors` הראה 9 מדיניות-RLS קוראות ל-`auth.uid()`
+ישירות (נבדק מחדש לכל שורה, לא פעם אחת לשאילתה — פוגע בביצועים בקנה-מידה) + 3 foreign keys בלי
+אינדקס. תוקן במיגרציה `20260805170000_rls_perf_fk_index.sql`, הופעל חי, אומת שה-advisor נקי.
+
+**Workflow אודיט (6 מימדים, אימות-אדוורסרי ל-CSP/CORS/gating) — הדוח המלא בהיסטוריית הצ'אט; תמצית:**
+- **CRITICAL נוספים:** rate-limiter in-memory/per-instance לא עומד בעומס-מקבילי (12/דקה יכול
+  להיות בפועל 12×מספר-instances) · **אין תקרת-הוצאה קשיחה ל-Anthropic בקוד בכלל** (`logAiUsage`
+  זה רק console.log) · Supabase free tier = **אפס גיבויים/PITR** + auto-pause אחרי ~7 ימי-שקט.
+- **HIGH:** CSP עדיין report-only, 34 יום אחרי שחלון-הניטור-העצמי-שהוצהר חלף — **תוקן חלקית**
+  (נוסף `/api/csp-report` + `report-uri`, עדיין **לא** enforced — צריך קודם להסיר unsafe-inline/eval).
+  `resolveClientKey` תומך ב-userId אבל אף route לא מעביר אותו (chat/coach/upload/parse-invoice —
+  4 המסלולים היקרים ביותר, עדיין לא תוקן, דורש עיצוב-מחדש של סדר rate-limit/auth). היסטוריית-שיחה
+  client-controlled ב-chat/coach מאפשרת מכפיל-עלות ×7-15 לבקשה מנוסחת.
+- **תוקן במלואו הסבב הזה:** `/api/track` ו-`/api/billing/checkout` היו בלי rate-limit בכלל — נוסף,
+  keyed ל-user כשידוע (הראשונים בקודבייס שבאמת משתמשים בפרמטר ה-userId של `resolveClientKey`).
+- **אומת "בסדר, אין פעולה":** CORS — אין headers בכלל, זו הפוזיציה הנכונה · headers ביטחוניים אחרים
+  (HSTS/X-Frame-Options/וכו') אכופים ותקינים · כל route שעולה כסף/PII באמת חסום ב-`requireUserIfGated`
+  · באג `PROTECTED_PREFIXES` הישן **כבר תוקן בקוד** (`a4ebe32`) — רק תיעוד ישן עדיין מציג אותו כפתוח.
+- **נשאר במלואו ליוני (לא קוד):** Supabase Pro upgrade (סוגר גם גיבויים וגם auto-pause) · תקרת-הוצאה
+  קשיחה ב-Anthropic Console · אימות מגבלות Vercel Hobby (region יחיד `iad1`, timeout/concurrency) ·
+  הדלקת "Leaked Password Protection" ב-Supabase (טוגל אחד) · זהות `countmedemo.vercel.app`.
+
+6 קומיטים נוספים (`fa43c8d`...`62fc8b5`), 147/147 טסטים + build ירוקים על כל אחד.
 
 ## 🎯 03/08 ערב — תיקון 5 באגים מהאודיט של ה-Routine היומי + איחוד 3 שרשורי-זיכרון תקועים
 
