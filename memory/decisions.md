@@ -1,12 +1,27 @@
 ---
 tags: [decisions, countme]
-related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
+related: "[[STATUS]] · [[progress]]"
 ---
 
 # decisions — יומן החלטות נעולות
 
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
+
+## סשן 11/08/2026 (Fable) — עדכונים רוחביים (מנוע הוצאות/מסקוט/onboarding/expenses) + pruning
+
+| החלטה / משימה | ערך | סטטוס + תוצר |
+|---|---|---|
+| מנוע ההוצאות = שכבת-ידע נפרדת, לא מחובר למחשבונים | `src/lib/expense-engine/` לא נוגע ב-`lib/calculators`/`lib/regulatory/deductions.ts`; חיווט לחישובי 1301/P&L בפועל = סבב עתידי | **נעול לסבב הזה** — golden test מוודא רק עקביות-צולבת מול `types.ts`, לא מיזוג |
+| שחזור 3 שורות חסרות בקובץ-המקור (VEH-01/P001/DEP-01) | הקובץ המקורי חסר בעקביות את השורה-הראשונה בכל גיליון (באג-authoring באוגוסט); שוחזרו מקורות-צולבים **בתוך אותו קובץ** (PDF page 2, "% רכב" בגיליון professions, DEP-01 שקיים ב-rules_global אך לא בגיליון depreciation הנפרד) | **נעול** — מתועד בקוד (`RECONSTRUCTED_VEH_01`/`RECONSTRUCTED_P001` ב-generate.ts) + ב-STATUS. EB-001/EX-0001 **לא** שוחזרו — אין מקור-אימות, הספירה האמיתית 22/595 לא 23/596 |
+| פלטת-צבעים בארטיפקטים של יוני (onboarding-v5, מוקאפ-הוצאות) | 3 פלטות שונות מהברנד-קיט הנעול | **לא הוחלף בשקט** — נשארנו עם Brand Kit הנעול; הארטיפקטים = רפרנס-UX בלבד. אם יוני מתכוון שפלטה חדשה תחליף את הקיים — דורש דיון מפורש (יש "ספר שפה עיצובית" שאין לנו?) |
+| מסכי סיסמה+SMS OTP + "חברה בע״מ" בארטיפקט onboarding-v5 | הארטיפקט כלל auth כפול (מקביל ל-Google OAuth הקיים) ואופציית-חברה שסותרת "יחידים בלבד" | **לא הוטמעו** — Google OAuth בלבד נשאר; "חברה בע״מ" הוסר. אם auth-כפול הוא כוונה אמיתית, זו החלטת-ארכיטקטורה נפרדת (ספק SMS? איפה נשמרות סיסמאות?) שלא הוכרעה כאן |
+| מסקוט חדש מחליף את "איתן" | `CHARACTER.name="שקל"` **placeholder**, `public/mascot/mascot.svg` **זמני** — שניהם ממתינים לתוכן אמיתי מיוני | **seam נעול** (`src/lib/agent/character.ts`) — שינוי עתידי = קובץ אחד. מזהי-קוד/routes/analytics לא שונו בכוונה |
+| `/onboarding` מחליף את `/setup` כנקודת-כניסה | לפי `docs/specs/beta/onboarding.md` (נכתב 19/07, לא נבנה עד עכשיו) — ONB-1..ONB-11 מומשו, ONB-12..15 לא | **נעול, revisitable** — `/setup` נשאר כזרימת "השלמת פרטים לדוח" |
+| Pruning: סקילים 18→8 | דמוט 10 תיקיות (expense-categorizer/receipt-scanner/hebrew-ocr-forms/ui-design-system/hebrew-tailwind-preset/ai-compliance-kit/id-validator/il-invoice-organizer/financial-reports/tax-withholding) — כולן נשארות ב-`skills-lock.json`, הפיך | **בוצע** — כל אחת אומתה קודם (יש שורה ב-lock + grep-רפרנסים) |
+| Pruning: puppeteer→playwright ב-regulatory-watch | `scripts/regulatory-watch/report.ts` השתמש בפועל ב-puppeteer ל-PDF; לא נמחק בלי אימות-שימוש קודם | **בוצע** — אומת שימוש אמיתי לפני שינוי, smoke test 11/11 אחרי, CI workflow עודכן (`npx playwright install`) |
+| Pruning: CLAUDE.md 372→160 שורות | לא cherry-pick עיוור מהענף התקוע (`system-beta-preparation-oiyzpy`) — עודכן במלואו לשקף את הסבב הזה | **בוצע** |
+| תג `pre-prune-2026-08` | ניסיון push נכשל (403 — הרשאות-טוקן לא כוללות דחיפת-תגיות) | תג מקומי בלבד, לא נחוץ מעבר לזה — כל הקוד בפועל מחויב+נדחף כרגיל |
 
 ## סשן 03/08/2026 (Sonnet) — תיקון-באגים מה-Routine היומי; החלטות ומשימות שבוצעו
 

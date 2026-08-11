@@ -5,10 +5,10 @@
  * renders a print-ready Hebrew (RTL) executive report, then writes both an
  * .html and a .pdf to `.regulatory-watch/reports/YYYY-MM-DD.{html,pdf}`.
  *
- * `generateHtmlReport` is pure (no I/O, no puppeteer) so it is trivially
- * testable. `writeReport` performs the filesystem + Chromium work; puppeteer
- * is imported lazily so that merely importing this module (e.g. in a unit
- * test of the HTML) never launches a browser.
+ * `generateHtmlReport` is pure (no I/O, no browser) so it is trivially
+ * testable. `writeReport` performs the filesystem + Chromium (via
+ * @playwright/test) work; the browser is imported lazily so that merely
+ * importing this module (e.g. in a unit test of the HTML) never launches one.
  *
  * The output directory can be overridden with REGWATCH_REPORT_DIR — used by
  * the GitHub Action so paths are injected via env rather than baked into the
@@ -441,10 +441,15 @@ export async function writeReport(summary: RunSummary): Promise<string> {
   await writeFile(htmlPath, html, "utf8");
 
   // Lazy import: keep generateHtmlReport (and unit tests) free of Chromium.
-  const puppeteer = (await import("puppeteer")).default;
-  const browser = await puppeteer.launch({
+  // Uses @playwright/test's bundled Chromium (already a devDependency for
+  // the e2e suite) instead of a second browser-automation library. Same
+  // PLAYWRIGHT_CHROMIUM_PATH override convention as playwright.config.ts —
+  // managed containers pre-install Chromium at a fixed path.
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
   });
   try {
     const page = await browser.newPage();

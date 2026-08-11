@@ -8,7 +8,7 @@
  * items are labeled and demoted) → persist the run summary. The heavy
  * Chromium/PDF render is intentionally a *separate* CI step that reads the
  * persisted summary (see report.ts / the workflow), so this loop stays light
- * and can run even where puppeteer can't.
+ * and can run even where a Chromium install isn't available.
  *
  * Environment:
  *   ANTHROPIC_API_KEY      — required to classify. Absent ⇒ classification is
