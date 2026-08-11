@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#EFEAE0;font-family:'Rubik',sans-serif;padding:40px 20px;display:flex;flex-wrap:wrap;gap:26px;justify-content:center}
+  .cap{text-align:center;font-size:13px;color:#5B7280;margin-bottom:10px;font-weight:500}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .frame{width:300px;background:#FAF7F0;border:8px solid #0A2E3E;border-radius:38px;overflow:hidden;color:#0A2E3E;box-shadow:0 20px 40px rgba(10,46,62,.18)}
+  .screen{height:610px;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;gap:11px;padding:18px 18px 4px}
+  .back{width:32px;height:32px;border-radius:50%;border:2px solid #E8E2D6;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#fff}
+  .title{font-size:16px;font-weight:500}
+  .head{padding:16px 20px 4px}
+  .head h1{font-size:19px;font-weight:500;line-height:1.35;margin:0}
+  .head p{font-size:12px;color:#5B7280;margin:4px 0 0}
+
+  /* upload */
+  .opts{padding:16px 20px 6px;display:flex;flex-direction:column;gap:9px}
+  .opt{border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:13px;cursor:pointer}
+  .opt.hero{background:#FFB84C}
+  .opt.plain{background:#fff;border:2px solid #E8E2D6}
+  .icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .opt b{font-size:14px;font-weight:500;display:block}
+  .opt span{font-size:11px;color:#5B7280}
+  .opt.hero span{color:#0A2E3E;opacity:.75}
+  .divider{display:flex;align-items:center;gap:10px;padding:2px 20px;margin:2px 0}
+  .divider .line{flex:1;height:1px;background:#E8E2D6}
+  .divider span{font-size:11px;color:#7A8C96}
+  .footer{margin-top:auto;padding:14px 20px 20px}
+  .tip{background:#E9EBFF;border-radius:14px;padding:11px 14px;font-size:11px;line-height:1.55}
+  .tip b{color:#5B67E8;font-weight:500}
+
+  /* scan/review */
+  .receipt-preview{margin:12px 20px 0;background:#fff;border:2px solid #E8E2D6;border-radius:18px;padding:10px;display:flex;gap:12px;align-items:center}
+  .thumb{width:56px;height:72px;border-radius:10px;background:linear-gradient(160deg,#fff 60%,#F1EEE6);border:1px solid #E8E2D6;flex-shrink:0;position:relative;overflow:hidden}
+  .thumb::before{content:'';position:absolute;top:8px;left:6px;right:6px;height:2px;background:#DDD}
+  .thumb::after{content:'';position:absolute;top:14px;left:6px;right:10px;height:2px;background:#DDD;box-shadow:0 8px 0 #DDD,0 16px 0 #DDD,0 24px 0 #DDD}
+  .scan-status{font-size:12px;font-weight:500;color:#5B67E8}
+  .scan-status span{display:block;font-size:10.5px;color:#5B7280;font-weight:400;margin-top:2px}
+  .badge-ok{background:#E9EBFF;color:#5B67E8;font-size:10px;font-weight:500;padding:3px 9px;border-radius:99px;display:inline-flex;align-items:center;gap:4px;margin-top:6px}
+  .fields{padding:14px 20px 6px;display:flex;flex-direction:column;gap:10px}
+  .fgroup label{font-size:11.5px;font-weight:500;color:#5B7280;display:block;margin-bottom:5px}
+  .fbox{background:#fff;border:2px solid #E8E2D6;border-radius:13px;padding:11px 13px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+  .fbox.detected{border-color:#5B67E8;background:#E9EBFF}
+  .fbox .val{font-weight:500}
+  .fbox .auto{font-size:9.5px;color:#5B67E8;font-weight:500}
+  .cat-row{display:flex;gap:7px;flex-wrap:wrap}
+  .cat{font-size:11.5px;padding:8px 13px;border-radius:99px;border:1.5px solid #E8E2D6;background:#fff}
+  .cat.on{background:#0A2E3E;color:#FAF7F0;border-color:#0A2E3E}
+  .deduct-note{margin:4px 20px 0;background:#FFF6E8;border-radius:13px;padding:10px 13px;font-size:11px;line-height:1.5;color:#8A6414}
+  .save-btn{margin:14px 20px 20px;background:#0A2E3E;color:#FAF7F0;border-radius:999px;padding:15px;text-align:center;font-size:14.5px;font-weight:500}
+
+  /* summary list */
+  .sum-head{padding:18px 20px 4px}
+  .sum-total{display:flex;justify-content:space-between;align-items:baseline;background:#0A2E3E;color:#FAF7F0;border-radius:18px;padding:16px 18px;margin:12px 20px 0}
+  .sum-total div small{display:block;font-size:10.5px;opacity:.65;margin-bottom:2px}
+  .sum-total .n{font-size:24px;font-weight:500}
+  .sum-total .n.peri{color:#9DA8FF}
+  .filter-row{display:flex;gap:7px;padding:12px 20px 6px;overflow-x:auto}
+  .filter-row .f{font-size:11px;padding:7px 13px;border-radius:99px;border:1.5px solid #E8E2D6;background:#fff;white-space:nowrap;flex-shrink:0}
+  .filter-row .f.on{background:#0A2E3E;color:#FAF7F0;border-color:#0A2E3E}
+  .exp-list{flex:1;overflow-y:auto;padding:6px 20px 8px}
+  .exp-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #E8E2D6}
+  .exp-thumb{width:38px;height:38px;border-radius:10px;background:#F1EEE6;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .exp-info{flex:1;min-width:0}
+  .exp-info b{font-size:13.5px;font-weight:500;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .exp-info span{font-size:10.5px;color:#5B7280}
+  .exp-amt{text-align:left;flex-shrink:0}
+  .exp-amt b{font-size:14px;font-weight:500;display:block}
+  .exp-amt small{font-size:9px;color:#5B67E8;background:#E9EBFF;padding:2px 7px;border-radius:99px}
+  .export-bar{padding:12px 20px 20px}
+  .export-btn{background:#FFB84C;border-radius:999px;padding:14px;text-align:center;font-size:13.5px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px}
+  .export-note{text-align:center;font-size:10px;color:#7A8C96;margin-top:7px}
+</style>
+</head>
+<body>
+
+<div class="col">
+  <div class="cap">1 · העלאה — אלבום, קבצים, הקלטה או ידני</div>
+  <div class="frame"><div class="screen">
+    <div class="topbar">
+      <div class="back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2.5" style="transform:scaleX(-1)"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="title">הוצאה חדשה</div>
+    </div>
+    <div class="head">
+      <h1>איך תרצי<br>להעלות?</h1>
+      <p>הפרטים יזוהו אוטומטית מהתמונה</p>
+    </div>
+    <div class="opts">
+      <div class="opt hero">
+        <div class="icon" style="background:rgba(10,46,62,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div><b>צילום עכשיו</b><span>פותח מצלמה, מזהה מיד</span></div>
+      </div>
+      <div class="opt plain">
+        <div class="icon" style="background:#E9EBFF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B67E8" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg></div>
+        <div><b>מאלבום התמונות</b><span>קבלה שכבר צילמת בעבר</span></div>
+      </div>
+      <div class="opt plain">
+        <div class="icon" style="background:#F1EEE6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg></div>
+        <div><b>קובץ מהמכשיר</b><span>PDF, חשבונית שהתקבלה במייל</span></div>
+      </div>
+      <div class="divider"><div class="line"></div><span>או</span><div class="line"></div></div>
+      <div class="opt plain">
+        <div class="icon" style="background:#F1EEE6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0M12 17v4"/></svg></div>
+        <div><b>הקלטה קולית</b><span>"אוזניות, 350 שקל, WOLT"</span></div>
+      </div>
+      <div class="opt plain">
+        <div class="icon" style="background:#F1EEE6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg></div>
+        <div><b>הזנה ידנית</b><span>בלי קבלה בכלל — גם זה בסדר</span></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="tip"><b>איתן:</b> אפשר להעלות כמה קבלות ברצף — מזהה כל אחת בנפרד.</div>
+    </div>
+  </div></div>
+</div>
+
+<div class="col">
+  <div class="cap">2 · זיהוי אוטומטי — לבדיקה ואישור</div>
+  <div class="frame"><div class="screen">
+    <div class="topbar">
+      <div class="back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2.5" style="transform:scaleX(-1)"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="title">בדיקת פרטים</div>
+    </div>
+
+    <div class="receipt-preview">
+      <div class="thumb"></div>
+      <div class="scan-status">זוהתה קבלה
+        <span>מ-Wolt · נסרק ב-0.4 שנ'</span>
+        <div class="badge-ok">✓ זוהו 5 שדות אוטומטית</div>
+      </div>
+    </div>
+
+    <div class="fields">
+      <div class="fgroup">
+        <label>ספק / עסק</label>
+        <div class="fbox detected"><span class="val">WOLT מסעדות בע"מ</span><span class="auto">זוהה</span></div>
+      </div>
+      <div class="fgroup">
+        <label>מספר קבלה / חשבונית מס</label>
+        <div class="fbox detected"><span class="val">INV-2026-88213</span><span class="auto">זוהה</span></div>
+      </div>
+      <div class="fgroup">
+        <label>תאריך</label>
+        <div class="fbox detected"><span class="val">04.07.2026</span><span class="auto">זוהה</span></div>
+      </div>
+      <div class="fgroup">
+        <label>סכום כולל</label>
+        <div class="fbox detected"><span class="val">₪ 148.00</span><span class="auto">זוהה</span></div>
+      </div>
+      <div class="fgroup">
+        <label>מזה מע״מ (18%)</label>
+        <div class="fbox detected"><span class="val">₪ 22.58</span><span class="auto">חושב</span></div>
+      </div>
+      <div class="fgroup">
+        <label>קטגוריה</label>
+        <div class="cat-row">
+          <span class="cat on">פגישות עבודה</span>
+          <span class="cat">ציוד</span>
+          <span class="cat">תוכנות</span>
+          <span class="cat">אחר</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="deduct-note">⚠ מוכר חלקית בלבד — פגישות עבודה מוכרות ל-80% מהסכום. איתן חישב את זה כבר בשבילך.</div>
+    <div class="save-btn">שמירה ברשימת ההוצאות</div>
+  </div></div>
+</div>
+
+<div class="col">
+  <div class="cap">3 · קובץ מסכם — כל ההוצאות למס</div>
+  <div class="frame"><div class="screen">
+    <div class="topbar">
+      <div class="back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2.5" style="transform:scaleX(-1)"><path d="M15 18l-6-6 6-6"/></svg></div>
+      <div class="title">כל ההוצאות</div>
+    </div>
+
+    <div class="sum-total">
+      <div><small>סה״כ השנה</small><span class="n">₪18,940</span></div>
+      <div><small>מזה מע״מ</small><span class="n peri">₪2,890</span></div>
+      <div><small>קבלות</small><span class="n">47</span></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="f on">הכל</span>
+      <span class="f">יולי 2026</span>
+      <span class="f">מוכר במלואו</span>
+      <span class="f">מוכר חלקית</span>
+      <span class="f">חסר סריקה</span>
+    </div>
+
+    <div class="exp-list">
+      <div class="exp-row">
+        <div class="exp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B7280" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.8"/><path d="M21 15l-5-5L5 21"/></svg></div>
+        <div class="exp-info"><b>WOLT מסעדות בע"מ</b><span>04.07 · פגישות עבודה</span></div>
+        <div class="exp-amt"><b>₪148</b><small>80%</small></div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B7280" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="exp-info"><b>Adobe Creative Cloud</b><span>01.07 · תוכנות</span></div>
+        <div class="exp-amt"><b>₪89</b><small>100%</small></div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B7280" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0M12 17v4"/></svg></div>
+        <div class="exp-info"><b>אוזניות עריכה — הוקלט</b><span>29.06 · ציוד</span></div>
+        <div class="exp-amt"><b>₪350</b><small>100%</small></div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FF8A66" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="exp-info"><b>קבלה מטושטשת</b><span>27.06 · דורש בדיקה ידנית</span></div>
+        <div class="exp-amt"><b>₪—</b></div>
+      </div>
+      <div class="exp-row">
+        <div class="exp-thumb"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B7280" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div>
+        <div class="exp-info"><b>מנוי Figma</b><span>25.06 · תוכנות</span></div>
+        <div class="exp-amt"><b>₪65</b><small>100%</small></div>
+      </div>
+    </div>
+
+    <div class="export-bar">
+      <div class="export-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0A2E3E" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        ייצוא קובץ מסכם לדוח השנתי
+      </div>
+      <div class="export-note">אקסל או PDF · כולל כל קבלה וכל מספר מס</div>
+    </div>
+  </div></div>
+</div>
+
+</body>
+</html>

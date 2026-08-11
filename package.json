@@ -9,7 +9,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen:expense-data": "node --experimental-strip-types scripts/expense-engine/generate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
