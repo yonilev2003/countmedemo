@@ -137,6 +137,13 @@ export interface PersonaBusiness {
   isOsekZeir: boolean;
   hasEmployees: boolean;
   employerNames: string[];
+  /**
+   * Optional link into the expense-engine dataset (lib/expense-engine) —
+   * a Profession.id ("P001".."P113") the user picked manually on
+   * /business-expenses, overriding the free-text primaryOccupation match
+   * (matchProfession). jsonb column in Supabase; no migration needed.
+   */
+  professionId?: string;
 }
 
 export interface PersonaBank {

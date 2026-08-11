@@ -25,6 +25,7 @@ import {
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { getUpcomingDeadlines, type FilerType } from "@/lib/deadlines/calendar";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { matchProfession, classifyExpense, explainFormula } from "@/lib/expense-engine";
 
 // Rendered into the LLM system prompt only (no UI surface); standardized on ₪.
 const ils = (n: number) => formatIls(Math.round(n));
@@ -93,7 +94,7 @@ export function buildRichContext(persona: Persona): string {
   }
   lines.push(
     "",
-    "יש לך כלים לשליפת ערכים מדויקים (get_form_value, get_tax_estimate, get_upcoming_deadlines, get_ceiling_status). השתמש בהם כשצריך מספר ספציפי, וצטט את הנוסחה/המקור שחוזר מהכלי. אל תמציא מספרים — אם אינך בטוח, קרא לכלי.",
+    "יש לך כלים לשליפת ערכים מדויקים (get_form_value, get_tax_estimate, get_upcoming_deadlines, get_ceiling_status, get_expense_rule לשאלות על הכרה בהוצאות). השתמש בהם כשצריך מספר ספציפי, וצטט את הנוסחה/המקור שחוזר מהכלי. אל תמציא מספרים — אם אינך בטוח, קרא לכלי.",
   );
   return lines.join("\n");
 }
@@ -135,6 +136,21 @@ export const EITAN_TOOLS: Anthropic.Tool[] = [
     name: "get_ceiling_status",
     description: "מחזיר את מצב תקרת המחזור (עוסק פטור/זעיר): מחזור נוכחי, התקרה, אחוז וניצול.",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_expense_rule",
+    description:
+      'מחזיר את כלל ההכרה (שיעור, מע"מ, תנאי, מקור בדין, רמת ביטחון) עבור הוצאה עסקית מסוימת, לפי המקצוע של המשתמש/ת. השתמש בזה במקום לנחש אחוזי הכרה.',
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: 'תיאור חופשי של ההוצאה, למשל "טלפון נייד" או "רכב".',
+        },
+      },
+      required: ["query"],
+    },
   },
 ];
 
@@ -179,6 +195,36 @@ export function runEitanTool(
       case "get_ceiling_status": {
         const c = computeCeilingAlert(persona);
         return JSON.stringify(c ?? { note: "אין תקרה רלוונטית (עוסק מורשה)" });
+      }
+      case "get_expense_rule": {
+        const query = String(input.query ?? "").trim();
+        const profession = matchProfession(
+          persona.business.primaryOccupation,
+          persona.income.year,
+        );
+        const { entry, matched } = classifyExpense(
+          query,
+          profession?.id ?? null,
+          persona.income.year,
+        );
+        if (!matched || !entry) {
+          return JSON.stringify({
+            matched: false,
+            note: "לא נמצאה התאמה ודאית — יש להציג את הקטגוריות באתר להשוואה",
+          });
+        }
+        return JSON.stringify({
+          matched: true,
+          nameHe: entry.nameHe,
+          category: entry.category,
+          incomeTaxFraction: entry.incomeTaxFraction,
+          vatFraction: entry.vatFraction,
+          formulaExplanationHe: explainFormula(entry.formula),
+          conditionHe: entry.conditionHe ?? null,
+          legalSourceHe: entry.legalSourceHe,
+          rateCertainty: entry.rateCertainty,
+          eligibilityConfidence: entry.eligibilityConfidence,
+        });
       }
       default:
         return JSON.stringify({ error: `כלי לא מוכר: ${name}` });
