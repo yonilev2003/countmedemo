@@ -102,6 +102,34 @@ export function StaggerItem({
 }
 
 /**
+ * Scale + fade a block in — the "celebration moment" primitive (onboarding's
+ * finish screen, a newly-selected chip/card). Reduced-motion users get the
+ * final state immediately, no scaling.
+ */
+export function PopIn({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const reduce = useReducedMotion();
+  if (reduce) return <div className={className}>{children}</div>;
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, ease: EASE, delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
  * Animate a number counting up to `value`. The "whoa, it computed MY number"
  * moment for calculated fields. Pass a `format` fn (e.g. formatCurrency) so the
  * displayed text matches the rest of the app. Reduced-motion → jumps to final.

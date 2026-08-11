@@ -4,7 +4,7 @@
  * /home — the post-login landing for RETURNING users (the "shortcuts home").
  *
  * Flow (decided with Yoni, "full device adaptation"):
- *   • first-timer (no persona)  → redirected to /setup
+ *   • first-timer (no persona)  → redirected to /onboarding (beta, ONB-7)
  *   • returning user (persona)  → this device-adaptive shortcuts hub
  *
  * The OAuth callback now sends everyone here by default; this page is the single
@@ -20,6 +20,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePersona } from "@/lib/data/use-persona";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 import { QUICK_ACTIONS } from "@/components/dashboard/quick-actions";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -45,9 +46,9 @@ export default function HomePage() {
   const router = useRouter();
   const { persona, source, loading } = usePersona();
 
-  // First-timer (resolved, no persona anywhere) → start the wizard.
+  // First-timer (resolved, no persona anywhere) → start onboarding.
   useEffect(() => {
-    if (source === "empty") router.replace("/setup");
+    if (source === "empty") router.replace(ONBOARDING_ROUTE);
   }, [source, router]);
 
   if (loading || source === "empty") return <HomeSkeleton />;

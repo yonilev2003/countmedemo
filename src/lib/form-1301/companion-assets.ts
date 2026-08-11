@@ -13,6 +13,8 @@
  * Missing files automatically fall back to the placeholder SVG in the repo.
  */
 
+import { CHARACTER } from "@/lib/agent/character";
+
 const path = (n: string) => `/eitan/companion/${n}.png`;
 
 // Semantic pose aliases — use these in modules.ts to pick a pose by intent.
@@ -51,5 +53,5 @@ export const screenshot11 = "/govil-screenshots/screenshot11.png";
 export const screenshot12 = "/govil-screenshots/screenshot12.png";
 
 // Fallback placeholders — committed SVGs that render when the real file is missing
-export const PLACEHOLDER_EITAN = "/eitan/placeholder-eitan.svg";
+export const PLACEHOLDER_EITAN = CHARACTER.avatarSrc;
 export const PLACEHOLDER_SCREENSHOT = "/eitan/placeholder-screenshot.svg";

@@ -26,6 +26,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   FileTextIcon,
   ReceiptIcon,
@@ -96,7 +97,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     href: "/coach",
-    label: "שיחה עם איתן",
+    label: `שיחה עם ${CHARACTER.name}`,
     hint: "שאל/י את העוזר החכם כל שאלה",
     icon: <SparklesIcon className="size-[22px]" />,
     tone: "bg-brand-navy text-brand",

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   StatusBadge,
   type Status,
@@ -176,7 +177,7 @@ export default function AlertsPage() {
               לדוח 1301
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <span className="text-brand-navy">שוחח עם איתן</span>
+              <span className="text-brand-navy">שוחח עם {CHARACTER.name}</span>
             </Link>
           </div>
         </div>

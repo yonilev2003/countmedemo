@@ -39,10 +39,26 @@
         "isEilatResident": { "type": "boolean" },
         "isSoldierDischarged": { "type": "boolean" },
         "soldierDischargeDate": { "type": ["string", "null"] },
+        "soldierServiceMonths": {
+          "type": ["integer", "null"],
+          "description": "Regular military service length in months — drives the discharged-soldier credit's full vs partial per-month rate. Absent/null ⇒ assume full."
+        },
         "academicDegreeYear": { "type": ["integer", "null"] },
         "aliyahDate": {
           "type": ["string", "null"],
           "description": "Date of aliyah (ISO format), for עולה חדש/ה credit calculation"
+        },
+        "reserveDaysByYear": {
+          "type": "object",
+          "description": "Combat reserve days served, keyed by service year (e.g. \"2025\"). Feeds the מילואים credit (תיקון 283).",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["combatDays"],
+            "properties": {
+              "combatDays": { "type": "integer" },
+              "nonCombatDays": { "type": "integer" }
+            }
+          }
         }
       }
     },
@@ -52,8 +68,16 @@
       "required": ["tradeName", "primaryOccupation", "osekType"],
       "properties": {
         "osekType": {
-          "enum": ["patur", "morshe", "company"],
-          "description": "Osek Patur (exempt) / Osek Murshe (registered) / Company"
+          "enum": ["patur", "morshe"],
+          "description": "Osek Patur (exempt) / Osek Murshe (registered). Form 1301 is for individuals only — companies file Form 1214 and are out of scope (locked product decision)."
+        },
+        "isOsekZeir": {
+          "type": "boolean",
+          "description": "עוסק זעיר — simplified 30% normative-expense track. Only meaningful when osekType is \"patur\"."
+        },
+        "professionId": {
+          "type": "string",
+          "description": "Optional link into the expense-engine dataset (lib/expense-engine) — a Profession.id (\"P001\"..\"P113\")."
         }
       }
     },
@@ -119,6 +143,30 @@
         }
       }
     },
-    "vatAndTurnover": { "type": "object" }
+    "vatAndTurnover": { "type": "object" },
+    "journey": {
+      "type": "object",
+      "description": "Onboarding journey metadata from the lite /onboarding flow (beta, docs/specs/beta/onboarding.md). Optional — absent on any persona created before this flow existed; such personas are treated as fully-experienced via lib/persona.ts getJourney().",
+      "required": ["tier", "incomeBand", "onboardingVersion", "onboardingCompletedAt", "filingDetailsCompleted"],
+      "properties": {
+        "tier": { "enum": ["pre", "first-year", "experienced"] },
+        "incomeBand": {
+          "enum": ["0-5k", "5-10k", "10-20k", "20k-plus", "irregular", null],
+          "description": "Monthly-revenue range — copy-context only, never a calculator input."
+        },
+        "authorities": {
+          "type": "object",
+          "description": "Authorities-filing filter answers — present only when tier is \"pre\".",
+          "properties": {
+            "masHachnasa": { "enum": ["yes", "no", "unsure"] },
+            "maam": { "enum": ["yes", "no", "unsure"] },
+            "bituachLeumi": { "enum": ["yes", "no", "unsure"] }
+          }
+        },
+        "onboardingVersion": { "enum": ["lite-v1", "legacy"] },
+        "onboardingCompletedAt": { "type": "string" },
+        "filingDetailsCompleted": { "type": "boolean" }
+      }
+    }
   }
 }

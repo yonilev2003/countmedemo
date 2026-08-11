@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { ArrowLeftIcon } from "@/components/brand/icons";
+import { CHARACTER } from "@/lib/agent/character";
 
 export const metadata = {
   title: "מדיניות פרטיות · countme",
@@ -106,7 +107,7 @@ export default function PrivacyPage() {
             <li>Supabase — אחסון מסד הנתונים והזדהות.</li>
             <li>Vercel — אירוח האתר.</li>
             <li>
-              Anthropic — מפעילת מודל ה-AI שמאחורי איתן: תוכן שאתם כותבים בצ׳אט
+              Anthropic — מפעילת מודל ה-AI שמאחורי {CHARACTER.name}: תוכן שאתם כותבים בצ׳אט
               ומסמכים שאתם מעלים נשלחים לעיבוד כדי להפיק תשובה, ואינם משמשים
               לאימון מודלים לפי תנאי הספק.
             </li>

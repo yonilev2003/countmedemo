@@ -13,11 +13,12 @@ import {
  * /api/upload — extract structured tax data from user-uploaded reports.
  *
  * Accepts multipart/form-data with:
- *   - file:  the document (xlsx or pdf)
- *   - kind:  "income-report" | "expenses-excel" | "form-106" | "donations"
+ *   - file:  the document (xlsx, pdf, or — for kind:"receipt" only — jpg/png)
+ *   - kind:  "income-report" | "expenses-excel" | "form-106" | "donations" | "receipt"
  *
  * Returns JSON with extracted fields. The client merges these into the
- * setup wizard's persona-in-progress.
+ * setup wizard's persona-in-progress (or, for "receipt", into the /expenses
+ * review-and-confirm card — see src/app/expenses/page.tsx).
  */
 
 // Rate limiting via the shared limiter (lib/security/rate-limit) — this also
@@ -32,11 +33,24 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
    ────────────────────────────────────────────────────────── */
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]; // "PK\x03\x04" — .xlsx is a ZIP container
+const JPEG_MAGIC = [0xff, 0xd8, 0xff]; // receipt photos (kind: "receipt" only)
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 function hasMagic(buf: ArrayBuffer, magic: number[]): boolean {
   if (buf.byteLength < magic.length) return false;
   const head = new Uint8Array(buf, 0, magic.length);
   return magic.every((byte, i) => head[i] === byte);
+}
+
+/** Sniff the actual image/PDF type from magic bytes — never trust the
+ *  client-supplied extension/MIME for what we then hand to the vision API. */
+function sniffReceiptMediaType(
+  buf: ArrayBuffer,
+): "application/pdf" | "image/jpeg" | "image/png" | null {
+  if (hasMagic(buf, PDF_MAGIC)) return "application/pdf";
+  if (hasMagic(buf, JPEG_MAGIC)) return "image/jpeg";
+  if (hasMagic(buf, PNG_MAGIC)) return "image/png";
+  return null;
 }
 
 export interface ExtractedData {
@@ -60,6 +74,27 @@ export interface ExtractedData {
   donationsTotal?: number;
   /** Optional human-readable summary the UI can show */
   summary?: string;
+}
+
+/**
+ * kind: "receipt" contract — a single field + a best-effort 0-1 confidence,
+ * per docs/specs/beta/artifacts/02-expense-upload-spec.md §3. Deliberately
+ * does NOT include a recognition/deduction rate: that is assigned afterward,
+ * client-side, by lib/expense-engine's classifyExpense/explainFormula —
+ * never by the vision prompt.
+ */
+export interface ExtractedReceiptField<T> {
+  value: T | null;
+  confidence: number; // 0..1, best-effort — the model's own stated confidence
+}
+
+export interface ExtractedReceiptData {
+  vendorName: ExtractedReceiptField<string>;
+  documentNumber: ExtractedReceiptField<string>;
+  date: ExtractedReceiptField<string>; // ISO YYYY-MM-DD
+  totalAmount: ExtractedReceiptField<number>;
+  currency: ExtractedReceiptField<"ILS" | "USD" | "EUR">;
+  description: ExtractedReceiptField<string>;
 }
 
 export async function POST(request: Request) {
@@ -101,7 +136,13 @@ export async function POST(request: Request) {
     return Response.json({ error: "קובץ גדול מדי (מקסימום 5MB)" }, { status: 413 });
   }
 
-  const validKinds = ["income-report", "expenses-excel", "form-106", "donations"];
+  const validKinds = [
+    "income-report",
+    "expenses-excel",
+    "form-106",
+    "donations",
+    "receipt",
+  ];
   if (!validKinds.includes(kind)) {
     return Response.json({ error: "kind not supported" }, { status: 400 });
   }
@@ -116,6 +157,29 @@ export async function POST(request: Request) {
   const isXlsx = file.name.toLowerCase().endsWith(".xlsx");
 
   try {
+    if (kind === "receipt") {
+      // Single receipt image/PDF — JPG, PNG, or single-page PDF (spec §3
+      // input support; multi-page PDF splitting is explicitly deferred,
+      // spec §6 "מסמך רב-עמודי").
+      const mediaType = sniffReceiptMediaType(arrayBuffer);
+      if (!mediaType) {
+        return Response.json(
+          { error: "פורמט קובץ לא נתמך — צרי JPG, PNG או PDF" },
+          { status: 415 },
+        );
+      }
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        return Response.json(
+          { error: "Vision API not configured" },
+          { status: 503 },
+        );
+      }
+      const base64 = Buffer.from(arrayBuffer).toString("base64");
+      const data = await parseReceiptWithClaude(base64, mediaType, apiKey);
+      return Response.json({ ok: true, data });
+    }
+
     if (kind === "expenses-excel") {
       if (!isXlsx) {
         return Response.json(
@@ -350,4 +414,135 @@ function pdfExtractionPrompt(kind: string): string {
 החזר JSON בלבד.`;
   }
   return `חלץ מידע רלוונטי מהמסמך. החזר JSON בלבד.`;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Receipt parser (kind: "receipt") — single image/PDF, vision.
+   Returns ONLY raw fields + a per-field confidence. Never returns a
+   recognition/deduction rate — that is assigned afterward by
+   lib/expense-engine's classifyExpense, per the spec's own §4 note that the
+   category table "should live server-side" (the expense-engine dataset is
+   our server-side-equivalent, computed at request time on the client that
+   calls it, never baked into this prompt).
+   ────────────────────────────────────────────────────────── */
+function receiptExtractionPrompt(): string {
+  return `אתה עוזר לחלץ נתונים מקבלה או חשבונית עסקית של עצמאי בישראל (יכולה להיות בעברית, אנגלית, או שפה אחרת).
+
+החזר אובייקט JSON בלבד במבנה הבא בדיוק — לכל שדה value ו-confidence (0 עד 1, הערכה עצמית שלך לוודאות הזיהוי):
+
+{
+  "vendorName": { "value": string | null, "confidence": number },
+  "documentNumber": { "value": string | null, "confidence": number },
+  "date": { "value": "YYYY-MM-DD" | null, "confidence": number },
+  "totalAmount": { "value": number | null, "confidence": number },
+  "currency": { "value": "ILS" | "USD" | "EUR" | null, "confidence": number },
+  "description": { "value": string | null, "confidence": number }
+}
+
+הנחיות:
+- vendorName: שם הספק/העסק שהנפיק את הקבלה.
+- documentNumber: מספר החשבונית/הקבלה/מסמך (לא מספר עוסק).
+- date: תאריך המסמך, בפורמט YYYY-MM-DD.
+- totalAmount: הסכום הכולל לתשלום (המספר בלבד, ללא סימן מטבע).
+- currency: זהי לפי סימן המטבע/הקשר — ₪ או "שקל" = ILS, $ = USD, € = EUR. אם לא ברור — ILS.
+- description: תיאור קצר של מה נרכש (שורה אחת, עברית אם אפשר).
+- אל תחזירי אחוז הכרה/ניכוי או קטגוריית מס — זה לא באחריותך.
+- אם שדה לא ברור/לא קריא — value: null, confidence: 0. אל תנחשי ערך שאינך בטוחה בו.
+
+החזר רק JSON תקין, ללא markdown, ללא הסברים.`;
+}
+
+function clampConfidence(n: unknown): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? n : 0;
+  return Math.max(0, Math.min(1, v));
+}
+
+function parseReceiptField<T>(
+  raw: unknown,
+  coerce: (v: unknown) => T | null,
+): ExtractedReceiptField<T> {
+  if (!raw || typeof raw !== "object") return { value: null, confidence: 0 };
+  const obj = raw as Record<string, unknown>;
+  const value = coerce(obj.value);
+  return { value, confidence: value === null ? 0 : clampConfidence(obj.confidence) };
+}
+
+async function parseReceiptWithClaude(
+  base64: string,
+  mediaType: "application/pdf" | "image/jpeg" | "image/png",
+  apiKey: string,
+): Promise<ExtractedReceiptData> {
+  const anthropic = new Anthropic({ apiKey });
+
+  const contentBlock =
+    mediaType === "application/pdf"
+      ? ({
+          type: "document",
+          source: { type: "base64", media_type: "application/pdf", data: base64 },
+        } as const)
+      : ({
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: base64 },
+        } as const);
+
+  const response = await anthropic.messages.create({
+    model: MODEL_HAIKU,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: [contentBlock, { type: "text", text: receiptExtractionPrompt() }],
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  logAiUsage({
+    route: "upload",
+    model: MODEL_HAIKU,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+  });
+
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error("Claude returned no text");
+  }
+
+  const match = textBlock.text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("לא הצלחתי לחלץ נתונים מהקבלה");
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(match[0]);
+  } catch {
+    throw new Error("תגובת AI לא תקינה");
+  }
+
+  const currency = parseReceiptField<"ILS" | "USD" | "EUR">(parsed.currency, (v) =>
+    v === "ILS" || v === "USD" || v === "EUR" ? v : null,
+  );
+
+  return {
+    vendorName: parseReceiptField<string>(parsed.vendorName, (v) =>
+      typeof v === "string" && v.trim() ? v.trim() : null,
+    ),
+    documentNumber: parseReceiptField<string>(parsed.documentNumber, (v) =>
+      typeof v === "string" && v.trim() ? v.trim() : null,
+    ),
+    date: parseReceiptField<string>(parsed.date, (v) =>
+      typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null,
+    ),
+    totalAmount: parseReceiptField<number>(parsed.totalAmount, (v) =>
+      typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null,
+    ),
+    // No currency detected ⇒ default the VALUE to ILS (the overwhelmingly
+    // common case) but keep confidence at 0 so the UI never shows it as
+    // "detected" — the user still sees/confirms it via the plain selector.
+    currency: currency.value ? currency : { value: "ILS", confidence: 0 },
+    description: parseReceiptField<string>(parsed.description, (v) =>
+      typeof v === "string" && v.trim() ? v.trim() : null,
+    ),
+  };
 }

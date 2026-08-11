@@ -7,6 +7,7 @@ import { ChatNavRail } from "@/components/agent/chat-nav-rail";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
+import { CHARACTER } from "@/lib/agent/character";
 
 export default function CoachPage() {
   const { persona, loading } = usePersona();
@@ -42,7 +43,7 @@ export default function CoachPage() {
                 CountMe · Chat
               </div>
               <div className="truncate text-[12px] leading-tight text-muted">
-                איתן · השותף הדיגיטלי לדוח השנתי
+                {CHARACTER.name} · השותף הדיגיטלי לדוח השנתי
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

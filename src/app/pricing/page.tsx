@@ -6,6 +6,8 @@ import { Reveal } from "@/components/brand/motion";
 import { CheckIcon, SparklesIcon } from "@/components/brand/icons";
 import { TRACKS, type Feature } from "@/lib/billing/tracks";
 import { isBillingEnabled } from "@/lib/billing/entitlement";
+import { CHARACTER } from "@/lib/agent/character";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 import { ProCheckoutButton } from "./checkout-button";
 
 export const metadata: Metadata = {
@@ -25,8 +27,8 @@ const PRO_PRICE_MONTHLY = 39; // TODO(GTM): validate in beta — see docs/gtm/pr
 const FEATURE_HE: Record<Feature, string> = {
   form_1301_full: "מילוי מלא של טופס 1301 + העתקה בלחיצה",
   form_1219_full: "הצהרת הון (טופס 1219) מלאה",
-  deduction_finder: "מאתר ההוצאות וההטבות של איתן",
-  coach_unlimited: "שיחות ללא הגבלה עם איתן",
+  deduction_finder: `מאתר ההוצאות וההטבות של ${CHARACTER.name}`,
+  coach_unlimited: `שיחות ללא הגבלה עם ${CHARACTER.name}`,
   multi_year: "כל שנות המס שלך במקום אחד",
   accountant_export: "חבילת מסמכים מסודרת לרואה החשבון",
 };
@@ -71,7 +73,7 @@ export default function PricingPage() {
                 <FeatureRow key={f} label={f} />
               ))}
             </ul>
-            <Link href="/setup" className={btn("secondary", "md", "mt-7 w-full")}>
+            <Link href={ONBOARDING_ROUTE} className={btn("secondary", "md", "mt-7 w-full")}>
               התחילו חינם
             </Link>
           </section>
@@ -89,7 +91,7 @@ export default function PricingPage() {
               ₪{PRO_PRICE_MONTHLY}
               <span className="text-base font-semibold text-aqua/70"> / לחודש</span>
             </div>
-            <p className="mt-1 text-sm text-aqua/80">הדוח כולו, מקצה לקצה, עם איתן ללא הגבלה.</p>
+            <p className="mt-1 text-sm text-aqua/80">הדוח כולו, מקצה לקצה, עם {CHARACTER.name} ללא הגבלה.</p>
             <ul className="mt-6 flex flex-1 flex-col gap-3">
               {TRACKS.pro.features.map((f) => (
                 <FeatureRow key={f} label={FEATURE_HE[f]} dark />

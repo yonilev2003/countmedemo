@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Persona } from "@/lib/persona";
 import { loadPersona } from "@/lib/setup-storage";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 import { syncPersonaFromDb } from "./persona-store";
 
 /**
@@ -16,8 +17,12 @@ import { syncPersonaFromDb } from "./persona-store";
  * overwrote their real server data. PersonaHydrator does reconcile, but it runs
  * asynchronously and always lost that race.
  *
- * Here we consult the DB before routing anyone to /setup. Only a user who has
- * no persona locally AND none in the DB is genuinely new.
+ * Here we consult the DB before routing anyone to onboarding. Only a user who
+ * has no persona locally AND none in the DB is genuinely new.
+ *
+ * This single hook backs ~15 pages (dashboard, alerts, deadlines, invoices,
+ * file/*, business-expenses, demo, receivables...) — it is THE empty-persona
+ * redirect for the whole app (beta, docs/specs/beta/onboarding.md ONB-7).
  */
 export function useRequiredPersona() {
   const router = useRouter();
@@ -44,7 +49,7 @@ export function useRequiredPersona() {
       }
       if (cancelled) return;
       if (remote) setPersona(remote);
-      else router.replace("/setup");
+      else router.replace(ONBOARDING_ROUTE);
     })();
 
     return () => {

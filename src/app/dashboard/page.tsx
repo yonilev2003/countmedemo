@@ -22,6 +22,7 @@ import { allowedDocTypesFor } from "@/lib/invoice-generator";
 import { computeMonthSummary, eitanMonthLine } from "@/lib/dashboard/summary";
 import { getReceivablesSummary } from "@/lib/receivables/summary";
 import { trackClient } from "@/lib/analytics/track-client";
+import { CHARACTER } from "@/lib/agent/character";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -126,7 +127,7 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> איתן
+              <SparklesIcon className="size-4" /> {CHARACTER.name}
             </Link>
             <SignOutButton />
           </div>
@@ -189,7 +190,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
-                איתן אומר
+                {CHARACTER.name} אומר
               </div>
               <p className="mt-0.5 text-sm leading-relaxed text-ink">
                 {eitanMonthLine(summary, firstName)}

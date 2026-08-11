@@ -29,6 +29,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo, LogoMark } from "@/components/brand/logo";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   HomeIcon,
   ReceiptIcon,
@@ -205,7 +206,7 @@ function ChatNavSideRail({ className }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <div className="text-[14.5px] font-extrabold leading-tight">
-            איתן
+            {CHARACTER.name}
           </div>
           <div className="mt-0.5 text-[11.5px] leading-snug text-aqua">
             השותף הדיגיטלי שלך לדוח השנתי

@@ -34,6 +34,7 @@ import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import { Reveal } from "@/components/brand/motion";
 import { calculate, estimateTaxLiability } from "@/lib/calculators";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   BellIcon,
   CalendarIcon,
@@ -375,7 +376,7 @@ export default function DashboardPage() {
               מילוי הדוח <ArrowLeftIcon className="size-4" />
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> שוחח עם איתן
+              <SparklesIcon className="size-4" /> שוחח עם {CHARACTER.name}
             </Link>
             <SignOutButton />
           </div>
@@ -390,7 +391,7 @@ export default function DashboardPage() {
               <span className="absolute end-2.5 top-2.5 size-2 rounded-full border-[1.5px] border-paper bg-alert" />
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> איתן
+              <SparklesIcon className="size-4" /> {CHARACTER.name}
             </Link>
           </div>
         </div>

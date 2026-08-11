@@ -9,6 +9,7 @@ import { ArrowRightIcon, SparklesIcon } from "@/components/brand/icons";
 import { Form1219Preview } from "@/components/form-1219/form-preview";
 import { CountUp } from "@/components/brand/motion";
 import { ils as formatIls } from "@/lib/utils";
+import { CHARACTER } from "@/lib/agent/character";
 
 const ils = (n: number) => formatIls(Math.round(n));
 
@@ -42,7 +43,7 @@ export default function Form1219Page() {
           <div className="flex items-center gap-2">
             <Link href="/coach" className={btn("ghost", "sm")}>
               <SparklesIcon className="size-4" />
-              שאל/י את איתן
+              שאל/י את {CHARACTER.name}
             </Link>
             <Link href="/file" className={btn("ghost", "sm")}>
               חזרה למסלולים

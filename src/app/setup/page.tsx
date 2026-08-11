@@ -614,6 +614,15 @@ export default function SetupPage() {
         annualTurnoverWithoutVat: totalRevenue,
         isAbove6111Threshold: totalRevenue > getTaxYearConstants(selectedYear).form6111Threshold,
       },
+      // Completing this wizard IS "השלמת פרטים לדוח" — stamp it on the journey
+      // (beta, docs/specs/beta/onboarding.md ONB-3). A persona that already has
+      // a journey (came through /onboarding) keeps its tier/incomeBand/etc.;
+      // one with no journey at all (a direct /setup run, no onboarding) simply
+      // gets none written — getJourney()'s legacy fallback already treats
+      // "no journey" as experienced+completed, so there is nothing to fix there.
+      ...(existing?.journey
+        ? { journey: { ...existing.journey, filingDetailsCompleted: true } }
+        : {}),
       // Document numbering counters + data the wizard never collects: carried
       // over verbatim so re-running setup can't reissue a used document number
       // or drop the capital declaration / contact details.
@@ -704,7 +713,12 @@ export default function SetupPage() {
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={32} />
           </Link>
-          <div className="text-sm text-muted">הגדרת פרופיל</div>
+          <div className="text-end">
+            <div className="text-sm font-medium text-ink">השלמת פרטים לדוח</div>
+            <div className="text-[11px] text-faint">
+              נדרש רק כשמכינים את הדוח השנתי — אפשר להשלים מתי שנוח
+            </div>
+          </div>
         </div>
       </header>
 
@@ -1331,7 +1345,7 @@ export default function SetupPage() {
                   <div className="space-y-3">
                     <div>
                       <FieldLabel htmlFor="bituachLeumi">
-                        ביטוח לאומי ששילמת השנה (שדה 030)
+                        כמה שילמת לביטוח לאומי השנה — בלי דמי ביטוח בריאות (שדה 030)
                       </FieldLabel>
                       <input
                         id="bituachLeumi"
@@ -1351,8 +1365,11 @@ export default function SetupPage() {
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
                       <p className="mt-1 text-xs text-muted">
                         {/* DRAFT — pending Roy: ב"ל/בריאות split (persona.ts FLAG) */}
-                        שימו לב: הסכום בשובר השנתי כולל גם דמי ביטוח בריאות —
-                        הניכוי (52%) חל על רכיב דמי הביטוח הלאומי בלבד
+                        השובר השנתי מהביטוח הלאומי כולל גם דמי ביטוח בריאות — הזינו
+                        רק את רכיב הביטוח הלאומי עצמו. יש לך רק סכום כולל, בלי פירוט?
+                        הזינו אותו כפי שהוא — הניכוי (52%) חל על רכיב הביטוח הלאומי
+                        בלבד, לא על דמי הבריאות, כך שהזנת הסכום הכולל עשויה להגזים
+                        מעט בניכוי.
                       </p>
                     </div>
 

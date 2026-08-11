@@ -7,6 +7,7 @@ import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   PaperclipIcon,
   MicIcon,
@@ -20,11 +21,8 @@ import {
   ChevronDownIcon,
 } from "@/components/brand/icons";
 
-/** Eitan's avatar image (cropped illustration, framed to the head like the mockup). */
-const EITAN_AVATAR = "/eitan/companion/picture1.png";
-
 /**
- * Eitan avatar — the brand mockup shows a circular cropped illustration on a
+ * Character avatar — the brand mockup shows a circular cropped illustration on a
  * soft-beige disc. Falls back to the navy LogoMark disc if the art is missing.
  */
 function EitanAvatar({ size, className }: { size: number; className?: string }) {
@@ -43,8 +41,8 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={EITAN_AVATAR}
-          alt="איתן"
+          src={CHARACTER.avatarSrc}
+          alt={CHARACTER.name}
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />
@@ -106,7 +104,7 @@ function eitanGreeting(persona: Persona | null | undefined): string {
   const suffix = female
     ? "ספרי לי בקצרה מה את צריכה היום?"
     : "ספר לי בקצרה מה אתה צריך היום?";
-  return `${prefix} אני איתן, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
+  return `${prefix} אני ${CHARACTER.name}, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
 }
 
 interface Props {
@@ -354,7 +352,7 @@ export function CoachChat({ persona }: Props) {
         <div className="flex-1 min-w-0">
           {/* Name + verified badge */}
           <div className="flex items-center gap-1.5 text-[16.5px] font-extrabold text-brand-navy leading-tight">
-            <span>איתן</span>
+            <span>{CHARACTER.name}</span>
             {/* Verified badge — teal check-circle */}
             <svg
               viewBox="0 0 16 16"
@@ -386,8 +384,8 @@ export function CoachChat({ persona }: Props) {
         </button>
         <button
           type="button"
-          aria-label="אודות איתן"
-          title="איתן — השותף הדיגיטלי שלך לדוח השנתי"
+          aria-label={`אודות ${CHARACTER.name}`}
+          title={`${CHARACTER.name} — השותף הדיגיטלי שלך לדוח השנתי`}
           className="grid size-[38px] flex-shrink-0 place-items-center rounded-full bg-cream text-brand-navy hover:bg-teal-100 transition-colors"
         >
           <InfoIcon className="size-[18px]" />
@@ -603,7 +601,7 @@ export function CoachChat({ persona }: Props) {
               placeholder={
                 attachment
                   ? "הוסיפי שאלה (אופציונלי) ושלחי..."
-                  : "כתוב/י הודעה לאיתן..."
+                  : `כתוב/י הודעה ל${CHARACTER.name}...`
               }
               disabled={isLoading}
               className="flex-1 bg-transparent border-none outline-none text-[14.5px] text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"

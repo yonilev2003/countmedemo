@@ -8,6 +8,7 @@ import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
 import { PLACEHOLDER_EITAN } from "@/lib/form-1301/companion-assets";
+import { CHARACTER } from "@/lib/agent/character";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
@@ -360,7 +361,7 @@ function EitanIllustration({ src }: { src: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={actualSrc}
-        alt="איתן"
+        alt={CHARACTER.name}
         className="w-full h-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.18)]"
         onError={() => setActualSrc(PLACEHOLDER_EITAN)}
       />

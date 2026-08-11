@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Persona } from "@/lib/persona";
 import { PLSummary } from "@/lib/p-and-l/index";
 import { SparklesIcon } from "@/components/brand/icons";
+import { CHARACTER } from "@/lib/agent/character";
 
 interface Props {
   persona: Persona;
@@ -94,7 +95,7 @@ export function EitanInsights({ persona, pl }: Props) {
           <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
             עוזר חכם
           </div>
-          <div className="text-sm font-bold text-brand-navy">איתן אומר</div>
+          <div className="text-sm font-bold text-brand-navy">{CHARACTER.name} אומר</div>
         </div>
       </div>
       {loading ? (

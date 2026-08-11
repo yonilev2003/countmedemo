@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="שקל">
+  <!-- TEMPORARY placeholder mascot — coin character with a smiling face.
+       Replace with the founder's real illustrated asset when it arrives;
+       swap the path in src/lib/agent/character.ts (avatarSrc) if the
+       filename changes. -->
+
+  <!-- Coin body -->
+  <circle cx="100" cy="100" r="88" fill="#C8B59A" stroke="#083A4F" stroke-width="7"/>
+  <!-- Inner rim (coin edge detail) -->
+  <circle cx="100" cy="100" r="74" fill="none" stroke="#407E8C" stroke-width="3" opacity="0.55"/>
+
+  <!-- Eyes -->
+  <circle cx="74" cy="82" r="9" fill="#083A4F"/>
+  <circle cx="126" cy="82" r="9" fill="#083A4F"/>
+  <circle cx="77" cy="79" r="2.5" fill="#FBFAF8"/>
+  <circle cx="129" cy="79" r="2.5" fill="#FBFAF8"/>
+
+  <!-- Cheeks -->
+  <circle cx="58" cy="104" r="8" fill="#407E8C" opacity="0.25"/>
+  <circle cx="142" cy="104" r="8" fill="#407E8C" opacity="0.25"/>
+
+  <!-- Smile -->
+  <path d="M 68 108 Q 100 136 132 108" fill="none" stroke="#083A4F" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Shekel emblem (coin's engraved mark) -->
+  <text x="100" y="168" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#083A4F">₪</text>
+</svg>

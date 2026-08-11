@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { ArrowLeftIcon } from "@/components/brand/icons";
+import { CHARACTER } from "@/lib/agent/character";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 
 export const metadata = {
   title: "תיעוד טכני · countme",
@@ -36,7 +38,7 @@ export default function AboutPage() {
           <p>
             מלווה דיגיטלי לעצמאיים ישראלים לאורך כל שנת המס. מקבל חשבוניות והוצאות,
             מחשב אוטומטית כל שדה בטופס 1301, ונותן לך מסלול מילוי עם
-            <strong className="text-brand-navy"> איתן</strong>, סוכן ה-AI שמתנהג כ-״אח חכם״.
+            <strong className="text-brand-navy"> {CHARACTER.name}</strong>, סוכן ה-AI שמתנהג כ-״אח חכם״.
           </p>
         </Section>
 
@@ -57,11 +59,12 @@ export default function AboutPage() {
         {/* Pages */}
         <Section title="דפים עיקריים">
           <ul className="space-y-2">
-            <Bullet href="/setup" name="/setup" desc="אשף הכנסת נתונים — 7 שלבים, כולל העלאת דוחות ו-PDF" />
-            <Bullet href="/dashboard" name="/dashboard" desc="לוח הבית: הכנסות/הוצאות/יחס החודש, 4 פעולות מהירות, שורת איתן" />
+            <Bullet href="/onboarding" name="/onboarding" desc="נקודת הכניסה לבטא — שאלון קליל ≤3 דקות, מנחית ב-/dashboard" />
+            <Bullet href="/setup" name="/setup" desc="&quot;השלמת פרטים לדוח&quot; — אשף 7 שלבים נדחה, כולל העלאת דוחות ו-PDF" />
+            <Bullet href="/dashboard" name="/dashboard" desc={`לוח הבית: הכנסות/הוצאות/יחס החודש, 4 פעולות מהירות, שורת ${CHARACTER.name}`} />
             <Bullet href="/invoices" name="/invoices" desc="הנפקת חשבונית מס/קבלה, קבלה, עסקה או הצעת מחיר — תואם SHAAM" />
             <Bullet href="/receivables" name="/receivables" desc="מי לא שילם לי — גיול חובות, תזכורות, סימון כשולם" />
-            <Bullet href="/coach" name="/coach" desc="צ׳אט עם איתן — אבחון, איתור הוצאות, סיכום שיחה" />
+            <Bullet href="/coach" name="/coach" desc={`צ׳אט עם ${CHARACTER.name} — אבחון, איתור הוצאות, סיכום שיחה`} />
             <Bullet href="/business-expenses" name="/business-expenses" desc="הוצאות מוכרות לפי תחום עיסוק עם כללי ניכוי" />
           </ul>
         </Section>
@@ -111,9 +114,9 @@ export default function AboutPage() {
         </Section>
 
         {/* Eitan */}
-        <Section title="איתן — סוכן ה-AI">
+        <Section title={`${CHARACTER.name} — סוכן ה-AI`}>
           <p>
-            איתן מופעל ב-<code>/api/coach</code> עם streaming SSE ו-prompt caching על ה-system prompt.
+            {CHARACTER.name} מופעל ב-<code>/api/coach</code> עם streaming SSE ו-prompt caching על ה-system prompt.
             יש לו שלושה מצבים:
           </p>
           <ul className="space-y-1.5 me-4 list-disc">
@@ -156,7 +159,7 @@ npm run build`}
 
         <div className="rounded-2xl border border-brand-deep/20 bg-info/40 p-5 text-center">
           <p className="font-medium text-brand-navy mb-3">רוצה לראות את זה בפעולה?</p>
-          <Link href="/setup" className={btn("primary", "sm")}>
+          <Link href={ONBOARDING_ROUTE} className={btn("primary", "sm")}>
             התחל/י עם countme
             <ArrowLeftIcon className="size-3.5 rotate-180" />
           </Link>

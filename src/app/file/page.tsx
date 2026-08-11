@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { SparklesIcon, ClipboardCheckIcon, ArrowRightIcon } from "@/components/brand/icons";
+import { CHARACTER } from "@/lib/agent/character";
 
 export default function FilePage() {
   const { persona } = useRequiredPersona();
@@ -62,7 +63,7 @@ export default function FilePage() {
             </h2>
             <p className="text-sm text-muted leading-relaxed flex-1">
               הטופס המוכן של gov.il עם כל הערכים מחושבים, כפתור העתקה ליד כל שדה,
-              וצ׳אט עם איתן בצד. מתאים לאלה שיודעים מה הם עושים.
+              וצ׳אט עם {CHARACTER.name} בצד. מתאים לאלה שיודעים מה הם עושים.
             </p>
             <div className="mt-4 text-sm font-medium text-brand-deep group-hover:underline">
               לצפייה בטופס
@@ -78,10 +79,10 @@ export default function FilePage() {
               <ClipboardCheckIcon className="size-5" />
             </div>
             <h2 className="font-display text-xl font-bold text-brand-navy mb-2">
-              מסלול מודרך עם איתן
+              מסלול מודרך עם {CHARACTER.name}
             </h2>
             <p className="text-sm text-muted leading-relaxed flex-1">
-              12 שלבים עם הסבר של איתן בכל נקודה, עריכה inline של פרטים, וסנכרון
+              12 שלבים עם הסבר של {CHARACTER.name} בכל נקודה, עריכה inline של פרטים, וסנכרון
               אוטומטי. מומלץ לביצוע ראשון.
             </p>
             <div className="mt-4 text-sm font-medium text-success group-hover:underline">
@@ -101,7 +102,7 @@ export default function FilePage() {
               ליווי צמוד
             </h2>
             <p className="text-sm text-muted leading-relaxed flex-1">
-              לכל שלב — צילום מסך של gov.il, איתן מצביע על המקום הנכון, הקראה
+              לכל שלב — צילום מסך של gov.il, {CHARACTER.name} מצביע על המקום הנכון, הקראה
               קולית של ההסבר, וכפתור העתק/הדבק. הכי מתאים לפעם הראשונה.
             </p>
             <div className="mt-4 text-sm font-medium text-brand-deep group-hover:underline">

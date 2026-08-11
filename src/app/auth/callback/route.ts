@@ -1,8 +1,8 @@
 // OAuth (PKCE) callback — Supabase redirects the browser back here with a
 // `code` after the Google round-trip. We exchange that code for a session
 // (which sets the auth cookies via the server client), then forward the user
-// on to `next` (default /setup). Follows the official @supabase/ssr App Router
-// recipe.
+// on to `next` (default /dashboard). Follows the official @supabase/ssr App
+// Router recipe.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -12,8 +12,9 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // `next` lets callers send the user somewhere specific post-login.
   // Guard against open-redirects: only honor same-origin absolute paths.
-  // Default → /home (the shortcuts hub), which itself forwards first-timers
-  // with no persona on to /setup, so returning users land on shortcuts directly.
+  // Default → /dashboard, which (via useRequiredPersona) forwards first-timers
+  // with no persona on to /onboarding, so returning users land on the
+  // dashboard directly.
   const nextParam = searchParams.get("next");
   // "/path" is ok; "//host" (protocol-relative) is not.
   const next =

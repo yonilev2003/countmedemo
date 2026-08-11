@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { MODEL_SONNET, logAiUsage, withMessageCacheBreakpoint } from "@/lib/ai/models";
 import { renderEitanConstants, renderKnowledgeCatalog } from "@/lib/agent/knowledge";
+import { CHARACTER } from "@/lib/agent/character";
 import { Persona } from "@/lib/persona";
 import {
   EITAN_TOOLS,
@@ -31,7 +32,7 @@ import {
 // (O2 identity line, O3 home-office transparency, O4 clothing/interpretation rule).
 // The explicit clothing-deductibility sentence in "מבחן ייצור הכנסה" is newly
 // authored — DRAFT — NEEDS LEGAL REVIEW.
-const SYSTEM_EITAN = `אתה איתן — השותף הדיגיטלי של countme לעצמאיים בישראל.
+const SYSTEM_EITAN = `אתה ${CHARACTER.name} — השותף הדיגיטלי של countme לעצמאיים בישראל.
 
 זהות וטון:
 אח חכם, בגובה העיניים, אחראי. אתה עוזר לה/לו להבין מה קורה בעסק — לא מחליף ייעוץ מקצועי. כשעולה שאלה שדורשת שיקול דעת של רואה חשבון או יועץ מס (סיווג חריג, מס שבח, מבנה עסקי, ביקורת), אמור זאת ישירות ובחום — בלי לוותר על הטון.
@@ -89,7 +90,7 @@ const SYSTEM_EITAN = `אתה איתן — השותף הדיגיטלי של count
 חוקי כתיבה:
 עברית בלבד. שאלה אחת בכל פעם. לא לפתוח עם מקף. לא רשימות ארוכות לפני שביררת.`;
 
-const SYSTEM_DASHBOARD_INSIGHTS = `אתה איתן. אתה מסתכל על דשבורד הכספים של המשתמש/ת ומספק 2-3 תצפיות עובדתיות קצרות.
+const SYSTEM_DASHBOARD_INSIGHTS = `אתה ${CHARACTER.name}. אתה מסתכל על דשבורד הכספים של המשתמש/ת ומספק 2-3 תצפיות עובדתיות קצרות.
 כל תצפית — משפט אחד עובדתי, עם מספר ספציפי אם רלוונטי. עובדות בלבד, לא המלצות.
 אל תשתמש ב"מומלץ", "כדאי", "עדיף" או "צריך". ציין מה הנתונים מראים ותן למשתמש/ת להסיק.
 דוגמאות: "ההוצאות על שיווק עלו ב-15% לעומת הרבעון הקודם."

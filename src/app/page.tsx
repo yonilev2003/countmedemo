@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { BRAND_COLORS } from "@/components/brand/colors";
+import { CHARACTER } from "@/lib/agent/character";
 import {
   SparklesIcon,
   ReceiptIcon,
@@ -33,7 +35,7 @@ export default async function Home() {
           <nav className="hidden items-center gap-1 lg:flex">
             <NavAnchor href="#shortcuts">פעולות מהירות</NavAnchor>
             <NavAnchor href="#eitan">
-              <SparklesIcon className="size-4 text-beige-600" /> איתן
+              <SparklesIcon className="size-4 text-beige-600" /> {CHARACTER.name}
             </NavAnchor>
             <NavAnchor href="#social">קהילה</NavAnchor>
             <Link
@@ -54,7 +56,7 @@ export default async function Home() {
                 <Link href="/login" className={btn("secondary", "sm")}>
                   כניסה
                 </Link>
-                <Link href="/setup" className={btn("primary", "sm")}>
+                <Link href={ONBOARDING_ROUTE} className={btn("primary", "sm")}>
                   התחילו עכשיו
                   <ArrowLeftIcon className="size-[17px]" />
                 </Link>
@@ -104,7 +106,7 @@ export default async function Home() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-[18px]">
             <Link
-              href="/setup"
+              href={ONBOARDING_ROUTE}
               className={btn("gold", "md", "px-[30px] py-[15px] text-base")}
             >
               התחל/י עכשיו
@@ -174,9 +176,9 @@ export default async function Home() {
       <section id="eitan-section" className="bg-paper py-24 md:py-[96px]">
         <div className="mx-auto max-w-screen-xl px-8">
           <SectionHead
-            eyebrow="איתן"
+            eyebrow={CHARACTER.name}
             title="שאלה של שנייה, תשובה בגובה העיניים"
-            subtitle="מה זה מקדמות? מה מוכר כהוצאה? מי עוד לא שילם לי? איתן, הנציג הדיגיטלי שלנו, עונה בשפה של בני אדם — צמוד לנתונים האמיתיים של העסק."
+            subtitle={`מה זה מקדמות? מה מוכר כהוצאה? מי עוד לא שילם לי? ${CHARACTER.name}, הנציג הדיגיטלי שלנו, עונה בשפה של בני אדם — צמוד לנתונים האמיתיים של העסק.`}
           />
           <div
             id="eitan"
@@ -190,7 +192,7 @@ export default async function Home() {
                 </span>
                 <div>
                   <div className="flex items-center gap-[7px] text-lg font-extrabold text-brand-navy">
-                    איתן
+                    {CHARACTER.name}
                     <CheckCircleIcon className="size-4 text-brand-deep" />
                   </div>
                   <div className="text-[13.5px] font-semibold text-teal-600">
@@ -221,7 +223,7 @@ export default async function Home() {
                   href="/coach"
                   className="flex-1 rounded-full border border-line bg-paper px-[18px] py-[13px] text-sm text-faint transition-colors hover:border-brand-deep hover:text-teal-600"
                 >
-                  כתבו לאיתן…
+                  כתבו ל{CHARACTER.name}…
                 </Link>
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-navy">
                   <MicIcon className="size-[21px]" />
@@ -231,7 +233,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-12 flex flex-wrap justify-center gap-3">
-            <Link href="/setup" className={btn("primary")}>
+            <Link href={ONBOARDING_ROUTE} className={btn("primary")}>
               התחילו עכשיו
               <ArrowLeftIcon className="size-[18px]" />
             </Link>
@@ -288,7 +290,7 @@ export default async function Home() {
             </p>
             <div className="flex flex-wrap justify-center gap-[18px]">
               <Link
-                href="/setup"
+                href={ONBOARDING_ROUTE}
                 className={btn("gold", "md", "px-8 py-[15px] text-base")}
               >
                 פתחו חשבון חינם
@@ -301,7 +303,7 @@ export default async function Home() {
                   "border-white/30 bg-white/10 px-8 py-[15px] text-base text-white backdrop-blur-md hover:border-white/50 hover:bg-white/20",
                 )}
               >
-                <SparklesIcon className="size-[18px]" /> תכירו את איתן
+                <SparklesIcon className="size-[18px]" /> תכירו את {CHARACTER.name}
               </Link>
             </div>
           </div>
@@ -331,7 +333,7 @@ export default async function Home() {
                   { label: "חשבוניות וקבלות", href: "/invoices" },
                   { label: "מי לא שילם לי", href: "/receivables" },
                   { label: "מחירים", href: "/pricing" },
-                  { label: "איתן", href: "/coach" },
+                  { label: CHARACTER.name, href: "/coach" },
                 ]}
               />
               <FooterCol
@@ -594,7 +596,7 @@ const SCENARIOS: Scenario[] = [
     initial: "א",
     avatarColor: BRAND_COLORS.teal600,
     role: "מטפלת עצמאית",
-    tag: "צ׳אט איתן",
+    tag: `צ׳אט ${CHARACTER.name}`,
     quote: "שאלה בעברית, תשובה עם מספרים",
     body: (
       <>

@@ -89,6 +89,8 @@ export interface InvoiceLine {
   remindersSent?: { date: string; tone: "gentle" | "matter" | "assertive" }[];
 }
 
+export type ExpenseCurrency = "ILS" | "USD" | "EUR";
+
 export interface ExpenseLine {
   date: string;                // ISO date
   vendorName: string;
@@ -98,7 +100,44 @@ export interface ExpenseLine {
   category: string;            // matches business-expenses/profiles.ts category names
   receiptPath?: string;
   deductionRule: "full" | "partial" | "depreciation";
+  /**
+   * For "partial" — the % of `amount` that is deductible. For "depreciation" —
+   * the annual depreciation rate (%) applied THIS year, so that a uniform
+   * "recognized amount = amount * (partialPercent ?? 0) / 100" formula covers
+   * both rules (see lib/expense-upload/index.ts `recognizedFraction`).
+   * Absent on a depreciation row ⇒ treated as 0% recognized this year (safe
+   * default — never silently assumes a rate that wasn't sourced from the
+   * expense-engine or entered by the user).
+   */
   partialPercent?: number;
+
+  /* ── Beta 2026-08-11 additions (docs/specs/beta/artifacts/02-expense-upload-spec.md) ──
+     All optional/backward-compatible — no migration needed, existing rows are
+     valid without them. */
+
+  /** Invoice/receipt/document number — required going forward by the /expenses
+   *  upload flow (spec §3.5), but optional on the type since older rows (e.g.
+   *  from /setup's Excel import) don't have one. */
+  documentNumber?: string;
+  /** Free text: "מה זה שימש בעסק?" — dynamically required for ambiguous
+   *  categories (spec §3.8-א). */
+  businessPurpose?: string;
+  /** Currency of the original receipt. Absent/"ILS" ⇒ no foreign-currency
+   *  handling applies and `amount` is already the ILS figure. */
+  currency?: ExpenseCurrency;
+  /** Amount in the original (foreign) currency, before ILS conversion. Equal
+   *  to `amount` for ILS rows. */
+  originalAmount?: number;
+  /** Conversion factor applied to reach `amount` from `originalAmount` — 1 for
+   *  ILS rows. Sourced from the DEMO_RATES stopgap (spec §3.7), not a live
+   *  Bank-of-Israel rate. */
+  exchangeRate?: number;
+  /** True when this record's OCR confidence at capture time was below the
+   *  review threshold (or a required field had to be filled in fully by
+   *  hand) — informational flag for the summary page's needs-review filter,
+   *  never blocks save and never implies the saved data itself is incomplete
+   *  (blocking validation already guarantees completeness). */
+  needsReview?: boolean;
 }
 
 export interface PersonaContact {
@@ -245,6 +284,45 @@ export interface PersonaCapitalDeclaration {
   liabilities: LiabilityItem[];
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Onboarding journey (beta, docs/specs/beta/onboarding.md) — the lite
+ * ≤3-minute /onboarding questionnaire that replaced /setup as the entry
+ * point. Entirely optional/additive: a Persona with no `journey` field is a
+ * pre-onboarding-era persona (founders' own personas, personas/dana-cohen.json)
+ * and is treated as a fully-experienced, filing-ready user — see getJourney().
+ * ────────────────────────────────────────────────────────────────────────── */
+
+export type JourneyTier = "pre" | "first-year" | "experienced";
+export type IncomeBand = "0-5k" | "5-10k" | "10-20k" | "20k-plus" | "irregular";
+export type TriState = "yes" | "no" | "unsure";
+
+/** Tri-state answers to the authorities-filing filter (tier === "pre" only). */
+export interface PersonaJourneyAuthorities {
+  masHachnasa: TriState;
+  maam: TriState;
+  bituachLeumi: TriState;
+}
+
+export interface PersonaJourney {
+  tier: JourneyTier;
+  /** Monthly-revenue range — copy-context for the dashboard's empty states
+   *  ONLY. Never a calculator input (see the no-fabrication note on
+   *  buildLitePersona in lib/onboarding/build-lite-persona.ts). */
+  incomeBand: IncomeBand | null;
+  /** Authorities-filing filter answers — collected only when tier === "pre". */
+  authorities?: PersonaJourneyAuthorities;
+  /**
+   * "lite-v1" = came through the real /onboarding flow. "legacy" is used only
+   * by getJourney()'s in-memory fallback for a persona with no `journey` at
+   * all — never written to a real persona, so it never round-trips through
+   * persistPersona/Supabase.
+   */
+  onboardingVersion: "lite-v1" | "legacy";
+  onboardingCompletedAt: string; // ISO
+  /** Whether the deferred /setup flow ("השלמת פרטים לדוח") has been completed. */
+  filingDetailsCompleted: boolean;
+}
+
 export interface Persona {
   id: string;
   displayName: string;
@@ -266,6 +344,30 @@ export interface Persona {
   /** Separate numbering sequences for the non-tax docs (quotes must never
    *  consume the invoice sequence). Key absent ⇒ next number is 1. */
   docCounters?: Partial<Record<"business-account" | "quote", number>>;
+  /** Onboarding journey metadata (beta). Optional — see the doc comment above. */
+  journey?: PersonaJourney;
+}
+
+/**
+ * Read a persona's journey, with a legacy fallback for any persona created
+ * before the /onboarding flow existed (founders' own personas,
+ * personas/dana-cohen.json, any pre-beta signup): treated as a fully
+ * experienced user who has already completed the filing-details flow, so
+ * such users never see onboarding nudges or get gated out of /file.
+ *
+ * The returned fallback object is synthesized in memory only — it is never
+ * written back to the persona (onboardingCompletedAt "" is a deliberate
+ * "unknown, predates tracking" marker, not a real timestamp).
+ */
+export function getJourney(persona: Persona): PersonaJourney {
+  if (persona.journey) return persona.journey;
+  return {
+    tier: "experienced",
+    incomeBand: null,
+    onboardingVersion: "legacy",
+    onboardingCompletedAt: "",
+    filingDetailsCompleted: true,
+  };
 }
 
 /**

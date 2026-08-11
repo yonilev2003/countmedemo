@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getPersonaOwner, clearLocalPersona } from "@/lib/setup-storage";
+import { ONBOARDING_ROUTE } from "@/lib/onboarding/route";
 
 /**
  * The interactive part of the login screen: a single "sign in with Google"
@@ -78,10 +79,10 @@ export function LoginForm() {
         <span className="h-px flex-1 bg-white/20" />
       </div>
       <a
-        href="/setup"
+        href={ONBOARDING_ROUTE}
         className="flex h-[48px] w-full items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur-md transition-all hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       >
-        התחילו במילוי הנתונים →
+        התחילו בהיכרות →
       </a>
     </div>
   );
