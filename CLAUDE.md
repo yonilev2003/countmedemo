@@ -356,15 +356,15 @@ Pages:
 
 Superseded: chat IS wired (tool-use loop over the deterministic calculators), Vercel+Supabase ARE live, Playwright e2e EXISTS and is green (`npm run test:e2e`; in managed web containers set `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` plus dummy `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
 
-Actually open (2026-07-02):
+Actually open (corrected 2026-08-12 — item 1 was stale, see memory/STATUS.md which is the frequently-updated layer for this kind of status; check there first before trusting this list):
 
-1. Flip `AUTH_GATING_ENABLED=true` in Vercel (Yoni) — until then pages, APIs, and the Anthropic budget are open
+1. ~~Flip `AUTH_GATING_ENABLED=true`~~ — **done** (confirmed live 2026-08-03 per memory/STATUS.md). Still open: Preview deployments can bypass gating if the flag is only set on Production — verify both environments.
 2. Apply billing+events migrations on `hbsgz` + run the WS7 blocked-checks checklist (`docs/reviews/2026-07-02-ws7-*`)
 3. PII minimization before non-founder users (plan in the WS7 report); Tranzila webhook signature before `BILLING_ENABLED`
 4. External legal review of all `DRAFT — NEEDS LEGAL REVIEW` copy (`<LegalNote>`, scope statement in `docs/reviews/2026-07-02-ws8-*`) — no assigned reviewer since 2026-07-02; legal/financial gaps are surfaced as a structured list at the end of every AI-session output instead
 5. `FLAG(Roy)` burn-down in `lib/calculators/types.ts`: 2025/2026 pension caps, 2026 donations floor, §45א life-insurance ceiling
 6. Durable rate limiting (Vercel WAF now, Supabase counter later) + CSP enforce after report-only monitoring
-7. Install `context-mode` for token savings during long sessions
+7. Install `context-mode` for token savings during long sessions (see the Skills section above for the same pending item — don't duplicate further edits, update there)
 
 ## Source of truth for the form structure
 
