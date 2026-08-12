@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
 import { loadPersona } from "@/lib/setup-storage";
@@ -12,8 +11,11 @@ import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
+import { OccupationPicker } from "@/components/setup/occupation-picker";
 import {
   CheckIcon,
+  CheckCircleIcon,
   ArrowRightIcon,
   ArrowLeftIcon,
   InfoIcon,
@@ -84,6 +86,12 @@ interface Step3Data {
   primaryOccupation: string;
   osekType: OsekType;
   isOsekZeir: boolean;
+  /** When the business's file was opened (מועד פתיחת תיק) — optional, feeds business.osekStartDate. */
+  osekStartDate: string;
+  /** Did the user already issue invoices/receipts elsewhere before starting with countme? */
+  priorInvoicing: boolean;
+  /** If so — the next number to continue from, so countme's numbering never collides with a prior series. */
+  priorInvoiceNumber: string;
 }
 
 interface Step4Data {
@@ -192,8 +200,127 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
+/**
+ * Beta / aid-tool notice — shown once, at the wizard's actual first-entry
+ * screen (step 0, which only renders for genuinely first-time users — a
+ * returning user's persona skips straight to step 1). Reuses the existing
+ * /terms wording rather than introducing new legal copy (product-scope
+ * directive, 2026-08-12): countme is a beta aid tool, not a substitute for
+ * professional tax advice.
+ */
+function BetaNotice() {
+  return (
+    <div className="mb-5 rounded-xl border border-due/40 bg-due-bg/40 px-4 py-3">
+      <p className="text-xs font-bold text-due-ink mb-1">
+        גרסת בטא — כלי עזר, לא ייעוץ מס
+      </p>
+      <p className="text-xs leading-relaxed text-ink">{LEGAL_NOTE_FULL}</p>
+      <p className="mt-1.5 text-[11px] text-muted">
+        השירות בגרסת בטא ויכולותיו עשויות להשתנות. פרטים מלאים ב
+        <Link href="/terms" className="underline hover:text-brand-deep">
+          תנאי השימוש
+        </Link>{" "}
+        וב
+        <Link href="/privacy" className="underline hover:text-brand-deep">
+          מדיניות הפרטיות
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Post-submit screen — replaces the previous behaviour of redirecting to
+ * /dashboard the instant the wizard is done. Gives a personalized "what's
+ * next" list instead of dropping the user straight into the dashboard with
+ * no orientation, and calls out that /setup itself never created a real
+ * account — Google sign-in (still optional) is what makes the data persist
+ * across devices.
+ */
+function DoneScreen({
+  firstName,
+  primaryOccupation,
+}: {
+  firstName: string;
+  primaryOccupation: string;
+}) {
+  const steps: { title: string; desc: string; href: string; cta: string }[] = [
+    {
+      title: "טופס 1301 מחושב מראש",
+      desc: "כל השדות שכבר אפשר לחשב מוכנים לך, עם ההסבר וההוצאות שמזינים אותם.",
+      href: "/demo",
+      cta: "לדמו הטופס",
+    },
+    {
+      title: `מדריך הוצאות ל${primaryOccupation || "העסק שלך"}`,
+      desc: "אילו הוצאות מוכרות, באיזה שיעור, ומה כדאי לתעד — מותאם לעיסוק שלך.",
+      href: "/business-expenses",
+      cta: "למדריך ההוצאות",
+    },
+    {
+      title: "שמירה בענן, מכל מכשיר",
+      desc: "הנתונים שמורים כרגע רק בדפדפן הזה. התחברות עם Google שומרת אותם בענן ומאפשרת להמשיך מכל מכשיר.",
+      href: "/login",
+      cta: "התחברות עם Google",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-cream flex flex-col">
+      <header className="bg-paper border-b border-line">
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Logo size={32} />
+          </Link>
+        </div>
+      </header>
+
+      <main className="flex flex-1 items-start justify-center px-4 py-10">
+        <div className="w-full max-w-2xl">
+          <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-light">
+              <CheckCircleIcon className="size-7 text-success" />
+            </div>
+            <h1 className="text-2xl font-bold text-brand-navy">
+              {firstName ? `מוכן/ה, ${firstName}!` : "מוכן/ה!"}
+            </h1>
+            <p className="mt-1.5 text-sm text-muted">
+              הנתונים שלך שמורים ומוכנים. הנה איפה כדאי להתחיל.
+            </p>
+
+            <div className="mt-6 grid gap-3 text-start">
+              {steps.map((s) => (
+                <Link
+                  key={s.href}
+                  href={s.href}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/60 px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
+                >
+                  <div>
+                    <div className="text-sm font-bold text-brand-navy">{s.title}</div>
+                    <div className="text-xs text-muted mt-0.5 leading-relaxed">{s.desc}</div>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold text-brand-deep whitespace-nowrap">
+                    {s.cta} ←
+                  </span>
+                </Link>
+              ))}
+            </div>
+
+            <Link href="/dashboard" className={cn(btn("primary"), "mt-7 w-full justify-center")}>
+              כניסה ללוח הבקרה
+              <ArrowLeftIcon className="size-4" />
+            </Link>
+
+            <LegalNote variant="line" className="mt-5" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 export default function SetupPage() {
-  const router = useRouter();
   const [step, setStep] = useState(0); // 0 = optional fast-track upload, 1-6 = wizard steps
   const currentYear = new Date().getFullYear();
 
@@ -240,7 +367,12 @@ export default function SetupPage() {
     primaryOccupation: "",
     osekType: "patur",
     isOsekZeir: false,
+    osekStartDate: "",
+    priorInvoicing: false,
+    priorInvoiceNumber: "",
   });
+
+  const [done, setDone] = useState(false);
 
   const [s4, setS4] = useState<Step4Data>({
     totalRevenue: "",
@@ -301,6 +433,12 @@ export default function SetupPage() {
       primaryOccupation: saved.business.primaryOccupation,
       osekType: saved.business.osekType,
       isOsekZeir: saved.business.isOsekZeir,
+      osekStartDate: saved.business.osekStartDate ?? "",
+      // Prior-invoicing is a one-time onboarding question — a returning user
+      // already has invoiceCounter carried over by buildPersona(), so there's
+      // nothing to restore here.
+      priorInvoicing: false,
+      priorInvoiceNumber: "",
     });
     setS4({
       totalRevenue: String(saved.income.totalRevenue),
@@ -375,6 +513,12 @@ export default function SetupPage() {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
     if (!s3.primaryOccupation.trim()) e.primaryOccupation = "שדה חובה";
+    if (s3.priorInvoicing) {
+      const n = Number(s3.priorInvoiceNumber);
+      if (!s3.priorInvoiceNumber || isNaN(n) || n < 1) {
+        e.priorInvoiceNumber = "יש להזין מספר חשבונית תקין (1 ומעלה)";
+      }
+    }
     return e;
   }
 
@@ -549,7 +693,7 @@ export default function SetupPage() {
         primaryOccupation: s3.primaryOccupation,
         osekType: s3.osekType,
         osekFileNumber: s1.teudatZehut,
-        osekStartDate: "",
+        osekStartDate: s3.osekStartDate,
         address: {
           sameAsResidence: true,
           street: null,
@@ -619,7 +763,9 @@ export default function SetupPage() {
       // or drop the capital declaration / contact details.
       ...(existing?.invoiceCounter !== undefined
         ? { invoiceCounter: existing.invoiceCounter }
-        : {}),
+        : s3.priorInvoicing && Number(s3.priorInvoiceNumber) > 0
+          ? { invoiceCounter: Number(s3.priorInvoiceNumber) }
+          : {}),
       ...(existing?.docCounters ? { docCounters: existing.docCounters } : {}),
       ...(existing?.contact ? { contact: existing.contact } : {}),
       ...(existing?.capitalDeclaration
@@ -634,7 +780,8 @@ export default function SetupPage() {
     if (Object.keys(errs).length > 0) return;
     const persona = buildPersona();
     persistPersona(persona);
-    router.push("/dashboard");
+    setDone(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function addChild() {
@@ -697,6 +844,15 @@ export default function SetupPage() {
   const zeirRatePct = Math.round(zeirExpenseRate * 100);
   const zeirCapAmount = Math.round(step5Revenue * zeirExpenseRate);
 
+  if (done) {
+    return (
+      <DoneScreen
+        firstName={s1.firstName}
+        primaryOccupation={s3.primaryOccupation}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <header className="bg-paper border-b border-line">
@@ -736,13 +892,16 @@ export default function SetupPage() {
             {step > 0 && <ProgressBar step={step} />}
 
             {step === 0 && (
-              <DocumentUpload
-                onExtracted={applyExtracted}
-                onSkip={() => {
-                  setStep(1);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              />
+              <>
+                <BetaNotice />
+                <DocumentUpload
+                  onExtracted={applyExtracted}
+                  onSkip={() => {
+                    setStep(1);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
+              </>
             )}
 
             {step === 1 && (
@@ -1129,17 +1288,73 @@ export default function SetupPage() {
                   <FieldLabel htmlFor="primaryOccupation" required>
                     תחום עיסוק
                   </FieldLabel>
-                  <input
-                    id="primaryOccupation"
-                    type="text"
+                  <OccupationPicker
+                    inputId="primaryOccupation"
                     value={s3.primaryOccupation}
-                    onChange={(e) =>
-                      setS3({ ...s3, primaryOccupation: e.target.value })
+                    onChange={(next) =>
+                      setS3({ ...s3, primaryOccupation: next })
                     }
-                    className={inputCls(!!errors.primaryOccupation)}
-                    placeholder="עיצוב UX, פיתוח תוכנה, יעוץ"
+                    error={errors.primaryOccupation}
                   />
                   <ErrorMsg msg={errors.primaryOccupation} />
+                </div>
+
+                <DocHeaderPreview s1={s1} s3={s3} />
+
+                <div>
+                  <FieldLabel htmlFor="osekStartDate">
+                    מתי נפתח התיק? (אופציונלי)
+                  </FieldLabel>
+                  <input
+                    id="osekStartDate"
+                    type="date"
+                    value={s3.osekStartDate}
+                    onChange={(e) =>
+                      setS3({ ...s3, osekStartDate: e.target.value })
+                    }
+                    className={inputCls(false)}
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-line bg-paper p-4">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={s3.priorInvoicing}
+                      onChange={(e) =>
+                        setS3({ ...s3, priorInvoicing: e.target.checked })
+                      }
+                      className="mt-0.5 h-4 w-4 accent-brand-navy"
+                    />
+                    <span className="text-sm text-ink">
+                      כבר הפקתי חשבוניות/קבלות במקום אחר לפני countme
+                    </span>
+                  </label>
+                  {s3.priorInvoicing && (
+                    <div className="mt-3">
+                      <FieldLabel htmlFor="priorInvoiceNumber" required>
+                        להמשיך את המספור ממספר
+                      </FieldLabel>
+                      <input
+                        id="priorInvoiceNumber"
+                        type="number"
+                        min={1}
+                        value={s3.priorInvoiceNumber}
+                        onChange={(e) =>
+                          setS3({ ...s3, priorInvoiceNumber: e.target.value })
+                        }
+                        className={inputCls(!!errors.priorInvoiceNumber)}
+                        dir="ltr"
+                        placeholder="לדוגמה: 42"
+                      />
+                      <ErrorMsg msg={errors.priorInvoiceNumber} />
+                      <p className="mt-1 text-xs text-muted">
+                        כדי שהמסמכים הבאים שתפיקי ב-countme לא יתנגשו במספור
+                        קודם.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1633,6 +1848,50 @@ type OsekChoice = "zeir" | "patur" | "morshe";
 function currentOsekChoice(osekType: OsekType, isOsekZeir: boolean): OsekChoice {
   if (osekType === "morshe") return "morshe";
   return isOsekZeir ? "zeir" : "patur";
+}
+
+const OSEK_LABEL: Record<OsekChoice, string> = {
+  zeir: "עוסק זעיר",
+  patur: "עוסק פטור",
+  morshe: "עוסק מורשה",
+};
+
+/**
+ * Live preview of the document header (business name, owner, VAT/business
+ * number) as the user fills step 3 — the number shown is exactly the
+ * osekFileNumber buildPersona() derives (the Israeli ID, the standard
+ * practice for a sole proprietor without a separate business-registration
+ * number).
+ */
+function DocHeaderPreview({ s1, s3 }: { s1: Step1Data; s3: Step3Data }) {
+  const ownerName = `${s1.firstName} ${s1.lastName}`.trim();
+  const businessName = s3.tradeName.trim() || ownerName || "העסק שלך";
+  const osekLabel = OSEK_LABEL[currentOsekChoice(s3.osekType, s3.isOsekZeir)];
+
+  return (
+    <div className="rounded-xl border border-dashed border-brand/60 bg-cream/60 p-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-deep/70">
+        ככה תיראה כותרת המסמכים שלך
+      </p>
+      <div className="rounded-lg bg-paper border border-line px-4 py-3">
+        <div className="text-sm font-bold text-brand-navy">{businessName}</div>
+        {ownerName && businessName !== ownerName && (
+          <div className="text-xs text-muted mt-0.5">{ownerName}</div>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
+          <span>
+            ע.מ./ת.ז.:{" "}
+            <span dir="ltr" className="font-mono text-ink">
+              {s1.teudatZehut || "—"}
+            </span>
+          </span>
+          <span className="inline-flex items-center rounded-full bg-sand px-2 py-0.5 text-[10px] text-ink">
+            {osekLabel}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function OsekTypeChoice({
