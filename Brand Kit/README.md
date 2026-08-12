@@ -1,7 +1,9 @@
 # Handoff: CountMe — Brand System & Product Screens
 
 ## Overview
-**CountMe** is a Hebrew-first (RTL) financial-compliance app for Israeli freelancers/self-employed (עצמאים). It tracks reporting deadlines (מע״מ / VAT, מקדמות / advance tax, ביטוח לאומי / national insurance, ניכויים / withholdings), surfaces income vs. the exemption ceiling, generates invoices & receipts, and provides a smart assistant character named **איתן (Eitan)**. The brand voice is calm, premium, trustworthy — "we count, so you can work."
+**CountMe** is a Hebrew-first (RTL) financial-compliance app for Israeli freelancers/self-employed (עצמאים). It tracks reporting deadlines (מע״מ / VAT, מקדמות / advance tax, ביטוח לאומי / national insurance, ניכויים / withholdings), surfaces income vs. the exemption ceiling, generates invoices & receipts, and provides a smart assistant character. The brand voice is calm, premium, trustworthy — "we count, so you can work."
+
+> **2026-08-12 update:** the assistant persona is now named **שקל (Shekel)** in-product (a coin-mascot character, replacing the original "איתן/Eitan" name from these mockups). The screen/interaction descriptions below still reference "Eitan" since that's what the original hifi mockup files literally contain — read every "Eitan" mention below as the current Shekel persona. The Design Tokens table below is kept current with the live app (2026-08-12 palette refresh); the per-screen sections still describe the original mockups' colors/copy verbatim.
 
 This bundle contains the full brand system plus high-fidelity mockups of every core screen.
 
@@ -18,17 +20,19 @@ The task is to **recreate these designs in the target codebase's existing enviro
 ## Design Tokens
 
 ### Colors
+*(2026-08-12 refresh: `--beige`/`--beige-600`/`--beige-100` shifted warmer-gold and `--teal`/`--teal-600`/`--teal-100` shifted to periwinkle, converging both new Shekel/expense-upload/onboarding artifacts' palettes into the existing token names — see `globals.css` for the canonical values. Navy is unchanged.)*
+
 | Token | Hex | Use |
 |---|---|---|
 | `--navy` | `#083A4F` | Primary. Headings, primary buttons, sidebar, user chat bubble |
 | `--navy-700` | `#0C4860` | Gradient top / hover surfaces |
 | `--navy-900` | `#052532` | Darkest — footers, gradient base, dark-card base |
-| `--beige` | `#C8B59A` | Accent (premium). Logo mark, secondary CTA, checkbox-on, FAB |
-| `--beige-600` | `#AD9A7B` | Beige hover |
-| `--beige-100` | `#EFE7DA` | Soft beige fill |
-| `--teal` | `#407E8C` | Interaction. Links, icons, charts, focus ring |
-| `--teal-600` | `#356A77` | Teal text / hover |
-| `--teal-100` | `#DCE9EB` | Soft teal fill, chips |
+| `--beige` (now gold) | `#F5A93F` | Accent (premium). Logo mark, secondary CTA, checkbox-on, FAB |
+| `--beige-600` | `#E0922A` | Gold hover |
+| `--beige-100` | `#FFF1D9` | Soft gold fill |
+| `--teal` (now periwinkle) | `#5B67E8` | Interaction. Links, icons, charts, focus ring |
+| `--teal-600` | `#4550C4` | Periwinkle text / hover |
+| `--teal-100` | `#E4E6FB` | Soft periwinkle fill, chips |
 | `--aqua` | `#C0D5D6` | Soft highlights, text on dark |
 | `--aqua-soft` | `#E6EEEE` | Focus glow, soft surface |
 | `--sand` | `#E5E1DD` | Page background (neutral) |
@@ -43,12 +47,12 @@ The task is to **recreate these designs in the target codebase's existing enviro
 ### Status (traffic-light) system
 | State | Text/dot | Background | Meaning |
 |---|---|---|---|
-| On-track / paid | `--on-track #3E8E78` | `--on-track-bg #DDEDE6` | Paid or plenty of time (שולם / במסלול) |
+| On-track / paid | `--on-track #17C29B` (mint, 2026-08-12 refresh) | `--on-track-bg #D3F4EA` | Paid or plenty of time (שולם / במסלול) |
 | Due / approaching | `--due #A88A3F` (a warm beige-gold) | `--due-bg #F1E9D4` | Deadline approaching (מתקרב) |
 | Overdue | `--overdue #C05B45` (calm terracotta) | `--overdue-bg #F3DED7` | Past due (באיחור) |
 
 ### Typography
-- **Family:** `Assistant` (Google Fonts, weights 300–800). This is the free stand-in for **Almoni** — the typeface used on gov.il. For production, Almoni (AlefAlefAlef, commercial) may be swapped in without layout changes; otherwise keep Assistant.
+- **Family:** `Assistant` (Google Fonts, weights 300–800) for body text; **`Rubik`** (Google Fonts, weights 500–900, added 2026-08-12) for headings/display — both new Shekel-era artifacts use Rubik for display type. Assistant remains the free stand-in for **Almoni** — the typeface used on gov.il. For production, Almoni (AlefAlefAlef, commercial) may be swapped in without layout changes; otherwise keep Assistant/Rubik.
 - **Numerals:** use tabular figures for money/dates — `font-feature-settings: "tnum"` / `font-variant-numeric: tabular-nums`.
 - **Scale (used across kit):** Display 58/800/-3.5%; H1 40/800/-2.5%; H2 30/700/-2%; H3 23/700; Body-L 18/400; Body 16/400; Small 13.5/500. Headings use negative letter-spacing.
 

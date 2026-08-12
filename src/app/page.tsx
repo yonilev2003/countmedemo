@@ -71,9 +71,9 @@ export default async function Home() {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(680px 460px at 82% 2%, rgba(64,126,140,.55) 0%, rgba(64,126,140,0) 60%)," +
+              "radial-gradient(680px 460px at 82% 2%, rgba(91,103,232,.45) 0%, rgba(91,103,232,0) 60%)," +
               "radial-gradient(720px 520px at 6% 104%, rgba(12,72,96,.85) 0%, rgba(12,72,96,0) 60%)," +
-              "radial-gradient(520px 380px at 98% 96%, rgba(165,141,102,.28) 0%, rgba(165,141,102,0) 60%)," +
+              "radial-gradient(520px 380px at 98% 96%, rgba(245,169,63,.24) 0%, rgba(245,169,63,0) 60%)," +
               "linear-gradient(168deg, #0d4a62 0%, var(--color-brand-navy) 52%, var(--color-navy-900) 100%)",
           }}
         />
@@ -276,7 +276,7 @@ export default async function Home() {
             className="relative overflow-hidden rounded-[30px] px-10 py-[72px] text-center text-white"
             style={{
               background:
-                "radial-gradient(600px 360px at 80% 0%, rgba(165,141,102,.32), transparent 60%), linear-gradient(160deg, #0c4860, var(--color-navy-900))",
+                "radial-gradient(600px 360px at 80% 0%, rgba(245,169,63,.28), transparent 60%), linear-gradient(160deg, #0c4860, var(--color-navy-900))",
             }}
           >
             <h2 className="mb-4 font-display text-[clamp(30px,4.4vw,48px)] font-extrabold leading-[1.08] tracking-[-0.025em]">

@@ -143,8 +143,8 @@ npm run build`}
           <Table rows={[
             ["--color-cream", "#F1EFEA — רקע כללי"],
             ["--color-brand-navy", "#083A4F — CTA ראשי"],
-            ["--color-brand-deep", "#407E8C — אינטראקציה ו-teal"],
-            ["--color-success", "#4A7C59 — פעולות חיוביות"],
+            ["--color-brand-deep", "#5B67E8 — אינטראקציה (periwinkle)"],
+            ["--color-success", "#17C29B — פעולות חיוביות (mint)"],
             ["--color-info", "#DCE9EB — בועות צ׳אט"],
             ["--color-alert", "#C05B45 — אזהרות"],
           ]} />

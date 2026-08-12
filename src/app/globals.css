@@ -10,15 +10,22 @@
   --color-navy-700:    #0C4860;
   --color-navy-900:    #052532;
 
-  /* Beige — accent: logo mark, secondary CTA, FAB */
-  --color-brand:       #C8B59A;
-  --color-beige-600:   #AD9A7B;
-  --color-beige-100:   #EFE7DA;
+  /* Gold — accent: logo mark, secondary CTA, FAB (2026-08-12 refresh: was a
+     muted beige #C8B59A; brightened toward the Shekel-mascot/expense-upload
+     artifacts' gold accent. Token names kept as "beige-*" so the ~40 files
+     using bg-brand/beige-600/beige-100 utility classes don't need touching —
+     same pattern as --color-cream's "was amber" note below.) */
+  --color-brand:       #F5A93F;
+  --color-beige-600:   #E0922A;
+  --color-beige-100:   #FFF1D9;
 
-  /* Teal — interaction: links, icons, charts, focus ring */
-  --color-brand-deep:  #407E8C;
-  --color-teal-600:    #356A77;
-  --color-teal-100:    #DCE9EB;
+  /* Periwinkle — interaction: links, icons, charts, focus ring (2026-08-12
+     refresh: was teal #407E8C; shifted toward the periwinkle/indigo both new
+     onboarding + expense-upload artifacts converge on. Token names kept as
+     "teal-*" for the same reason as above. */
+  --color-brand-deep:  #5B67E8;
+  --color-teal-600:    #4550C4;
+  --color-teal-100:    #E4E6FB;
 
   /* Aqua — soft highlights */
   --color-aqua:        #C0D5D6;
@@ -38,9 +45,11 @@
   --color-line:        #E7E2DA;
   --color-line-soft:   #EFEBE3;
 
-  /* Status (traffic-light) */
-  --color-success:       #3E8E78;
-  --color-success-light: #DDEDE6;
+  /* Status (traffic-light). success shifted toward the onboarding artifact's
+     mint (2026-08-12 refresh) — due/alert unchanged, not referenced by either
+     new artifact. */
+  --color-success:       #17C29B;
+  --color-success-light: #D3F4EA;
   --color-due:           #A88A3F;
   --color-due-bg:        #F1E9D4;
   --color-due-ink:       #7d6422;   /* darkened due text on tinted (due-bg) surfaces */
@@ -60,8 +69,10 @@
   --color-tax-fieldcode:    #c62828;
 
   /* ── Typography ─────────────────────────────────────────────────────── */
+  /* 2026-08-12: added Rubik for headings/display (both new artifacts use it);
+     body text stays Assistant everywhere. */
   --font-sans:    var(--font-assistant);
-  --font-display: var(--font-assistant);
+  --font-display: var(--font-rubik);
 
   /* ── Shadows ─────────────────────────────────────────────────────────── */
   --shadow-brand:    0 1px 2px rgba(8,40,55,.04), 0 12px 28px -16px rgba(8,40,55,.18);

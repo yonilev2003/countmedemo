@@ -50,8 +50,8 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Database | Supabase — **LIVE**, project `hbsgzelipeawkvtcazdr` (clients in `src/lib/supabase/`, migrations in `supabase/migrations/`, RLS on every table) | Went live 2026-06-10 (supersedes "Day 2+"). Note: the Supabase MCP account does NOT see this project — see `memory/STATUS.md` |
 | AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
 | Lang/dir | Hebrew, RTL only | Target market |
-| Fonts | Assistant (single variable, body + display) | Google Fonts, native Hebrew, replaced Heebo/Rubik (2026-06-03) |
-| Brand system | Navy `#083A4F` / beige `#C8B59A` / teal `#407E8C` — tokens in `globals.css`, primitives in `src/components/brand/` | Full kit at `Brand Kit/README.md`; see "Design system" section below |
+| Fonts | Assistant (body) + Rubik (headings/display) | Google Fonts, native Hebrew, replaced Heebo (2026-06-03); Rubik added 2026-08-12 for the Shekel-era artifacts |
+| Brand system | Navy `#083A4F` (unchanged) / gold `#F5A93F` / periwinkle `#5B67E8` — tokens in `globals.css`, primitives in `src/components/brand/` | Full kit at `Brand Kit/README.md`; see "Design system" section below. Palette reweighted 2026-08-12 (was beige `#C8B59A` / teal `#407E8C`) to match the Shekel mascot + new onboarding/expense-upload artifacts |
 | Form approach | Visual reference, not 1:1 React rebuild | User's call — saves time, demo's purpose is "show what to fill" |
 | Persona format | Single JSON file at `personas/dana-cohen.json` | Swappable; replace fields when running with real data |
 
@@ -304,30 +304,31 @@ The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscio
 - Extracted fields auto-populate the wizard state (firstName/lastName, osekType, totalRevenue, totalDeductibleExpenses, donations)
 - Returning users with a persona in localStorage skip step 0 and land on step 1 directly
 
-## Brand Kit design system (added 2026-06-03)
+## Brand Kit design system (added 2026-06-03, palette+font refreshed 2026-08-12)
 
 Full kit lives at `Brand Kit/README.md` (committed). Key rules for every AI session:
 
 - **No emoji anywhere** — the kit explicitly bans them. Use line icons from `src/components/brand/icons.tsx`.
-- **Font:** `Assistant` only (Google Fonts, Hebrew + Latin). Variable `--font-assistant`. No Heebo, no Rubik.
-- **Palette** (via Tailwind `@theme inline` in `globals.css`):
+- **Fonts:** `Assistant` for body (`font-sans`), **`Rubik`** for headings/display (`font-display`) — added 2026-08-12 to match the Shekel-era artifacts. Variables `--font-assistant` / `--font-rubik`, loaded in `layout.tsx`. No Heebo.
+- **Palette** (via Tailwind `@theme inline` in `globals.css`) — **reweighted 2026-08-12** toward the Shekel mascot / expense-upload / onboarding artifacts; token *names* kept stable (`brand`/`beige-*` still means "the gold accent token", `brand-deep`/`teal-*` still means "the interactive accent token" — same pattern as `cream` retaining its name after an earlier amber→cream swap):
   | Token | Hex | Use |
   |---|---|---|
-  | `brand-navy` | `#083A4F` | Primary CTA, headings, dark surfaces |
-  | `brand` (beige) | `#C8B59A` | Accent, logo, borders |
-  | `brand-deep` (teal) | `#407E8C` | Interactive, links, focus |
+  | `brand-navy` | `#083A4F` | Primary CTA, headings, dark surfaces (unchanged) |
+  | `brand` (gold, was beige) | `#F5A93F` | Accent, logo, borders |
+  | `brand-deep` (periwinkle, was teal) | `#5B67E8` | Interactive, links, focus |
   | `cream` | `#F1EFEA` | Page background |
   | `paper` | `#FBFAF8` | Card surface |
-  | `success` | `#3E8E78` | On-track / paid |
-  | `due` | `#A88A3F` | Deadline approaching |
-  | `alert` | `#C05B45` | Overdue / error |
-  | gov.il tokens | kept as-is | `tax-blue`, `tax-yellow`, etc. — for form-1301 only |
+  | `success` (mint, was `#3E8E78`) | `#17C29B` | On-track / paid |
+  | `due` | `#A88A3F` | Deadline approaching (unchanged) |
+  | `alert` | `#C05B45` | Overdue / error (unchanged) |
+  | gov.il tokens | kept as-is | `tax-blue`, `tax-yellow`, etc. — for form-1301/form-1219 only, never reweighted |
 
-- **Traffic-light status system:** `on-track` (green) · `due` (gold) · `overdue` (terracotta) · `plan` (teal). Always use `<StatusBadge>` from `src/components/brand/status.tsx`.
-- **`/demo` form is exempt** from brand tokens — all `gov-*` and tax-authority classes inside `form-preview.tsx` stay gov.il faithful.
+- **Traffic-light status system:** `on-track` (mint) · `due` (gold) · `overdue` (terracotta) · `plan` (periwinkle). Always use `<StatusBadge>` from `src/components/brand/status.tsx`.
+- **gov.il-faithful surfaces are exempt** from brand tokens — all `gov-*`/`tax-*` classes and hardcoded gov-blue hex stay untouched. This covers **three** surfaces, not just `/demo`: `form-preview.tsx` (`/demo`, Form 1301), `form-1219/form-preview.tsx` (`/file/1219`, Form 1219 capital declaration), and the extra inline gov-styled hex in `file/companion/page.tsx`. All three were verified to share zero token names with the brand palette, so the 2026-08-12 refresh could not have touched them even before this note existed — documented here so nobody "fixes" them into the new palette by mistake.
 - **Buttons:** always use `btn(variant, size)` from `src/components/brand/button.tsx`. Variants: `primary` / `secondary` / `ghost` / `gold`. All are pill-shaped.
 - **Shadows:** `shadow-brand` (soft navy lift). No tailwind `shadow-md/lg` on countme surfaces.
 - **RTL:** use logical properties (`ms-`, `me-`, `ps-`, `pe-`, `start-`, `end-`) everywhere. Avoid `ml-`/`mr-`.
+- **`src/components/brand/colors.ts` is a hand-maintained JS mirror of the CSS tokens** (for SVG/recharts/inline-style contexts) — it does NOT auto-derive from `globals.css`. Any palette change must edit both files in the same commit, or it silently drifts (this happened once already — `about/page.tsx`'s brand-token doc table had drifted from the real `success` value before the 2026-08-12 refresh caught and fixed it).
 
 ## Why we are NOT integrating these (right now)
 
