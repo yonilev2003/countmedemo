@@ -2,16 +2,29 @@
  * Bank of Israel representative exchange rate — best-effort lookup for
  * foreign-currency expense lines ("שער יציג של בנק ישראל בתאריך החשבונית").
  *
- * UNVERIFIED endpoint shape: this sandbox's outbound network policy blocks
- * boi.org.il, so the exact response shape below could not be confirmed live
- * before shipping (2026-08-12) — confirm against a real request once
- * deployed, and adjust the field names in `parseBoiResponse` if they drift.
- * This is why the fetch is defensive end-to-end (timeout, try/catch, no
- * throw) and every caller MUST treat a null return as "ask the user to type
- * the rate in manually" — never block on this succeeding. The Expense Object
- * stores whatever rate lands in the field regardless of source (fetched or
- * typed), per the spec — manual entry is a first-class path, not a fallback
- * hack.
+ * Deliberately NOT swapped for a generic market-rate API (xe.com,
+ * exchangerate-api, etc.) even though those are easier to reach — the
+ * "representative rate" (שער יציג) is a specific legal figure Israeli tax
+ * regulations anchor foreign-currency expense conversion to (an average of
+ * bank buy/sell prices, published once daily), not just any live market
+ * quote. A different provider's number can legitimately differ from BOI's
+ * and wouldn't be the figure the regulation actually asks for — so a
+ * "similar quality" alternative isn't really equivalent here. Manual entry
+ * (always available, see below) stays the honest fallback instead of a
+ * technically-working but not-quite-compliant swap.
+ *
+ * Endpoint confirmed via BOI's own documentation (boi.org.il, "Extracting
+ * representative exchange rates from the new series database"; searched
+ * 2026-08-12 — this sandbox's egress policy blocks boi.org.il itself, live
+ * requests included, so the exact JSON field names below are still
+ * UNVERIFIED and must be checked once deployed):
+ *   https://boi.org.il/PublicApi/GetExchangeRate?key={currency}&asXml=false
+ * `key` takes a lowercase currency code (usd/eur/gbp/chf/...). A `date`
+ * param is expected to work for historical lookups (BOI's own docs mention
+ * querying "one observation, a range of dates, or all observations" for a
+ * series) but its exact name wasn't confirmable without live access.
+ * Second official channel, undocumented in detail here but worth trying if
+ * PublicApi changes shape: the SDMX endpoint at edge.boi.org.il.
  */
 
 const TIMEOUT_MS = 6_000;
@@ -32,7 +45,7 @@ export async function fetchBoiRate(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const url = `https://boi.org.il/PublicApi/GetExchangeRate?key=${key}&date=${dateIso}&asJson=true`;
+    const url = `https://boi.org.il/PublicApi/GetExchangeRate?key=${key}&date=${dateIso}&asXml=false`;
     const res = await fetch(url, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
