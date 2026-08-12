@@ -126,7 +126,7 @@ export default function DashboardPage() {
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> איתן
+              <SparklesIcon className="size-4" /> שקל
             </Link>
             <SignOutButton />
           </div>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
-                איתן אומר
+                שקל אומר
               </div>
               <p className="mt-0.5 text-sm leading-relaxed text-ink">
                 {eitanMonthLine(summary, firstName)}

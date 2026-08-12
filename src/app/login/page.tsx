@@ -39,9 +39,9 @@ export default async function LoginPage({
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(680px 460px at 82% 2%, rgba(64,126,140,.55) 0%, rgba(64,126,140,0) 60%)," +
+            "radial-gradient(680px 460px at 82% 2%, rgba(91,103,232,.45) 0%, rgba(91,103,232,0) 60%)," +
             "radial-gradient(720px 520px at 6% 104%, rgba(12,72,96,.85) 0%, rgba(12,72,96,0) 60%)," +
-            "radial-gradient(520px 380px at 98% 96%, rgba(165,141,102,.28) 0%, rgba(165,141,102,0) 60%)," +
+            "radial-gradient(520px 380px at 98% 96%, rgba(245,169,63,.24) 0%, rgba(245,169,63,0) 60%)," +
             "linear-gradient(168deg, #0d4a62 0%, var(--color-brand-navy) 52%, var(--color-navy-900) 100%)",
         }}
       />

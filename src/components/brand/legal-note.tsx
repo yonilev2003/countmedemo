@@ -28,10 +28,16 @@ export const LEGAL_NOTE_LINE =
 export const LEGAL_NOTE_ESTIMATE =
   "הערכה לפי הנתונים שהזנת — הסכום הסופי נקבע בשומה של רשות המסים.";
 
+// DRAFT — NEEDS LEGAL REVIEW (dataset-surface variant — expense-classification
+// screens fed by the confidence-graded 113-profession dataset, W3/W5, 2026-08-12)
+export const LEGAL_NOTE_DATASET =
+  "הקטגוריה ואחוז ההכרה מוצגים לפי הנחיות רשות המסים לשנת 2026 ומאגר נתונים מדורג ברמת ודאות (A/B/C) — לצורכי הכוונה בלבד, לא ייעוץ מס. שורות ברמת ודאות C דורשות בדיקה פרטנית. האחריות על הדיווח לרשות המסים היא שלך; לשאלה שדורשת שיקול דעת מקצועי — פני לרואה חשבון או יועץ מס מוסמך.";
+
 const VARIANT_TEXT = {
   full: LEGAL_NOTE_FULL,
   line: LEGAL_NOTE_LINE,
   estimate: LEGAL_NOTE_ESTIMATE,
+  dataset: LEGAL_NOTE_DATASET,
 } as const;
 
 export type LegalNoteVariant = keyof typeof VARIANT_TEXT;
@@ -43,7 +49,7 @@ export function LegalNote({
   variant: LegalNoteVariant;
   className?: string;
 }) {
-  if (variant === "full") {
+  if (variant === "full" || variant === "dataset") {
     return (
       <div
         className={cn(
@@ -51,7 +57,7 @@ export function LegalNote({
           className,
         )}
       >
-        {LEGAL_NOTE_FULL}
+        {VARIANT_TEXT[variant]}
       </div>
     );
   }

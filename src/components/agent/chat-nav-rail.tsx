@@ -205,7 +205,7 @@ function ChatNavSideRail({ className }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <div className="text-[14.5px] font-extrabold leading-tight">
-            איתן
+            שקל
           </div>
           <div className="mt-0.5 text-[11.5px] leading-snug text-aqua">
             השותף הדיגיטלי שלך לדוח השנתי

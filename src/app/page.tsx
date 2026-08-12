@@ -33,7 +33,7 @@ export default async function Home() {
           <nav className="hidden items-center gap-1 lg:flex">
             <NavAnchor href="#shortcuts">פעולות מהירות</NavAnchor>
             <NavAnchor href="#eitan">
-              <SparklesIcon className="size-4 text-beige-600" /> איתן
+              <SparklesIcon className="size-4 text-beige-600" /> שקל
             </NavAnchor>
             <NavAnchor href="#social">קהילה</NavAnchor>
             <Link
@@ -71,9 +71,9 @@ export default async function Home() {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(680px 460px at 82% 2%, rgba(64,126,140,.55) 0%, rgba(64,126,140,0) 60%)," +
+              "radial-gradient(680px 460px at 82% 2%, rgba(91,103,232,.45) 0%, rgba(91,103,232,0) 60%)," +
               "radial-gradient(720px 520px at 6% 104%, rgba(12,72,96,.85) 0%, rgba(12,72,96,0) 60%)," +
-              "radial-gradient(520px 380px at 98% 96%, rgba(165,141,102,.28) 0%, rgba(165,141,102,0) 60%)," +
+              "radial-gradient(520px 380px at 98% 96%, rgba(245,169,63,.24) 0%, rgba(245,169,63,0) 60%)," +
               "linear-gradient(168deg, #0d4a62 0%, var(--color-brand-navy) 52%, var(--color-navy-900) 100%)",
           }}
         />
@@ -174,9 +174,9 @@ export default async function Home() {
       <section id="eitan-section" className="bg-paper py-24 md:py-[96px]">
         <div className="mx-auto max-w-screen-xl px-8">
           <SectionHead
-            eyebrow="איתן"
+            eyebrow="שקל"
             title="שאלה של שנייה, תשובה בגובה העיניים"
-            subtitle="מה זה מקדמות? מה מוכר כהוצאה? מי עוד לא שילם לי? איתן, הנציג הדיגיטלי שלנו, עונה בשפה של בני אדם — צמוד לנתונים האמיתיים של העסק."
+            subtitle="מה זה מקדמות? מה מוכר כהוצאה? מי עוד לא שילם לי? שקל, הנציג הדיגיטלי שלנו, עונה בשפה של בני אדם — צמוד לנתונים האמיתיים של העסק."
           />
           <div
             id="eitan"
@@ -190,7 +190,7 @@ export default async function Home() {
                 </span>
                 <div>
                   <div className="flex items-center gap-[7px] text-lg font-extrabold text-brand-navy">
-                    איתן
+                    שקל
                     <CheckCircleIcon className="size-4 text-brand-deep" />
                   </div>
                   <div className="text-[13.5px] font-semibold text-teal-600">
@@ -221,7 +221,7 @@ export default async function Home() {
                   href="/coach"
                   className="flex-1 rounded-full border border-line bg-paper px-[18px] py-[13px] text-sm text-faint transition-colors hover:border-brand-deep hover:text-teal-600"
                 >
-                  כתבו לאיתן…
+                  כתבו לשקל…
                 </Link>
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-navy">
                   <MicIcon className="size-[21px]" />
@@ -276,7 +276,7 @@ export default async function Home() {
             className="relative overflow-hidden rounded-[30px] px-10 py-[72px] text-center text-white"
             style={{
               background:
-                "radial-gradient(600px 360px at 80% 0%, rgba(165,141,102,.32), transparent 60%), linear-gradient(160deg, #0c4860, var(--color-navy-900))",
+                "radial-gradient(600px 360px at 80% 0%, rgba(245,169,63,.28), transparent 60%), linear-gradient(160deg, #0c4860, var(--color-navy-900))",
             }}
           >
             <h2 className="mb-4 font-display text-[clamp(30px,4.4vw,48px)] font-extrabold leading-[1.08] tracking-[-0.025em]">
@@ -301,7 +301,7 @@ export default async function Home() {
                   "border-white/30 bg-white/10 px-8 py-[15px] text-base text-white backdrop-blur-md hover:border-white/50 hover:bg-white/20",
                 )}
               >
-                <SparklesIcon className="size-[18px]" /> תכירו את איתן
+                <SparklesIcon className="size-[18px]" /> תכירו את שקל
               </Link>
             </div>
           </div>
@@ -331,7 +331,7 @@ export default async function Home() {
                   { label: "חשבוניות וקבלות", href: "/invoices" },
                   { label: "מי לא שילם לי", href: "/receivables" },
                   { label: "מחירים", href: "/pricing" },
-                  { label: "איתן", href: "/coach" },
+                  { label: "שקל", href: "/coach" },
                 ]}
               />
               <FooterCol
@@ -594,7 +594,7 @@ const SCENARIOS: Scenario[] = [
     initial: "א",
     avatarColor: BRAND_COLORS.teal600,
     role: "מטפלת עצמאית",
-    tag: "צ׳אט איתן",
+    tag: "צ׳אט שקל",
     quote: "שאלה בעברית, תשובה עם מספרים",
     body: (
       <>

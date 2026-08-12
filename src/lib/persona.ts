@@ -96,9 +96,24 @@ export interface ExpenseLine {
   amount: number;              // total paid (incl. VAT for patur, ex VAT for morshe)
   vat?: number;
   category: string;            // matches business-expenses/profiles.ts category names
-  receiptPath?: string;
+  receiptPath?: string;        // Supabase Storage object path ("receipts/{uid}/...") — never hard-deleted (7-year retention)
   deductionRule: "full" | "partial" | "depreciation";
   partialPercent?: number;
+  /** Vendor's document number (חשבונית/קבלה #), free text. */
+  docNumber?: string;
+  /** Stable id from business-expenses/occupation-dataset categories (W3) — denormalized alongside `category`'s Hebrew label. */
+  categoryId?: string;
+  /** Required-field completeness at capture time (lib/expenses/types.ts) — NOT a data-quality signal. */
+  status?: "full" | "partial" | "needs_review";
+  /** Why this was a business expense — free text, shown for needs_review rows. */
+  businessPurpose?: string;
+  isForeignCurrency?: boolean;
+  originalAmount?: number;
+  originalCurrency?: string;   // ISO 4217, e.g. "USD"
+  exchangeRate?: number;       // ILS per 1 unit of originalCurrency, on the doc date
+  source?: "camera" | "gallery" | "voice" | "manual";
+  /** Soft-delete only — never hard-remove a row with a receiptPath (7-year retention requirement). */
+  deletedAt?: string;
 }
 
 export interface PersonaContact {

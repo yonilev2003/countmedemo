@@ -5,7 +5,8 @@ import { useEffect } from "react";
 // Last-resort boundary — fires only when the root layout itself crashes.
 // Must include its own <html>/<body> because the layout is gone.
 // Brand hex values are inlined since Tailwind/CSS vars are unavailable here.
-// navy=#083A4F, beige=#C8B59A, cream=#F1EFEA, alert=#C05B45, muted=#6A7A80, paper=#FBFAF8
+// navy=#083A4F, gold=#F5A93F, cream=#F1EFEA, alert=#C05B45, muted=#6A7A80, paper=#FBFAF8
+// (none of the below inline styles currently use gold/beige — comment kept for completeness)
 export default function GlobalError({
   error,
   reset,

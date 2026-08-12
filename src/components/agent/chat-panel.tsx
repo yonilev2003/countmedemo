@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { SendIcon } from "@/components/brand/icons";
 
-/** Eitan's avatar image (cropped illustration, framed to the head like the mockup). */
-const EITAN_AVATAR = "/eitan/companion/picture1.png";
+/** Shekel's avatar image (3D character render, cropped to the head via object-top). */
+const EITAN_AVATAR = "/eitan/shekel-mascot.jpg";
 
 /**
- * Eitan avatar — circular cropped illustration on a soft-beige disc (mockup).
- * Falls back to the navy LogoMark disc if the art is missing.
+ * Shekel avatar — circular cropped image on a soft-beige disc. Falls back to
+ * the navy LogoMark disc if the art is missing.
  */
 function EitanAvatar({ size, className }: { size: number; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -30,7 +30,7 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={EITAN_AVATAR}
-          alt="איתן"
+          alt="שקל"
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />
@@ -228,7 +228,7 @@ export function ChatPanel({ persona }: Props) {
         <EitanAvatar size={40} className="shadow-brand-sm" />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-brand-navy leading-tight">
-            <span>איתן</span>
+            <span>שקל</span>
             {/* Verified badge — teal check-circle */}
             <svg
               viewBox="0 0 16 16"
