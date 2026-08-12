@@ -19,6 +19,8 @@
  *   • מועדים          → /deadlines
  *   • התראות          → /alerts
  *   • שיחה עם שקל    → /coach
+ *   • תיעוד הוצאה     → /expenses/new (rail only — appended at the end so it
+ *                       doesn't shift the mobile bar's hardcoded indices)
  *
  * Brand-kit compliant: no emoji, line icons only, logical RTL props,
  * brand tokens + shadow-brand, Assistant font (inherited).
@@ -34,6 +36,7 @@ import {
   BellIcon,
   SparklesIcon,
   PlusIcon,
+  UploadIcon,
 } from "@/components/brand/icons";
 
 export interface QuickAction {
@@ -101,6 +104,16 @@ export const QUICK_ACTIONS: QuickAction[] = [
     icon: <SparklesIcon className="size-[22px]" />,
     tone: "bg-brand-navy text-brand",
     kbd: "⌘ K",
+  },
+  {
+    // Appended at the end (index 6) — the mobile bar below references
+    // QUICK_ACTIONS[0..5] by fixed index, so this stays rail-only and
+    // doesn't shift any of those positions.
+    href: "/expenses/new",
+    label: "תיעוד הוצאה",
+    hint: "צילום קבלה, הקלטה קולית או הזנה ידנית",
+    icon: <UploadIcon className="size-[22px]" />,
+    tone: "bg-due-bg text-due-ink",
   },
 ];
 

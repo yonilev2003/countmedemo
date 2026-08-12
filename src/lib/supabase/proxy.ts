@@ -23,6 +23,7 @@ const PROTECTED_PREFIXES = [
   "/setup/assets",
   "/onboarding",
   "/business-expenses",
+  "/expenses",
   "/dashboard",
   "/invoices",
   "/coach",
