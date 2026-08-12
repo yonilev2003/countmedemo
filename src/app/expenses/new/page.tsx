@@ -136,6 +136,17 @@ export default function NewExpensePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.isForeignCurrency, draft.originalCurrency, draft.date]);
 
+  // Foreign-currency lines: `amount` (the ILS total, what validation/save
+  // actually use) is DERIVED from originalAmount × exchangeRate, never typed
+  // directly — keep it in sync so a filled-in foreign-currency expense isn't
+  // permanently flagged as "missing amount".
+  useEffect(() => {
+    if (!draft.isForeignCurrency) return;
+    const computed = (Number(draft.originalAmount) || 0) * (Number(draft.exchangeRate) || 0);
+    const next = computed > 0 ? String(Math.round(computed * 100) / 100) : "";
+    setDraft((d) => (d.isForeignCurrency && d.amount !== next ? { ...d, amount: next } : d));
+  }, [draft.isForeignCurrency, draft.originalAmount, draft.exchangeRate]);
+
   if (!persona) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -299,9 +310,11 @@ export default function NewExpensePage() {
 
   const missing = showValidation ? missingRequiredFields(draft) : [];
   const status = computeExpenseStatus(draft);
-  const amountIls = draft.isForeignCurrency
-    ? (Number(draft.originalAmount) || 0) * (Number(draft.exchangeRate) || 0)
-    : Number(draft.amount) || 0;
+  // `draft.amount` is the single source of truth (kept in sync with
+  // originalAmount × exchangeRate for foreign-currency lines by the effect
+  // above) — reusing it here instead of recomputing guarantees the "total in
+  // ILS" display and the saved amount can never drift apart.
+  const amountIls = Number(draft.amount) || 0;
 
   return (
     <div className="min-h-screen bg-cream">
