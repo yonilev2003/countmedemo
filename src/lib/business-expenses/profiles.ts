@@ -15,6 +15,14 @@ import {
   DeductionRule,
   PLImpact,
 } from "@/lib/regulatory/deductions";
+import {
+  DATASET,
+  matchProfessionByFreeText,
+  getCategoryLabel,
+  type Profession,
+  type OccupationExpenseLine,
+  type ConfidenceGrade,
+} from "@/lib/business-expenses/occupation-dataset";
 
 export type { DeductionRule };
 
@@ -331,20 +339,77 @@ const DEFAULT_PROFILE: ExpenseProfile = {
 
 const ALL_PROFILES = [CREATIVE, TECH, CONSULTANT];
 
+/* ──────────────────────────────────────────────────────────
+   113-profession regulatory dataset (2026) → ExpenseProfile.
+   Confidence-graded, per-expense-line data — richer and more specific
+   than the 3 keyword buckets above, so a dataset match wins when found.
+   ────────────────────────────────────────────────────────── */
+function confidenceSuffix(grade: ConfidenceGrade): string {
+  if (grade === "A") return "מעוגן בחוק/תקנה לשנה זו.";
+  if (grade === "B") return "עמדת רשות המסים / נוהג מקצועי מבוסס.";
+  return "שיקול דעת עסקי לפי סעיף 17 — לא ציטוט מהחוק, מומלץ לאמת מול רואה חשבון.";
+}
+
+function expenseLineToCategory(line: OccupationExpenseLine): ExpenseCategory {
+  const isFull = line.pctIncomeTax >= 1;
+  return {
+    name: line.nameHe,
+    description: [line.noteHe, `מקור: ${line.sourceLaw}. ${confidenceSuffix(line.confidence)}`]
+      .filter(Boolean)
+      .join(" "),
+    rule: isFull ? "full" : "partial",
+    partialPercent: isFull ? undefined : Math.round(line.pctIncomeTax * 100),
+    formFields: ["150"],
+    plImpact: "operating-expense",
+    examples: [getCategoryLabel(line.categoryId)],
+    warning:
+      line.confidence === "C"
+        ? "רמת ודאות C — דורש בדיקה פרטנית מול רואה חשבון, לא ניתן להסתמך עליו כקביעה סופית."
+        : undefined,
+  };
+}
+
+function professionToProfile(profession: Profession): ExpenseProfile {
+  const categories = profession.expenses.map(expenseLineToCategory);
+  if (profession.pctVehicle > 0) {
+    const isFull = profession.pctVehicle >= 1;
+    categories.push({
+      name: "רכב",
+      description: profession.vehicleRuleHe,
+      rule: isFull ? "full" : "partial",
+      partialPercent: isFull ? undefined : Math.round(profession.pctVehicle * 100),
+      formFields: ["150"],
+      plImpact: "operating-expense",
+      examples: ["דלק", "ביטוח וטסט", "חניה", "אחזקה ותיקונים"],
+    });
+  }
+  return {
+    matchKeywords: [],
+    label: profession.nameHe,
+    tagline: `הוצאות מוכרות למקצוע ${profession.nameHe}, לפי מאגר הנתונים הרגולטורי ${DATASET.year}`,
+    categories,
+  };
+}
+
 /**
  * Pick the best-matching expense profile for an occupation, resolved for a tax
- * year. The occupation-specific categories are static; the universal ones
- * (rates/caps) are derived for `year` and appended.
+ * year. Tries the 113-profession regulatory dataset first (specific, per-line
+ * confidence grading); falls back to the 3 generic keyword buckets when no
+ * profession matches. The universal categories (rates/caps) are derived for
+ * `year` and appended either way.
  */
 export function pickProfile(
   primaryOccupation: string,
   year: number,
 ): ExpenseProfile {
-  const lower = primaryOccupation.toLowerCase();
-  const base =
-    ALL_PROFILES.find((p) =>
-      p.matchKeywords.some((k) => lower.includes(k.toLowerCase())),
-    ) ?? DEFAULT_PROFILE;
+  const matchedProfession = matchProfessionByFreeText(primaryOccupation);
+  const base = matchedProfession
+    ? professionToProfile(matchedProfession)
+    : (ALL_PROFILES.find((p) =>
+        p.matchKeywords.some((k) =>
+          primaryOccupation.toLowerCase().includes(k.toLowerCase()),
+        ),
+      ) ?? DEFAULT_PROFILE);
   return {
     ...base,
     categories: [...base.categories, ...universalCategories(year)],
