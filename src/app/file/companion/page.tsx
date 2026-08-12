@@ -360,7 +360,7 @@ function EitanIllustration({ src }: { src: string }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={actualSrc}
-        alt="איתן"
+        alt="שקל"
         className="w-full h-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.18)]"
         onError={() => setActualSrc(PLACEHOLDER_EITAN)}
       />

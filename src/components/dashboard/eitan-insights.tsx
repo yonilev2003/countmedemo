@@ -94,7 +94,7 @@ export function EitanInsights({ persona, pl }: Props) {
           <div className="text-[10px] font-bold uppercase tracking-wider text-brand-deep">
             עוזר חכם
           </div>
-          <div className="text-sm font-bold text-brand-navy">איתן אומר</div>
+          <div className="text-sm font-bold text-brand-navy">שקל אומר</div>
         </div>
       </div>
       {loading ? (

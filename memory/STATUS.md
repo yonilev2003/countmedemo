@@ -120,8 +120,9 @@ build ירוקים אחרי כל קומיט):**
   החוסמים הפעילים; אם זה משתנה בעתיד זו החלטה חדשה, לא חזרה על הישנה.
 - ⛔ **סקירה משפטית חיצונית — עדיין אין** (יוני אישר, שוב). 10/12 סעיפים ב-[[regulatory-status]]
   נשארים 🔴 עד שיש עו"ד פעיל. לא לשאול על זה כל סשן — זה ידוע וממתין.
-- 🔴 **Redirect URL חסר ב-Supabase (hbsgz):** `countmedemo.vercel.app` לא ברשימת ה-Redirect URLs —
-  עדיין לא תוקן (פעולת-קונסולה).
+- 🔴 **Redirect URL חסר ב-Supabase (hbsgz):** `countmedemo-eight.vercel.app/auth/callback` לא ברשימת
+  ה-Redirect URLs (ותכן ש-Site URL עדיין מצביע על `countmedemo.vercel.app` השגוי) — עדיין לא תוקן
+  (פעולת-קונסולה). זו ההסבר הסביר ביותר ל-`?code=...` שנוחת על הדומיין הלא-נכון בהתחברות (12/08).
 - 🔴 **הפקת-מסמכים לא-אטומית** (`persistPersona`/`upsertPersona` fire-and-forget) — סיכון תיאורטי
   לאובדן/שכפול מספר-מס בין מכשירים בו-זמנית. דורש עיצוב זהיר (transaction/lock ברמת ה-DB) —
   נדחה בכוונה, לא לפני פגישה.

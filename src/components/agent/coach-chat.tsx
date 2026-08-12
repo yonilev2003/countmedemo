@@ -44,7 +44,7 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={EITAN_AVATAR}
-          alt="איתן"
+          alt="שקל"
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />
@@ -106,7 +106,7 @@ function eitanGreeting(persona: Persona | null | undefined): string {
   const suffix = female
     ? "ספרי לי בקצרה מה את צריכה היום?"
     : "ספר לי בקצרה מה אתה צריך היום?";
-  return `${prefix} אני איתן, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
+  return `${prefix} אני שקל, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
 }
 
 interface Props {
@@ -354,7 +354,7 @@ export function CoachChat({ persona }: Props) {
         <div className="flex-1 min-w-0">
           {/* Name + verified badge */}
           <div className="flex items-center gap-1.5 text-[16.5px] font-extrabold text-brand-navy leading-tight">
-            <span>איתן</span>
+            <span>שקל</span>
             {/* Verified badge — teal check-circle */}
             <svg
               viewBox="0 0 16 16"
@@ -386,8 +386,8 @@ export function CoachChat({ persona }: Props) {
         </button>
         <button
           type="button"
-          aria-label="אודות איתן"
-          title="איתן — השותף הדיגיטלי שלך לדוח השנתי"
+          aria-label="אודות שקל"
+          title="שקל — השותף הדיגיטלי שלך לדוח השנתי"
           className="grid size-[38px] flex-shrink-0 place-items-center rounded-full bg-cream text-brand-navy hover:bg-teal-100 transition-colors"
         >
           <InfoIcon className="size-[18px]" />
@@ -603,7 +603,7 @@ export function CoachChat({ persona }: Props) {
               placeholder={
                 attachment
                   ? "הוסיפי שאלה (אופציונלי) ושלחי..."
-                  : "כתוב/י הודעה לאיתן..."
+                  : "כתוב/י הודעה לשקל..."
               }
               disabled={isLoading}
               className="flex-1 bg-transparent border-none outline-none text-[14.5px] text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"

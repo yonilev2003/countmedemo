@@ -36,7 +36,7 @@ export default function AboutPage() {
           <p>
             מלווה דיגיטלי לעצמאיים ישראלים לאורך כל שנת המס. מקבל חשבוניות והוצאות,
             מחשב אוטומטית כל שדה בטופס 1301, ונותן לך מסלול מילוי עם
-            <strong className="text-brand-navy"> איתן</strong>, סוכן ה-AI שמתנהג כ-״אח חכם״.
+            <strong className="text-brand-navy"> שקל</strong>, סוכן ה-AI שמתנהג כ-״אח חכם״.
           </p>
         </Section>
 
@@ -58,10 +58,10 @@ export default function AboutPage() {
         <Section title="דפים עיקריים">
           <ul className="space-y-2">
             <Bullet href="/setup" name="/setup" desc="אשף הכנסת נתונים — 7 שלבים, כולל העלאת דוחות ו-PDF" />
-            <Bullet href="/dashboard" name="/dashboard" desc="לוח הבית: הכנסות/הוצאות/יחס החודש, 4 פעולות מהירות, שורת איתן" />
+            <Bullet href="/dashboard" name="/dashboard" desc="לוח הבית: הכנסות/הוצאות/יחס החודש, 4 פעולות מהירות, שורת שקל" />
             <Bullet href="/invoices" name="/invoices" desc="הנפקת חשבונית מס/קבלה, קבלה, עסקה או הצעת מחיר — תואם SHAAM" />
             <Bullet href="/receivables" name="/receivables" desc="מי לא שילם לי — גיול חובות, תזכורות, סימון כשולם" />
-            <Bullet href="/coach" name="/coach" desc="צ׳אט עם איתן — אבחון, איתור הוצאות, סיכום שיחה" />
+            <Bullet href="/coach" name="/coach" desc="צ׳אט עם שקל — אבחון, איתור הוצאות, סיכום שיחה" />
             <Bullet href="/business-expenses" name="/business-expenses" desc="הוצאות מוכרות לפי תחום עיסוק עם כללי ניכוי" />
           </ul>
         </Section>
@@ -75,15 +75,15 @@ export default function AboutPage() {
 │   ├── setup/            # Persona wizard (7 steps)
 │   ├── demo/             # gov.il-faithful preview
 │   ├── file/             # Gateway + guided + (expert→demo)
-│   ├── dashboard/        # P&L (Recharts) + Eitan insights
+│   ├── dashboard/        # P&L (Recharts) + Shekel insights
 │   ├── invoices/         # List, new, [id] (with @media print)
-│   ├── coach/            # Eitan chat
+│   ├── coach/            # Shekel chat
 │   ├── business-expenses/ # Per-occupation expense profiles
 │   └── about/            # ← This page
 ├── components/
 │   ├── form-1301/        # FormPreview, InteractiveValue, CopyButton
 │   ├── agent/            # Coach + chat panel
-│   └── dashboard/        # PLChart, EitanInsights
+│   └── dashboard/        # PLChart, ShekelInsights
 └── lib/
     ├── persona.ts        # Type defs + readPersonaPath
     ├── setup-storage.ts  # localStorage + setPersonaPath
@@ -111,9 +111,9 @@ export default function AboutPage() {
         </Section>
 
         {/* Eitan */}
-        <Section title="איתן — סוכן ה-AI">
+        <Section title="שקל — סוכן ה-AI">
           <p>
-            איתן מופעל ב-<code>/api/coach</code> עם streaming SSE ו-prompt caching על ה-system prompt.
+            שקל מופעל ב-<code>/api/coach</code> עם streaming SSE ו-prompt caching על ה-system prompt.
             יש לו שלושה מצבים:
           </p>
           <ul className="space-y-1.5 me-4 list-disc">

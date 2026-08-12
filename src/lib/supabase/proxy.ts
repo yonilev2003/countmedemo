@@ -20,7 +20,7 @@ import type { Database } from "./database.types";
 const PROTECTED_PREFIXES = [
   "/home",
   "/demo",
-  "/setup",
+  "/setup/assets",
   "/onboarding",
   "/business-expenses",
   "/dashboard",

@@ -30,7 +30,7 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={EITAN_AVATAR}
-          alt="איתן"
+          alt="שקל"
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />
@@ -228,7 +228,7 @@ export function ChatPanel({ persona }: Props) {
         <EitanAvatar size={40} className="shadow-brand-sm" />
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-brand-navy leading-tight">
-            <span>איתן</span>
+            <span>שקל</span>
             {/* Verified badge — teal check-circle */}
             <svg
               viewBox="0 0 16 16"

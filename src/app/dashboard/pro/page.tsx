@@ -375,7 +375,7 @@ export default function DashboardPage() {
               מילוי הדוח <ArrowLeftIcon className="size-4" />
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> שוחח עם איתן
+              <SparklesIcon className="size-4" /> שוחח עם שקל
             </Link>
             <SignOutButton />
           </div>
@@ -390,7 +390,7 @@ export default function DashboardPage() {
               <span className="absolute end-2.5 top-2.5 size-2 rounded-full border-[1.5px] border-paper bg-alert" />
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <SparklesIcon className="size-4" /> איתן
+              <SparklesIcon className="size-4" /> שקל
             </Link>
           </div>
         </div>

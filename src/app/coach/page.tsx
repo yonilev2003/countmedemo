@@ -42,7 +42,7 @@ export default function CoachPage() {
                 CountMe · Chat
               </div>
               <div className="truncate text-[12px] leading-tight text-muted">
-                איתן · השותף הדיגיטלי לדוח השנתי
+                שקל · השותף הדיגיטלי לדוח השנתי
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

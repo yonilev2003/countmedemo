@@ -42,7 +42,7 @@ export default function Form1219Page() {
           <div className="flex items-center gap-2">
             <Link href="/coach" className={btn("ghost", "sm")}>
               <SparklesIcon className="size-4" />
-              שאל/י את איתן
+              שאל/י את שקל
             </Link>
             <Link href="/file" className={btn("ghost", "sm")}>
               חזרה למסלולים

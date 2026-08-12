@@ -176,7 +176,7 @@ export default function AlertsPage() {
               לדוח 1301
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
-              <span className="text-brand-navy">שוחח עם איתן</span>
+              <span className="text-brand-navy">שוחח עם שקל</span>
             </Link>
           </div>
         </div>
