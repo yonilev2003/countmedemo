@@ -59,30 +59,23 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 
 Skills come from the [skills-il](https://github.com/skills-il) org (the `agentskills.co.il` catalog) via `npx skills`. We use a **three-tier model** tuned for token hygiene + reliability on ephemeral web containers. Only what's committed to the repo survives a container reset — `~/.claude/` and `node_modules` do not.
 
-**Tier 1 — Core (committed, always loaded).** 18 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. These are the demo-critical + stack skills:
+**Tier 1 — Core (committed, always loaded).** 9 skills materialized as real folders under `.claude/skills/` and committed to git (`.gitignore` ignores `.claude/*` but re-includes `!.claude/skills/`). Claude auto-loads only their name+description each session, and auto-invokes them by need. Reduced from 18 on 2026-08-13 (pruning audit): 9 skills had zero evidence of citation anywhere in code/docs (only routing-table mentions in archived planning docs) — demoted to Tier 2, still fully recoverable via `npx skills add` since all 9 were already recorded in `skills-lock.json`. `israeli-expense-categorizer` was specifically KEPT despite an earlier (unmerged) pruning attempt marking it superseded by a `src/lib/expense-engine/` that never actually shipped — it remains the cited authority for 4 live code sites in `lib/regulatory/deductions.ts` and `lib/calculators/`.
 
 | Skill | Why core |
 |---|---|
-| `israeli-tax-returns` | Form 1301 — the product |
-| `israeli-vat-reporting` | Doch Maam |
-| `israeli-tax-withholding` | Nikui mas bemakor |
+| `israeli-tax-returns` | Form 1301 — the product (heaviest usage: 16+ code citations) |
+| `israeli-vat-reporting` | Doch Maam, osek patur/zeir ceiling |
 | `israeli-bituach-leumi` | National insurance (field 030) |
-| `israeli-financial-reports` | Israeli-standard reports |
-| `israeli-expense-categorizer` | Pkudat Mas categorization |
-| `israeli-receipt-scanner` | Upload flow OCR for receipts |
-| `hebrew-ocr-forms` | OCR for Hebrew tax forms (106, 1301) — complements receipt-scanner for structured gov forms |
+| `israeli-financial-reports` | Israeli-standard reports (P&L structure) |
+| `israeli-expense-categorizer` | Pkudat Mas categorization — cited in code AND a user-facing UI string |
+| `israeli-receipt-scanner` | Upload flow OCR gotchas (naive-VAT warning) |
 | `israeli-e-invoice` | Hashbonit electronit / SHAAM (mandatory 2024+) |
-| `israeli-id-validator` | Teudat Zehut |
-| `hebrew-i18n` | RTL / Hebrew formatting |
-| `hebrew-tailwind-preset` | Tailwind 4 RTL — our stack |
-| `israeli-accessibility-compliance` | IS 5568 + WCAG 2.1 AA |
-| `israeli-ui-design-system` | gov.il patterns for `/demo` |
 | `israeli-freelancer-ops` | Core target user: עצמאי ישראלי — מקדמות, תזרים, תאריכים קריטיים; this IS our persona |
-| `il-invoice-organizer` | Organizes invoice data into the raw inputs that feed Form 1301 calculators |
-| `israeli-privacy-shield` | Israeli Privacy Law + GDPR — mandatory for any fintech product holding tax data |
-| `israeli-ai-compliance-kit` | Israeli AI regulation compliance — mandatory for an AI product with sensitive financial data |
+| `israeli-privacy-shield` | Israeli Privacy Law + GDPR — cited for a concrete PII-minimization decision |
 
-**Tier 2 — Vetted catalog (recorded, NOT loaded).** ~85 more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file. Skills promoted from Tier 2 to Tier 1 on 2026-05-29: `israeli-freelancer-ops`, `il-invoice-organizer`, `hebrew-ocr-forms`, `israeli-privacy-shield`, `israeli-ai-compliance-kit`.
+**Demoted to Tier 2 on 2026-08-13** (no code/doc citation found beyond an archived planning doc's routing table — recoverable via `npx skills add`, all already in `skills-lock.json`): `hebrew-ocr-forms`, `israeli-id-validator`, `hebrew-i18n`, `hebrew-tailwind-preset`, `israeli-accessibility-compliance`, `israeli-ui-design-system`, `il-invoice-organizer`, `israeli-tax-withholding`, `israeli-ai-compliance-kit`. Re-promote any of these the moment real work starts in its area (e.g. `israeli-accessibility-compliance` when IS 5568 work begins — currently tracked open in `memory/regulatory-status.md`).
+
+**Tier 2 — Vetted catalog (recorded, NOT loaded).** ~90+ more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file.
 
 **On-demand use:** when a task needs a Tier-2 capability (payments, payroll, legal, marketing, gov forms, etc.), discover and pull it for the session:
 ```
@@ -106,15 +99,15 @@ The `israeli-*` skills are the **domain authority** for the rules behind our num
 | Form 1301 fields, income classification, credit points, tax brackets | `israeli-tax-returns` | `lib/calculators/*`, `lib/form-1301/schema.ts` |
 | National insurance — deduction (030) + credit (048), benefits | `israeli-bituach-leumi` | `lib/calculators/index.ts`, `lib/regulatory/deductions.ts` |
 | VAT, עוסק פטור/זעיר ceiling, Doch Maam | `israeli-vat-reporting` | `lib/alerts/ceiling.ts`, `lib/calculators/types.ts` |
-| Withholding at source (field 115) | `israeli-tax-withholding` | `lib/calculators/index.ts` |
+| Withholding at source (field 115) | `israeli-tax-returns` (dedicated `israeli-tax-withholding` demoted to Tier 2 — pull it back if this area gets real work) | `lib/calculators/index.ts` |
 | Expense categories & deduction rules (full/partial/depreciation) | `israeli-expense-categorizer` | `lib/regulatory/deductions.ts`, `lib/business-expenses/profiles.ts` |
 | Invoices / receipts (hashbonit, allocation number) | `israeli-e-invoice` | `lib/invoice-generator/*`, `app/invoices/*` |
-| Teudat Zehut validation | `israeli-id-validator` | `app/setup/page.tsx` |
+| Teudat Zehut validation | `israeli-id-validator` — Tier 2, pull with `npx skills add` before implementing real checksum validation | `app/setup/page.tsx` |
 | Receipt / document OCR upload | `israeli-receipt-scanner` | `app/api/upload/route.ts` |
 | Hebrew chat UX / NLP | `hebrew-chatbot-builder` | `components/agent/*`, `app/api/chat`, `app/api/coach` |
-| RTL, number/date/currency formatting, plurals | `hebrew-i18n` | `lib/utils.ts` (used everywhere) |
-| Accessibility (IS 5568 / WCAG 2.1 AA) | `israeli-accessibility-compliance` | all pages/components |
-| Privacy / personal-data handling (Tikun 13) | `israeli-privacy-shield` | storage, Supabase (Day 2) |
+| RTL, number/date/currency formatting, plurals | `hebrew-i18n` — Tier 2, pull with `npx skills add` if a real RTL bug shows up | `lib/utils.ts` (used everywhere) |
+| Accessibility (IS 5568 / WCAG 2.1 AA) | `israeli-accessibility-compliance` — Tier 2, pull before starting the open IS 5568 work | all pages/components |
+| Privacy / personal-data handling (Tikun 13) | `israeli-privacy-shield` | storage, Supabase (live since 2026-06-10) |
 | Pulling official rates / deadlines from gov sources | `israel-gov-api` | `lib/regulatory/sources.ts` |
 | Hebrew PDF / DOCX output | `hebrew-document-generator` | future invoice/report export |
 
