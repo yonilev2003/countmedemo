@@ -45,7 +45,7 @@ The viewer copy-pastes values from countme into the real form. **We are not auto
 | Topic | Decision | Rationale |
 |---|---|---|
 | Stack | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4 + Anthropic SDK + framer-motion | Latest, fast, deploys to Vercel. framer-motion (12.x) added 2026-06-17 for the beta-launch UX polish — animation lives ONLY in `src/components/brand/motion.tsx` (Reveal/Stagger/CountUp), all reduced-motion-aware |
-| Payments | Israeli PSP via a provider-agnostic seam (`src/lib/billing/`) — **Tranzila** is the chosen integration, **ready-to-connect but NOT live**. Gated by `BILLING_ENABLED` (off = free beta). Tracks→integration→features map in `src/lib/billing/tracks.ts` | Israel needs a real חשבונית מס; Stripe can't. Multiple paid tracks may use different integrations — kept explicit (added 2026-06-17) |
+| Payments | **Shelved indefinitely** (locked decision, 2026-08-03: "אין לנו API של טרנזילה ולא יהיה בקרוב" — see `memory/decisions.md`). The provider-agnostic seam (`src/lib/billing/`) and Tranzila integration code remain in place, gated off by `BILLING_ENABLED` (off = free beta), but are not being actively pursued | Israel needs a real חשבונית מס; Stripe can't. Kept the seam so a future PSP swap-in doesn't require a rewrite |
 | Hosting | Vercel | Project email account (NOT yoni's personal) |
 | Database | Supabase — **LIVE**, project `hbsgzelipeawkvtcazdr` (clients in `src/lib/supabase/`, migrations in `supabase/migrations/`, RLS on every table) | Went live 2026-06-10 (supersedes "Day 2+"). Note: the Supabase MCP account does NOT see this project — see `memory/STATUS.md` |
 | AI model | claude-sonnet-4-6 default, claude-haiku-4-5 for cheap ops | Use prompt caching for system prompt + persona |
@@ -262,7 +262,7 @@ Mapped from a generic launch-readiness checklist to **what's actually relevant f
 | **Alerts** | **Yes — before EY** | TODO: Vercel error alerts + Anthropic usage budget alert |
 | Rollback strategy | Vercel "Promote previous deployment" | Already covered |
 
-## Security: Supabase (when wired Day 2+)
+## Security: Supabase (live since 2026-06-10 — verify these still hold, not a pre-launch to-do)
 
 When connecting Supabase, lock these in **before** any real data goes in:
 

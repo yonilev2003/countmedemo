@@ -7,6 +7,26 @@ related: "[[STATUS]] · [[decisions]] · [[retro-2026-07-03]]"
 
 > החדש למעלה. מקור-אמת למצב המשימות: `docs/meeting-records/yoni-tasks-27032026.md`.
 
+## סבב 12/08/2026 — PR #33: brand refresh, onboarding rebuild, expense capture pipeline (W1-W6)
+
+**נמצא-בדיעבד ב-13/08 (audit workflow) שהסבב הזה — למרות ש-5 קומיטים ממנו נחתו ב-`main` — מעולם לא
+תועד ב-`memory/`.** מתעד עכשיו בדיעבד לפי `git log`, כדי שסשן הבא לא יעבוד מתוך מודל-מוצר מיושן:
+
+- `dae1f09` **onboarding rebuild** — בורר עיסוק (`OccupationPicker`, חיפוש-תחילה על דאטהסט 113
+  מקצועות), הודעת-בטא, מסך-סיום. `/setup` נשאר אשף קליטת-נתוני-מס עצמאי — **לא** יוצר חשבון (Google
+  OAuth בלבד, נפרד לגמרי).
+- `95020f5` **expense capture pipeline** — OCR/קול/ידני, `/expenses/new` (3 מסכים: מקור→בדיקה→רשימה),
+  `/api/parse-expense` (Claude Haiku vision), בדיקה-חוסמת עם כל השדות-החסרים בבת-אחת.
+- `179274a` דאטהסט רגולטורי 113-מקצועות/20-ורטיקלים (`business-expenses/data/regulatory-dataset-2026.json`)
+  — הקנוני עכשיו; מחליף/משלים את `profiles.ts` (CREATIVE/TECH/CONSULTANT/DEFAULT) שנשאר כ-fallback.
+- `a0364b1` רענון-מותג: פלטה חדשה (gold/periwinkle) + פונט Rubik.
+- `8960e80` שינוי שם הדמות **איתן → שקל** (כולל `public/eitan/` → `public/shekel/`, הושלם ב-13/08).
+- מיזוג הכל: `c619f5c` Merge PR #33.
+
+**מה עוד לא ברור מהסבב הזה (לא נבדק לעומק, רק תועד שקיים):** האם משתני-הסביבה של הפרויקט
+Vercel החדש (`countmedemo-eight.vercel.app`, אחרי מעבר-חשבון ל-`yonilev2003`) מוגדרים נכון; ראה
+משימה פתוחה ביומן-המשימות.
+
 ## סבב 03/08/2026 ערב (המשך, `/loop`) — עוד 2 תיקונים עצמאיים + regulatory-status.md נמשך
 
 - יוני אישר להמשיך לבד: (1) נמשך `memory/regulatory-status.md` מהענף התקוע (קובץ עצמאי, ללא קוד,
