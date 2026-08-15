@@ -1,7 +1,7 @@
 /**
- * Companion track — Eitan character poses.
+ * Companion track — Shekel character poses.
  *
- * Transparent-background PNGs live at /public/eitan/companion/picture{1-5}.png.
+ * Transparent-background PNGs live at /public/shekel/companion/picture{1-5}.png.
  * Only 5 distinct poses are needed for all 12 modules; reuse is intentional.
  *
  *   picture1.png  → מסביר — ידיים יחד (calm explainer)
@@ -13,7 +13,7 @@
  * Missing files automatically fall back to the placeholder SVG in the repo.
  */
 
-const path = (n: string) => `/eitan/companion/${n}.png`;
+const path = (n: string) => `/shekel/companion/${n}.png`;
 
 // Semantic pose aliases — use these in modules.ts to pick a pose by intent.
 export const POSE_EXPLAINER = path("picture1");
@@ -51,5 +51,5 @@ export const screenshot11 = "/govil-screenshots/screenshot11.png";
 export const screenshot12 = "/govil-screenshots/screenshot12.png";
 
 // Fallback placeholders — committed SVGs that render when the real file is missing
-export const PLACEHOLDER_EITAN = "/eitan/placeholder-eitan.svg";
-export const PLACEHOLDER_SCREENSHOT = "/eitan/placeholder-screenshot.svg";
+export const PLACEHOLDER_SHEKEL = "/shekel/placeholder-shekel.svg";
+export const PLACEHOLDER_SCREENSHOT = "/shekel/placeholder-screenshot.svg";

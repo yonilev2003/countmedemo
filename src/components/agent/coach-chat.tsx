@@ -21,7 +21,7 @@ import {
 } from "@/components/brand/icons";
 
 /** Shekel's avatar image (3D character render, cropped to the head via object-top). */
-const EITAN_AVATAR = "/eitan/shekel-mascot.jpg";
+const SHEKEL_AVATAR = "/shekel/shekel-mascot.jpg";
 
 /**
  * Shekel avatar — circular cropped image on a soft-beige disc. Falls back to
@@ -43,7 +43,7 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={EITAN_AVATAR}
+          src={SHEKEL_AVATAR}
           alt="שקל"
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}

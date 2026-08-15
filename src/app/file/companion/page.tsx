@@ -7,7 +7,7 @@ import type { Persona } from "@/lib/persona";
 import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
-import { PLACEHOLDER_EITAN } from "@/lib/form-1301/companion-assets";
+import { PLACEHOLDER_SHEKEL } from "@/lib/form-1301/companion-assets";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
@@ -362,7 +362,7 @@ function EitanIllustration({ src }: { src: string }) {
         src={actualSrc}
         alt="שקל"
         className="w-full h-auto drop-shadow-[0_8px_16px_rgba(13,59,102,0.18)]"
-        onError={() => setActualSrc(PLACEHOLDER_EITAN)}
+        onError={() => setActualSrc(PLACEHOLDER_SHEKEL)}
       />
     </div>
   );
