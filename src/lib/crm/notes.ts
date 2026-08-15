@@ -51,14 +51,6 @@ export function getNotes(targetId: string): FollowUpNote[] {
   return [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Total open (not-done) notes across all targets — for badges. */
-export function countOpenNotes(): number {
-  const store = read();
-  return Object.values(store)
-    .flat()
-    .filter((n) => !n.done).length;
-}
-
 export function addNote(targetId: string, text: string): FollowUpNote[] {
   const trimmed = text.trim();
   if (!trimmed) return getNotes(targetId);

@@ -69,5 +69,3 @@ export function StatusBadge({
 
 /** Tailwind bg-class for a status edge stripe. */
 export const statusStripe = (status: Status) => STYLES[status].stripe;
-/** Tailwind text-class for a status. */
-export const statusText = (status: Status) => STYLES[status].text;

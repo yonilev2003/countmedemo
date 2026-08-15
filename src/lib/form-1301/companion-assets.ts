@@ -22,20 +22,6 @@ export const POSE_THOUGHTFUL = path("picture3");
 export const POSE_POINTING_BOTH = path("picture4");
 export const POSE_POINTING_ONE = path("picture5");
 
-// Backwards-compatible numbered exports (1..5 map to the 5 poses; 6..12 reuse).
-export const picture1 = POSE_EXPLAINER;
-export const picture2 = POSE_THUMBS_UP;
-export const picture3 = POSE_THOUGHTFUL;
-export const picture4 = POSE_POINTING_BOTH;
-export const picture5 = POSE_POINTING_ONE;
-export const picture6 = POSE_THOUGHTFUL;
-export const picture7 = POSE_POINTING_BOTH;
-export const picture8 = POSE_EXPLAINER;
-export const picture9 = POSE_THUMBS_UP;
-export const picture10 = POSE_THUMBS_UP;
-export const picture11 = POSE_THUMBS_UP;
-export const picture12 = POSE_THUMBS_UP;
-
 // Gov.il section screenshots — one per module step (still placeholder by default)
 export const screenshot1 = "/govil-screenshots/screenshot1.png";
 export const screenshot2 = "/govil-screenshots/screenshot2.png";
@@ -50,6 +36,5 @@ export const screenshot10 = "/govil-screenshots/screenshot10.png";
 export const screenshot11 = "/govil-screenshots/screenshot11.png";
 export const screenshot12 = "/govil-screenshots/screenshot12.png";
 
-// Fallback placeholders — committed SVGs that render when the real file is missing
+// Fallback placeholder — committed SVG that renders when the real file is missing
 export const PLACEHOLDER_SHEKEL = "/shekel/placeholder-shekel.svg";
-export const PLACEHOLDER_SCREENSHOT = "/shekel/placeholder-screenshot.svg";
