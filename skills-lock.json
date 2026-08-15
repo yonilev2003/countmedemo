@@ -143,7 +143,7 @@
       "source": "skills-il/localization",
       "sourceType": "github",
       "skillPath": "israeli-accessibility-compliance/SKILL.md",
-      "computedHash": "475cd751ec731a8ed2917bf611661a95690cb10fd59a2bd7e62b0133c0437b97"
+      "computedHash": "aebc4d2b1ea142de1d086c1a94c35d4d936c5f24ea32cbd347ef2f24e85ca9b2"
     },
     "israeli-address-autocomplete": {
       "source": "skills-il/government-services",
@@ -629,7 +629,7 @@
       "source": "skills-il/localization",
       "sourceType": "github",
       "skillPath": "israeli-ui-design-system/SKILL.md",
-      "computedHash": "a214af20238423de7e4b34ac23244a0c7bc50f592961752ddeb355450a5718f2"
+      "computedHash": "4417d22a7fbb7701eed14f3241bbc71c4bacff084e8b150d099396e9198bacf0"
     },
     "israeli-unemployment-benefits-navigator": {
       "source": "skills-il/government-services",

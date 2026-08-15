@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate } from "@/lib/invoice-generator/index";
-import { Logo, LogoMark } from "@/components/brand/logo";
+import { LogoMark } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, DownloadIcon, CheckCircleIcon } from "@/components/brand/icons";
 
@@ -106,17 +107,18 @@ export default function InvoicePrintPage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Print/screen header — hidden in print */}
-      <div className="no-print bg-paper border-b border-line">
-        <div className="mx-auto max-w-3xl px-6 py-3 flex items-center justify-between">
-          <Link
-            href="/invoices"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors"
-          >
-            <ArrowRightIcon className="size-4" />
-            חזרה לרשימה
-          </Link>
-          <Logo size={22} />
-          <div className="flex items-center gap-2">
+      <AppHeader
+        pageLabel={docTitle}
+        className="no-print"
+        actions={
+          <>
+            <Link
+              href="/invoices"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors"
+            >
+              <ArrowRightIcon className="size-4" />
+              חזרה לרשימה
+            </Link>
             <button onClick={() => shareDoc("whatsapp")} className={btn("primary", "sm")}>
               שיתוף בוואטסאפ
             </button>
@@ -130,9 +132,9 @@ export default function InvoicePrintPage() {
               <DownloadIcon className="size-4" />
               הדפס / PDF
             </button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Invoice document — this is what prints */}
       <div className="docwrap mx-auto max-w-3xl px-6 py-10">

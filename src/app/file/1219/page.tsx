@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { calculate } from "@/lib/calculators";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, SparklesIcon } from "@/components/brand/icons";
 import { Form1219Preview } from "@/components/form-1219/form-preview";
@@ -34,12 +34,10 @@ export default function Form1219Page() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={36} />
-          </Link>
-          <div className="flex items-center gap-2">
+      <AppHeader
+        pageLabel="הצהרת הון — טופס 1219"
+        actions={
+          <>
             <Link href="/coach" className={btn("ghost", "sm")}>
               <SparklesIcon className="size-4" />
               שאל/י את שקל
@@ -48,9 +46,9 @@ export default function Form1219Page() {
               חזרה למסלולים
               <ArrowRightIcon className="size-4" />
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="flex-1 mx-auto w-full max-w-screen-lg px-6 py-10">
         <div className="text-center mb-8">

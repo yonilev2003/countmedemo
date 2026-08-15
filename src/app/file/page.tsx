@@ -2,7 +2,7 @@
 
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import Link from "next/link";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { SparklesIcon, ClipboardCheckIcon, ArrowRightIcon } from "@/components/brand/icons";
 
@@ -22,21 +22,15 @@ export default function FilePage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      {/* Header */}
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={36} />
-          </Link>
-          <Link
-            href="/demo"
-            className={btn("ghost", "sm")}
-          >
+      <AppHeader
+        pageLabel="הגשת הדוח השנתי"
+        actions={
+          <Link href="/demo" className={btn("ghost", "sm")}>
             צפה בטופס Gov.il
             <ArrowRightIcon className="size-4" />
           </Link>
-        </div>
-      </header>
+        }
+      />
 
       <main className="flex-1 mx-auto w-full max-w-screen-md px-6 py-12">
         <div className="text-center mb-10">

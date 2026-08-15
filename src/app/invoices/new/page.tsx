@@ -8,7 +8,7 @@ import { persistPersona } from "@/lib/data/persona-store";
 import { nextDocNumber, bumpDocCounter, initialDocStatus, isRevenueDoc, allowedDocTypesFor, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
 import { trackClient } from "@/lib/analytics/track-client";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn, Button } from "@/components/brand/button";
 import {
   ArrowRightIcon,
@@ -294,16 +294,18 @@ export default function NewInvoicePage() {
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
-          <Link href="/invoices" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors">
+      <AppHeader
+        pageLabel="הפקת חשבונית / קבלה"
+        actions={
+          <Link
+            href="/invoices"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors"
+          >
             <ArrowRightIcon className="size-4" />
             חזרה לרשימה
           </Link>
-          <Logo size={22} />
-          <div className="w-24" />
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto max-w-screen-lg px-6 py-10">
         {/* Page head — mockup `.pagehead` with eyebrow */}

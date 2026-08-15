@@ -11,7 +11,7 @@ import { calculate } from "@/lib/calculators/index";
 import { CopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
 import { formatFieldValue } from "@/lib/form-1301/format-value";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn, Button } from "@/components/brand/button";
 import {
   SparklesIcon,
@@ -88,23 +88,21 @@ export default function GuidedPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
-      {/* Header */}
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/file" className="flex items-center gap-2 text-sm text-muted hover:text-brand-navy">
-            <ArrowRightIcon className="size-4" />
-            בחירת מסלול
-          </Link>
-          <Link href="/" className="flex items-center gap-3">
-            <Logo size={32} />
-            <span className="font-bold text-brand-navy hidden sm:inline">מסלול מודרך</span>
-          </Link>
-          <Link href="/demo" className={btn("secondary", "sm")}>
-            טופס Gov.il
-            <ArrowLeftIcon className="size-4" />
-          </Link>
-        </div>
-      </header>
+      <AppHeader
+        pageLabel="מסלול מודרך"
+        actions={
+          <>
+            <Link href="/file" className="flex items-center gap-2 text-sm text-muted hover:text-brand-navy">
+              <ArrowRightIcon className="size-4" />
+              בחירת מסלול
+            </Link>
+            <Link href="/demo" className={btn("secondary", "sm")}>
+              טופס Gov.il
+              <ArrowLeftIcon className="size-4" />
+            </Link>
+          </>
+        }
+      />
 
       {/* Progress bar */}
       <div className="bg-paper border-b border-line px-6 py-3">
@@ -270,9 +268,16 @@ function SchemaFieldRow({
       {isPersonal ? (
         <InlineEdit
           value={String(readPersonaPath(persona, field.personaPath!) ?? "")}
+          displayValue={displayValue}
           path={field.personaPath!}
           onChange={onChange}
-          type={field.kind === "currency" || field.kind === "integer" ? "number" : "text"}
+          type={
+            field.kind === "currency" || field.kind === "integer"
+              ? "number"
+              : field.kind === "date"
+                ? "date"
+                : "text"
+          }
         />
       ) : (
         <span className="font-semibold text-brand-navy text-sm" dir="ltr" title={hint}>
@@ -322,14 +327,18 @@ function ReadOnlyRow({ label, value, hint }: { label: string; value: string; hin
 
 function InlineEdit({
   value,
+  displayValue,
   path,
   onChange,
   type = "text",
 }: {
+  /** Raw value — what's actually stored/edited (e.g. ISO date). */
   value: string;
+  /** Human-facing rendering shown when not editing (e.g. DD/MM/YYYY). Falls back to `value`. */
+  displayValue?: string;
   path: string;
   onChange: (path: string, value: unknown) => void;
-  type?: "text" | "tel" | "email" | "number";
+  type?: "text" | "tel" | "email" | "number" | "date";
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -358,7 +367,7 @@ function InlineEdit({
           if (e.key === "Escape") setEditing(false);
         }}
         className="rounded-lg border border-brand-deep bg-paper px-2 py-0.5 text-sm font-semibold text-brand-navy focus:outline-none focus:ring-2 focus:ring-brand-deep min-w-[140px] text-end"
-        dir={type === "tel" || type === "email" || type === "number" ? "ltr" : "rtl"}
+        dir={type === "text" ? "rtl" : "ltr"}
       />
     );
   }
@@ -370,7 +379,7 @@ function InlineEdit({
       title="לחץ/י לעריכה"
     >
       <span className="font-semibold text-brand-navy text-sm" dir="ltr">
-        {value || <span className="text-faint italic">—</span>}
+        {displayValue || value || <span className="text-faint italic">—</span>}
       </span>
       <PencilIcon className="size-3.5 text-faint group-hover:text-brand-deep transition-colors" />
     </button>

@@ -8,7 +8,7 @@ import { GovilSections } from "@/components/form-1301/govil-section";
 import { InlineCopyButton } from "@/components/form-1301/copy-button";
 import { FORM_MODULES } from "@/lib/form-1301/modules";
 import { PLACEHOLDER_SHEKEL } from "@/lib/form-1301/companion-assets";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn, Button } from "@/components/brand/button";
 import {
   SparklesIcon,
@@ -120,23 +120,25 @@ export default function CompanionPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       {/* Sticky header */}
-      <header className="bg-paper border-b border-line sticky top-0 z-20">
-        <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-3">
-          <Link href="/file" className="flex items-center gap-1.5 text-sm text-muted hover:text-brand-navy">
-            <ArrowRightIcon className="size-4" />
-            מסלולים
-          </Link>
-          <div className="flex items-center gap-2">
-            <Logo size={28} />
-            <span className="font-bold text-brand-navy text-sm">ליווי צמוד</span>
-            <span className="text-xs rounded-full bg-info border border-brand-navy/20 px-2 py-0.5 text-brand-navy font-mono">
-              {moduleIndex + 1}/{totalModules}
-            </span>
-          </div>
-          <Link href="/demo" className="text-xs text-faint hover:text-brand-navy">
-            דלג
-          </Link>
-        </div>
+      <div className="sticky top-0 z-20 bg-paper border-b border-line">
+        <AppHeader
+          className="border-b-0"
+          pageLabel="ליווי צמוד"
+          actions={
+            <>
+              <Link href="/file" className="flex items-center gap-1.5 text-sm text-muted hover:text-brand-navy">
+                <ArrowRightIcon className="size-4" />
+                מסלולים
+              </Link>
+              <span className="text-xs rounded-full bg-info border border-brand-navy/20 px-2 py-0.5 text-brand-navy font-mono">
+                {moduleIndex + 1}/{totalModules}
+              </span>
+              <Link href="/demo" className="text-xs text-faint hover:text-brand-navy">
+                דלג
+              </Link>
+            </>
+          }
+        />
         {/* Step progress dots */}
         <div className="mx-auto max-w-screen-md px-4 pb-2">
           <div className="flex gap-1 items-center">
@@ -155,7 +157,7 @@ export default function CompanionPage() {
             ))}
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="flex-1 mx-auto w-full max-w-screen-md px-4 py-5 space-y-4">
         {/* Step title card */}
