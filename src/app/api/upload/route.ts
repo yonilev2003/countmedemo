@@ -210,6 +210,12 @@ async function parseExpensesExcel(buffer: ArrayBuffer): Promise<ExtractedData> {
     );
   }
 
+  // Prefer the ex-VAT column — everything downstream (field 150's revenue-minus-
+  // expenses, etc.) treats totalExpenses as ex-VAT. Falling back to the incl-VAT
+  // column when that's all the sheet has would silently overstate expenses; flag
+  // it in the summary instead of guessing a conversion (found by the 13/08/2026
+  // audit workflow, same bug class as the income-report VAT-direction fix above).
+  const usedInclVatFallback = amountNoVatCol === -1 && amountCol !== -1;
   const useCol = amountNoVatCol !== -1 ? amountNoVatCol : amountCol;
   const byCategory = new Map<string, { amount: number; count: number }>();
   let total = 0;
@@ -234,10 +240,14 @@ async function parseExpensesExcel(buffer: ArrayBuffer): Promise<ExtractedData> {
     .map(([category, v]) => ({ category, amount: Math.round(v.amount), count: v.count }))
     .sort((a, b) => b.amount - a.amount);
 
+  const rowCount = Array.from(byCategory.values()).reduce((s, v) => s + v.count, 0);
+  const vatWarning = usedInclVatFallback
+    ? " ⚠ לא נמצאה עמודת סכום ללא-מע\"מ — הסכומים כוללים מע\"מ, ייתכן שההוצאה הכוללת מוצגת גבוהה מדי."
+    : "";
   return {
     expensesByCategory,
     totalExpenses: Math.round(total),
-    summary: `זוהו ${expensesByCategory.length} קטגוריות הוצאה, סך ${Math.round(total).toLocaleString("he-IL")} ₪ ב-${Array.from(byCategory.values()).reduce((s, v) => s + v.count, 0)} שורות.`,
+    summary: `זוהו ${expensesByCategory.length} קטגוריות הוצאה, סך ${Math.round(total).toLocaleString("he-IL")} ₪ ב-${rowCount} שורות.${vatWarning}`,
   };
 }
 
@@ -325,7 +335,7 @@ function pdfExtractionPrompt(kind: string): string {
   if (kind === "income-report") {
     return `אתה עוזר לחלץ נתונים מדו"ח הכנסות תקופתי של עצמאי בישראל.
 החזר אובייקט JSON בלבד עם השדות הבאים (השמט שדות שאין להם ערך):
-- totalRevenue (number, ₪) — סך הכנסות כולל מע"מ
+- totalRevenue (number, ₪) — סך הכנסות **לא כולל מע"מ** (מחזור לפני מע"מ; אם בדו"ח מופיע רק סכום כולל מע"מ, חלץ/י אותו וציין/י זאת ב-summary, אל תמיר בעצמך)
 - osekFileNumber (string) — מספר עוסק (8-9 ספרות)
 - osekType ("patur" | "morshe") — אם כתוב "עוסק פטור" אז patur, אם "עוסק מורשה" אז morshe
 - dateRangeStart, dateRangeEnd (string YYYY-MM-DD) — טווח התקופה

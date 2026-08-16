@@ -1,6 +1,3 @@
-// Generated from the live Supabase schema (project: countme / akfgudspliyymiysajoh).
-// Do not edit by hand. Regenerate via the Supabase MCP `generate_typescript_types`
-// or: npx supabase gen types typescript --project-id akfgudspliyymiysajoh
 export type Json =
   | string
   | number
@@ -13,216 +10,123 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      expenses: {
+      events: {
         Row: {
-          amount: number
-          category: string
           created_at: string
-          description: string | null
-          expense_date: string
           id: string
-          recognition_percentage: number
-          user_id: string
+          name: string
+          path: string | null
+          props: Json
+          user_id: string | null
         }
         Insert: {
-          amount: number
-          category: string
           created_at?: string
-          description?: string | null
-          expense_date?: string
           id?: string
-          recognition_percentage?: number
-          user_id: string
+          name: string
+          path?: string | null
+          props?: Json
+          user_id?: string | null
         }
         Update: {
-          amount?: number
-          category?: string
           created_at?: string
-          description?: string | null
-          expense_date?: string
           id?: string
-          recognition_percentage?: number
-          user_id?: string
+          name?: string
+          path?: string | null
+          props?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
-      income_documents: {
+      payments: {
         Row: {
-          amount: number
-          client_name: string | null
+          amount_agorot: number
           created_at: string
-          date: string
-          description: string | null
-          doc_number: number
-          doc_type: string
+          currency: string
           id: string
+          paid_at: string | null
+          psp: string | null
+          psp_transaction_id: string | null
+          status: string
+          subscription_id: string | null
+          tax_invoice_number: string | null
+          tax_invoice_url: string | null
           user_id: string
         }
         Insert: {
-          amount: number
-          client_name?: string | null
+          amount_agorot: number
           created_at?: string
-          date?: string
-          description?: string | null
-          doc_number: number
-          doc_type: string
+          currency?: string
           id?: string
+          paid_at?: string | null
+          psp?: string | null
+          psp_transaction_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tax_invoice_number?: string | null
+          tax_invoice_url?: string | null
           user_id: string
         }
         Update: {
-          amount?: number
-          client_name?: string | null
+          amount_agorot?: number
           created_at?: string
-          date?: string
-          description?: string | null
-          doc_number?: number
-          doc_type?: string
+          currency?: string
           id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      incomes: {
-        Row: {
-          amount: number
-          created_at: string
-          description: string
-          id: string
-          income_date: string
-          payment_method: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          description: string
-          id?: string
-          income_date?: string
-          payment_method: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          description?: string
-          id?: string
-          income_date?: string
-          payment_method?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      invoice_sends: {
-        Row: {
-          created_at: string
-          id: string
-          income_id: string
-          recipient_email: string
-          sent_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          income_id: string
-          recipient_email: string
-          sent_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          income_id?: string
-          recipient_email?: string
-          sent_at?: string
+          paid_at?: string | null
+          psp?: string | null
+          psp_transaction_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          tax_invoice_number?: string | null
+          tax_invoice_url?: string | null
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "invoice_sends_income_id_fkey"
-            columns: ["income_id"]
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
             isOneToOne: false
-            referencedRelation: "incomes"
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
       }
-      invoices: {
+      plans: {
         Row: {
-          amount: number
-          client_email: string
-          client_name: string
+          billing_interval: string
           created_at: string
-          date: string
-          description: string
+          description_he: string | null
           id: string
-          invoice_number: number
-          notes: string | null
-          status: string
-          user_id: string
+          is_active: boolean
+          name_he: string
+          price_agorot: number
+          provider: string | null
+          sort_order: number
         }
         Insert: {
-          amount: number
-          client_email: string
-          client_name: string
+          billing_interval?: string
           created_at?: string
-          date: string
-          description: string
-          id?: string
-          invoice_number: number
-          notes?: string | null
-          status?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          client_email?: string
-          client_name?: string
-          created_at?: string
-          date?: string
-          description?: string
-          id?: string
-          invoice_number?: number
-          notes?: string | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          created_at: string
-          due_date: string | null
+          description_he?: string | null
           id: string
-          message: string
-          read: boolean
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          message: string
-          read?: boolean
-          title: string
-          type?: string
-          user_id: string
+          is_active?: boolean
+          name_he: string
+          price_agorot?: number
+          provider?: string | null
+          sort_order?: number
         }
         Update: {
+          billing_interval?: string
           created_at?: string
-          due_date?: string | null
+          description_he?: string | null
           id?: string
-          message?: string
-          read?: boolean
-          title?: string
-          type?: string
-          user_id?: string
+          is_active?: boolean
+          name_he?: string
+          price_agorot?: number
+          provider?: string | null
+          sort_order?: number
         }
         Relationships: []
       }
@@ -271,6 +175,71 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          bucket_key: string
+          count: number
+          reset_at: string
+        }
+        Insert: {
+          bucket_key: string
+          count?: number
+          reset_at: string
+        }
+        Update: {
+          bucket_key?: string
+          count?: number
+          reset_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          id: string
+          plan_id: string
+          psp: string | null
+          psp_subscription_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id: string
+          psp?: string | null
+          psp_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          plan_id?: string
+          psp?: string | null
+          psp_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tax_rules: {
         Row: {
           description: string | null
@@ -301,179 +270,17 @@ export type Database = {
         }
         Relationships: []
       }
-      plans: {
-        Row: {
-          id: string
-          name_he: string
-          description_he: string | null
-          price_agorot: number
-          billing_interval: string
-          provider: string | null
-          is_active: boolean
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id: string
-          name_he: string
-          description_he?: string | null
-          price_agorot?: number
-          billing_interval?: string
-          provider?: string | null
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name_he?: string
-          description_he?: string | null
-          price_agorot?: number
-          billing_interval?: string
-          provider?: string | null
-          is_active?: boolean
-          sort_order?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          id: string
-          user_id: string
-          plan_id: string
-          status: string
-          current_period_end: string | null
-          cancel_at_period_end: boolean
-          psp: string | null
-          psp_subscription_id: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          plan_id: string
-          status?: string
-          current_period_end?: string | null
-          cancel_at_period_end?: boolean
-          psp?: string | null
-          psp_subscription_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          plan_id?: string
-          status?: string
-          current_period_end?: string | null
-          cancel_at_period_end?: boolean
-          psp?: string | null
-          psp_subscription_id?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "subscriptions_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payments: {
-        Row: {
-          id: string
-          user_id: string
-          subscription_id: string | null
-          amount_agorot: number
-          currency: string
-          status: string
-          psp: string | null
-          psp_transaction_id: string | null
-          tax_invoice_number: string | null
-          tax_invoice_url: string | null
-          paid_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          subscription_id?: string | null
-          amount_agorot: number
-          currency?: string
-          status?: string
-          psp?: string | null
-          psp_transaction_id?: string | null
-          tax_invoice_number?: string | null
-          tax_invoice_url?: string | null
-          paid_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          subscription_id?: string | null
-          amount_agorot?: number
-          currency?: string
-          status?: string
-          psp?: string | null
-          psp_transaction_id?: string | null
-          tax_invoice_number?: string | null
-          tax_invoice_url?: string | null
-          paid_at?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      events: {
-        Row: {
-          id: string
-          user_id: string | null
-          name: string
-          props: Json
-          path: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          name: string
-          props?: Json
-          path?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          name?: string
-          props?: Json
-          path?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_next_doc_number: { Args: { p_user_id: string }; Returns: number }
-      get_next_invoice_number: { Args: { p_user_id: string }; Returns: number }
       check_rate_limit: {
         Args: { p_bucket_key: string; p_max: number; p_window_seconds: number }
-        Returns: { allowed: boolean; retry_after: number | null }[]
+        Returns: {
+          allowed: boolean
+          retry_after: number
+        }[]
       }
     }
     Enums: {

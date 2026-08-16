@@ -173,12 +173,16 @@ describe("estimateTaxLiability — end-to-end golden (2025)", () => {
     expect(e.grossTax).toBe(28_030);
     expect(e.creditPointsValue).toBe(6_534); // 2.25 × 2,904
     expect(e.donationsCredit).toBe(350);
-    // §45A base: min(30,000, 5.5% × 240,000 = 13,200) → 35% = 4,620
-    expect(e.pensionCredit).toBe(4_620);
+    // §45A base: min(30,000, 5.5% × 240,000 = 13,200, TC.pensionCreditCap = 12,804)
+    // → the fixed NIS cap governs here (12,804 < 13,200) → 35% × 12,804 = 4,481.4 → 4,481.
+    // Fixed 13/08/2026: the cap was previously missing from this min(), which let
+    // high earners (businessIncome > 232,800) get an overstated §45A credit —
+    // this test's own prior expected value (4,620) baked that bug in as "correct".
+    expect(e.pensionCredit).toBe(4_481);
     expect(e.blCredit).toBe(0); // no such credit exists in law
-    expect(e.taxAfterCredits).toBe(28_030 - 6_534 - 350 - 4_620); // 16,526
+    expect(e.taxAfterCredits).toBe(28_030 - 6_534 - 350 - 4_481); // 16,665
     expect(e.excessCredits).toBe(0);
-    expect(e.balance).toBe(16_526 - 20_000); // −3,474 → refund
+    expect(e.balance).toBe(16_665 - 20_000); // −3,335 → refund
   });
 
   it("credits exceeding gross tax are reported as excess, never refunded as negative tax", () => {
