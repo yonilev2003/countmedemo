@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { LogoMark } from "@/components/brand/logo";
 import {
   AlertTriangleIcon,
@@ -30,6 +32,24 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const hasError = typeof params.error !== "undefined";
+
+  // Already signed in? Skip the login screen entirely — this was the "why do
+  // I have to log in twice?" report (Yoni, 16/08): an authenticated user
+  // landing on /login saw the Google button again instead of the app. Honors
+  // a valid same-origin `next` target, same open-redirect guard as the
+  // OAuth callback.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const nextParam = typeof params.next === "string" ? params.next : null;
+    redirect(
+      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
+        ? nextParam
+        : "/dashboard",
+    );
+  }
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden bg-brand-navy px-6 py-12 md:py-16">

@@ -102,3 +102,36 @@ export function eitanMonthLine(s: MonthSummary, firstName?: string): string {
     `${s.revenueDocCount === 1 ? "מסמך" : "מסמכים"}.${ratioPart ? ratioPart + "." : ""}`
   );
 }
+
+/* ── Year-to-date summary (Yoni, 16/08): the setup wizard's annual figures are
+   the BASELINE ("כמה הכנסת השנה עד כה"), and documents/expenses created in
+   the app add on top from that point. Revenue docs already bump
+   income.totalRevenue at creation (invoices/new), so the scalar IS the YTD
+   figure; expense rows never bump their scalar, so YTD expenses = baseline +
+   active in-app rows for the declared year. ─────────────────────────────── */
+
+export interface YearSummary {
+  /** Declared tax year the totals describe. */
+  year: number;
+  /** Baseline from setup + revenue docs created since (ex-VAT). */
+  revenueYtd: number;
+  /** Baseline from setup + non-deleted in-app expense rows for the year. */
+  expensesYtd: number;
+  /** expensesYtd / revenueYtd, null when revenue is 0. */
+  ratioYtd: number | null;
+}
+
+export function computeYearSummary(persona: Persona): YearSummary {
+  const year = persona.income.year;
+  const revenueYtd = persona.income.totalRevenue;
+  const addedExpenses = (persona.income.expenses ?? [])
+    .filter((e) => !e.deletedAt && e.date.startsWith(String(year)))
+    .reduce((s, e) => s + e.amount, 0);
+  const expensesYtd = persona.income.totalDeductibleExpenses + addedExpenses;
+  return {
+    year,
+    revenueYtd,
+    expensesYtd,
+    ratioYtd: revenueYtd > 0 ? expensesYtd / revenueYtd : null,
+  };
+}

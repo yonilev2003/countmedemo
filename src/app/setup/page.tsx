@@ -1446,7 +1446,7 @@ export default function SetupPage() {
 
                 <div>
                   <FieldLabel htmlFor="totalRevenue" required>
-                    סך הכנסות ברוטו מהעסק (בש&quot;ח, ללא מע&quot;מ)
+                    כמה הכנסת השנה עד כה? (ברוטו בש&quot;ח, ללא מע&quot;מ)
                   </FieldLabel>
                   <input
                     id="totalRevenue"
@@ -1462,7 +1462,8 @@ export default function SetupPage() {
                   />
                   <ErrorMsg msg={errors.totalRevenue} />
                   <p className="mt-1 text-xs text-muted">
-                    זה מה שייכנס לשדות 238 ו-294 בטופס
+                    זו נקודת ההתחלה — כל מסמך הכנסה שתפיק/י במערכת מכאן והלאה
+                    יתווסף על הסכום הזה. (נכנס לשדות 238 ו-294 בטופס)
                   </p>
                 </div>
 

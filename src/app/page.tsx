@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -21,6 +22,11 @@ export default async function Home() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Typing the bare address should drop a signed-in user straight into the
+  // app, not the marketing page (Yoni, 16/08). This also makes every logo
+  // that links to "/" behave as "back to dashboard" for logged-in users.
+  if (user) redirect("/dashboard");
 
   return (
     <div className="flex flex-1 flex-col bg-paper">

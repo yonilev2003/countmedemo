@@ -21,7 +21,11 @@ import { Persona, ExpenseLine } from "@/lib/persona";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
 import { deriveVat } from "@/lib/expenses/types";
 import { getTaxYearConstants } from "@/lib/calculators/types";
-import { computeMonthSummary, eitanMonthLine } from "@/lib/dashboard/summary";
+import {
+  computeMonthSummary,
+  computeYearSummary,
+  eitanMonthLine,
+} from "@/lib/dashboard/summary";
 import { getReceivablesSummary } from "@/lib/receivables/summary";
 import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
@@ -55,12 +59,16 @@ export default function DashboardPage() {
     () => (persona ? computeMonthSummary(persona) : null),
     [persona],
   );
+  const yearSummary = useMemo(
+    () => (persona ? computeYearSummary(persona) : null),
+    [persona],
+  );
   const receivables = useMemo(
     () => (persona ? getReceivablesSummary(persona) : null),
     [persona],
   );
 
-  if (!persona || !summary || !receivables)
+  if (!persona || !summary || !yearSummary || !receivables)
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="w-full max-w-md space-y-4 px-6 animate-pulse">
@@ -83,9 +91,9 @@ export default function DashboardPage() {
 
   // The ratio, phrased so it feels informative — never alarming (CEO §3.2).
   const ratioLine =
-    summary.ratio === null
-      ? "עוד אין ממה לחשב יחס החודש"
-      : `על כל 100 ₪ שנכנסו, יצאו ${Math.round(summary.ratio * 100)} ₪`;
+    yearSummary.ratioYtd === null
+      ? "עוד אין ממה לחשב יחס השנה"
+      : `על כל 100 ₪ שנכנסו השנה, יצאו ${Math.round(yearSummary.ratioYtd * 100)} ₪`;
 
   const actions = [
     {
@@ -150,28 +158,36 @@ export default function DashboardPage() {
 
         {/* ── The three numbers ── */}
         <Stagger className="mt-6 grid grid-cols-3 gap-3">
+          {/* YTD-with-baseline model (Yoni, 16/08): the big numbers are the
+              year so far — the setup baseline + everything added in the app —
+              matching /dashboard/pro and the ceiling alert. The month figure
+              (real dated documents only) is the small line underneath. */}
           <StaggerItem>
             <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
                 <span className="size-2 rounded-full bg-brand-deep" />
-                הכנסות
+                הכנסות השנה
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-deep sm:text-2xl" dir="ltr">
-                ₪{summary.revenue.toLocaleString("he-IL")}
+                ₪{yearSummary.revenueYtd.toLocaleString("he-IL")}
               </div>
-              <div className="mt-0.5 text-[11px] text-faint">החודש, לפני מע&quot;מ</div>
+              <div className="mt-0.5 text-[11px] text-faint">
+                לפני מע&quot;מ · החודש: ₪{summary.revenue.toLocaleString("he-IL")}
+              </div>
             </div>
           </StaggerItem>
           <StaggerItem>
             <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
                 <span className="size-2 rounded-full bg-brand" />
-                הוצאות
+                הוצאות השנה
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-ink sm:text-2xl" dir="ltr">
-                ₪{summary.expenses.toLocaleString("he-IL")}
+                ₪{yearSummary.expensesYtd.toLocaleString("he-IL")}
               </div>
-              <div className="mt-0.5 text-[11px] text-faint">החודש</div>
+              <div className="mt-0.5 text-[11px] text-faint">
+                החודש: ₪{summary.expenses.toLocaleString("he-IL")}
+              </div>
             </div>
           </StaggerItem>
           <StaggerItem>
@@ -181,7 +197,9 @@ export default function DashboardPage() {
                 היחס
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
-                {summary.ratio === null ? "—" : `${Math.round(summary.ratio * 100)}%`}
+                {yearSummary.ratioYtd === null
+                  ? "—"
+                  : `${Math.round(yearSummary.ratioYtd * 100)}%`}
               </div>
               <div className="mt-0.5 text-[11px] leading-snug text-faint">{ratioLine}</div>
             </div>
