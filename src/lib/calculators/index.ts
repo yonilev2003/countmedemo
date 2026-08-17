@@ -6,7 +6,7 @@
  * the rules; tomorrow we'll cross-check against it before going live.
  */
 
-import { Persona } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import {
   Calculator,
   CalcResult,
@@ -224,11 +224,14 @@ export const field150BusinessIncome: Calculator = (p) => {
     };
   }
 
-  const value = p.income.totalRevenue - p.income.totalDeductibleExpenses;
+  // Baseline + in-app expense rows (shared helper) — a quick expense recorded
+  // on the dashboard must move שדה 150 exactly like it moves the cards.
+  const deductible = effectiveDeductibleExpenses(p.income);
+  const value = p.income.totalRevenue - deductible;
   return {
     value,
     formula: `סה"כ הכנסות (${ils(p.income.totalRevenue)}) − הוצאות מוכרות (${ils(
-      p.income.totalDeductibleExpenses,
+      deductible,
     )}) = ${ils(value)}`,
     sources: [
       {
@@ -794,7 +797,7 @@ export function computeBusinessIncome(persona: Persona): number {
   const TC = getTaxYearConstants(persona.income.year);
   return persona.business.isOsekZeir
     ? Math.round(persona.income.totalRevenue * (1 - TC.osekZeirExpenseRate))
-    : persona.income.totalRevenue - persona.income.totalDeductibleExpenses;
+    : persona.income.totalRevenue - effectiveDeductibleExpenses(persona.income);
 }
 
 /** The recognised personal DEDUCTIONS (reduce taxable income, not tax). */

@@ -101,7 +101,10 @@ export function AccessibilityWidget() {
         aria-label="אפשרויות נגישות (Alt+A)"
         title="אפשרויות נגישות (Alt+A)"
         className={
-          "fixed bottom-20 start-4 z-40 grid size-12 place-items-center rounded-full border shadow-brand transition-colors sm:bottom-6 print:hidden " +
+          // bottom-20 at EVERY size: the שקל chat FAB (eitan-fab.tsx) is fixed
+          // to the same start corner at bottom-5 with h-14 (top edge ≈ 76px) —
+          // sm:bottom-6 sat right on top of it (journey scan round 2).
+          "fixed bottom-20 start-4 z-40 grid size-12 place-items-center rounded-full border shadow-brand transition-colors print:hidden " +
           (isAnyActive(prefs)
             ? "border-brand-deep bg-brand-deep text-white"
             : "border-line bg-paper text-brand-navy hover:border-brand-deep")
@@ -117,7 +120,7 @@ export function AccessibilityWidget() {
           role="dialog"
           aria-label="אפשרויות נגישות"
           tabIndex={-1}
-          className="fixed bottom-36 start-4 z-40 w-72 rounded-2xl border border-line bg-cream p-4 shadow-brand sm:bottom-20 print:hidden"
+          className="fixed bottom-36 start-4 z-40 w-72 rounded-2xl border border-line bg-cream p-4 shadow-brand print:hidden"
         >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-display text-base font-bold text-brand-navy">

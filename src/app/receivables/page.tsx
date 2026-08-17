@@ -43,6 +43,8 @@ export default function ReceivablesPage() {
   const { persona, setPersona } = useRequiredPersona();
   const [reminderFor, setReminderFor] = useState<string | null>(null);
   const [tone, setTone] = useState<ReminderTone>("gentle");
+  /** The doc just marked paid — drives the "הפק/י קבלה" follow-up banner. */
+  const [justPaid, setJustPaid] = useState<InvoiceLine | null>(null);
 
   useEffect(() => {
     trackClient("receivables_viewed");
@@ -72,6 +74,9 @@ export default function ReceivablesPage() {
   function markPaid(invoiceNumber: string) {
     if (!persona) return;
     const today = new Date().toISOString().split("T")[0];
+    const paidDoc =
+      (persona.income.invoices ?? []).find((i) => i.invoiceNumber === invoiceNumber) ??
+      null;
     const updated: Persona = {
       ...persona,
       income: {
@@ -85,6 +90,11 @@ export default function ReceivablesPage() {
     };
     persistPersona(updated);
     setPersona(updated);
+    // Flipping the status is NOT enough — the payment only becomes recorded
+    // income when a receipt is issued, so hand the user a prefilled one
+    // (journey-scan round 2: paid ₪5,900 vanished from receivables but never
+    // reached הכנסות השנה; this page's own promise is "מפיקים קבלה והכסף נספר").
+    setJustPaid(paidDoc);
     trackClient("doc_marked_paid", { invoiceNumber });
   }
 
@@ -153,6 +163,43 @@ export default function ReceivablesPage() {
         <p className="mt-1.5 text-sm text-muted sm:text-[15px]">
           חשבונות עסקה פתוחים, הצעות מחיר ממתינות — וכמה כסף בחוץ.
         </p>
+
+        {/* Post-payment follow-up: the money is only COUNTED once a receipt
+            exists, so the very next step is handed over prefilled. */}
+        {justPaid && (
+          <div
+            role="status"
+            className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-success/40 bg-success-light/40 p-4 shadow-brand"
+          >
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-brand-navy">
+                {justPaid.invoiceNumber} סומן כשולם — נשאר רק להפיק קבלה
+              </div>
+              <div className="mt-0.5 text-xs text-muted">
+                התשלום נספר כהכנסה רק כשמופקת עליו קבלה. הכנו אותה מראש עם
+                הפרטים של {justPaid.customerName}.
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href={`/invoices/new?type=${
+                  persona.business.osekType === "morshe"
+                    ? "tax-invoice-receipt"
+                    : "receipt"
+                }&from=${encodeURIComponent(justPaid.invoiceNumber)}`}
+                className={btn("primary", "sm")}
+              >
+                להפקת הקבלה
+              </Link>
+              <button
+                onClick={() => setJustPaid(null)}
+                className={btn("ghost", "sm")}
+              >
+                אחר כך
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Summary tiles */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">

@@ -188,6 +188,10 @@ export default function DashboardPage() {
                 ₪{yearSummary.expensesYtd.toLocaleString("he-IL")}
               </div>
               <div className="mt-0.5 text-[11px] text-faint">
+                {/* morshe expenses are net of reclaimable input VAT — same
+                    basis as the revenue card, so the ratio compares like
+                    with like (patur has no VAT to reclaim, nothing to note) */}
+                {persona.business.osekType === "morshe" && "לפני מע\"מ · "}
                 החודש: ₪{summary.expenses.toLocaleString("he-IL")}
               </div>
             </div>

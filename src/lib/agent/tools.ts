@@ -13,7 +13,7 @@
 // added here with the same shape, RLS-scoped to the authenticated user.
 
 import type Anthropic from "@anthropic-ai/sdk";
-import type { Persona } from "@/lib/persona";
+import { effectiveDeductibleExpenses, type Persona } from "@/lib/persona";
 import { ils as formatIls } from "@/lib/utils";
 import {
   calculate,
@@ -72,7 +72,7 @@ export function buildRichContext(persona: Persona): string {
     `נתוני המשתמש/ת (שנת מס ${year}) — מחושב מהדוח שלהם:`,
     `שם: ${p.personal.firstName} ${p.personal.lastName} · מגדר: ${gender}`,
     `עסק: ${p.business.tradeName}, ${p.business.primaryOccupation} · סוג עוסק: ${p.business.osekType}${p.business.isOsekZeir ? " (מסלול עוסק זעיר)" : ""}`,
-    `מחזור שנתי (238): ${ils(p.income.totalRevenue)} · הוצאות שדווחו: ${ils(p.income.totalDeductibleExpenses)}`,
+    `מחזור שנתי (238): ${ils(p.income.totalRevenue)} · הוצאות שדווחו: ${ils(effectiveDeductibleExpenses(p.income))}`,
     `הכנסה מעסק (150): ${ils(businessIncome)} · הכנסה חייבת: ${ils(taxable)} · נקודות זיכוי: ${points}`,
   ];
   if (est) {

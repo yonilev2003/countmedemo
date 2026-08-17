@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { Alert, AlertSeverity, generateAllAlerts } from "@/lib/alerts/index";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
@@ -160,27 +160,23 @@ export default function AlertsPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo size={24} />
-            <span className="text-sm font-semibold text-muted">· התראות</span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <Link href="/dashboard" className={btn("secondary", "sm")}>
-              דשבורד
-            </Link>
+      {/* AppHeader wraps on narrow phones (the old non-wrapping row forced a
+          465px layout viewport at 390px) and fixes the logo linking to "/"
+          instead of /dashboard. "דשבורד" button dropped — the logo IS the way
+          back, same as every other page. */}
+      <AppHeader
+        pageLabel="התראות"
+        actions={
+          <>
             <Link href="/demo" className={btn("secondary", "sm")}>
               לדוח 1301
             </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
               <span className="text-brand-navy">שוחח עם שקל</span>
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="mx-auto max-w-screen-md px-6 py-8">
         {/* Page title */}

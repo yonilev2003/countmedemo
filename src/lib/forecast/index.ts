@@ -16,7 +16,7 @@
  * (persona.income.mikdamot). The UI lets the user flip the basis.
  */
 
-import { Persona } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import { ils } from "@/lib/utils";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { estimateTaxLiability } from "@/lib/calculators/index";
@@ -59,7 +59,7 @@ const clamp0 = (n: number) => (n > 0 ? n : 0);
  *  expenses to keep the same expense ratio. */
 function withProjectedRevenue(persona: Persona, projectedRevenue: number): Persona {
   const actualRevenue = persona.income.totalRevenue || 1;
-  const expenseRatio = persona.income.totalDeductibleExpenses / actualRevenue;
+  const expenseRatio = effectiveDeductibleExpenses(persona.income) / actualRevenue;
   return {
     ...persona,
     income: {

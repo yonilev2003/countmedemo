@@ -135,7 +135,11 @@ export function CoachChat({ persona }: Props) {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Scroll ONLY the messages pane — scrollIntoView also scrolled the WINDOW
+    // on mount (the greeting render), clipping the page header off the top of
+    // the screen on /coach (journey scan round 2).
+    const pane = messagesEndRef.current?.parentElement;
+    if (pane) pane.scrollTo({ top: pane.scrollHeight, behavior: "smooth" });
   }, [messages, streamingText]);
 
   function reset() {
@@ -341,8 +345,8 @@ export function CoachChat({ persona }: Props) {
       <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b border-line bg-paper">
         {/* Back to home (start side, RTL-aware chevron) */}
         <Link
-          href="/"
-          aria-label="חזרה"
+          href="/dashboard"
+          aria-label="חזרה ללוח הבקרה"
           className="grid size-[30px] flex-shrink-0 place-items-center text-brand-navy hover:text-teal-600 transition-colors"
         >
           <ChevronDownIcon className="size-[22px] rotate-90" />
@@ -352,8 +356,9 @@ export function CoachChat({ persona }: Props) {
         <EitanAvatar size={44} className="shadow-brand-sm" />
 
         <div className="flex-1 min-w-0">
-          {/* Name + verified badge */}
-          <div className="flex items-center gap-1.5 text-[16.5px] font-extrabold text-brand-navy leading-tight">
+          {/* Name + verified badge — the h1: /coach had no heading at all
+              (IS 5568 journey finding), and this title IS the page. */}
+          <h1 className="flex items-center gap-1.5 text-[16.5px] font-extrabold text-brand-navy leading-tight">
             <span>שקל</span>
             {/* Verified badge — teal check-circle */}
             <svg
@@ -372,7 +377,7 @@ export function CoachChat({ persona }: Props) {
                 strokeLinejoin="round"
               />
             </svg>
-          </div>
+          </h1>
           {/* Status line */}
           <div className="flex items-center gap-1.5 mt-0.5 text-[12.5px] font-semibold text-teal-600 leading-none">
             <span className="inline-block h-[7px] w-[7px] rounded-full bg-success flex-shrink-0" />
@@ -600,6 +605,7 @@ export function CoachChat({ persona }: Props) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+              aria-label="הודעה לשקל"
               placeholder={
                 attachment
                   ? "הוסיפי שאלה (אופציונלי) ושלחי..."

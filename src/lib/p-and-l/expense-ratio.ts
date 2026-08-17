@@ -14,7 +14,7 @@
  * Pure functions — no React.
  */
 
-import { Persona } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 
 export type RatioStatus = "below-30" | "around-30" | "30-to-50" | "50-to-80" | "above-80";
@@ -65,7 +65,9 @@ export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
   const revenueCeiling = TC.osekZeirThreshold;
 
   const totalRevenue = persona.income.totalRevenue || 0;
-  const totalExpenses = persona.income.totalDeductibleExpenses || 0;
+  // Baseline + in-app expense rows (shared YTD derivation) — the זעיר-track
+  // comparison must see the same expenses figure as the dashboards and שדה 150.
+  const totalExpenses = effectiveDeductibleExpenses(persona.income) || 0;
   const ratio = totalRevenue > 0 ? totalExpenses / totalRevenue : 0;
   const ratioPercent = Math.round(ratio * 100);
 

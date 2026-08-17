@@ -93,7 +93,10 @@ export interface ExpenseLine {
   date: string;                // ISO date
   vendorName: string;
   description: string;
-  amount: number;              // total paid (incl. VAT for patur, ex VAT for morshe)
+  /** TOTAL paid as it appears on the receipt (VAT included when there is any). */
+  amount: number;
+  /** Reclaimable input VAT embedded in `amount` — derived at capture
+   *  (lib/expenses/types.ts deriveVat), stored 0 for עוסק פטור. */
   vat?: number;
   category: string;            // matches business-expenses/profiles.ts category names
   receiptPath?: string;        // Supabase Storage object path ("receipts/{uid}/...") — never hard-deleted (7-year retention)
@@ -176,6 +179,24 @@ export interface PersonaIncome {
   financialInstitutionsIncome?: number;   // for field 032
   taxWithheldAtSource?: number;           // for field 115
   monthlyBreakdown: { month: string; revenue: number; expenses: number }[];
+}
+
+/**
+ * The ONE derivation of year-to-date deductible expenses (the YTD
+ * baseline-plus-documents model, Yoni 16/08): the setup figure is the
+ * year-so-far baseline, and every non-deleted expense row recorded in the app
+ * adds its cost NET of reclaimable input VAT (`vat` is stored 0 for עוסק
+ * פטור, so their full gross counts — reclaimed VAT is not an expense, it
+ * comes back through the מע"מ report). Every reader of "total expenses" —
+ * dashboards, calculators, P&L, forecast, chat — must go through this helper;
+ * reading the raw scalar was exactly the bug where a quick expense moved the
+ * light dashboard but left שדה 150 untouched (journey-scan round 2).
+ */
+export function effectiveDeductibleExpenses(income: PersonaIncome): number {
+  const added = (income.expenses ?? [])
+    .filter((e) => !e.deletedAt)
+    .reduce((sum, e) => sum + (e.amount - (e.vat ?? 0)), 0);
+  return Math.round((income.totalDeductibleExpenses + added) * 100) / 100;
 }
 
 export interface PersonaDeductions {

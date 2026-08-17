@@ -110,14 +110,36 @@ export default function NewInvoicePage() {
 
   // ?type= deep link from the dashboard action buttons (needs the persona to
   // know which document kinds this osek type may issue).
+  // ?from=<docNumber> prefills the form from an existing document — used by
+  // /receivables' "סמן כשולם" to hand the user a ready receipt (the payment
+  // must become recorded income, not just a flipped status — journey scan).
+  const didPrefillRef = useRef(false);
+  const [relatedDocNumber, setRelatedDocNumber] = useState<string | undefined>();
   useEffect(() => {
-    if (!persona) return;
-    const requested = new URLSearchParams(window.location.search).get("type");
+    if (!persona || didPrefillRef.current) return;
+    didPrefillRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("type");
     if (
       requested &&
       allowedDocTypesFor(persona.business.osekType).includes(requested as InvoiceDocType)
     ) {
       setDocType(requested as InvoiceDocType);
+    }
+    const from = params.get("from");
+    const source = from
+      ? (persona.income.invoices ?? []).find((i) => i.invoiceNumber === from)
+      : undefined;
+    if (source) {
+      setRelatedDocNumber(source.invoiceNumber);
+      setForm((f) => ({
+        ...f,
+        customerName: source.customerName,
+        customerTaxId: source.customerTaxId ?? "",
+        description: source.description,
+        amount: String(source.amount),
+        category: source.category ?? "",
+      }));
     }
   }, [persona]);
 
@@ -258,6 +280,9 @@ export default function NewInvoicePage() {
       ...(effectiveDocType === "quote" && form.validUntil
         ? { validUntil: form.validUntil }
         : {}),
+      // Conversion chain (quote → business-account → receipt) when this doc
+      // was prefilled from another via ?from=.
+      ...(relatedDocNumber ? { relatedDocNumber } : {}),
     };
     const countsAsRevenue = isRevenueDoc(effectiveDocType);
 

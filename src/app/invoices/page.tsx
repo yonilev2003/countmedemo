@@ -6,7 +6,7 @@ import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate, isRevenueDoc } from "@/lib/invoice-generator/index";
 import { effectiveStatus } from "@/lib/receivables/summary";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
 import { EitanFab } from "@/components/agent/eitan-fab";
@@ -88,13 +88,12 @@ export default function InvoicesPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo size={24} />
-            <span className="text-base font-semibold text-muted">· חשבוניות</span>
-          </Link>
-          <div className="flex items-center gap-2">
+      {/* AppHeader wraps on narrow phones — the hand-rolled non-wrapping row
+          forced a 421px layout viewport at 390px (journey scan round 2). */}
+      <AppHeader
+        pageLabel="חשבוניות"
+        actions={
+          <>
             <Link href="/receivables" className={btn("secondary", "sm")}>
               מי לא שילם לי
             </Link>
@@ -102,9 +101,9 @@ export default function InvoicesPage() {
               <PlusIcon className="size-4" />
               מסמך חדש
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="mx-auto max-w-screen-lg px-6 py-10">
         {/* Page head — mockup `.pagehead` with eyebrow */}

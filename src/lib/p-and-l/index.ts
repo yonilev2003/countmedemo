@@ -12,7 +12,8 @@
  * the complete monthly summary (not just a few sampled line items).
  */
 
-import { Persona } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
+import { isRevenueDoc } from "@/lib/invoice-generator";
 import { classifyExpensePLImpact, type PLImpact } from "@/lib/regulatory/deductions";
 
 export interface MonthlyPL {
@@ -62,7 +63,9 @@ function monthFromIso(iso: string): number | null {
 
 export function calculatePL(persona: Persona): PLSummary {
   const totalRevenue = persona.income.totalRevenue;
-  const totalExpenses = persona.income.totalDeductibleExpenses;
+  // Shared YTD derivation (baseline + non-deleted rows, net of reclaimable
+  // VAT) — the P&L must show the same expenses figure as the dashboards.
+  const totalExpenses = effectiveDeductibleExpenses(persona.income);
   const netProfit = totalRevenue - totalExpenses;
 
   // Initialize 12-month buckets
@@ -94,18 +97,25 @@ export function calculatePL(persona: Persona): PLSummary {
   if (mbCoveredMonths.size < 6) {
     if (invoices.length > 0) {
       for (const inv of invoices) {
+        // Only payment docs are revenue (a business-account/quote is a demand,
+        // not income), and turnover is EX-VAT — `total` here counted output
+        // VAT as income and inflated the P&L cards (journey-scan round 2:
+        // 8,260 shown against a true 2,000 net).
+        if (!isRevenueDoc(inv.docType)) continue;
         const m = monthFromIso(inv.date);
         if (m !== null) {
-          revenueByMonth[m - 1] += inv.total;
+          revenueByMonth[m - 1] += inv.amount;
           hasDatedData = true;
         }
       }
     }
     if (expensesLines.length > 0) {
       for (const exp of expensesLines) {
+        if (exp.deletedAt) continue; // soft-deleted — hidden everywhere else too
         const m = monthFromIso(exp.date);
         if (m !== null) {
-          expensesByMonth[m - 1] += exp.amount;
+          // Net of reclaimable input VAT — same basis as totalExpenses above.
+          expensesByMonth[m - 1] += exp.amount - (exp.vat ?? 0);
           hasDatedData = true;
         }
       }
@@ -148,7 +158,9 @@ export function calculatePL(persona: Persona): PLSummary {
   if (expensesLines.length > 0) {
     const byCategory: Record<string, number> = {};
     for (const exp of expensesLines) {
-      byCategory[exp.category] = (byCategory[exp.category] ?? 0) + exp.amount;
+      if (exp.deletedAt) continue;
+      byCategory[exp.category] =
+        (byCategory[exp.category] ?? 0) + (exp.amount - (exp.vat ?? 0));
     }
     rawBreakdown = Object.entries(byCategory).map(([category, amount]) => ({
       category,

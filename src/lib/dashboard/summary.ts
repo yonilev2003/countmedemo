@@ -12,7 +12,7 @@
  * creation via calculateInvoiceTotals + getTaxYearConstants) is authoritative.
  */
 
-import { Persona } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import { isRevenueDoc } from "@/lib/invoice-generator";
 
 export interface MonthSummary {
@@ -58,7 +58,9 @@ export function computeMonthSummary(
   for (const e of expenses) {
     if (e.deletedAt) continue; // soft-deleted — hidden in /expenses, must not inflate the card
     if (yearMonthKey(e.date) !== monthKey) continue;
-    expenseSum += e.amount;
+    // Net of reclaimable input VAT (0 for patur) — same basis as the ex-VAT
+    // revenue above, so the ratio compares like with like.
+    expenseSum += e.amount - (e.vat ?? 0);
     expenseCount += 1;
   }
 
@@ -129,10 +131,9 @@ export function computeYearSummary(persona: Persona): YearSummary {
   // every non-deleted row regardless of its calendar year — otherwise a
   // quick expense dated "today" silently vanishes from the card whenever the
   // declared tax year lags the calendar year (e.g. year=2025, today=2026).
-  const addedExpenses = (persona.income.expenses ?? [])
-    .filter((e) => !e.deletedAt)
-    .reduce((s, e) => s + e.amount, 0);
-  const expensesYtd = persona.income.totalDeductibleExpenses + addedExpenses;
+  // The shared helper is also what שדה 150 / P&L / forecast read, so the
+  // light dashboard can never disagree with the tax surfaces again.
+  const expensesYtd = effectiveDeductibleExpenses(persona.income);
   return {
     year,
     revenueYtd,

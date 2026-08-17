@@ -7,7 +7,7 @@ import { activeExpenses, softDeleteExpense } from "@/lib/expenses/store";
 import { getCategoryLabel } from "@/lib/business-expenses/occupation-dataset";
 import type { ExpenseLine } from "@/lib/persona";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
@@ -64,15 +64,12 @@ export default function ExpensesListPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex items-center">
-              <Logo size={28} />
-            </Link>
-            <span className="text-[11px] text-muted leading-tight">הוצאות שתועדו</span>
-          </div>
-          <div className="flex items-center gap-3">
+      {/* AppHeader wraps on narrow phones — the hand-rolled non-wrapping row
+          forced a 446px layout viewport at 390px (journey scan round 2). */}
+      <AppHeader
+        pageLabel="הוצאות שתועדו"
+        actions={
+          <>
             <Link href="/dashboard" className={btn("secondary", "sm")}>
               <ArrowLeftIcon className="size-3.5" />
               חזור ללוח הבית
@@ -81,9 +78,9 @@ export default function ExpensesListPage() {
               <PlusIcon className="size-3.5" />
               הוצאה חדשה
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="mx-auto max-w-screen-xl px-6 py-8">
         {active.length === 0 ? (
