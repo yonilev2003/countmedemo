@@ -5,10 +5,20 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
-import { nextDocNumber, bumpDocCounter, initialDocStatus, isRevenueDoc, allowedDocTypesFor, validateInvoice, calculateInvoiceTotals } from "@/lib/invoice-generator/index";
+import {
+  nextDocNumber,
+  bumpDocCounter,
+  initialDocStatus,
+  isRevenueDoc,
+  allowedDocTypesFor,
+  validateInvoice,
+  calculateInvoiceTotals,
+  formatHebrewDate,
+} from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
 import { trackClient } from "@/lib/analytics/track-client";
-import { AppHeader } from "@/components/brand/app-header";
+import { cn } from "@/lib/utils";
+import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
   ArrowRightIcon,
@@ -17,8 +27,11 @@ import {
   CalendarIcon,
   UserIcon,
   FileTextIcon,
+  ReceiptIcon,
+  CreditCardIcon,
+  ClipboardCheckIcon,
   PercentIcon,
-  SettingsIcon,
+  AlertTriangleIcon,
 } from "@/components/brand/icons";
 
 const DOC_TYPE_LABELS: Record<InvoiceDocType, { title: string; sub: string; cta: string }> = {
@@ -42,6 +55,13 @@ const DOC_TYPE_LABELS: Record<InvoiceDocType, { title: string; sub: string; cta:
     sub: "הצעה לא מחייבת ללקוח — ספרור נפרד, לא נספרת כהכנסה",
     cta: "הפק הצעת מחיר",
   },
+};
+
+const DOC_TYPE_ICONS: Record<InvoiceDocType, (props: { className?: string }) => React.ReactElement> = {
+  "tax-invoice-receipt": FileTextIcon,
+  receipt: ReceiptIcon,
+  "business-account": CreditCardIcon,
+  quote: ClipboardCheckIcon,
 };
 
 /* Minimal types for the Web Speech API — TS lib.dom doesn't ship them. */
@@ -83,6 +103,13 @@ function monthFromIsoDate(iso: string): string | null {
 export default function NewInvoicePage() {
   const router = useRouter();
   const { persona } = useRequiredPersona();
+
+  // Stage 1 ("סוג המסמך") → stage 2 ("פרטי המסמך"). A ?type=/?from= deep link
+  // skips straight to stage 2 with the type preselected (see the prefill
+  // effect below).
+  const [stage, setStage] = useState<"type" | "details">("type");
+  const [typePicked, setTypePicked] = useState(false);
+
   const [docType, setDocType] = useState<InvoiceDocType>("tax-invoice-receipt");
   const [form, setForm] = useState({
     customerName: "",
@@ -113,6 +140,7 @@ export default function NewInvoicePage() {
   // ?from=<docNumber> prefills the form from an existing document — used by
   // /receivables' "סמן כשולם" to hand the user a ready receipt (the payment
   // must become recorded income, not just a flipped status — journey scan).
+  // Either param means the type is already decided, so stage 1 is skipped.
   const didPrefillRef = useRef(false);
   const [relatedDocNumber, setRelatedDocNumber] = useState<string | undefined>();
   useEffect(() => {
@@ -125,6 +153,8 @@ export default function NewInvoicePage() {
       allowedDocTypesFor(persona.business.osekType).includes(requested as InvoiceDocType)
     ) {
       setDocType(requested as InvoiceDocType);
+      setTypePicked(true);
+      setStage("details");
     }
     const from = params.get("from");
     const source = from
@@ -132,6 +162,8 @@ export default function NewInvoicePage() {
       : undefined;
     if (source) {
       setRelatedDocNumber(source.invoiceNumber);
+      setTypePicked(true);
+      setStage("details");
       setForm((f) => ({
         ...f,
         customerName: source.customerName,
@@ -152,7 +184,7 @@ export default function NewInvoicePage() {
 
   if (!persona) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
-      <div className="space-y-3 w-96 animate-pulse">
+      <div className="space-y-3 w-96 max-w-[90vw] animate-pulse">
         <div className="h-6 rounded-lg bg-sand w-1/2 mx-auto" />
         <div className="h-12 rounded-xl bg-sand" />
         <div className="h-48 rounded-2xl bg-sand" />
@@ -168,6 +200,30 @@ export default function NewInvoicePage() {
   // A stale preselected/restored tax-invoice type for a patur user falls back safely.
   const effectiveDocType: InvoiceDocType =
     isPatur && docType === "tax-invoice-receipt" ? "receipt" : docType;
+
+  // Live required-fields tracking (spec: counter updates as you type, not
+  // only after a failed submit) — mirrors validateInvoice's own rules.
+  const taxIdRequired = amount > 5000 && isRevenueDoc(effectiveDocType);
+  const missingCustomerName = !form.customerName.trim();
+  const missingDescription = !form.description.trim();
+  const missingAmount = amount <= 0;
+  const missingDate = !form.date;
+  const missingTaxId = taxIdRequired && !form.customerTaxId.trim();
+  const totalRequiredCount = 4 + (taxIdRequired ? 1 : 0);
+  const filledRequiredCount =
+    totalRequiredCount -
+    [missingCustomerName, missingDescription, missingAmount, missingDate, ...(taxIdRequired ? [missingTaxId] : [])]
+      .filter(Boolean).length;
+  // Field-level red borders only appear after a submit attempt (errors banner
+  // populated) — otherwise every required field would show red on first paint.
+  const showFieldErrors = errors.length > 0;
+
+  function selectType(t: InvoiceDocType) {
+    setDocType(t);
+    setTypePicked(true);
+    setErrors([]);
+    setStage("details");
+  }
 
   function startListening() {
     const Ctor = getRecognitionCtor();
@@ -248,11 +304,11 @@ export default function NewInvoicePage() {
     const errs = validateInvoice({ ...form, amount, docType: effectiveDocType });
     if (errs.length > 0) {
       setErrors(errs);
-      // The submit button sits at the bottom of a long page while the error
-      // banner renders at the top of the editor card — without scrolling it
-      // into view, a sighted user clicks and "nothing happens" (journey-scan
-      // finding: banner at y=-338 with scrollY=892). rAF waits for the banner
-      // to actually render before scrolling.
+      // The banner renders at the top of stage 2 while the submit button
+      // sits at the bottom — without scrolling it into view, a sighted user
+      // clicks and "nothing happens" (journey-scan finding: banner at
+      // y=-338 with scrollY=892). rAF waits for the banner to actually
+      // render before scrolling.
       requestAnimationFrame(() => {
         document
           .querySelector('[role="alert"]')
@@ -321,369 +377,538 @@ export default function NewInvoicePage() {
     router.push(`/invoices/${invoiceNumber}`);
   }
 
-  // Underline field, lifted from the mockup `.uline`: leading icon + input,
-  // border-bottom that turns teal on focus.
-  const ulineClass =
-    "flex items-center gap-2.5 border-b-[1.5px] border-line px-0.5 py-2 transition-colors focus-within:border-brand-deep";
-  const ulineInput =
-    "flex-1 min-w-0 bg-transparent text-[15px] text-ink placeholder:text-faint focus:outline-none text-end";
-  const fieldLabel = "block text-[13px] font-semibold text-muted mb-2";
-
   return (
     <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <AppHeader
-        pageLabel="הפקת חשבונית / קבלה"
-        actions={
-          <Link
-            href="/invoices"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-brand-navy transition-colors"
+      <header className="bg-paper border-b border-line">
+        <div className="mx-auto flex max-w-screen-sm items-center justify-between px-4 py-3">
+          <button
+            type="button"
+            onClick={() => (stage === "details" ? setStage("type") : router.push("/invoices"))}
+            className="flex items-center gap-2 text-sm text-muted hover:text-brand-navy"
           >
             <ArrowRightIcon className="size-4" />
-            חזרה לרשימה
-          </Link>
-        }
-      />
-
-      <main className="mx-auto max-w-screen-lg px-6 py-10">
-        {/* Page head — mockup `.pagehead` with eyebrow */}
-        <div className="mb-9">
-          <div className="mb-3 inline-flex items-center gap-2.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal-600">
-            <span className="size-[7px] rounded-full bg-brand" />
-            CountMe · Invoicing
-          </div>
-          <h1 className="font-display text-[32px] font-extrabold tracking-tight text-brand-navy">
-            הפקת חשבונית / קבלה
-          </h1>
-          <p className="mt-2.5 max-w-2xl text-[15.5px] leading-relaxed text-muted">
-            תהליך יצירת מסמך — מהעריכה ועד התוצאה הסופית. כל השדות פתוחים לעריכה, והסכום מתעדכן מיד בכל החישובים האישיים.
-          </p>
+            {stage === "details" ? "חזרה" : "לרשימת המסמכים"}
+          </button>
+          <Logo size={26} />
         </div>
+      </header>
 
-        {/* Voice dictation card */}
-        {voiceSupported && (
-          <div className="mb-7 rounded-2xl border border-line bg-paper shadow-brand p-5">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <MicIcon className="size-4 text-brand-deep" />
-                  <span className="text-sm font-bold text-brand-navy">דיבור במקום הקלדה</span>
-                </div>
-                <p className="text-xs text-muted leading-relaxed">
-                  לחצי על המיקרופון ואמרי משפט כמו:{" "}
-                  <span className="font-medium text-ink">&quot;חשבונית מס קבלה לדנה כהן עבור ייעוץ עיצוב בסך 3,000 שקלים&quot;</span>
-                </p>
-              </div>
-              <button
-                onClick={listening ? stopListening : startListening}
-                disabled={parsing}
-                className={`shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-brand transition-all ${
-                  listening
-                    ? "bg-alert text-white animate-pulse"
-                    : "bg-brand-navy text-white hover:bg-navy-900"
-                } disabled:opacity-50`}
-              >
-                <MicIcon className="size-4" />
-                <span>{listening ? "עצור" : "הקלטה"}</span>
-              </button>
-            </div>
-
-            {(transcript || listening) && (
-              <div className="rounded-xl border border-line bg-cream px-3 py-2.5 text-sm text-ink min-h-[40px]">
-                {transcript || <span className="text-faint">מקשיב…</span>}
-              </div>
-            )}
-
-            {transcript && !listening && (
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={parseTranscriptToForm}
-                  disabled={parsing}
-                  className="bg-teal-100 text-teal-600 hover:bg-teal-100"
-                >
-                  <CheckCircleIcon className="size-4" />
-                  {parsing ? "מפענח…" : "מלא טופס מהדיבור"}
-                </Button>
-                <button
-                  onClick={() => { setTranscript(""); setVoiceMsg(null); }}
-                  className="text-xs text-faint hover:text-muted transition-colors"
-                >
-                  נקה
-                </button>
-              </div>
-            )}
-
-            {voiceMsg && (
-              <div className="mt-3 text-xs text-ink bg-aqua-soft rounded-lg px-3 py-2 border border-line">{voiceMsg}</div>
-            )}
-          </div>
+      <main className="mx-auto max-w-screen-sm px-4 py-6 pb-28">
+        {stage === "type" && (
+          <TypeStage
+            allowedDocTypes={allowedDocTypes}
+            selected={typePicked ? effectiveDocType : null}
+            isPatur={isPatur}
+            onSelect={selectType}
+          />
         )}
 
-        {/* Editor shell — mockup `.editor` */}
-        <div className="overflow-hidden rounded-[20px] border border-line bg-cream shadow-brand">
-          {/* `.ed-top` — title + meta + settings */}
-          <div className="flex items-start justify-between gap-4 border-b border-line bg-paper px-7 py-6">
-            <div>
-              <h2 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy">
-                {DOC_TYPE_LABELS[effectiveDocType].title} · {persona.business.tradeName}
-              </h2>
-              <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 text-[13.5px] text-muted">
-                <span>מטבע: <b className="font-bold text-brand-navy">שקל</b></span>
-                <span>שפה: <b className="font-bold text-brand-navy">עברית</b></span>
-                <span>עוסק: <b className="font-bold text-brand-navy">{isPatur ? "פטור" : "מורשה"}</b></span>
-              </div>
-            </div>
-            <Link
-              href="/setup"
-              className="inline-flex shrink-0 items-center gap-1.5 border-b-[1.5px] border-teal-100 pb-0.5 text-sm font-bold text-teal-600 transition-colors hover:border-brand-deep"
-            >
-              לעריכת ההגדרות
-              <SettingsIcon className="size-3.5" />
-            </Link>
-          </div>
-
-          {/* `.ed-body` */}
-          <div className="px-7 pb-7 pt-3.5">
-            {errors.length > 0 && (
-              <div
-                role="alert"
-                aria-live="assertive"
-                className="mt-5 rounded-xl bg-overdue-bg border border-alert/20 p-3"
-              >
-                {errors.map((e, i) => <p key={i} className="text-sm text-alert-ink">{e}</p>)}
-              </div>
-            )}
-
-            {/* Document type block */}
-            <div className="border-b border-line py-7">
-              <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">סוג המסמך</h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {allowedDocTypes.map(t => {
-                  const labels = DOC_TYPE_LABELS[t];
-                  const active = effectiveDocType === t;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setDocType(t)}
-                      className={`rounded-2xl border-2 px-4 py-3.5 text-end transition-all ${
-                        active
-                          ? "border-brand-navy bg-brand-navy/5 shadow-brand"
-                          : "border-line bg-paper hover:border-brand-deep hover:bg-aqua-soft"
-                      }`}
-                    >
-                      <div className="flex items-center justify-end gap-2">
-                        {active && <CheckCircleIcon className="size-4 text-brand-navy" />}
-                        <span className={`text-sm font-bold ${active ? "text-brand-navy" : "text-ink"}`}>
-                          {labels.title}
-                        </span>
-                      </div>
-                      <div className="mt-1 text-xs leading-snug text-muted">{labels.sub}</div>
-                    </button>
-                  );
-                })}
-              </div>
-              {isPatur && (
-                <p className="mt-3 text-xs leading-relaxed text-muted">
-                  {/* DRAFT — NEEDS LEGAL REVIEW */}
-                  עוסק פטור מפיק קבלה, לא חשבונית מס.
-                </p>
-              )}
-            </div>
-
-            {/* Document details block */}
-            <div className="border-b border-line py-7">
-              <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">פרטי המסמך</h3>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                <div>
-                  <label htmlFor="inv-date" className={fieldLabel}>
-                    תאריך מסמך <span className="text-alert-ink" aria-hidden="true">*</span>
-                  </label>
-                  <div className={ulineClass}>
-                    <CalendarIcon className="size-[18px] shrink-0 text-faint" />
-                    <input
-                      id="inv-date"
-                      type="date"
-                      value={form.date}
-                      onChange={e => setForm({...form, date: e.target.value})}
-                      className={ulineInput}
-                      dir="ltr"
-                      aria-required="true"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="inv-category" className={fieldLabel}>קטגוריה (לא חובה)</label>
-                  <div className={ulineClass}>
-                    <FileTextIcon className="size-[18px] shrink-0 text-faint" />
-                    <input
-                      id="inv-category"
-                      type="text"
-                      value={form.category}
-                      onChange={e => setForm({...form, category: e.target.value})}
-                      placeholder="ייעוץ, עיצוב, פיתוח…"
-                      className={ulineInput}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="inv-customer" className={fieldLabel}>שם הלקוח <span className="text-alert-ink" aria-hidden="true">*</span></label>
-                  <div className={ulineClass}>
-                    <UserIcon className="size-[18px] shrink-0 text-faint" />
-                    <input
-                      id="inv-customer"
-                      type="text"
-                      value={form.customerName}
-                      onChange={e => setForm({...form, customerName: e.target.value})}
-                      placeholder="שם הלקוח (שמור או מזדמן)"
-                      className={ulineInput}
-                      aria-required="true"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer tax id + per-kind date — second row */}
-              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {effectiveDocType === "business-account" && (
-                  <div>
-                    <label className={fieldLabel}>תאריך יעד לתשלום (לא חובה)</label>
-                    <div className={ulineClass}>
-                      <CalendarIcon className="size-[18px] shrink-0 text-faint" />
-                      <input
-                        type="date"
-                        value={form.dueDate}
-                        onChange={e => setForm({...form, dueDate: e.target.value})}
-                        className={ulineInput}
-                        dir="ltr"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-faint">
-                      כשעובר התאריך, המסמך יסומן ב&quot;מי לא שילם לי&quot; כבאיחור
-                    </p>
-                  </div>
-                )}
-                {effectiveDocType === "quote" && (
-                  <div>
-                    <label className={fieldLabel}>ההצעה בתוקף עד (לא חובה)</label>
-                    <div className={ulineClass}>
-                      <CalendarIcon className="size-[18px] shrink-0 text-faint" />
-                      <input
-                        type="date"
-                        value={form.validUntil}
-                        onChange={e => setForm({...form, validUntil: e.target.value})}
-                        className={ulineInput}
-                        dir="ltr"
-                      />
-                    </div>
-                  </div>
-                )}
-                <div className="sm:col-span-1">
-                  <label htmlFor="inv-taxid" className={fieldLabel}>
-                    ת.ז. / ח.פ. לקוח
-                    {amount > 5000 && isRevenueDoc(effectiveDocType) && (
-                      <span className="ms-1 text-xs text-alert-ink">— נדרש מעל 5,000 ₪</span>
-                    )}
-                  </label>
-                  <div className={ulineClass}>
-                    <UserIcon className="size-[18px] shrink-0 text-faint" />
-                    <input
-                      id="inv-taxid"
-                      type="text"
-                      inputMode="numeric"
-                      value={form.customerTaxId}
-                      onChange={e => setForm({...form, customerTaxId: e.target.value})}
-                      placeholder="123456789"
-                      className={ulineInput}
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Service description block */}
-            <div className="border-b border-line py-7">
-              <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">תיאור תכולת המסמך</h3>
-              <label htmlFor="inv-description" className={fieldLabel}>תיאור השירות / המוצר <span className="text-alert-ink" aria-hidden="true">*</span></label>
-              <textarea
-                id="inv-description"
-                value={form.description}
-                onChange={e => setForm({...form, description: e.target.value})}
-                placeholder="למשל, שם הפרויקט ופירוט השירות שניתן"
-                rows={3}
-                aria-required="true"
-                className="w-full resize-none rounded-2xl border border-line bg-paper px-4 py-3.5 text-sm text-ink placeholder:text-faint transition-colors focus:border-brand-deep focus:outline-none"
-              />
-            </div>
-
-            {/* Amount block — items/totals */}
-            <div className="py-7">
-              <h3 className="mb-5 flex items-center justify-end gap-2 text-end text-[19px] font-extrabold text-brand-navy">
-                סכום{isPatur ? "" : " (לפני מע״מ)"}
-                <PercentIcon className="size-5 text-brand-deep" />
-              </h3>
-              <label htmlFor="inv-amount" className={fieldLabel}>סכום <span className="text-alert-ink" aria-hidden="true">*</span></label>
-              <div className={ulineClass}>
-                <span className="text-[15px] font-bold text-faint" aria-hidden="true">₪</span>
-                <input
-                  id="inv-amount"
-                  type="number"
-                  min={0}
-                  value={form.amount}
-                  onChange={e => setForm({...form, amount: e.target.value})}
-                  placeholder="0"
-                  className={ulineInput}
-                  dir="ltr"
-                  aria-required="true"
-                />
-              </div>
-
-              {amount > 0 && (
-                <div className="mt-5 rounded-2xl border border-line bg-paper p-5">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted">סכום נטו</span>
-                      <span dir="ltr" className="font-medium text-ink tabular-nums">₪{totals.net.toLocaleString("he-IL")}</span>
-                    </div>
-                    {totals.vat > 0 ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted">מע&quot;מ {Math.round((totals.vat / totals.net) * 100)}%</span>
-                        <span dir="ltr" className="font-medium text-ink tabular-nums">₪{totals.vat.toLocaleString("he-IL")}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted">מע&quot;מ 0% (עוסק פטור)</span>
-                        <span dir="ltr" className="font-medium text-ink tabular-nums">₪0</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Navy total pill — mockup `.total-pill` */}
-                  <div className="mt-4 flex items-center justify-between gap-6 rounded-[10px] bg-brand-navy px-6 py-3.5">
-                    <span className="text-sm font-bold text-aqua">סה&quot;כ לתשלום</span>
-                    <span dir="ltr" className="text-xl font-extrabold text-white tabular-nums">₪{totals.total.toLocaleString("he-IL")}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Actions — mockup `.ed-actions`: centered pills */}
-            <div className="flex flex-col items-center gap-3 border-t border-line pt-7 sm:flex-row sm:justify-center">
-              <button onClick={handleSubmit} className={btn("primary", "md")}>
-                {DOC_TYPE_LABELS[effectiveDocType].cta}
-              </button>
-              <Link href="/invoices" className={btn("secondary", "md")}>
-                ביטול
-              </Link>
-            </div>
-
-            <p className="mt-5 text-center text-[11px] leading-relaxed text-faint">
-              עם השמירה — הסכום מתעדכן מיד גם בדשבורד, גם ב-/demo (שדה 238 / שדה 150) ובכל החישובים האישיים.
-            </p>
-          </div>
-        </div>
+        {stage === "details" && (
+          <DetailsStage
+            persona={persona}
+            docType={effectiveDocType}
+            form={form}
+            setForm={setForm}
+            amount={amount}
+            totals={totals}
+            isPatur={isPatur}
+            errors={errors}
+            showFieldErrors={showFieldErrors}
+            missing={{ missingCustomerName, missingDescription, missingAmount, missingDate, missingTaxId, taxIdRequired }}
+            filledRequiredCount={filledRequiredCount}
+            totalRequiredCount={totalRequiredCount}
+            voiceSupported={voiceSupported}
+            listening={listening}
+            parsing={parsing}
+            transcript={transcript}
+            voiceMsg={voiceMsg}
+            onStartListening={startListening}
+            onStopListening={stopListening}
+            onParseTranscript={parseTranscriptToForm}
+            onClearTranscript={() => { setTranscript(""); setVoiceMsg(null); }}
+            onSubmit={handleSubmit}
+          />
+        )}
       </main>
     </div>
+  );
+}
+
+/* ── Stage 1: document-type picker ──────────────────────────────────────── */
+
+function TypeStage({
+  allowedDocTypes,
+  selected,
+  isPatur,
+  onSelect,
+}: {
+  allowedDocTypes: InvoiceDocType[];
+  selected: InvoiceDocType | null;
+  isPatur: boolean;
+  onSelect: (t: InvoiceDocType) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl font-bold text-brand-navy">סוג המסמך</h1>
+        <p className="text-sm text-muted mt-1">איזה מסמך תרצה/י להפיק?</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {allowedDocTypes.map((t) => {
+          const labels = DOC_TYPE_LABELS[t];
+          const Icon = DOC_TYPE_ICONS[t];
+          const active = selected === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onSelect(t)}
+              className={cn(
+                "flex w-full items-start gap-3 rounded-2xl border-2 px-5 py-4 text-start transition-all min-h-11",
+                active
+                  ? "border-brand-navy bg-brand-navy/5 shadow-brand"
+                  : "border-line bg-paper hover:border-brand-deep hover:bg-aqua-soft",
+              )}
+            >
+              <span
+                className={cn(
+                  "mt-0.5 grid size-10 shrink-0 place-items-center rounded-full",
+                  active ? "bg-brand-navy text-white" : "bg-teal-100 text-brand-deep",
+                )}
+              >
+                <Icon className="size-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className={cn("text-[15px] font-bold", active ? "text-brand-navy" : "text-ink")}>
+                    {labels.title}
+                  </span>
+                  {active && <CheckCircleIcon className="size-4 shrink-0 text-brand-navy" />}
+                </span>
+                <span className="mt-1 block text-xs leading-snug text-muted">{labels.sub}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {isPatur && (
+        <p className="text-xs leading-relaxed text-muted">
+          {/* DRAFT — NEEDS LEGAL REVIEW */}
+          עוסק פטור מפיק קבלה, לא חשבונית מס.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ── Stage 2: document details + live preview ───────────────────────────── */
+
+type InvoiceFormState = {
+  customerName: string;
+  customerTaxId: string;
+  description: string;
+  amount: string;
+  date: string;
+  category: string;
+  dueDate: string;
+  validUntil: string;
+};
+
+function DetailsStage({
+  persona,
+  docType,
+  form,
+  setForm,
+  amount,
+  totals,
+  isPatur,
+  errors,
+  showFieldErrors,
+  missing,
+  filledRequiredCount,
+  totalRequiredCount,
+  voiceSupported,
+  listening,
+  parsing,
+  transcript,
+  voiceMsg,
+  onStartListening,
+  onStopListening,
+  onParseTranscript,
+  onClearTranscript,
+  onSubmit,
+}: {
+  persona: Persona;
+  docType: InvoiceDocType;
+  form: InvoiceFormState;
+  setForm: React.Dispatch<React.SetStateAction<InvoiceFormState>>;
+  amount: number;
+  totals: { net: number; vat: number; total: number };
+  isPatur: boolean;
+  errors: string[];
+  showFieldErrors: boolean;
+  missing: {
+    missingCustomerName: boolean;
+    missingDescription: boolean;
+    missingAmount: boolean;
+    missingDate: boolean;
+    missingTaxId: boolean;
+    taxIdRequired: boolean;
+  };
+  filledRequiredCount: number;
+  totalRequiredCount: number;
+  voiceSupported: boolean;
+  listening: boolean;
+  parsing: boolean;
+  transcript: string;
+  voiceMsg: string | null;
+  onStartListening: () => void;
+  onStopListening: () => void;
+  onParseTranscript: () => void;
+  onClearTranscript: () => void;
+  onSubmit: () => void;
+}) {
+  const labels = DOC_TYPE_LABELS[docType];
+  const hasError = (field: keyof typeof missing) => showFieldErrors && missing[field];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-bold text-brand-navy">{labels.title}</h1>
+        <p className="text-sm text-muted mt-1">מלא/י את פרטי המסמך — הכל ניתן לעריכה עד ההפקה</p>
+      </div>
+
+      <p className="text-xs font-medium text-muted">
+        {filledRequiredCount} מתוך {totalRequiredCount} שדות חובה מולאו
+      </p>
+
+      {errors.length > 0 && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-xl border border-alert/40 bg-overdue-bg px-4 py-3 flex items-start gap-2"
+        >
+          <AlertTriangleIcon className="size-4 text-alert shrink-0 mt-0.5" />
+          <div className="text-xs text-alert-ink leading-relaxed space-y-0.5">
+            {errors.map((e, i) => <p key={i}>{e}</p>)}
+          </div>
+        </div>
+      )}
+
+      {voiceSupported && (
+        <div className="rounded-2xl border border-line bg-paper shadow-brand p-5">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <MicIcon className="size-4 text-brand-deep" />
+                <span className="text-sm font-bold text-brand-navy">דיבור במקום הקלדה</span>
+              </div>
+              <p className="text-xs text-muted leading-relaxed">
+                לחצי על המיקרופון ואמרי משפט כמו:{" "}
+                <span className="font-medium text-ink">&quot;חשבונית מס קבלה לדנה כהן עבור ייעוץ עיצוב בסך 3,000 שקלים&quot;</span>
+              </p>
+            </div>
+            <button
+              onClick={listening ? onStopListening : onStartListening}
+              disabled={parsing}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-brand transition-all disabled:opacity-50",
+                listening ? "bg-alert text-white animate-pulse" : "bg-brand-navy text-white hover:bg-navy-900",
+              )}
+            >
+              <MicIcon className="size-4" />
+              <span>{listening ? "עצור" : "הקלטה"}</span>
+            </button>
+          </div>
+
+          {(transcript || listening) && (
+            <div className="rounded-xl border border-line bg-cream px-3 py-2.5 text-sm text-ink min-h-[40px]">
+              {transcript || <span className="text-faint">מקשיב…</span>}
+            </div>
+          )}
+
+          {transcript && !listening && (
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onParseTranscript}
+                disabled={parsing}
+                className="bg-teal-100 text-teal-600 hover:bg-teal-100"
+              >
+                <CheckCircleIcon className="size-4" />
+                {parsing ? "מפענח…" : "מלא טופס מהדיבור"}
+              </Button>
+              <button onClick={onClearTranscript} className="text-xs text-faint hover:text-muted transition-colors">
+                נקה
+              </button>
+            </div>
+          )}
+
+          {voiceMsg && (
+            <div className="mt-3 text-xs text-ink bg-aqua-soft rounded-lg px-3 py-2 border border-line">{voiceMsg}</div>
+          )}
+        </div>
+      )}
+
+      <DocPreviewCard persona={persona} docType={docType} form={form} totals={totals} isPatur={isPatur} />
+
+      {/* Document details card */}
+      <div className="rounded-2xl border border-line bg-paper p-5 space-y-4">
+        <h3 className="text-[15px] font-extrabold text-brand-navy">פרטי המסמך</h3>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="תאריך מסמך" required error={hasError("missingDate")}>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-4 shrink-0 text-faint" />
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className={inputCls(hasError("missingDate"))}
+                dir="ltr"
+                aria-required="true"
+              />
+            </div>
+          </Field>
+          <Field label="קטגוריה (לא חובה)">
+            <div className="flex items-center gap-2">
+              <FileTextIcon className="size-4 shrink-0 text-faint" />
+              <input
+                type="text"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                placeholder="ייעוץ, עיצוב, פיתוח…"
+                className={inputCls(false)}
+              />
+            </div>
+          </Field>
+        </div>
+
+        <Field label="שם הלקוח" required error={hasError("missingCustomerName")}>
+          <div className="flex items-center gap-2">
+            <UserIcon className="size-4 shrink-0 text-faint" />
+            <input
+              type="text"
+              value={form.customerName}
+              onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+              placeholder="שם הלקוח (שמור או מזדמן)"
+              className={inputCls(hasError("missingCustomerName"))}
+              aria-required="true"
+            />
+          </div>
+        </Field>
+
+        {docType === "business-account" && (
+          <Field label="תאריך יעד לתשלום (לא חובה)">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-4 shrink-0 text-faint" />
+              <input
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                className={inputCls(false)}
+                dir="ltr"
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-faint">
+              כשעובר התאריך, המסמך יסומן ב&quot;מי לא שילם לי&quot; כבאיחור
+            </p>
+          </Field>
+        )}
+        {docType === "quote" && (
+          <Field label="ההצעה בתוקף עד (לא חובה)">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-4 shrink-0 text-faint" />
+              <input
+                type="date"
+                value={form.validUntil}
+                onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
+                className={inputCls(false)}
+                dir="ltr"
+              />
+            </div>
+          </Field>
+        )}
+
+        <Field
+          label={`ת.ז. / ח.פ. לקוח${missing.taxIdRequired ? "" : " (לא חובה)"}`}
+          required={missing.taxIdRequired}
+          error={hasError("missingTaxId")}
+        >
+          <div className="flex items-center gap-2">
+            <UserIcon className="size-4 shrink-0 text-faint" />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.customerTaxId}
+              onChange={(e) => setForm({ ...form, customerTaxId: e.target.value })}
+              placeholder="123456789"
+              className={inputCls(hasError("missingTaxId"))}
+              dir="ltr"
+            />
+          </div>
+          {missing.taxIdRequired && (
+            <p className="mt-1 text-[11px] text-due-ink">נדרש לחשבוניות מעל 5,000 ₪</p>
+          )}
+        </Field>
+      </div>
+
+      {/* Service description card */}
+      <div className="rounded-2xl border border-line bg-paper p-5">
+        <h3 className="mb-3 text-[15px] font-extrabold text-brand-navy">תיאור תכולת המסמך</h3>
+        <Field label="תיאור השירות / המוצר" required error={hasError("missingDescription")}>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder="למשל, שם הפרויקט ופירוט השירות שניתן"
+            rows={3}
+            aria-required="true"
+            className={cn(inputCls(hasError("missingDescription")), "resize-none")}
+          />
+        </Field>
+      </div>
+
+      {/* Amount card */}
+      <div className="rounded-2xl border border-line bg-paper p-5">
+        <h3 className="mb-3 flex items-center gap-2 text-[15px] font-extrabold text-brand-navy">
+          סכום{isPatur ? "" : " (לפני מע״מ)"}
+          <PercentIcon className="size-4 text-brand-deep" />
+        </h3>
+        <Field label="סכום" required error={hasError("missingAmount")}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-faint" aria-hidden="true">₪</span>
+            <input
+              type="number"
+              min={0}
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              placeholder="0"
+              className={inputCls(hasError("missingAmount"))}
+              dir="ltr"
+              aria-required="true"
+            />
+          </div>
+        </Field>
+      </div>
+
+      <button type="button" onClick={onSubmit} className={cn(btn("primary"), "w-full justify-center")}>
+        {labels.cta}
+      </button>
+      <Link href="/invoices" className={cn(btn("secondary"), "w-full justify-center")}>
+        ביטול
+      </Link>
+
+      <p className="text-center text-[11px] leading-relaxed text-faint">
+        עם השמירה — הסכום מתעדכן מיד גם בדשבורד, גם ב-/demo (שדה 238 / שדה 150) ובכל החישובים האישיים.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Live document preview — same pattern as setup's DocHeaderPreview: trade
+ * name, doc-type label, next document number, customer + date as typed so
+ * far, and the totals block (VAT tagged "חושב" since it's derived, never
+ * entered). Re-renders on every keystroke since it just reads current props.
+ */
+function DocPreviewCard({
+  persona,
+  docType,
+  form,
+  totals,
+  isPatur,
+}: {
+  persona: Persona;
+  docType: InvoiceDocType;
+  form: InvoiceFormState;
+  totals: { net: number; vat: number; total: number };
+  isPatur: boolean;
+}) {
+  const nextNumber = nextDocNumber(persona, docType);
+  const label = DOC_TYPE_LABELS[docType].title;
+
+  return (
+    <div className="rounded-2xl border border-dashed border-brand/60 bg-cream/60 p-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-deep/70">
+        ככה ייראה המסמך שלך
+      </p>
+      <div className="rounded-xl bg-paper border border-line px-4 py-3.5 space-y-2.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold text-brand-navy">{persona.business.tradeName}</div>
+            <div className="text-xs text-muted mt-0.5">{label}</div>
+          </div>
+          <span dir="ltr" className="shrink-0 font-mono text-xs text-muted">#{nextNumber}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line-soft pt-2 text-xs text-muted">
+          <span>
+            לקוח: <span className="text-ink">{form.customerName.trim() || "—"}</span>
+          </span>
+          <span dir="ltr">{form.date ? formatHebrewDate(form.date) : "—"}</span>
+        </div>
+
+        <div className="space-y-1.5 border-t border-line-soft pt-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted">סכום</span>
+            <span dir="ltr" className="font-medium text-ink tabular-nums">₪{totals.net.toLocaleString("he-IL")}</span>
+          </div>
+          {isPatur ? (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted">ללא מע&quot;מ — עוסק פטור</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 text-muted">
+                מע&quot;מ
+                <span className="rounded-full bg-brand-deep/10 px-2 py-0.5 text-[10px] font-semibold text-brand-deep">
+                  חושב
+                </span>
+              </span>
+              <span dir="ltr" className="font-medium text-ink tabular-nums">₪{totals.vat.toLocaleString("he-IL")}</span>
+            </div>
+          )}
+          <div className="mt-1.5 flex items-center justify-between rounded-lg bg-brand-navy px-3 py-2">
+            <span className="text-xs font-bold text-aqua">סה&quot;כ</span>
+            <span dir="ltr" className="text-sm font-extrabold text-white tabular-nums">₪{totals.total.toLocaleString("he-IL")}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  error?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-[13px] font-semibold text-muted mb-1.5">
+        {label}
+        {required && <span className="text-alert-ink ms-1" aria-hidden="true">*</span>}
+      </label>
+      {children}
+      {error && <p className="mt-1 text-xs text-alert">שדה חובה</p>}
+    </div>
+  );
+}
+
+function inputCls(hasError: boolean) {
+  return cn(
+    "w-full min-w-0 rounded-xl border bg-cream px-3 py-2 text-sm text-ink placeholder:text-faint focus:outline-none focus:ring-2 transition-colors",
+    hasError
+      ? "border-alert focus:border-alert focus:ring-alert/20"
+      : "border-line focus:border-brand-deep focus:ring-brand-deep/15",
   );
 }
