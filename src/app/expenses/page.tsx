@@ -28,6 +28,7 @@ const STATUS_LABEL: Record<NonNullable<ExpenseLine["status"]>, { label: string; 
 const SOURCE_LABEL: Record<NonNullable<ExpenseLine["source"]>, string> = {
   camera: "צילום",
   gallery: "גלריה",
+  file: "קובץ",
   voice: "הקלטה קולית",
   manual: "ידני",
 };

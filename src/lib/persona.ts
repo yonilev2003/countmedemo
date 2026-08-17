@@ -114,7 +114,10 @@ export interface ExpenseLine {
   originalAmount?: number;
   originalCurrency?: string;   // ISO 4217, e.g. "USD"
   exchangeRate?: number;       // ILS per 1 unit of originalCurrency, on the doc date
-  source?: "camera" | "gallery" | "voice" | "manual";
+  source?: "camera" | "gallery" | "file" | "voice" | "manual";
+  /** True once the user manually edited any OCR/voice-detected field (spec §6:
+   *  editing a detected value removes its "זוהה" tag and marks user review). */
+  reviewedByUser?: boolean;
   /** Soft-delete only — never hard-remove a row with a receiptPath (7-year retention requirement). */
   deletedAt?: string;
 }
@@ -155,6 +158,15 @@ export interface PersonaBusiness {
   isOsekZeir: boolean;
   hasEmployees: boolean;
   employerNames: string[];
+  /** Optional English trade name — for invoices to foreign clients (onboarding v5). */
+  tradeNameEn?: string;
+  /** "יש לי אתר מכירות (איקומרס)" toggle (onboarding v5) — profiling only today. */
+  hasEcommerceSite?: boolean;
+  /** Tap-only business-age bucket (onboarding v5 היכרות). Coexists with osekStartDate. */
+  businessAgeBucket?: "pre" | "first-year" | "1-3" | "3-5" | "5plus";
+  /** "איך הפקת מסמכים עד עכשיו?" (onboarding v5 היכרות) — drives the
+   *  numbering-continuity sub-flow when the answer implies prior documents. */
+  priorDocumentMethod?: "none" | "manual-book" | "other-digital" | "accountant";
 }
 
 export interface PersonaBank {

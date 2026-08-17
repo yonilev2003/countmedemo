@@ -24,6 +24,10 @@ export interface MonthSummary {
   ratio: number | null;
   revenueDocCount: number;
   expenseCount: number;
+  /** Non-deleted expenses with status "needs_review", regardless of month —
+   *  drives the dashboard nudge strip (not a monthly figure by design: a
+   *  needs_review row from last month is still unresolved today). */
+  needsReviewCount: number;
   /** True when the user has NO documents and NO expense rows at all (ever) —
    *  drives the day-0 empty state, the most important screen of the beta. */
   isFirstUse: boolean;
@@ -64,6 +68,12 @@ export function computeMonthSummary(
     expenseCount += 1;
   }
 
+  // Not scoped to monthKey on purpose — an unresolved needs_review row from
+  // any month should keep nudging until the user completes it.
+  const needsReviewCount = expenses.filter(
+    (e) => !e.deletedAt && e.status === "needs_review",
+  ).length;
+
   return {
     monthKey,
     revenue,
@@ -71,6 +81,7 @@ export function computeMonthSummary(
     ratio: revenue > 0 ? expenseSum / revenue : null,
     revenueDocCount,
     expenseCount,
+    needsReviewCount,
     isFirstUse: invoices.length === 0 && expenses.length === 0,
   };
 }

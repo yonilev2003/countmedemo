@@ -13,14 +13,10 @@
  * /dashboard/pro ("מצב מורחב").
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
-import { persistPersona } from "@/lib/data/persona-store";
-import { Persona, ExpenseLine } from "@/lib/persona";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
-import { deriveVat } from "@/lib/expenses/types";
-import { getTaxYearConstants } from "@/lib/calculators/types";
 import {
   computeMonthSummary,
   computeYearSummary,
@@ -40,6 +36,7 @@ import {
   SparklesIcon,
   ArrowLeftIcon,
   TrendingUpIcon,
+  AlertTriangleIcon,
 } from "@/components/brand/icons";
 
 const MONTH_NAMES = [
@@ -48,8 +45,7 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const { persona, setPersona } = useRequiredPersona();
-  const [expenseOpen, setExpenseOpen] = useState(false);
+  const { persona } = useRequiredPersona();
 
   useEffect(() => {
     trackClient("dashboard_viewed");
@@ -119,7 +115,10 @@ export default function DashboardPage() {
       tone: "bg-cream text-beige-600",
     },
     {
-      onClick: () => setExpenseOpen(true),
+      // Source-picker (camera/gallery/file/voice/manual) lives at /expenses/new —
+      // this used to open a manual-only bottom sheet, making the camera flow
+      // unreachable from the dashboard (the user-reported bug).
+      href: "/expenses/new",
       label: "העלאת הוצאה",
       hint: "קבלה מספק? שומרים",
       icon: <PlusIcon className="size-5" />,
@@ -229,6 +228,30 @@ export default function DashboardPage() {
           </div>
         </Reveal>
 
+        {/* ── needs-review nudge — same card language as the receivables
+            chip below, gently persistent (not dismissible: the pending
+            receipts stay pending until the user actually reviews them). ── */}
+        {summary.needsReviewCount > 0 && (
+          <Reveal className="mt-4">
+            <Link
+              href="/expenses"
+              className="flex items-center gap-3 rounded-2xl border border-line bg-overdue-bg/40 p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep"
+            >
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-paper text-alert-ink">
+                <AlertTriangleIcon className="size-5" />
+              </span>
+              <div>
+                <div className="text-sm font-bold text-brand-navy">
+                  {summary.needsReviewCount === 1
+                    ? "קבלה אחת מחכה לבדיקה שלך"
+                    : `${summary.needsReviewCount} קבלות מחכות לבדיקה שלך`}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">חסרים בהן פרטים — כדאי להשלים</div>
+              </div>
+            </Link>
+          </Reveal>
+        )}
+
         {/* ── מי לא שילם לי chip ── */}
         <Reveal className="mt-4">
           <Link
@@ -265,35 +288,20 @@ export default function DashboardPage() {
         <Stagger className="grid grid-cols-2 gap-3">
           {actions.map((a) => (
             <StaggerItem key={a.label}>
-              {a.href ? (
-                <Link
-                  href={a.href}
-                  className={`group flex min-h-[104px] flex-col justify-between rounded-2xl border bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep ${
-                    a.highlight ? "border-brand ring-2 ring-brand/30" : "border-line"
-                  }`}
-                >
-                  <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
-                    {a.icon}
-                  </span>
-                  <span className="mt-2">
-                    <span className="block text-sm font-bold text-brand-navy">{a.label}</span>
-                    <span className="mt-0.5 block text-xs text-muted">{a.hint}</span>
-                  </span>
-                </Link>
-              ) : (
-                <button
-                  onClick={a.onClick}
-                  className="group flex min-h-[104px] w-full flex-col justify-between rounded-2xl border border-line bg-paper p-4 text-start shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep"
-                >
-                  <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
-                    {a.icon}
-                  </span>
-                  <span className="mt-2">
-                    <span className="block text-sm font-bold text-brand-navy">{a.label}</span>
-                    <span className="mt-0.5 block text-xs text-muted">{a.hint}</span>
-                  </span>
-                </button>
-              )}
+              <Link
+                href={a.href}
+                className={`group flex min-h-[104px] flex-col justify-between rounded-2xl border bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep ${
+                  a.highlight ? "border-brand ring-2 ring-brand/30" : "border-line"
+                }`}
+              >
+                <span className={`grid size-10 place-items-center rounded-xl ${a.tone}`}>
+                  {a.icon}
+                </span>
+                <span className="mt-2">
+                  <span className="block text-sm font-bold text-brand-navy">{a.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{a.hint}</span>
+                </span>
+              </Link>
             </StaggerItem>
           ))}
         </Stagger>
@@ -344,147 +352,6 @@ export default function DashboardPage() {
           </Reveal>
         )}
       </main>
-
-      {expenseOpen && (
-        <ExpenseSheet
-          persona={persona}
-          onClose={() => setExpenseOpen(false)}
-          onSaved={(p) => {
-            setPersona(p);
-            setExpenseOpen(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-/**
- * Minimal expense capture (DSH-9): vendor, amount, date, note. Appends an
- * ExpenseLine to persona.income.expenses (localStorage + DB write-through).
- * Category refinement comes with Tomi's occupation lists (CEO §3.5 phase 2).
- */
-function ExpenseSheet({
-  persona,
-  onClose,
-  onSaved,
-}: {
-  persona: Persona;
-  onClose: () => void;
-  onSaved: (p: Persona) => void;
-}) {
-  const [vendor, setVendor] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [note, setNote] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  function save() {
-    const amt = Number(amount);
-    // All problems reported together — same rule as /expenses/new (the shared
-    // capture contract: never stop at the first failing field).
-    const problems: string[] = [];
-    if (!vendor.trim()) problems.push("ממי ההוצאה? שם ספק חסר");
-    if (!amt || amt <= 0) problems.push("סכום חייב להיות גדול מ-0");
-    if (!date) problems.push("תאריך חסר");
-    if (problems.length > 0) return setError(problems.join(" · "));
-
-    // Align quick-capture with the shared Expense Object contract
-    // (lib/expenses/types.ts): VAT is derived, never omitted; the row carries
-    // source + status so /expenses flags it as "partial" (no docNumber /
-    // specific category yet) and prompts the user to complete it there.
-    // vat means RECLAIMABLE input VAT — an עוסק פטור can't reclaim any, so
-    // their rate is 0 and the full gross amount is simply the cost.
-    const vatRate =
-      persona.business.osekType === "morshe"
-        ? getTaxYearConstants(Number(date.slice(0, 4)) || persona.income.year)
-            .vatRate
-        : 0;
-    const line: ExpenseLine = {
-      date,
-      vendorName: vendor.trim(),
-      description: note.trim() || vendor.trim(),
-      amount: amt,
-      vat: deriveVat(amt, false, vatRate),
-      category: "כללי",
-      deductionRule: "full",
-      source: "manual",
-      status: "partial",
-    };
-    const updated: Persona = {
-      ...persona,
-      income: {
-        ...persona.income,
-        expenses: [...(persona.income.expenses ?? []), line],
-      },
-    };
-    persistPersona(updated);
-    onSaved(updated);
-  }
-
-  const field =
-    "w-full rounded-xl border border-line bg-paper px-4 py-3 text-sm text-ink placeholder:text-faint focus:border-brand-deep focus:outline-none";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-navy/40 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-t-3xl border border-line bg-cream p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-brand sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line sm:hidden" />
-        <h3 className="font-display text-lg font-bold text-brand-navy">העלאת הוצאה</h3>
-        <p className="mt-0.5 text-xs text-muted">
-          תיעוד מהיר — קטגוריות מפורטות מגיעות בקרוב.
-        </p>
-        <div className="mt-4 space-y-3">
-          <input
-            value={vendor}
-            onChange={(e) => setVendor(e.target.value)}
-            placeholder="שם הספק / בית העסק"
-            className={field}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="סכום ₪"
-              type="number"
-              min={0}
-              dir="ltr"
-              className={field}
-            />
-            <input
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              type="date"
-              dir="ltr"
-              className={field}
-            />
-          </div>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="מה קניתם? (לא חובה)"
-            className={field}
-          />
-          {error && (
-            <p role="alert" aria-live="assertive" className="text-sm text-alert-ink">
-              {error}
-            </p>
-          )}
-        </div>
-        <div className="mt-5 flex gap-2">
-          <button onClick={save} className={btn("primary", "md", "flex-1")}>
-            שמירת הוצאה
-          </button>
-          <button onClick={onClose} className={btn("ghost", "md")}>
-            ביטול
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
