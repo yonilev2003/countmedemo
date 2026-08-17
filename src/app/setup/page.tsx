@@ -22,6 +22,7 @@ import {
   ArrowLeftIcon,
   InfoIcon,
   SparklesIcon,
+  ChevronDownIcon,
 } from "@/components/brand/icons";
 
 function validateTeudatZehut(id: string): boolean {
@@ -35,20 +36,53 @@ function validateTeudatZehut(id: string): boolean {
   return sum % 10 === 0;
 }
 
-const TOTAL_STEPS = 6;
-const STEP_TITLES = [
+/**
+ * Screen model (countme-journey-v5): the wizard renders as 7 screens grouped
+ * into 5 named phases shown in the chip bar. Splitting the old step 3 (פרטי
+ * עסק) into two screens — היכרות (tap questions) and העסק (identity fields)
+ * — is a RENDERING split only: both screens read/write the same s3 state
+ * object, and validateStep3 (below) is kept intact as the reference
+ * definition; two new validators (validateStep3Intro / validateStep3Identity)
+ * each check a subset of it for their own screen's "הבא" gate.
+ *
+ * The artifact's original phase 2 was אימות/SMS — we have no SMS auth, so
+ * כספים honestly takes that slot (product decision, 2026-08-17): the finance
+ * screens stay because they feed the Form-1301 demo.
+ */
+const TOTAL_SCREENS = 7;
+
+const PHASES = ["פרטים", "היכרות", "העסק", "כספים", "סיום"] as const;
+
+/** Which phase (0-indexed into PHASES) each screen (1-indexed) belongs to. */
+const SCREEN_PHASE: number[] = [0, 0, 1, 2, 3, 3, 3];
+
+/** [current, total] sub-step within the screen's phase — drives the header
+ * badge and the "שלב X מתוך Y" line under the chip bar. */
+const SCREEN_SUBSTEP: [number, number][] = [
+  [1, 2],
+  [2, 2],
+  [1, 1],
+  [1, 1],
+  [1, 3],
+  [2, 3],
+  [3, 3],
+];
+
+const SCREEN_TITLES = [
   "פרטים אישיים",
   "מעמד ומשפחה",
-  "פרטי עסק",
+  "היכרות עם העסק",
+  "פרטי העסק",
   "הכנסות",
   "הוצאות וניכויים",
   "בנק וסיכום",
 ];
-function getStepSubtitles(year: number): string[] {
+function getScreenSubtitles(year: number): string[] {
   return [
     "כמה פרטים בסיסיים כדי לזהות אותך",
     "מעמדים מיוחדים שמשפיעים על נקודות זיכוי",
-    "ספרי לנו על העסק שלך",
+    "כמה שאלות קצרות כדי להכיר את העסק שלך",
+    "שם, מספר עוסק וכתובת — איך שיופיעו על המסמכים שלך",
     `נתוני הכנסות לשנת המס ${year}`,
     "הוצאות מוכרות, ביטוחים ותרומות",
     "פרטי בנק לזיכוי, וסיכום מהיר",
@@ -166,64 +200,78 @@ function inputCls(hasError: boolean) {
   );
 }
 
-function ProgressBar({ step }: { step: number }) {
+/**
+ * countme-journey-v5 chip bar: 5 named phases (RTL — פרטים first from the
+ * right, the natural flex order under dir="rtl"). Completed phases are navy
+ * with a check icon, the active phase is navy + bold/slightly larger,
+ * upcoming phases are a bordered paper pill. Below the chips: the
+ * sub-progress label ("שלב X מתוך Y") for the active phase, and a slim track
+ * that fills continuously across all 7 screens — replaces the old
+ * 6-numbered-circles bar entirely.
+ */
+function PhaseChipBar({ screen }: { screen: number }) {
+  const currentPhase = SCREEN_PHASE[screen - 1];
+  const [subStep, subTotal] = SCREEN_SUBSTEP[screen - 1];
+  const overallPct = ((screen - 1) / (TOTAL_SCREENS - 1)) * 100;
+
   return (
     <div className="mb-7">
-      <div className="flex items-center justify-between mb-3 gap-1">
-        {STEP_TITLES.map((label, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center gap-1 flex-1 min-w-0"
-          >
-            <div
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors",
-                i + 1 < step
-                  ? "bg-brand-deep text-white"
-                  : i + 1 === step
-                    ? "bg-brand-navy text-white ring-4 ring-brand-navy/15"
-                    : "bg-sand text-muted",
-              )}
-            >
-              {i + 1 < step ? (
-                <CheckIcon className="size-3.5" />
-              ) : (
-                i + 1
+      <div className="flex items-center gap-0.5 sm:gap-1.5 mb-3">
+        {PHASES.map((name, i) => {
+          const state =
+            i < currentPhase ? "done" : i === currentPhase ? "active" : "upcoming";
+          return (
+            <div key={name} className="flex flex-1 min-w-0 items-center">
+              <span
+                className={cn(
+                  "flex flex-1 min-w-0 items-center justify-center gap-0.5 rounded-full px-1 py-1.5 text-center text-[10px] transition-colors sm:gap-1 sm:px-3 sm:text-xs",
+                  state === "done" && "bg-brand-navy text-white",
+                  state === "active" &&
+                    "bg-brand-navy text-white font-bold ring-2 ring-brand-navy/20 sm:scale-105",
+                  state === "upcoming" &&
+                    "border border-line bg-paper text-faint",
+                )}
+              >
+                {state === "done" && (
+                  <CheckCircleIcon className="size-2.5 shrink-0 sm:size-3.5" />
+                )}
+                <span className="truncate">{name}</span>
+              </span>
+              {i < PHASES.length - 1 && (
+                <span
+                  aria-hidden
+                  className="h-px w-1 shrink-0 bg-line sm:w-3"
+                />
               )}
             </div>
-            <span
-              className={cn(
-                "hidden md:block text-[10px] text-center leading-tight truncate w-full",
-                i + 1 === step
-                  ? "text-brand-navy font-medium"
-                  : "text-faint",
-              )}
-            >
-              {label}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <div className="h-1.5 bg-sand rounded-full overflow-hidden">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-xs text-faint">
+          שלב {subStep} מתוך {subTotal}
+        </span>
+        <span className="text-xs text-faint">
+          {screen}/{TOTAL_SCREENS}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-sand">
         <div
-          className="h-full bg-gradient-to-l from-brand-deep to-brand-navy rounded-full transition-all duration-500"
-          style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 100}%` }}
+          className="h-full rounded-full bg-gradient-to-l from-brand-deep to-brand-navy transition-all duration-500"
+          style={{ width: `${overallPct}%` }}
         />
-      </div>
-      <div className="mt-2 text-start text-xs text-faint">
-        {step}/{TOTAL_STEPS}
       </div>
     </div>
   );
 }
 
 /**
- * Beta / aid-tool notice — shown once, at the wizard's actual first-entry
- * screen (step 0, which only renders for genuinely first-time users — a
- * returning user's persona skips straight to step 1). Reuses the existing
- * /terms wording rather than introducing new legal copy (product-scope
- * directive, 2026-08-12): countme is a beta aid tool, not a substitute for
- * professional tax advice.
+ * Beta / aid-tool notice — shown once, at the top of the wizard's actual
+ * first screen (screen 1), only for genuinely first-time users (gated by
+ * isReturningUser — a returning user's persona is detected in the load
+ * effect and skips it). Reuses the existing /terms wording rather than
+ * introducing new legal copy (product-scope directive, 2026-08-12): countme
+ * is a beta aid tool, not a substitute for professional tax advice.
  */
 function BetaNotice() {
   return (
@@ -243,6 +291,60 @@ function BetaNotice() {
         </Link>
         .
       </p>
+    </div>
+  );
+}
+
+/**
+ * Compact collapsible entry point for the optional upload fast-track
+ * (onboarding-v5: no longer a separate opening screen — collapsed by default
+ * at the top of screen 1, for both new and returning users). Reuses
+ * DocumentUpload and applyExtracted verbatim; onCollapse just closes the
+ * card back up instead of advancing a step, since there's no separate step
+ * to advance to anymore.
+ */
+function FastTrackCard({
+  expanded,
+  onToggle,
+  onCollapse,
+  onExtracted,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  onCollapse: () => void;
+  onExtracted: (kind: string, data: ExtractedData) => void;
+}) {
+  return (
+    <div className="mb-5 overflow-hidden rounded-xl border border-line bg-cream/60">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
+      >
+        <span className="flex items-center gap-2.5">
+          <SparklesIcon className="size-4 shrink-0 text-brand-deep" />
+          <span>
+            <span className="block text-sm font-bold text-brand-navy">
+              מסלול מהיר — יש לך מסמכים?
+            </span>
+            <span className="block text-xs text-muted">
+              העלי ונמלא בשבילך
+            </span>
+          </span>
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            "size-4 shrink-0 text-muted transition-transform",
+            expanded && "rotate-180",
+          )}
+        />
+      </button>
+      {expanded && (
+        <div className="border-t border-line px-4 pb-4 pt-3">
+          <DocumentUpload onExtracted={onExtracted} onSkip={onCollapse} />
+        </div>
+      )}
     </div>
   );
 }
@@ -462,7 +564,12 @@ function DoneScreen({ persona }: { persona: Persona }) {
 }
 
 export default function SetupPage() {
-  const [step, setStep] = useState(0); // 0 = optional fast-track upload, 1-6 = wizard steps
+  const [screen, setScreen] = useState(1); // 1-7 = wizard screens (countme-journey-v5 phase model)
+  // Detected in the load effect below — gates BetaNotice (shown once, to
+  // genuinely first-time users only). The fast-track card's collapsed state
+  // is NOT gated by this — it's collapsed by default for everyone.
+  const [isReturningUser, setIsReturningUser] = useState(false);
+  const [uploadExpanded, setUploadExpanded] = useState(false);
   const currentYear = new Date().getFullYear();
 
   /**
@@ -480,8 +587,8 @@ export default function SetupPage() {
     Math.min(Math.max(new Date().getFullYear(), 2024), 2026),
   );
 
-  // Derive step subtitles dynamically so they always show the current selected year
-  const STEP_SUBTITLES = getStepSubtitles(selectedYear);
+  // Derive screen subtitles dynamically so they always show the current selected year
+  const SCREEN_SUBTITLES = getScreenSubtitles(selectedYear);
 
   // עוסק זעיר / עוסק פטור share ONE ceiling (invariant in lib/calculators/types.ts).
   // Read it from the year constants — never hardcode (it is CPI-indexed: 120,000
@@ -564,8 +671,11 @@ export default function SetupPage() {
   useEffect(() => {
     const saved = loadPersona();
     if (!saved) return;
-    // Returning user already has a persona — skip the upload step and go straight to the wizard
-    setStep(1);
+    // Returning user already has a persona — the fast-track card just stays
+    // collapsed (no separate upload screen to skip anymore), and the beta
+    // notice is suppressed.
+    setIsReturningUser(true);
+    setScreen(1);
     // Restore the saved tax year too — otherwise a returning 2024 filer silently
     // re-saves everything as the default year (risk-gap #6).
     if (AVAILABLE_TAX_YEARS.includes(saved.income.year)) {
@@ -710,6 +820,40 @@ export default function SetupPage() {
     return e;
   }
 
+  /**
+   * Screen-split gate for היכרות (screen 3) — only the two facts that screen
+   * actually collects: osek track picked + occupation. validateStep3 above
+   * is kept intact as the reference definition of "all of step 3's rules"
+   * (see the screen-model note near TOTAL_SCREENS) — it is not called
+   * directly for gating anymore, that's split between this and
+   * validateStep3Identity below.
+   */
+  function validateStep3Intro(): Errors {
+    const e: Errors = {};
+    if (!s3.primaryOccupation.trim()) e.primaryOccupation = "שדה חובה";
+    if (!s3.osekTrackPicked) {
+      e.osekType = "יש לבחור עוסק פטור או עוסק מורשה כדי להמשיך";
+    }
+    // The prior-invoice continuation number is RENDERED on this screen (the
+    // prior-document-method sub-flow), so it must also be validated here —
+    // validating it a screen later blocked העסק with an error the user
+    // couldn't see (flagged by the restructure's own review).
+    if (s3.priorInvoicing) {
+      const n = Number(s3.priorInvoiceNumber);
+      if (!s3.priorInvoiceNumber || isNaN(n) || n < 1) {
+        e.priorInvoiceNumber = "יש להזין מספר חשבונית תקין (1 ומעלה)";
+      }
+    }
+    return e;
+  }
+
+  /** Screen-split gate for העסק (screen 4): the business-identity fields. */
+  function validateStep3Identity(): Errors {
+    const e: Errors = {};
+    if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    return e;
+  }
+
   function validateNumber(v: string, label: string): string | undefined {
     if (!v) return "שדה חובה";
     if (isNaN(Number(v)) || Number(v) < 0) return `${label} חייב להיות מספר חיובי`;
@@ -752,20 +896,15 @@ export default function SetupPage() {
 
   function handleNext() {
     let errs: Errors = {};
-    if (step === 0) {
-      // Fast-track step has no required fields — always pass
-      setStep(1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-    if (step === 1) errs = validateStep1();
-    if (step === 2) errs = validateStep2();
-    if (step === 3) errs = validateStep3();
-    if (step === 4) errs = validateStep4();
-    if (step === 5) errs = validateStep5();
+    if (screen === 1) errs = validateStep1();
+    if (screen === 2) errs = validateStep2();
+    if (screen === 3) errs = validateStep3Intro();
+    if (screen === 4) errs = validateStep3Identity();
+    if (screen === 5) errs = validateStep4();
+    if (screen === 6) errs = validateStep5();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-    setStep((p) => p + 1);
+    setScreen((p) => p + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -810,7 +949,7 @@ export default function SetupPage() {
 
   function handleBack() {
     setErrors({});
-    setStep((p) => p - 1);
+    setScreen((p) => p - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -1083,43 +1222,30 @@ export default function SetupPage() {
           <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-navy text-white font-bold shadow-brand-sm text-sm shrink-0">
-                {step === 0 ? (
-                  <SparklesIcon className="size-4" />
-                ) : (
-                  step
-                )}
+                {SCREEN_SUBSTEP[screen - 1][0]}
               </div>
               <div>
                 <h1 className="text-xl font-bold text-brand-navy leading-tight">
-                  {step === 0
-                    ? "מסלול מהיר — אופציונלי"
-                    : STEP_TITLES[step - 1]}
+                  {SCREEN_TITLES[screen - 1]}
                 </h1>
                 <p className="text-xs text-muted mt-0.5">
-                  {step === 0
-                    ? "העלי מסמכים שיש לך — אחלץ נתונים ואחסוך לך מילוי ידני"
-                    : STEP_SUBTITLES[step - 1]}
+                  {SCREEN_SUBTITLES[screen - 1]}
                 </p>
               </div>
             </div>
 
-            {step > 0 && <ProgressBar step={step} />}
+            <PhaseChipBar screen={screen} />
 
-            {step === 0 && (
-              <>
-                <BetaNotice />
-                <DocumentUpload
-                  onExtracted={applyExtracted}
-                  onSkip={() => {
-                    setStep(1);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                />
-              </>
-            )}
-
-            {step === 1 && (
+            {screen === 1 && (
               <div className="space-y-4">
+                <FastTrackCard
+                  expanded={uploadExpanded}
+                  onToggle={() => setUploadExpanded((v) => !v)}
+                  onCollapse={() => setUploadExpanded(false)}
+                  onExtracted={applyExtracted}
+                />
+                {!isReturningUser && <BetaNotice />}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FieldLabel htmlFor="firstName" required>
@@ -1327,7 +1453,7 @@ export default function SetupPage() {
               </div>
             )}
 
-            {step === 2 && (
+            {screen === 2 && (
               <div className="space-y-5">
                 <div className="rounded-xl border border-line bg-cream p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
@@ -1545,58 +1671,8 @@ export default function SetupPage() {
               </div>
             )}
 
-            {step === 3 && (
+            {screen === 3 && (
               <div className="space-y-4">
-                <div>
-                  <FieldLabel htmlFor="tradeName" required>
-                    שם העסק
-                  </FieldLabel>
-                  <input
-                    id="tradeName"
-                    type="text"
-                    value={s3.tradeName}
-                    onChange={(e) =>
-                      setS3({ ...s3, tradeName: e.target.value })
-                    }
-                    className={inputCls(!!errors.tradeName)}
-                    placeholder="דנה כהן, עיצוב חוויית משתמש"
-                  />
-                  <ErrorMsg msg={errors.tradeName} />
-                </div>
-
-                <div>
-                  <FieldLabel htmlFor="primaryOccupation" required>
-                    תחום עיסוק
-                  </FieldLabel>
-                  <OccupationPicker
-                    inputId="primaryOccupation"
-                    value={s3.primaryOccupation}
-                    onChange={(next) =>
-                      setS3({ ...s3, primaryOccupation: next })
-                    }
-                    error={errors.primaryOccupation}
-                  />
-                  <ErrorMsg msg={errors.primaryOccupation} />
-                </div>
-
-                <DocHeaderPreview s1={s1} s3={s3} />
-
-                <div>
-                  <FieldLabel htmlFor="osekStartDate">
-                    מתי נפתח התיק? (אופציונלי)
-                  </FieldLabel>
-                  <input
-                    id="osekStartDate"
-                    type="date"
-                    value={s3.osekStartDate}
-                    onChange={(e) =>
-                      setS3({ ...s3, osekStartDate: e.target.value })
-                    }
-                    className={inputCls(false)}
-                    dir="ltr"
-                  />
-                </div>
-
                 {/* ── Tap questions (onboarding-v5 היכרות) ─────────────────── */}
                 <TapChoiceGroup
                   label="כמה זמן העסק קיים"
@@ -1611,90 +1687,7 @@ export default function SetupPage() {
                   ]}
                 />
 
-                <div>
-                  <TapChoiceGroup
-                    label="איך הפקת מסמכים עד עכשיו"
-                    value={s3.priorDocumentMethod}
-                    onChange={(next) => {
-                      const needsNumberFlow =
-                        next === "manual-book" || next === "other-digital";
-                      setS3({
-                        ...s3,
-                        priorDocumentMethod: next,
-                        // Hiding the sub-flow must also clear its state — otherwise
-                        // a stale priorInvoicing=true with the box hidden could
-                        // silently fail validateStep3's priorInvoiceNumber check.
-                        priorInvoicing: needsNumberFlow ? s3.priorInvoicing : false,
-                        priorInvoiceNumber: needsNumberFlow ? s3.priorInvoiceNumber : "",
-                      });
-                    }}
-                    options={[
-                      { key: "none", title: "עדיין לא הפקתי מסמכים בעסק" },
-                      { key: "manual-book", title: "פנקס חשבוניות ידני" },
-                      { key: "other-digital", title: "מערכת דיגיטלית אחרת" },
-                      { key: "accountant", title: "רואה חשבון מפיק עבורי" },
-                    ]}
-                  />
-
-                  {(s3.priorDocumentMethod === "manual-book" ||
-                    s3.priorDocumentMethod === "other-digital") && (
-                    <div className="mt-3 rounded-xl border border-line bg-paper p-4">
-                      <label className="flex items-start gap-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={s3.priorInvoicing}
-                          onChange={(e) =>
-                            setS3({ ...s3, priorInvoicing: e.target.checked })
-                          }
-                          className="mt-0.5 h-4 w-4 accent-brand-navy"
-                        />
-                        <span className="text-sm text-ink">
-                          להמשיך את המספור מהמסמכים הקודמים
-                        </span>
-                      </label>
-                      {s3.priorInvoicing && (
-                        <div className="mt-3">
-                          <FieldLabel htmlFor="priorInvoiceNumber" required>
-                            להמשיך את המספור ממספר
-                          </FieldLabel>
-                          <input
-                            id="priorInvoiceNumber"
-                            type="number"
-                            min={1}
-                            value={s3.priorInvoiceNumber}
-                            onChange={(e) =>
-                              setS3({ ...s3, priorInvoiceNumber: e.target.value })
-                            }
-                            className={inputCls(!!errors.priorInvoiceNumber)}
-                            dir="ltr"
-                            placeholder="לדוגמה: 42"
-                          />
-                          <ErrorMsg msg={errors.priorInvoiceNumber} />
-                          <p className="mt-1 text-xs text-muted">
-                            כדי שהמסמכים הבאים שתפיקי ב-countme לא יתנגשו במספור
-                            קודם.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-line bg-cream p-4">
-                  <input
-                    type="checkbox"
-                    checked={s3.hasEcommerceSite}
-                    onChange={(e) =>
-                      setS3({ ...s3, hasEcommerceSite: e.target.checked })
-                    }
-                    className="mt-0.5 h-4 w-4 accent-brand-navy"
-                  />
-                  <span className="text-sm text-ink">
-                    יש לי אתר מכירות — איקומרס
-                  </span>
-                </label>
-
-                {/* ── Osek type ─────────────────────────────────────────────── */}
+                {/* ── Osek type (incl. explainer cards) ────────────────────── */}
                 <div>
                   <FieldLabel>סוג עוסק</FieldLabel>
                   {/*
@@ -1772,27 +1765,124 @@ export default function SetupPage() {
                   </div>
                 )}
 
-                {/* ── Business identity fields ──────────────────────────────── */}
                 <div>
-                  <FieldLabel htmlFor="osekFileNumber">מספר עוסק</FieldLabel>
-                  <input
-                    id="osekFileNumber"
-                    type="text"
-                    inputMode="numeric"
-                    value={s3.osekFileNumber || s1.teudatZehut}
-                    onChange={(e) =>
+                  <TapChoiceGroup
+                    label="איך הפקת מסמכים עד עכשיו"
+                    value={s3.priorDocumentMethod}
+                    onChange={(next) => {
+                      const needsNumberFlow =
+                        next === "manual-book" || next === "other-digital";
                       setS3({
                         ...s3,
-                        osekFileNumber: e.target.value.replace(/\D/g, ""),
-                      })
-                    }
-                    className={inputCls(false)}
-                    dir="ltr"
+                        priorDocumentMethod: next,
+                        // Hiding the sub-flow must also clear its state — otherwise
+                        // a stale priorInvoicing=true with the box hidden could
+                        // silently fail the priorInvoiceNumber check in validateStep3Intro.
+                        priorInvoicing: needsNumberFlow ? s3.priorInvoicing : false,
+                        priorInvoiceNumber: needsNumberFlow ? s3.priorInvoiceNumber : "",
+                      });
+                    }}
+                    options={[
+                      { key: "none", title: "עדיין לא הפקתי מסמכים בעסק" },
+                      { key: "manual-book", title: "פנקס חשבוניות ידני" },
+                      { key: "other-digital", title: "מערכת דיגיטלית אחרת" },
+                      { key: "accountant", title: "רואה חשבון מפיק עבורי" },
+                    ]}
                   />
-                  <p className="mt-1 text-xs text-muted">
-                    מילאנו לך מתעודת הזהות — אצל רוב העצמאים המספרים זהים.
-                    אפשר לשנות.
-                  </p>
+
+                  {(s3.priorDocumentMethod === "manual-book" ||
+                    s3.priorDocumentMethod === "other-digital") && (
+                    <div className="mt-3 rounded-xl border border-line bg-paper p-4">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={s3.priorInvoicing}
+                          onChange={(e) =>
+                            setS3({ ...s3, priorInvoicing: e.target.checked })
+                          }
+                          className="mt-0.5 h-4 w-4 accent-brand-navy"
+                        />
+                        <span className="text-sm text-ink">
+                          להמשיך את המספור מהמסמכים הקודמים
+                        </span>
+                      </label>
+                      {s3.priorInvoicing && (
+                        <div className="mt-3">
+                          <FieldLabel htmlFor="priorInvoiceNumber" required>
+                            להמשיך את המספור ממספר
+                          </FieldLabel>
+                          <input
+                            id="priorInvoiceNumber"
+                            type="number"
+                            min={1}
+                            value={s3.priorInvoiceNumber}
+                            onChange={(e) =>
+                              setS3({ ...s3, priorInvoiceNumber: e.target.value })
+                            }
+                            className={inputCls(!!errors.priorInvoiceNumber)}
+                            dir="ltr"
+                            placeholder="לדוגמה: 42"
+                          />
+                          <ErrorMsg msg={errors.priorInvoiceNumber} />
+                          <p className="mt-1 text-xs text-muted">
+                            כדי שהמסמכים הבאים שתפיקי ב-countme לא יתנגשו במספור
+                            קודם. (התקינות נבדקת בהמשך, במסך &quot;העסק&quot;.)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-line bg-cream p-4">
+                  <input
+                    type="checkbox"
+                    checked={s3.hasEcommerceSite}
+                    onChange={(e) =>
+                      setS3({ ...s3, hasEcommerceSite: e.target.checked })
+                    }
+                    className="mt-0.5 h-4 w-4 accent-brand-navy"
+                  />
+                  <span className="text-sm text-ink">
+                    יש לי אתר מכירות — איקומרס
+                  </span>
+                </label>
+
+                <div>
+                  <FieldLabel htmlFor="primaryOccupation" required>
+                    תחום עיסוק
+                  </FieldLabel>
+                  <OccupationPicker
+                    inputId="primaryOccupation"
+                    value={s3.primaryOccupation}
+                    onChange={(next) =>
+                      setS3({ ...s3, primaryOccupation: next })
+                    }
+                    error={errors.primaryOccupation}
+                  />
+                  <ErrorMsg msg={errors.primaryOccupation} />
+                </div>
+              </div>
+            )}
+
+            {screen === 4 && (
+              <div className="space-y-4">
+                {/* ── Business identity fields ──────────────────────────────── */}
+                <div>
+                  <FieldLabel htmlFor="tradeName" required>
+                    שם העסק
+                  </FieldLabel>
+                  <input
+                    id="tradeName"
+                    type="text"
+                    value={s3.tradeName}
+                    onChange={(e) =>
+                      setS3({ ...s3, tradeName: e.target.value })
+                    }
+                    className={inputCls(!!errors.tradeName)}
+                    placeholder="דנה כהן, עיצוב חוויית משתמש"
+                  />
+                  <ErrorMsg msg={errors.tradeName} />
                 </div>
 
                 <div>
@@ -1812,6 +1902,28 @@ export default function SetupPage() {
                   />
                   <p className="mt-1 text-xs text-muted">
                     לחשבוניות ללקוחות בחו״ל. אפשר להשלים בהמשך.
+                  </p>
+                </div>
+
+                <div>
+                  <FieldLabel htmlFor="osekFileNumber">מספר עוסק</FieldLabel>
+                  <input
+                    id="osekFileNumber"
+                    type="text"
+                    inputMode="numeric"
+                    value={s3.osekFileNumber || s1.teudatZehut}
+                    onChange={(e) =>
+                      setS3({
+                        ...s3,
+                        osekFileNumber: e.target.value.replace(/\D/g, ""),
+                      })
+                    }
+                    className={inputCls(false)}
+                    dir="ltr"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    מילאנו לך מתעודת הזהות — אצל רוב העצמאים המספרים זהים.
+                    אפשר לשנות.
                   </p>
                 </div>
 
@@ -1853,10 +1965,28 @@ export default function SetupPage() {
                     />
                   </div>
                 </div>
+
+                <div>
+                  <FieldLabel htmlFor="osekStartDate">
+                    מתי נפתח התיק? (אופציונלי)
+                  </FieldLabel>
+                  <input
+                    id="osekStartDate"
+                    type="date"
+                    value={s3.osekStartDate}
+                    onChange={(e) =>
+                      setS3({ ...s3, osekStartDate: e.target.value })
+                    }
+                    className={inputCls(false)}
+                    dir="ltr"
+                  />
+                </div>
+
+                <DocHeaderPreview s1={s1} s3={s3} />
               </div>
             )}
 
-            {step === 4 && (
+            {screen === 5 && (
               <div className="space-y-4">
                 {/* ── Tax-year selector ─────────────────────────────────── */}
                 <div className="rounded-xl bg-info/30 border border-brand-deep/20 px-4 py-3">
@@ -1917,7 +2047,7 @@ export default function SetupPage() {
               </div>
             )}
 
-            {step === 5 && (
+            {screen === 6 && (
               <div className="space-y-4">
                 <div className="rounded-xl border border-brand-deep/20 bg-info/30 px-4 py-3 text-sm text-brand-navy flex gap-2 items-start">
                   <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
@@ -2106,7 +2236,7 @@ export default function SetupPage() {
               </div>
             )}
 
-            {step === 6 && (
+            {screen === 7 && (
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-ink">
                   פרטי בנק להחזר
@@ -2238,43 +2368,42 @@ export default function SetupPage() {
               </div>
             )}
 
-            {/* Bottom nav — DocumentUpload has its own "skip"/"continue" button at step 0 */}
-            {step > 0 && (
-              <div className="mt-8 flex items-center justify-between gap-3">
-                {step > 1 ? (
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    className={btn("secondary", "sm")}
-                  >
-                    <ArrowRightIcon className="size-4" />
-                    חזרה
-                  </button>
-                ) : (
-                  <div />
-                )}
+            {/* Bottom nav — the fast-track card (screen 1) has its own
+                internal "skip"/"continue" button that only collapses it. */}
+            <div className="mt-8 flex items-center justify-between gap-3">
+              {screen > 1 ? (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className={btn("secondary", "sm")}
+                >
+                  <ArrowRightIcon className="size-4" />
+                  חזרה
+                </button>
+              ) : (
+                <div />
+              )}
 
-                {step < TOTAL_STEPS ? (
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className={btn("primary", "sm")}
-                  >
-                    הבא
-                    <ArrowLeftIcon className="size-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    className={btn("primary")}
-                  >
-                    הציגי את הדוח שלי
-                    <ArrowLeftIcon className="size-4" />
-                  </button>
-                )}
-              </div>
-            )}
+              {screen < TOTAL_SCREENS ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className={btn("primary", "sm")}
+                >
+                  הבא
+                  <ArrowLeftIcon className="size-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className={btn("primary")}
+                >
+                  הציגי את הדוח שלי
+                  <ArrowLeftIcon className="size-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </main>
