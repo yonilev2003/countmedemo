@@ -22,8 +22,8 @@ export const BRAND_COLORS = {
   sand: "#E5E1DD", // --color-sand
   paper: "#FBFAF8", // --color-paper
   ink: "#0B2027", // --color-ink
-  muted: "#6A7A80", // --color-muted
-  faint: "#9AA7AC", // --color-faint
+  muted: "#57666D", // --color-muted (darkened 2026-08-16 for WCAG AA contrast — keep in sync with globals.css)
+  faint: "#5F6E75", // --color-faint (darkened 2026-08-16 for WCAG AA contrast — keep in sync with globals.css)
   line: "#E7E2DA", // --color-line
   lineSoft: "#EFEBE3", // --color-line-soft
   success: "#17C29B", // --color-success (mint, 2026-08-12 refresh)

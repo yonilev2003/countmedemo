@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { ClipboardCheckIcon, CheckIcon } from "@/components/brand/icons";
 
 export function CopyButton({ value }: { value: string | number }) {
   const [copied, setCopied] = useState(false);
@@ -13,9 +14,15 @@ export function CopyButton({ value }: { value: string | number }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded-md border border-brand-navy/20 bg-info/20 px-2 py-0.5 text-xs text-brand-navy hover:bg-info/40 transition-colors"
+      aria-label={copied ? "הועתק" : "העתק"}
+      className="inline-flex items-center gap-1 rounded-md border border-brand-navy/20 bg-info/20 px-2 py-0.5 text-xs text-brand-navy hover:bg-info/40 transition-colors"
     >
-      {copied ? "✓ הועתק" : "📋 העתק"}
+      {copied ? (
+        <CheckIcon className="size-3.5" />
+      ) : (
+        <ClipboardCheckIcon className="size-3.5" />
+      )}
+      {copied ? "הועתק" : "העתק"}
     </button>
   );
 }
@@ -46,7 +53,11 @@ export function InlineCopyButton({ value }: { value: string | number }) {
         (copied ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "text-stone-500")
       }
     >
-      {copied ? "✓" : "📋"}
+      {copied ? (
+        <CheckIcon className="size-3" />
+      ) : (
+        <ClipboardCheckIcon className="size-3" />
+      )}
     </button>
   );
 }

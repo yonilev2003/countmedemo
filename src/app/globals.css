@@ -38,8 +38,13 @@
 
   /* Ink — text scale */
   --color-ink:         #0B2027;
-  --color-muted:       #6A7A80;
-  --color-faint:       #9AA7AC;
+  /* muted/faint darkened 2026-08-16 for IS 5568 / WCAG AA text contrast:
+     old muted #6A7A80 was 3.88:1 on cream, old faint #9AA7AC only 2.15:1.
+     New values verified ≥4.5:1 on both cream (#F1EFEA) and paper (#FBFAF8):
+     muted 5.18/5.71, faint 4.60/5.07. Keep any future change ≥4.5:1 —
+     these tokens carry real body text (labels, help text), not decoration. */
+  --color-muted:       #57666D;
+  --color-faint:       #5F6E75;
 
   /* Line — borders */
   --color-line:        #E7E2DA;
@@ -252,4 +257,25 @@ body {
   .cm-marquee {
     animation: none;
   }
+}
+
+/* ── IS 5568: skip-navigation link (דלג לתוכן הראשי) ─────────────────────
+   Visually hidden until keyboard focus; must be the FIRST focusable element
+   on every page (rendered at the top of <body> in app/layout.tsx). Uses
+   logical properties so it works in RTL. */
+.skip-link {
+  position: fixed;
+  inset-inline-start: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-brand-navy);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+.skip-link:focus {
+  inset-inline-start: 1rem;
+  outline: 3px solid var(--color-brand-deep);
+  outline-offset: 2px;
 }

@@ -409,7 +409,11 @@ function ExpenseSheet({
             placeholder="מה קניתם? (לא חובה)"
             className={field}
           />
-          {error && <p className="text-sm text-alert">{error}</p>}
+          {error && (
+            <p role="alert" aria-live="assertive" className="text-sm text-alert-ink">
+              {error}
+            </p>
+          )}
         </div>
         <div className="mt-5 flex gap-2">
           <button onClick={save} className={btn("primary", "md", "flex-1")}>

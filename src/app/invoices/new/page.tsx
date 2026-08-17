@@ -409,8 +409,12 @@ export default function NewInvoicePage() {
           {/* `.ed-body` */}
           <div className="px-7 pb-7 pt-3.5">
             {errors.length > 0 && (
-              <div className="mt-5 rounded-xl bg-overdue-bg border border-alert/20 p-3">
-                {errors.map((e, i) => <p key={i} className="text-sm text-alert">{e}</p>)}
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="mt-5 rounded-xl bg-overdue-bg border border-alert/20 p-3"
+              >
+                {errors.map((e, i) => <p key={i} className="text-sm text-alert-ink">{e}</p>)}
               </div>
             )}
 
@@ -455,25 +459,28 @@ export default function NewInvoicePage() {
               <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">פרטי המסמך</h3>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div>
-                  <label className={fieldLabel}>
-                    תאריך מסמך <span className="text-beige-600">*</span>
+                  <label htmlFor="inv-date" className={fieldLabel}>
+                    תאריך מסמך <span className="text-alert-ink" aria-hidden="true">*</span>
                   </label>
                   <div className={ulineClass}>
                     <CalendarIcon className="size-[18px] shrink-0 text-faint" />
                     <input
+                      id="inv-date"
                       type="date"
                       value={form.date}
                       onChange={e => setForm({...form, date: e.target.value})}
                       className={ulineInput}
                       dir="ltr"
+                      aria-required="true"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className={fieldLabel}>קטגוריה (לא חובה)</label>
+                  <label htmlFor="inv-category" className={fieldLabel}>קטגוריה (לא חובה)</label>
                   <div className={ulineClass}>
                     <FileTextIcon className="size-[18px] shrink-0 text-faint" />
                     <input
+                      id="inv-category"
                       type="text"
                       value={form.category}
                       onChange={e => setForm({...form, category: e.target.value})}
@@ -483,15 +490,17 @@ export default function NewInvoicePage() {
                   </div>
                 </div>
                 <div>
-                  <label className={fieldLabel}>שם הלקוח <span className="text-beige-600">*</span></label>
+                  <label htmlFor="inv-customer" className={fieldLabel}>שם הלקוח <span className="text-alert-ink" aria-hidden="true">*</span></label>
                   <div className={ulineClass}>
                     <UserIcon className="size-[18px] shrink-0 text-faint" />
                     <input
+                      id="inv-customer"
                       type="text"
                       value={form.customerName}
                       onChange={e => setForm({...form, customerName: e.target.value})}
                       placeholder="שם הלקוח (שמור או מזדמן)"
                       className={ulineInput}
+                      aria-required="true"
                     />
                   </div>
                 </div>
@@ -533,16 +542,18 @@ export default function NewInvoicePage() {
                   </div>
                 )}
                 <div className="sm:col-span-1">
-                  <label className={fieldLabel}>
+                  <label htmlFor="inv-taxid" className={fieldLabel}>
                     ת.ז. / ח.פ. לקוח
                     {amount > 5000 && isRevenueDoc(effectiveDocType) && (
-                      <span className="ms-1 text-xs text-alert">— נדרש מעל 5,000 ₪</span>
+                      <span className="ms-1 text-xs text-alert-ink">— נדרש מעל 5,000 ₪</span>
                     )}
                   </label>
                   <div className={ulineClass}>
                     <UserIcon className="size-[18px] shrink-0 text-faint" />
                     <input
+                      id="inv-taxid"
                       type="text"
+                      inputMode="numeric"
                       value={form.customerTaxId}
                       onChange={e => setForm({...form, customerTaxId: e.target.value})}
                       placeholder="123456789"
@@ -557,12 +568,14 @@ export default function NewInvoicePage() {
             {/* Service description block */}
             <div className="border-b border-line py-7">
               <h3 className="mb-5 text-end text-[19px] font-extrabold text-brand-navy">תיאור תכולת המסמך</h3>
-              <label className={fieldLabel}>תיאור השירות / המוצר <span className="text-beige-600">*</span></label>
+              <label htmlFor="inv-description" className={fieldLabel}>תיאור השירות / המוצר <span className="text-alert-ink" aria-hidden="true">*</span></label>
               <textarea
+                id="inv-description"
                 value={form.description}
                 onChange={e => setForm({...form, description: e.target.value})}
                 placeholder="למשל, שם הפרויקט ופירוט השירות שניתן"
                 rows={3}
+                aria-required="true"
                 className="w-full resize-none rounded-2xl border border-line bg-paper px-4 py-3.5 text-sm text-ink placeholder:text-faint transition-colors focus:border-brand-deep focus:outline-none"
               />
             </div>
@@ -573,10 +586,11 @@ export default function NewInvoicePage() {
                 סכום{isPatur ? "" : " (לפני מע״מ)"}
                 <PercentIcon className="size-5 text-brand-deep" />
               </h3>
-              <label className={fieldLabel}>סכום <span className="text-beige-600">*</span></label>
+              <label htmlFor="inv-amount" className={fieldLabel}>סכום <span className="text-alert-ink" aria-hidden="true">*</span></label>
               <div className={ulineClass}>
-                <span className="text-[15px] font-bold text-faint">₪</span>
+                <span className="text-[15px] font-bold text-faint" aria-hidden="true">₪</span>
                 <input
+                  id="inv-amount"
                   type="number"
                   min={0}
                   value={form.amount}
@@ -584,6 +598,7 @@ export default function NewInvoicePage() {
                   placeholder="0"
                   className={ulineInput}
                   dir="ltr"
+                  aria-required="true"
                 />
               </div>
 

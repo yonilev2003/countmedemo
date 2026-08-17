@@ -69,9 +69,36 @@ export default function RootLayout({
       className={`${assistant.variable} ${rubik.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-ink font-sans">
+        {/* IS 5568: skip link — must be the first focusable element on every page */}
+        <a href="#main-content" className="skip-link">
+          דלג לתוכן הראשי
+        </a>
         <ServiceWorkerRegistration />
         <PersonaHydrator />
-        {children}
+        <div id="main-content" tabIndex={-1} className="flex-1 flex flex-col">
+          {children}
+        </div>
+        {/* IS 5568: the accessibility statement must be reachable from every page */}
+        <footer
+          role="contentinfo"
+          className="border-t border-line bg-paper px-6 py-3 text-center text-xs text-muted print:hidden"
+        >
+          <a href="/accessibility" className="underline hover:text-brand-navy">
+            הצהרת נגישות
+          </a>
+          <span aria-hidden="true" className="mx-2">
+            ·
+          </span>
+          <a href="/privacy" className="underline hover:text-brand-navy">
+            מדיניות פרטיות
+          </a>
+          <span aria-hidden="true" className="mx-2">
+            ·
+          </span>
+          <a href="/terms" className="underline hover:text-brand-navy">
+            תנאי שימוש
+          </a>
+        </footer>
       </body>
     </html>
   );

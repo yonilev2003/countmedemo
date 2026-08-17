@@ -33,7 +33,11 @@ export function AppHeader({
             </span>
           )}
         </Link>
-        {actions && <div className="flex items-center gap-2">{actions}</div>}
+        {actions && (
+          <nav aria-label="פעולות עמוד" className="flex items-center gap-2">
+            {actions}
+          </nav>
+        )}
       </div>
     </header>
   );

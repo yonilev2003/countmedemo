@@ -584,7 +584,11 @@ function ReviewStage({
       </div>
 
       {missing.length > 0 && (
-        <div className="rounded-xl border border-alert/40 bg-overdue-bg px-4 py-3 flex items-start gap-2">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="rounded-xl border border-alert/40 bg-overdue-bg px-4 py-3 flex items-start gap-2"
+        >
           <AlertTriangleIcon className="size-4 text-alert shrink-0 mt-0.5" />
           <div className="text-xs text-alert-ink leading-relaxed">
             <p className="font-bold mb-0.5">חסרים שדות חובה:</p>
