@@ -13,6 +13,8 @@ import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
+import { StatusBadge } from "@/components/brand/status";
+import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
   CheckIcon,
   CheckCircleIcon,
@@ -92,6 +94,21 @@ interface Step3Data {
   priorInvoicing: boolean;
   /** If so — the next number to continue from, so countme's numbering never collides with a prior series. */
   priorInvoiceNumber: string;
+  /**
+   * Whether the user has explicitly confirmed a real osek track (פטור/מורשה).
+   * Required before Next — tapping the "חברה בע״מ"/"עדיין לא פתחתי עוסק"
+   * explainer-only cards never sets this (onboarding-v5 §5).
+   */
+  osekTrackPicked: boolean;
+  businessAgeBucket: "" | "pre" | "first-year" | "1-3" | "3-5" | "5plus";
+  priorDocumentMethod: "" | "none" | "manual-book" | "other-digital" | "accountant";
+  hasEcommerceSite: boolean;
+  /** Editable, prefilled from the TZ in the UI (display fallback, not stored until touched). */
+  osekFileNumber: string;
+  tradeNameEn: string;
+  addressCity: string;
+  addressStreet: string;
+  addressHouseNumber: string;
 }
 
 interface Step4Data {
@@ -230,39 +247,69 @@ function BetaNotice() {
   );
 }
 
+const BUSINESS_AGE_LABEL: Record<
+  NonNullable<Persona["business"]["businessAgeBucket"]>,
+  string
+> = {
+  pre: "טרם התחיל",
+  "first-year": "שנה ראשונה",
+  "1-3": "1-3 שנים",
+  "3-5": "3-5 שנים",
+  "5plus": "מעל 5 שנים",
+};
+
 /**
  * Post-submit screen — replaces the previous behaviour of redirecting to
- * /dashboard the instant the wizard is done. Gives a personalized "what's
- * next" list instead of dropping the user straight into the dashboard with
- * no orientation, and calls out that /setup itself never created a real
- * account — Google sign-in (still optional) is what makes the data persist
- * across devices.
+ * /dashboard the instant the wizard is done. Onboarding-v5 shape: a business
+ * summary card (what we now know) plus a numbered first-steps checklist,
+ * instead of dropping the user straight into the dashboard with no
+ * orientation. Still calls out that /setup itself never created a real
+ * account — Google sign-in (kept exactly as before) is what makes the data
+ * persist across devices.
  */
-function DoneScreen({
-  firstName,
-  primaryOccupation,
-}: {
-  firstName: string;
-  primaryOccupation: string;
-}) {
-  const steps: { title: string; desc: string; href: string; cta: string }[] = [
+function DoneScreen({ persona }: { persona: Persona }) {
+  const firstName = persona.personal.firstName;
+  const ageLabel = persona.business.businessAgeBucket
+    ? BUSINESS_AGE_LABEL[persona.business.businessAgeBucket]
+    : null;
+  const addressLine = [
+    [persona.business.address.street, persona.business.address.houseNumber]
+      .filter(Boolean)
+      .join(" "),
+    persona.business.address.city,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const nextDocNo = nextInvoiceNumber(persona);
+  const osekLabel = persona.business.osekType === "morshe" ? "עוסק מורשה" : "עוסק פטור";
+
+  const firstSteps: {
+    n: number;
+    title: string;
+    desc: string;
+    href?: string;
+    cta?: string;
+    badge?: string;
+  }[] = [
     {
-      title: "טופס 1301 מחושב מראש",
-      desc: "כל השדות שכבר אפשר לחשב מוכנים לך, עם ההסבר וההוצאות שמזינים אותם.",
-      href: "/demo",
-      cta: "לדמו הטופס",
-    },
-    {
-      title: `מדריך הוצאות ל${primaryOccupation || "העסק שלך"}`,
+      n: 1,
+      title: `מדריך הוצאות ל${persona.business.primaryOccupation || "העסק שלך"}`,
       desc: "אילו הוצאות מוכרות, באיזה שיעור, ומה כדאי לתעד — מותאם לעיסוק שלך.",
       href: "/business-expenses",
       cta: "למדריך ההוצאות",
     },
     {
-      title: "שמירה בענן, מכל מכשיר",
-      desc: "הנתונים שמורים כרגע רק בדפדפן הזה. התחברות עם Google שומרת אותם בענן ומאפשרת להמשיך מכל מכשיר.",
-      href: "/login",
-      cta: "התחברות עם Google",
+      n: 2,
+      title: "מספרי הקצאה מרשות המסים",
+      desc: "בקרוב — נעדכן כשהחיבור יהיה זמין. עד אז המסמכים מופקים בלי מספר הקצאה.",
+      badge: "בקרוב",
+    },
+    {
+      n: 3,
+      title: "המסמך הראשון שלך",
+      desc: "חשבונית או קבלה — יוצא מוכן עם כל הפרטים שכבר יש לנו עליך.",
+      href: "/invoices/new",
+      cta: "ליצירת מסמך",
     },
   ];
 
@@ -278,34 +325,128 @@ function DoneScreen({
 
       <main className="flex flex-1 items-start justify-center px-4 py-10">
         <div className="w-full max-w-2xl">
-          <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-light">
-              <CheckCircleIcon className="size-7 text-success" />
+          <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-light">
+                <CheckCircleIcon className="size-7 text-success" />
+              </div>
+              <h1 className="text-2xl font-bold text-brand-navy">
+                {firstName ? `הכל מוכן, ${firstName}` : "הכל מוכן"}
+              </h1>
+              <p className="mt-1.5 text-sm text-muted">
+                הנתונים שלך שמורים ומוכנים. הנה מה שיש לנו עליך, ואיפה כדאי
+                להתחיל.
+              </p>
             </div>
-            <h1 className="text-2xl font-bold text-brand-navy">
-              {firstName ? `מוכן/ה, ${firstName}!` : "מוכן/ה!"}
-            </h1>
-            <p className="mt-1.5 text-sm text-muted">
-              הנתונים שלך שמורים ומוכנים. הנה איפה כדאי להתחיל.
-            </p>
 
-            <div className="mt-6 grid gap-3 text-start">
-              {steps.map((s) => (
-                <Link
-                  key={s.href}
-                  href={s.href}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/60 px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
-                >
-                  <div>
-                    <div className="text-sm font-bold text-brand-navy">{s.title}</div>
-                    <div className="text-xs text-muted mt-0.5 leading-relaxed">{s.desc}</div>
-                  </div>
-                  <span className="shrink-0 text-xs font-semibold text-brand-deep whitespace-nowrap">
-                    {s.cta} ←
+            <div className="mt-6 rounded-xl border border-line bg-cream/60 p-4 text-start">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="inline-flex items-center rounded-full bg-sand px-2.5 py-1 text-xs font-medium text-ink">
+                  {osekLabel}
+                </span>
+                {persona.business.isOsekZeir && (
+                  <span className="inline-flex items-center rounded-full bg-teal-100/60 px-2.5 py-1 text-xs font-medium text-brand-navy">
+                    עוסק זעיר
                   </span>
-                </Link>
-              ))}
+                )}
+              </div>
+              <dl className="space-y-1.5 text-sm">
+                {persona.business.primaryOccupation && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted">תחום</dt>
+                    <dd className="font-medium text-ink text-end">
+                      {persona.business.primaryOccupation}
+                    </dd>
+                  </div>
+                )}
+                {ageLabel && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted">ותק</dt>
+                    <dd className="font-medium text-ink text-end">{ageLabel}</dd>
+                  </div>
+                )}
+                {addressLine && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-muted">כתובת</dt>
+                    <dd className="font-medium text-ink text-end">{addressLine}</dd>
+                  </div>
+                )}
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-muted">מסמך הבא</dt>
+                  <dd
+                    className="font-mono font-medium text-ink text-end"
+                    dir="ltr"
+                  >
+                    {nextDocNo}
+                  </dd>
+                </div>
+              </dl>
             </div>
+
+            <div className="mt-6 space-y-3 text-start">
+              {firstSteps.map((s) =>
+                s.href ? (
+                  <Link
+                    key={s.n}
+                    href={s.href}
+                    className="flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-bold text-white">
+                      {s.n}
+                    </span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-brand-navy">{s.title}</div>
+                      <div className="text-xs text-muted mt-0.5 leading-relaxed">
+                        {s.desc}
+                      </div>
+                    </div>
+                    <span className="shrink-0 self-center text-xs font-semibold text-brand-deep whitespace-nowrap">
+                      {s.cta} ←
+                    </span>
+                  </Link>
+                ) : (
+                  <div
+                    key={s.n}
+                    className="flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sand text-xs font-bold text-ink">
+                      {s.n}
+                    </span>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-ink">{s.title}</div>
+                      <div className="text-xs text-muted mt-0.5 leading-relaxed">
+                        {s.desc}
+                      </div>
+                    </div>
+                    {s.badge && (
+                      <StatusBadge status="plan" className="shrink-0 self-center">
+                        {s.badge}
+                      </StatusBadge>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
+
+            {/* Google-login CTA — unchanged from before: /setup never creates a
+                real account, this is still the only thing that does. */}
+            <Link
+              href="/login"
+              className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/60 px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
+            >
+              <div>
+                <div className="text-sm font-bold text-brand-navy">
+                  שמירה בענן, מכל מכשיר
+                </div>
+                <div className="text-xs text-muted mt-0.5 leading-relaxed">
+                  הנתונים שמורים כרגע רק בדפדפן הזה. התחברות עם Google שומרת
+                  אותם בענן ומאפשרת להמשיך מכל מכשיר.
+                </div>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-brand-deep whitespace-nowrap">
+                התחברות עם Google ←
+              </span>
+            </Link>
 
             <Link href="/dashboard" className={cn(btn("primary"), "mt-7 w-full justify-center")}>
               כניסה ללוח הבקרה
@@ -376,9 +517,28 @@ export default function SetupPage() {
     osekStartDate: "",
     priorInvoicing: false,
     priorInvoiceNumber: "",
+    osekTrackPicked: false,
+    businessAgeBucket: "",
+    priorDocumentMethod: "",
+    hasEcommerceSite: false,
+    osekFileNumber: "",
+    tradeNameEn: "",
+    addressCity: "",
+    addressStreet: "",
+    addressHouseNumber: "",
   });
 
-  const [done, setDone] = useState(false);
+  // Step-1 fields that don't map 1:1 onto persona.personal, kept separate from s1.
+  const [phoneMobile, setPhoneMobile] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  // "Neither of these" explainer-only taps in the osek-type section — wizard-local
+  // UI state, never written to the persona (see osekTrackPicked above).
+  const [otherOsekCase, setOtherOsekCase] = useState<"" | "company" | "not-yet">("");
+
+  // Holds the just-submitted persona so DoneScreen can read it directly —
+  // avoids a second localStorage read racing persistPersona's write.
+  const [doneData, setDoneData] = useState<Persona | null>(null);
 
   const [s4, setS4] = useState<Step4Data>({
     totalRevenue: "",
@@ -445,7 +605,23 @@ export default function SetupPage() {
       // nothing to restore here.
       priorInvoicing: false,
       priorInvoiceNumber: "",
+      // Returning user already has an explicit osekType from a prior session —
+      // don't re-block Next on the "pick פטור/מורשה" gate.
+      osekTrackPicked: true,
+      businessAgeBucket: saved.business.businessAgeBucket ?? "",
+      priorDocumentMethod: saved.business.priorDocumentMethod ?? "",
+      hasEcommerceSite: saved.business.hasEcommerceSite ?? false,
+      osekFileNumber: saved.business.osekFileNumber ?? "",
+      tradeNameEn: saved.business.tradeNameEn ?? "",
+      addressCity: saved.business.address?.city ?? "",
+      addressStreet: saved.business.address?.street ?? "",
+      addressHouseNumber: saved.business.address?.houseNumber ?? "",
     });
+    setPhoneMobile(saved.contact?.phoneMobile ?? "");
+    setMarketingOptIn(saved.contact?.consentDigitalNotices ?? false);
+    // Terms were already accepted on this persona's first save — re-running
+    // the wizard to update data shouldn't force re-consent every time.
+    setTermsAccepted(true);
     setS4({
       totalRevenue: String(saved.income.totalRevenue),
     });
@@ -482,6 +658,9 @@ export default function SetupPage() {
       e.teudatZehut = "מספר תעודת הזהות אינו תקין";
     }
     if (!s1.birthDate) e.birthDate = "שדה חובה";
+    if (!termsAccepted) {
+      e.termsAccepted = "יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להמשיך";
+    }
     return e;
   }
 
@@ -524,6 +703,9 @@ export default function SetupPage() {
       if (!s3.priorInvoiceNumber || isNaN(n) || n < 1) {
         e.priorInvoiceNumber = "יש להזין מספר חשבונית תקין (1 ומעלה)";
       }
+    }
+    if (!s3.osekTrackPicked) {
+      e.osekType = "יש לבחור עוסק פטור או עוסק מורשה כדי להמשיך";
     }
     return e;
   }
@@ -604,6 +786,9 @@ export default function SetupPage() {
           ...s,
           osekType: data.osekType!,
           isOsekZeir: data.osekType === "patur" ? s.isOsekZeir : false,
+          // A document-derived osekType is a real answer, not the unpicked
+          // default — don't force the user to re-tap פטור/מורשה on step 3.
+          osekTrackPicked: true,
         }));
       }
       if (data.totalRevenue != null) {
@@ -689,22 +874,28 @@ export default function SetupPage() {
         },
         residenceSameAsMailing: true,
         email: "",
-        phoneMobile: "",
+        phoneMobile: phoneMobile.trim(),
         phoneWork: null,
         phoneHome: null,
-        consentDigitalNotices: false,
+        consentDigitalNotices: marketingOptIn,
       },
       business: {
         tradeName: s3.tradeName,
         primaryOccupation: s3.primaryOccupation,
         osekType: s3.osekType,
-        osekFileNumber: s1.teudatZehut,
+        // Editable, prefilled from the TZ — falls back to it when the user
+        // never touched the field (onboarding-v5 §6).
+        osekFileNumber: s3.osekFileNumber.trim() || s1.teudatZehut,
         osekStartDate: s3.osekStartDate,
         address: {
-          sameAsResidence: true,
-          street: null,
-          houseNumber: null,
-          city: null,
+          sameAsResidence: !(
+            s3.addressCity.trim() ||
+            s3.addressStreet.trim() ||
+            s3.addressHouseNumber.trim()
+          ),
+          street: s3.addressStreet.trim() || null,
+          houseNumber: s3.addressHouseNumber.trim() || null,
+          city: s3.addressCity.trim() || null,
           zipCode: null,
         },
         bookkeepingMethod: "single-entry",
@@ -718,6 +909,10 @@ export default function SetupPage() {
           totalRevenue <= getTaxYearConstants(selectedYear).osekZeirThreshold,
         hasEmployees: false,
         employerNames: [],
+        tradeNameEn: s3.tradeNameEn.trim() || undefined,
+        hasEcommerceSite: s3.hasEcommerceSite,
+        businessAgeBucket: s3.businessAgeBucket || undefined,
+        priorDocumentMethod: s3.priorDocumentMethod || undefined,
       },
       bank: {
         bankCode: s6.bankCode,
@@ -773,7 +968,19 @@ export default function SetupPage() {
           ? { invoiceCounter: Number(s3.priorInvoiceNumber) }
           : {}),
       ...(existing?.docCounters ? { docCounters: existing.docCounters } : {}),
-      ...(existing?.contact ? { contact: existing.contact } : {}),
+      // Merge, don't overwrite: the wizard now OWNS phoneMobile + consentDigitalNotices
+      // (collected in step 1), but everything else on contact (email, mailing
+      // address, phoneWork/Home — none of which the wizard collects) still
+      // needs to survive a re-run, same as invoiceCounter/docCounters above.
+      ...(existing?.contact
+        ? {
+            contact: {
+              ...existing.contact,
+              phoneMobile: phoneMobile.trim(),
+              consentDigitalNotices: marketingOptIn,
+            },
+          }
+        : {}),
       ...(existing?.capitalDeclaration
         ? { capitalDeclaration: existing.capitalDeclaration }
         : {}),
@@ -786,7 +993,7 @@ export default function SetupPage() {
     if (Object.keys(errs).length > 0) return;
     const persona = buildPersona();
     persistPersona(persona);
-    setDone(true);
+    setDoneData(persona);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -850,13 +1057,14 @@ export default function SetupPage() {
   const zeirRatePct = Math.round(zeirExpenseRate * 100);
   const zeirCapAmount = Math.round(step5Revenue * zeirExpenseRate);
 
-  if (done) {
-    return (
-      <DoneScreen
-        firstName={s1.firstName}
-        primaryOccupation={s3.primaryOccupation}
-      />
-    );
+  // Live TZ feedback (step 1) — neutral while typing, green only once both the
+  // digit-count and checksum are valid; the red error path is untouched (only
+  // set/cleared by validateStep1 on Next).
+  const tzLiveValid =
+    /^\d{9}$/.test(s1.teudatZehut) && validateTeudatZehut(s1.teudatZehut);
+
+  if (doneData) {
+    return <DoneScreen persona={doneData} />;
   }
 
   return (
@@ -968,6 +1176,12 @@ export default function SetupPage() {
                     dir="ltr"
                   />
                   <ErrorMsg msg={errors.teudatZehut} />
+                  {!errors.teudatZehut && tzLiveValid && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-success">
+                      <CheckIcon className="size-3.5" />
+                      המספר תקין
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1049,6 +1263,66 @@ export default function SetupPage() {
                     <option value="widowed">אלמן/ה</option>
                     <option value="separated">פרוד/ה</option>
                   </select>
+                </div>
+
+                <div>
+                  <FieldLabel htmlFor="phoneMobile">נייד (אופציונלי)</FieldLabel>
+                  <input
+                    id="phoneMobile"
+                    type="tel"
+                    value={phoneMobile}
+                    onChange={(e) => setPhoneMobile(e.target.value)}
+                    className={inputCls(false)}
+                    dir="ltr"
+                    placeholder="050-1234567"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
+                    למספר הזה.
+                  </p>
+                </div>
+
+                <div className="border-t border-line pt-4 mt-1 space-y-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-brand-navy"
+                    />
+                    <span className="text-sm text-ink">
+                      קראתי ואישרתי את{" "}
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        className="underline hover:text-brand-deep"
+                      >
+                        תנאי השימוש
+                      </Link>{" "}
+                      ואת{" "}
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        className="underline hover:text-brand-deep"
+                      >
+                        מדיניות הפרטיות
+                      </Link>
+                      <span className="text-alert ms-1">*</span>
+                    </span>
+                  </label>
+                  <ErrorMsg msg={errors.termsAccepted} />
+
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={marketingOptIn}
+                      onChange={(e) => setMarketingOptIn(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 accent-brand-navy"
+                    />
+                    <span className="text-sm text-ink">
+                      עדכונים על המערכת והטבות. אפשר לבטל בכל רגע.
+                    </span>
+                  </label>
                 </div>
               </div>
             )}
@@ -1323,56 +1597,112 @@ export default function SetupPage() {
                   />
                 </div>
 
-                <div className="rounded-xl border border-line bg-paper p-4">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={s3.priorInvoicing}
-                      onChange={(e) =>
-                        setS3({ ...s3, priorInvoicing: e.target.checked })
-                      }
-                      className="mt-0.5 h-4 w-4 accent-brand-navy"
-                    />
-                    <span className="text-sm text-ink">
-                      כבר הפקתי חשבוניות/קבלות במקום אחר לפני countme
-                    </span>
-                  </label>
-                  {s3.priorInvoicing && (
-                    <div className="mt-3">
-                      <FieldLabel htmlFor="priorInvoiceNumber" required>
-                        להמשיך את המספור ממספר
-                      </FieldLabel>
-                      <input
-                        id="priorInvoiceNumber"
-                        type="number"
-                        min={1}
-                        value={s3.priorInvoiceNumber}
-                        onChange={(e) =>
-                          setS3({ ...s3, priorInvoiceNumber: e.target.value })
-                        }
-                        className={inputCls(!!errors.priorInvoiceNumber)}
-                        dir="ltr"
-                        placeholder="לדוגמה: 42"
-                      />
-                      <ErrorMsg msg={errors.priorInvoiceNumber} />
-                      <p className="mt-1 text-xs text-muted">
-                        כדי שהמסמכים הבאים שתפיקי ב-countme לא יתנגשו במספור
-                        קודם.
-                      </p>
+                {/* ── Tap questions (onboarding-v5 היכרות) ─────────────────── */}
+                <TapChoiceGroup
+                  label="כמה זמן העסק קיים"
+                  value={s3.businessAgeBucket}
+                  onChange={(next) => setS3({ ...s3, businessAgeBucket: next })}
+                  options={[
+                    { key: "pre", title: "טרם התחלתי" },
+                    { key: "first-year", title: "שנה ראשונה" },
+                    { key: "1-3", title: "1-3 שנים" },
+                    { key: "3-5", title: "3-5 שנים" },
+                    { key: "5plus", title: "מעל 5 שנים" },
+                  ]}
+                />
+
+                <div>
+                  <TapChoiceGroup
+                    label="איך הפקת מסמכים עד עכשיו"
+                    value={s3.priorDocumentMethod}
+                    onChange={(next) => {
+                      const needsNumberFlow =
+                        next === "manual-book" || next === "other-digital";
+                      setS3({
+                        ...s3,
+                        priorDocumentMethod: next,
+                        // Hiding the sub-flow must also clear its state — otherwise
+                        // a stale priorInvoicing=true with the box hidden could
+                        // silently fail validateStep3's priorInvoiceNumber check.
+                        priorInvoicing: needsNumberFlow ? s3.priorInvoicing : false,
+                        priorInvoiceNumber: needsNumberFlow ? s3.priorInvoiceNumber : "",
+                      });
+                    }}
+                    options={[
+                      { key: "none", title: "עדיין לא הפקתי מסמכים בעסק" },
+                      { key: "manual-book", title: "פנקס חשבוניות ידני" },
+                      { key: "other-digital", title: "מערכת דיגיטלית אחרת" },
+                      { key: "accountant", title: "רואה חשבון מפיק עבורי" },
+                    ]}
+                  />
+
+                  {(s3.priorDocumentMethod === "manual-book" ||
+                    s3.priorDocumentMethod === "other-digital") && (
+                    <div className="mt-3 rounded-xl border border-line bg-paper p-4">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={s3.priorInvoicing}
+                          onChange={(e) =>
+                            setS3({ ...s3, priorInvoicing: e.target.checked })
+                          }
+                          className="mt-0.5 h-4 w-4 accent-brand-navy"
+                        />
+                        <span className="text-sm text-ink">
+                          להמשיך את המספור מהמסמכים הקודמים
+                        </span>
+                      </label>
+                      {s3.priorInvoicing && (
+                        <div className="mt-3">
+                          <FieldLabel htmlFor="priorInvoiceNumber" required>
+                            להמשיך את המספור ממספר
+                          </FieldLabel>
+                          <input
+                            id="priorInvoiceNumber"
+                            type="number"
+                            min={1}
+                            value={s3.priorInvoiceNumber}
+                            onChange={(e) =>
+                              setS3({ ...s3, priorInvoiceNumber: e.target.value })
+                            }
+                            className={inputCls(!!errors.priorInvoiceNumber)}
+                            dir="ltr"
+                            placeholder="לדוגמה: 42"
+                          />
+                          <ErrorMsg msg={errors.priorInvoiceNumber} />
+                          <p className="mt-1 text-xs text-muted">
+                            כדי שהמסמכים הבאים שתפיקי ב-countme לא יתנגשו במספור
+                            קודם.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
+                <label className="flex items-start gap-2.5 cursor-pointer rounded-xl border border-line bg-cream p-4">
+                  <input
+                    type="checkbox"
+                    checked={s3.hasEcommerceSite}
+                    onChange={(e) =>
+                      setS3({ ...s3, hasEcommerceSite: e.target.checked })
+                    }
+                    className="mt-0.5 h-4 w-4 accent-brand-navy"
+                  />
+                  <span className="text-sm text-ink">
+                    יש לי אתר מכירות — איקומרס
+                  </span>
+                </label>
+
+                {/* ── Osek type ─────────────────────────────────────────────── */}
                 <div>
                   <FieldLabel>סוג עוסק</FieldLabel>
                   {/*
-                    Three osek tracks offered as first-class choices: זעיר / פטור / מורשה.
+                    Two first-class radio options — פטור / מורשה — plus a
+                    separate עוסק-זעיר toggle (only meaningful under פטור).
                     Data-model note: the persona keeps `osekType: "patur" | "morshe"`
                     plus a separate `isOsekZeir` flag (זעיר is an income-tax track
-                    layered on עוסק פטור — both share the same VAT ceiling). So we map:
-                      • "zeir"   → osekType="patur", isOsekZeir=true
-                      • "patur"  → osekType="patur", isOsekZeir=false
-                      • "morshe" → osekType="morshe", isOsekZeir=false
+                    layered on עוסק פטור — both share the same VAT ceiling).
                     Facts per israeli-vat-reporting + israeli-freelancer-ops skills
                     (תיקון 257): עוסק זעיר = 30% normative expense recognition +
                     simplified reporting, SAME revenue ceiling as עוסק פטור.
@@ -1387,20 +1717,50 @@ export default function SetupPage() {
                   <OsekTypeChoice
                     osekType={s3.osekType}
                     isOsekZeir={s3.isOsekZeir}
+                    picked={s3.osekTrackPicked}
                     ceilingHe={osekCeilingHe}
-                    onChange={(next) => setS3({ ...s3, ...next })}
+                    onChange={(next) => {
+                      setOtherOsekCase("");
+                      setS3({ ...s3, ...next });
+                    }}
                   />
+
+                  {s3.osekTrackPicked && s3.osekType === "patur" && (
+                    <label className="mt-2.5 flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 cursor-pointer transition-colors hover:bg-cream">
+                      <input
+                        type="checkbox"
+                        checked={s3.isOsekZeir}
+                        onChange={(e) =>
+                          setS3({ ...s3, isOsekZeir: e.target.checked })
+                        }
+                        className="mt-0.5 h-4 w-4 accent-brand-navy"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-ink">
+                          עוסק זעיר
+                        </span>
+                        <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                          30% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח
+                          לאומי), בלי צורך לתעד הוצאות בפועל ובלי חובת מקדמות.
+                          פתוח עד מחזור של {osekCeilingHe} ₪ — אותה תקרה של
+                          עוסק פטור. יציאה מהמסלול חוסמת חזרה אליו לשנתיים.
+                        </p>
+                      </div>
+                    </label>
+                  )}
+
+                  <div className="mt-3">
+                    <OsekOtherCasesPicker
+                      value={otherOsekCase}
+                      onChange={setOtherOsekCase}
+                    />
+                  </div>
+
+                  <ErrorMsg msg={errors.osekType} />
                 </div>
 
                 {s3.isOsekZeir && (
                   <div className="rounded-xl border border-line bg-cream p-4">
-                    <p className="text-xs text-muted leading-relaxed">
-                      <span className="font-medium text-ink">מסלול עוסק זעיר:</span>{" "}
-                      30% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח לאומי), בלי
-                      צורך לתעד הוצאות בפועל. אין חובת מקדמות. המסלול פתוח עד מחזור
-                      של {osekCeilingHe} ₪ — אותה תקרה של עוסק פטור. יציאה מהמסלול
-                      חוסמת חזרה אליו לשנתיים.
-                    </p>
                     <OsekZeirNote
                       checked={s3.isOsekZeir}
                       totalRevenue={Number(s4.totalRevenue) || 0}
@@ -1412,6 +1772,87 @@ export default function SetupPage() {
                   </div>
                 )}
 
+                {/* ── Business identity fields ──────────────────────────────── */}
+                <div>
+                  <FieldLabel htmlFor="osekFileNumber">מספר עוסק</FieldLabel>
+                  <input
+                    id="osekFileNumber"
+                    type="text"
+                    inputMode="numeric"
+                    value={s3.osekFileNumber || s1.teudatZehut}
+                    onChange={(e) =>
+                      setS3({
+                        ...s3,
+                        osekFileNumber: e.target.value.replace(/\D/g, ""),
+                      })
+                    }
+                    className={inputCls(false)}
+                    dir="ltr"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    מילאנו לך מתעודת הזהות — אצל רוב העצמאים המספרים זהים.
+                    אפשר לשנות.
+                  </p>
+                </div>
+
+                <div>
+                  <FieldLabel htmlFor="tradeNameEn">
+                    שם העסק באנגלית (אופציונלי)
+                  </FieldLabel>
+                  <input
+                    id="tradeNameEn"
+                    type="text"
+                    dir="ltr"
+                    value={s3.tradeNameEn}
+                    onChange={(e) =>
+                      setS3({ ...s3, tradeNameEn: e.target.value })
+                    }
+                    className={inputCls(false)}
+                    placeholder="Dana Cohen Design"
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    לחשבוניות ללקוחות בחו״ל. אפשר להשלים בהמשך.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <FieldLabel>כתובת העסק (אופציונלי)</FieldLabel>
+                  <input
+                    id="addressCity"
+                    type="text"
+                    aria-label="יישוב"
+                    value={s3.addressCity}
+                    onChange={(e) =>
+                      setS3({ ...s3, addressCity: e.target.value })
+                    }
+                    className={inputCls(false)}
+                    placeholder="יישוב"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      id="addressStreet"
+                      type="text"
+                      aria-label="רחוב"
+                      value={s3.addressStreet}
+                      onChange={(e) =>
+                        setS3({ ...s3, addressStreet: e.target.value })
+                      }
+                      className={inputCls(false)}
+                      placeholder="רחוב"
+                    />
+                    <input
+                      id="addressHouseNumber"
+                      type="text"
+                      aria-label="מספר בית"
+                      value={s3.addressHouseNumber}
+                      onChange={(e) =>
+                        setS3({ ...s3, addressHouseNumber: e.target.value })
+                      }
+                      className={inputCls(false)}
+                      placeholder="מספר בית"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1842,90 +2283,85 @@ export default function SetupPage() {
 }
 
 /**
- * Three osek-track selector: זעיר / פטור / מורשה.
- *
- * The persona data model stores `osekType` ("patur" | "morshe") + a separate
- * `isOsekZeir` boolean (זעיר is an income-tax track layered on עוסק פטור). This
- * component presents all three as first-class radio options and maps the chosen
- * one back onto that model. See the FLAG comment at the call site re: why מורשה
- * does NOT expose a זעיר sub-track.
+ * Reusable compact tap-chip group — same active/inactive visual language as
+ * OsekTypeChoice's radio cards (border-brand-deep + teal tint when active),
+ * adapted to a wrapped row for short single-word/short-phrase options
+ * (onboarding-v5 היכרות questions).
  */
-type OsekChoice = "zeir" | "patur" | "morshe";
-
-function currentOsekChoice(osekType: OsekType, isOsekZeir: boolean): OsekChoice {
-  if (osekType === "morshe") return "morshe";
-  return isOsekZeir ? "zeir" : "patur";
-}
-
-const OSEK_LABEL: Record<OsekChoice, string> = {
-  zeir: "עוסק זעיר",
-  patur: "עוסק פטור",
-  morshe: "עוסק מורשה",
-};
-
-/**
- * Live preview of the document header (business name, owner, VAT/business
- * number) as the user fills step 3 — the number shown is exactly the
- * osekFileNumber buildPersona() derives (the Israeli ID, the standard
- * practice for a sole proprietor without a separate business-registration
- * number).
- */
-function DocHeaderPreview({ s1, s3 }: { s1: Step1Data; s3: Step3Data }) {
-  const ownerName = `${s1.firstName} ${s1.lastName}`.trim();
-  const businessName = s3.tradeName.trim() || ownerName || "העסק שלך";
-  const osekLabel = OSEK_LABEL[currentOsekChoice(s3.osekType, s3.isOsekZeir)];
-
+function TapChoiceGroup<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { key: T; title: string }[];
+  value: T | "";
+  onChange: (key: T) => void;
+}) {
   return (
-    <div className="rounded-xl border border-dashed border-brand/60 bg-cream/60 p-4">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-deep/70">
-        ככה תיראה כותרת המסמכים שלך
-      </p>
-      <div className="rounded-lg bg-paper border border-line px-4 py-3">
-        <div className="text-sm font-bold text-brand-navy">{businessName}</div>
-        {ownerName && businessName !== ownerName && (
-          <div className="text-xs text-muted mt-0.5">{ownerName}</div>
-        )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
-          <span>
-            ע.מ./ת.ז.:{" "}
-            <span dir="ltr" className="font-mono text-ink">
-              {s1.teudatZehut || "—"}
-            </span>
-          </span>
-          <span className="inline-flex items-center rounded-full bg-sand px-2 py-0.5 text-[10px] text-ink">
-            {osekLabel}
-          </span>
-        </div>
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => {
+          const active = value === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => onChange(opt.key)}
+              className={cn(
+                "rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
+                active
+                  ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
+                  : "border-line bg-paper hover:bg-cream text-ink",
+              )}
+            >
+              {opt.title}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
+/**
+ * Two osek-track selector: פטור / מורשה.
+ *
+ * The persona data model stores `osekType` ("patur" | "morshe") + a separate
+ * `isOsekZeir` boolean (זעיר is an income-tax track layered on עוסק פטור,
+ * surfaced by the caller as its own toggle once פטור is picked — see the FLAG
+ * comment at the call site re: why מורשה does NOT expose a זעיר sub-track).
+ * `picked` gates the active highlight AND is what validateStep3 checks —
+ * the persona always carries a concrete osekType (default "patur"), but the
+ * UI must not treat that default as a real user choice until they tap one.
+ */
+function currentOsekChoice(osekType: OsekType): "patur" | "morshe" {
+  return osekType === "morshe" ? "morshe" : "patur";
+}
+
 function OsekTypeChoice({
   osekType,
   isOsekZeir,
+  picked,
   ceilingHe,
   onChange,
 }: {
   osekType: OsekType;
   isOsekZeir: boolean;
+  picked: boolean;
   ceilingHe: string;
-  onChange: (next: { osekType: OsekType; isOsekZeir: boolean }) => void;
+  onChange: (next: { osekType: OsekType; isOsekZeir: boolean; osekTrackPicked: boolean }) => void;
 }) {
-  const selected = currentOsekChoice(osekType, isOsekZeir);
+  const selected = picked ? currentOsekChoice(osekType) : null;
 
   const options: {
-    key: OsekChoice;
+    key: "patur" | "morshe";
     title: string;
     desc: string;
     next: { osekType: OsekType; isOsekZeir: boolean };
   }[] = [
-    {
-      key: "zeir",
-      title: "עוסק זעיר",
-      desc: `מסלול מס פשוט לעוסק פטור — 30% מהמחזור מוכרים אוטומטית כהוצאות. מחזור עד ${ceilingHe} ₪.`,
-      next: { osekType: "patur", isOsekZeir: true },
-    },
     {
       key: "patur",
       title: "עוסק פטור",
@@ -1959,7 +2395,7 @@ function OsekTypeChoice({
               name="osekChoice"
               value={opt.key}
               checked={active}
-              onChange={() => onChange(opt.next)}
+              onChange={() => onChange({ ...opt.next, osekTrackPicked: true })}
               className="mt-0.5 h-4 w-4 accent-brand-navy"
             />
             <div className="flex-1">
@@ -1978,6 +2414,138 @@ function OsekTypeChoice({
           </label>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * "Neither of these" explainer-only taps — חברה בע״מ and עדיין לא פתחתי עוסק.
+ * Both are honest dead-ends for the current product scope: selecting one shows
+ * an inline explainer and deliberately does NOT set osekType/osekTrackPicked,
+ * so validateStep3 still requires the user to pick פטור/מורשה to continue
+ * (onboarding-v5 §5 — "not silent").
+ */
+function OsekOtherCasesPicker({
+  value,
+  onChange,
+}: {
+  value: "" | "company" | "not-yet";
+  onChange: (v: "" | "company" | "not-yet") => void;
+}) {
+  const cards: { key: "company" | "not-yet"; title: string; explainer: string }[] = [
+    {
+      key: "company",
+      title: "חברה בע״מ",
+      explainer:
+        "המערכת כרגע מיועדת לעצמאים (יחידים) — טופס 1301 הוא לדיווח יחיד, וחברות מגישות טופס 1214. נעדכן כשהתמיכה בחברות תהיה זמינה.",
+    },
+    {
+      key: "not-yet",
+      title: "עדיין לא פתחתי עוסק",
+      explainer:
+        "אפשר לגלוש ולהכיר את המערכת גם בלי תיק עוסק פתוח — אבל הפקת מסמכים אמיתיים (חשבוניות/קבלות) דורשת תיק עוסק רשום ברשות המסים.",
+    },
+  ];
+
+  return (
+    <div>
+      <p className="text-xs text-muted mb-2">אף אחת מהאפשרויות למעלה לא מתאימה?</p>
+      <div className="flex flex-wrap gap-2">
+        {cards.map((c) => {
+          const active = value === c.key;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              onClick={() => onChange(active ? "" : c.key)}
+              className={cn(
+                "rounded-full border px-3.5 py-2 text-xs transition-colors",
+                active
+                  ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
+                  : "border-line bg-paper hover:bg-cream text-ink",
+              )}
+            >
+              {c.title}
+            </button>
+          );
+        })}
+      </div>
+      {value && (
+        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/50 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
+          <InfoIcon className="size-3.5 mt-0.5 shrink-0 text-due" />
+          <span>{cards.find((c) => c.key === value)!.explainer}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const OSEK_LABEL: Record<"patur" | "morshe", string> = {
+  patur: "עוסק פטור",
+  morshe: "עוסק מורשה",
+};
+
+/**
+ * Live preview of the document header (business name, owner, VAT/business
+ * number, address, next document number) as the user fills step 3 — the
+ * osek number shown falls back to the TZ exactly like buildPersona() does,
+ * and the next-document number reuses invoice-generator's own numbering
+ * (imported directly — invoice-generator only depends on persona.ts +
+ * calculators/types.ts, so there's no import cycle with this page).
+ */
+function DocHeaderPreview({ s1, s3 }: { s1: Step1Data; s3: Step3Data }) {
+  const ownerName = `${s1.firstName} ${s1.lastName}`.trim();
+  const businessName = s3.tradeName.trim() || ownerName || "העסק שלך";
+  const osekLabel = OSEK_LABEL[currentOsekChoice(s3.osekType)];
+  const osekNumber = s3.osekFileNumber.trim() || s1.teudatZehut;
+
+  const addressLine = [
+    [s3.addressStreet.trim(), s3.addressHouseNumber.trim()].filter(Boolean).join(" "),
+    s3.addressCity.trim(),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  // Same shape invoice-generator reads (only invoiceCounter matters here) —
+  // built locally rather than loading the full existing persona so the
+  // preview never depends on step-6 state that hasn't been entered yet.
+  const nextDocNo = nextInvoiceNumber({
+    invoiceCounter: loadPersona()?.invoiceCounter,
+  } as unknown as Persona);
+
+  return (
+    <div className="rounded-xl border border-dashed border-brand/60 bg-cream/60 p-4">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-deep/70">
+        ככה תיראה כותרת המסמכים שלך
+      </p>
+      <div className="rounded-lg bg-paper border border-line px-4 py-3">
+        <div className="text-sm font-bold text-brand-navy">{businessName}</div>
+        {ownerName && businessName !== ownerName && (
+          <div className="text-xs text-muted mt-0.5">{ownerName}</div>
+        )}
+        {addressLine && (
+          <div className="text-xs text-muted mt-0.5">{addressLine}</div>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
+          <span>
+            ע.מ./ת.ז.:{" "}
+            <span dir="ltr" className="font-mono text-ink">
+              {osekNumber || "—"}
+            </span>
+          </span>
+          <span className="inline-flex items-center rounded-full bg-sand px-2 py-0.5 text-[10px] text-ink">
+            {osekLabel}
+          </span>
+          {s3.osekType === "patur" && (
+            <span className="inline-flex items-center rounded-full bg-teal-100/60 px-2 py-0.5 text-[10px] text-brand-navy">
+              פטור ממע״מ
+            </span>
+          )}
+          <span dir="ltr" className="font-mono">
+            #{nextDocNo}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
