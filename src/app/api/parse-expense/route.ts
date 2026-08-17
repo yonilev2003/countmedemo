@@ -10,10 +10,15 @@ import {
 import { DATASET } from "@/lib/business-expenses/occupation-dataset";
 
 /**
- * Expense capture parser — OCR (receipt photo) or voice (dictated Hebrew
- * transcript) → structured Expense Object fields, ready to drop into the
- * /expenses/new review screen. Same shape as /api/parse-invoice's
- * transcript→JSON pattern, extended to also accept an image.
+ * Expense capture parser — OCR (receipt photo or PDF) or voice (dictated
+ * Hebrew transcript) → structured Expense Object fields, ready to drop into
+ * the /expenses/new review screen. Same shape as /api/parse-invoice's
+ * transcript→JSON pattern, extended to also accept an image or a PDF
+ * document (the latter's Claude "document" content-block pattern is copied
+ * from /api/upload's income-report/form-106 parsing — see parsePdfWithClaude
+ * there). A multi-page PDF is only ever read from its first page — enforced
+ * via the prompt below, not by actually truncating the file — matching the
+ * "first-page-only" note shown next to the upload option in the UI.
  *
  * Category is matched against the W3 113-profession dataset's 19 stable
  * categories (not a free-text guess) so the result plugs directly into the
@@ -22,14 +27,14 @@ import { DATASET } from "@/lib/business-expenses/occupation-dataset";
  */
 
 const RATE_LIMIT_MAX_REQUESTS = 10; // per client per minute — vision calls cost more than parse-invoice's text-only
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB base64-decoded
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB base64-decoded — same cap for images and PDFs
 
 const CATEGORY_LIST = DATASET.categories
   .map((c) => `${c.id}: ${c.nameHe}`)
   .join("\n");
 
 const SYSTEM_PROMPT = `אתה מסייע ב-countme לתיעוד הוצאות עסקיות של עצמאים בישראל.
-תקבל תמונה של קבלה/חשבונית, או תיאור מוקלט בעברית, ועליך להחזיר אובייקט JSON תקין בלבד עם השדות הבאים:
+תקבל תמונה או קובץ PDF של קבלה/חשבונית, או תיאור מוקלט בעברית, ועליך להחזיר אובייקט JSON תקין בלבד עם השדות הבאים:
 
 {
   "vendorName": string,     // שם הספק/העסק שהנפיק את המסמך. מחרוזת ריקה אם לא ברור.
@@ -39,7 +44,7 @@ const SYSTEM_PROMPT = `אתה מסייע ב-countme לתיעוד הוצאות ע
   "currency": string,       // מטבע המסמך: "ILS" | "USD" | "EUR" | "GBP". אם לא צוין, הנח "ILS".
   "categoryId": string,     // הקטגוריה המתאימה ביותר מהרשימה הבאה (מזהה בלבד, מחרוזת ריקה אם אף אחת לא מתאימה):
 ${CATEGORY_LIST}
-  "confidence": {           // רק לתמונה (OCR) — עבור כל שדה שחולץ מהתמונה עצמה, ציון 0 עד 1 עד כמה אתה בטוח בקריאה. השמט שדה שלא חולץ בכלל.
+  "confidence": {           // רק לתמונה/PDF (OCR) — עבור כל שדה שחולץ מהמסמך עצמו, ציון 0 עד 1 עד כמה אתה בטוח בקריאה. השמט שדה שלא חולץ בכלל.
     "vendorName": number,
     "docNumber": number,
     "date": number,
@@ -50,8 +55,9 @@ ${CATEGORY_LIST}
 חוקים:
 - החזר JSON תקין בלבד, ללא markdown, ללא הסבר.
 - אל תמציא ערך לשדה שלא ניתן לקרוא/להבין בבירור — השאר מחרוזת ריקה (או 0 ל-amount).
-- קלט מוקלט (טקסט חופשי, לא תמונה): אל תכלול "confidence" בתשובה כלל.
-- קלט תמונה (OCR): כלול "confidence" עבור כל שדה שהצלחת לחלץ מהתמונה.`;
+- אם המסמך הוא PDF עם כמה עמודים, התייחס לעמוד הראשון בלבד והתעלם מהשאר.
+- קלט מוקלט (טקסט חופשי, לא תמונה/PDF): אל תכלול "confidence" בתשובה כלל.
+- קלט תמונה או PDF (OCR): כלול "confidence" עבור כל שדה שהצלחת לחלץ.`;
 
 interface ParsedExpense {
   vendorName: string;
@@ -118,7 +124,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "unsupported image type" }, { status: 400 });
     }
     // Rough bound on decoded size — base64 is ~4/3 the byte length.
-    if (body.imageBase64.length > (MAX_IMAGE_BYTES * 4) / 3) {
+    if (body.imageBase64.length > (MAX_FILE_BYTES * 4) / 3) {
       return Response.json({ error: "image too large" }, { status: 413 });
     }
     userContent = [
@@ -132,9 +138,28 @@ export async function POST(request: Request) {
       },
       { type: "text", text: "חלץ את פרטי הקבלה/החשבונית מהתמונה." },
     ];
+  } else if (typeof body.pdfBase64 === "string") {
+    // Rough bound on decoded size — base64 is ~4/3 the byte length. Same cap as images.
+    if (body.pdfBase64.length > (MAX_FILE_BYTES * 4) / 3) {
+      return Response.json({ error: "PDF too large" }, { status: 413 });
+    }
+    userContent = [
+      {
+        type: "document",
+        source: {
+          type: "base64",
+          media_type: "application/pdf",
+          data: body.pdfBase64,
+        },
+      },
+      {
+        type: "text",
+        text: "חלץ את פרטי הקבלה/החשבונית מהמסמך. אם יש בו יותר מעמוד אחד, התייחס לעמוד הראשון בלבד.",
+      },
+    ];
   } else {
     return Response.json(
-      { error: "must provide either transcript or imageBase64+imageMediaType" },
+      { error: "must provide transcript, imageBase64+imageMediaType, or pdfBase64" },
       { status: 400 },
     );
   }

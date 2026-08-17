@@ -6,16 +6,23 @@ import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { DATASET } from "@/lib/business-expenses/occupation-dataset";
+import type { Persona } from "@/lib/persona";
 import {
   ExpenseDraft,
   ExpenseSource,
+  ExpenseFieldConfidence,
   emptyExpenseDraft,
   missingRequiredFields,
   computeExpenseStatus,
   draftToExpenseLine,
+  applyConfidenceGate,
+  validateAmount,
+  deriveVat,
+  AMBIGUOUS_CATEGORY_IDS,
+  REQUIRED_EXPENSE_FIELDS,
   OCR_CONFIDENCE_THRESHOLD,
 } from "@/lib/expenses/types";
-import { addExpense } from "@/lib/expenses/store";
+import { addExpense, activeExpenses } from "@/lib/expenses/store";
 import { uploadReceiptImage } from "@/lib/expenses/receipt-storage";
 import { fetchBoiRate } from "@/lib/expenses/boi-exchange-rate";
 import { cn } from "@/lib/utils";
@@ -32,6 +39,7 @@ import {
   AlertTriangleIcon,
   InfoIcon,
   MailIcon,
+  FileTextIcon,
 } from "@/components/brand/icons";
 
 /* Minimal Web Speech API types — TS lib.dom doesn't ship them (cloned from
@@ -83,7 +91,28 @@ const FIELD_LABELS: Record<string, string> = {
   date: "תאריך",
   amount: "סכום",
   categoryId: "קטגוריה",
+  businessPurpose: "מטרה עסקית",
 };
+
+/** Same cap as the server enforces (MAX_FILE_BYTES in /api/parse-expense) —
+ * checked client-side too so a too-large PDF fails fast with a Hebrew
+ * message instead of waiting on a round-trip to find out. */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+
+function normalizeVendorName(v: string): string {
+  return v.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Spec §5: same normalized vendor + same amount + same date, among active
+ * (non-deleted) expenses only — a soft-deleted line shouldn't block a re-save. */
+function findDuplicateExpense(persona: Persona, draft: ExpenseDraft): boolean {
+  const vendor = normalizeVendorName(draft.vendorName);
+  const amount = Number(draft.amount);
+  if (!vendor || !draft.date || !Number.isFinite(amount)) return false;
+  return activeExpenses(persona).some(
+    (e) => normalizeVendorName(e.vendorName) === vendor && Number(e.amount) === amount && e.date === draft.date,
+  );
+}
 
 export default function NewExpensePage() {
   const router = useRouter();
@@ -95,11 +124,13 @@ export default function NewExpensePage() {
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [boiLoading, setBoiLoading] = useState(false);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice state — cloned from invoices/new/page.tsx
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -165,15 +196,24 @@ export default function NewExpensePage() {
 
   async function handleImageSelected(file: File, source: ExpenseSource) {
     setOcrError(null);
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (isPdf && file.size > MAX_UPLOAD_BYTES) {
+      setOcrError("קובץ ה-PDF גדול מדי (מקסימום 8MB) — מלא/י ידנית.");
+      setDraft({ ...emptyExpenseDraft(source) });
+      setStage("review");
+      return;
+    }
     setPendingFile(file);
     setOcrLoading(true);
     try {
       const base64 = await fileToBase64(file);
-      const mediaType = file.type || "image/jpeg";
+      const body = isPdf
+        ? { pdfBase64: base64 }
+        : { imageBase64: base64, imageMediaType: file.type || "image/jpeg" };
       const resp = await fetch("/api/parse-expense", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, imageMediaType: mediaType }),
+        body: JSON.stringify(body),
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: "תשובה לא תקינה מהשרת" }));
@@ -185,18 +225,29 @@ export default function NewExpensePage() {
       const parsed = await resp.json() as {
         vendorName: string; docNumber: string; date: string; amount: number;
         currency: string; categoryId: string;
-        confidence?: Partial<Record<"vendorName" | "docNumber" | "date" | "amount", number>>;
+        confidence?: ExpenseFieldConfidence;
       };
+      // Confidence gating (spec §1): blank out any field the parser wasn't
+      // confident about rather than prefilling a guess.
+      const gated = applyConfidenceGate(
+        {
+          vendorName: parsed.vendorName || "",
+          docNumber: parsed.docNumber || "",
+          date: parsed.date || "",
+          amount: parsed.amount > 0 ? parsed.amount : 0,
+        },
+        parsed.confidence,
+      );
       const category = DATASET.categories.find((c) => c.id === parsed.categoryId);
       setDraft({
         ...emptyExpenseDraft(source),
-        vendorName: parsed.vendorName || "",
-        docNumber: parsed.docNumber || "",
-        date: parsed.date || emptyExpenseDraft(source).date,
-        amount: parsed.amount > 0 ? String(parsed.amount) : "",
+        vendorName: gated.fields.vendorName,
+        docNumber: gated.fields.docNumber,
+        date: gated.fields.date || emptyExpenseDraft(source).date,
+        amount: gated.fields.amount > 0 ? String(gated.fields.amount) : "",
         categoryId: category ? category.id : "",
         category: category ? category.nameHe : "",
-        confidence: parsed.confidence ?? {},
+        confidence: gated.confidence,
       });
       setStage("review");
     } catch {
@@ -257,16 +308,30 @@ export default function NewExpensePage() {
       const parsed = await resp.json() as {
         vendorName: string; docNumber: string; date: string; amount: number;
         currency: string; categoryId: string;
+        confidence?: ExpenseFieldConfidence;
       };
+      // The parser never sends confidence for a voice transcript today, but
+      // gate it anyway (spec §1) in case that ever changes — a no-op when
+      // `parsed.confidence` is absent.
+      const gated = applyConfidenceGate(
+        {
+          vendorName: parsed.vendorName || "",
+          docNumber: parsed.docNumber || "",
+          date: parsed.date || "",
+          amount: parsed.amount > 0 ? parsed.amount : 0,
+        },
+        parsed.confidence,
+      );
       const category = DATASET.categories.find((c) => c.id === parsed.categoryId);
       setDraft({
         ...emptyExpenseDraft("voice"),
-        vendorName: parsed.vendorName || "",
-        docNumber: parsed.docNumber || "",
-        date: parsed.date || emptyExpenseDraft("voice").date,
-        amount: parsed.amount > 0 ? String(parsed.amount) : "",
+        vendorName: gated.fields.vendorName,
+        docNumber: gated.fields.docNumber,
+        date: gated.fields.date || emptyExpenseDraft("voice").date,
+        amount: gated.fields.amount > 0 ? String(gated.fields.amount) : "",
         categoryId: category ? category.id : "",
         category: category ? category.nameHe : "",
+        confidence: gated.confidence,
       });
       setStage("review");
     } catch {
@@ -283,18 +348,44 @@ export default function NewExpensePage() {
     setStage("review");
   }
 
+  // Spec §2: editing a field the parser detected means it's no longer an
+  // unverified auto-detected guess — drop its confidence entry (so its
+  // "זוהה" hint disappears) and mark the draft as user-reviewed.
   function updateDraft(patch: Partial<ExpenseDraft>) {
-    setDraft((d) => ({ ...d, ...patch }));
+    setDraft((d) => {
+      const nextConfidence = { ...d.confidence };
+      let clearedAny = false;
+      for (const key of Object.keys(patch) as (keyof ExpenseDraft)[]) {
+        if (key in nextConfidence) {
+          delete nextConfidence[key as keyof ExpenseFieldConfidence];
+          clearedAny = true;
+        }
+      }
+      return {
+        ...d,
+        ...patch,
+        confidence: nextConfidence,
+        reviewedByUser: d.reviewedByUser || clearedAny,
+      };
+    });
   }
 
-  async function handleSave() {
+  async function handleSave(opts?: { skipDuplicateCheck?: boolean }) {
     if (!persona) return;
     const missing = missingRequiredFields(draft);
-    if (missing.length > 0) {
+    const amountError = validateAmount(draft.amount);
+    if (missing.length > 0 || amountError) {
       setShowValidation(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    // Duplicate check (spec §5) is a non-blocking, skippable confirmation —
+    // never folded into the missing/amount validation above.
+    if (!opts?.skipDuplicateCheck && findDuplicateExpense(persona, draft)) {
+      setShowDuplicateConfirm(true);
+      return;
+    }
+    setShowDuplicateConfirm(false);
     setSaving(true);
     try {
       let receiptPath: string | undefined;
@@ -314,7 +405,15 @@ export default function NewExpensePage() {
     }
   }
 
-  const missing = showValidation ? missingRequiredFields(draft) : [];
+  // Live (not gated by showValidation) — drives the always-visible required-
+  // fields counter (spec §4), which needs to update as the user types, not
+  // only after a failed save attempt.
+  const liveMissing = missingRequiredFields(draft);
+  const totalRequiredCount = REQUIRED_EXPENSE_FIELDS.length + (AMBIGUOUS_CATEGORY_IDS.has(draft.categoryId) ? 1 : 0);
+  const filledRequiredCount = totalRequiredCount - liveMissing.length;
+
+  const missing = showValidation ? liveMissing : [];
+  const amountError = showValidation ? validateAmount(draft.amount) : null;
   const status = computeExpenseStatus(draft);
   // `draft.amount` is the single source of truth (kept in sync with
   // originalAmount × exchangeRate for foreign-currency lines by the effect
@@ -343,6 +442,7 @@ export default function NewExpensePage() {
           <SourceStage
             cameraInputRef={cameraInputRef}
             galleryInputRef={galleryInputRef}
+            fileInputRef={fileInputRef}
             onFile={handleImageSelected}
             onManual={startManual}
             ocrLoading={ocrLoading}
@@ -362,11 +462,18 @@ export default function NewExpensePage() {
             draft={draft}
             update={updateDraft}
             missing={missing}
+            amountError={amountError}
             status={status}
             amountIls={amountIls}
+            vatRate={vatRate}
+            filledRequiredCount={filledRequiredCount}
+            totalRequiredCount={totalRequiredCount}
             boiLoading={boiLoading}
             saving={saving}
-            onSave={handleSave}
+            showDuplicateConfirm={showDuplicateConfirm}
+            onSave={() => handleSave()}
+            onSaveAnyway={() => handleSave({ skipDuplicateCheck: true })}
+            onCancelDuplicate={() => setShowDuplicateConfirm(false)}
           />
         )}
       </main>
@@ -379,6 +486,7 @@ export default function NewExpensePage() {
 function SourceStage({
   cameraInputRef,
   galleryInputRef,
+  fileInputRef,
   onFile,
   onManual,
   ocrLoading,
@@ -393,6 +501,7 @@ function SourceStage({
 }: {
   cameraInputRef: React.RefObject<HTMLInputElement | null>;
   galleryInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFile: (file: File, source: ExpenseSource) => void;
   onManual: () => void;
   ocrLoading: boolean;
@@ -447,7 +556,15 @@ function SourceStage({
           disabled={ocrLoading}
           onClick={onManual}
         />
+        <SourceCard
+          icon={<FileTextIcon className="size-6" />}
+          label="קובץ מהמכשיר"
+          hint="תמונה או PDF"
+          disabled={ocrLoading}
+          onClick={() => fileInputRef.current?.click()}
+        />
       </div>
+      <p className="text-[11px] text-faint">קובץ PDF מרובה עמודים ייקרא מהעמוד הראשון בלבד.</p>
 
       <input
         ref={cameraInputRef}
@@ -469,6 +586,17 @@ function SourceStage({
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onFile(f, "gallery");
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onFile(f, "file");
           e.target.value = "";
         }}
       />
@@ -550,22 +678,37 @@ function ReviewStage({
   draft,
   update,
   missing,
+  amountError,
   status,
   amountIls,
+  vatRate,
+  filledRequiredCount,
+  totalRequiredCount,
   boiLoading,
   saving,
+  showDuplicateConfirm,
   onSave,
+  onSaveAnyway,
+  onCancelDuplicate,
 }: {
   draft: ExpenseDraft;
   update: (patch: Partial<ExpenseDraft>) => void;
   missing: string[];
+  amountError: string | null;
   status: ReturnType<typeof computeExpenseStatus>;
   amountIls: number;
+  vatRate: number;
+  filledRequiredCount: number;
+  totalRequiredCount: number;
   boiLoading: boolean;
   saving: boolean;
+  showDuplicateConfirm: boolean;
   onSave: () => void;
+  onSaveAnyway: () => void;
+  onCancelDuplicate: () => void;
 }) {
-  const hasError = (field: string) => missing.includes(field);
+  const hasError = (field: string) => missing.includes(field) || (field === "amount" && !!amountError);
+  const businessPurposeRequired = AMBIGUOUS_CATEGORY_IDS.has(draft.categoryId);
   const confidenceHint = (field: keyof NonNullable<ExpenseDraft["confidence"]>) => {
     const c = draft.confidence[field];
     if (c == null) return null;
@@ -588,6 +731,10 @@ function ReviewStage({
         <h1 className="text-xl font-bold text-brand-navy">פרטי ההוצאה</h1>
         <p className="text-sm text-muted mt-1">בדוק/בדקי את הפרטים לפני שמירה</p>
       </div>
+
+      <p className="text-xs font-medium text-muted">
+        {filledRequiredCount} מתוך {totalRequiredCount} שדות חובה מולאו
+      </p>
 
       {missing.length > 0 && (
         <div
@@ -714,7 +861,7 @@ function ReviewStage({
           </p>
         </div>
       ) : (
-        <Field label="סכום כולל (₪)" required error={hasError("amount")}>
+        <Field label="סכום כולל (₪)" required error={missing.includes("amount")}>
           <input
             type="number"
             min={0}
@@ -724,16 +871,28 @@ function ReviewStage({
             dir="ltr"
           />
           {confidenceHint("amount")}
+          {amountError && <p className="mt-1 text-xs text-alert">{amountError}</p>}
         </Field>
       )}
 
-      <Field label="מטרה עסקית (אופציונלי)">
+      <VatLine amountIls={amountIls} isForeignCurrency={draft.isForeignCurrency} vatRate={vatRate} />
+
+      <Field
+        label={businessPurposeRequired ? "מטרה עסקית" : "מטרה עסקית (מומלץ)"}
+        required={businessPurposeRequired}
+        error={hasError("businessPurpose")}
+      >
         <textarea
           value={draft.businessPurpose}
           onChange={(e) => update({ businessPurpose: e.target.value })}
-          className={cn(inputCls(false), "min-h-[70px] resize-none")}
+          className={cn(inputCls(hasError("businessPurpose")), "min-h-[70px] resize-none")}
           placeholder="למה זו הוצאה עסקית? (עוזר בבדיקה מול רו״ח בהמשך)"
         />
+        {businessPurposeRequired && (
+          <p className="mt-1 text-[11px] text-due-ink">
+            קטגוריה זו נבדקת לרוב מקרוב — כדאי לתעד למה זו הוצאה עסקית.
+          </p>
+        )}
       </Field>
 
       {status === "needs_review" && (
@@ -749,6 +908,36 @@ function ReviewStage({
         המערכת מרכזת ומסווגת הוצאות לצורך מעקב וניהול פנימי בלבד. הפקת חשבונית מס תואמת חוק (לרבות מספרי הקצאה
         מעל התקרה החוקית) מול רשות המסים אינה חלק מהמערכת בשלב זה.
       </div>
+
+      {showDuplicateConfirm && (
+        <div
+          role="alert"
+          className="rounded-xl border border-due/40 bg-due-bg/40 px-4 py-3 space-y-2.5"
+        >
+          <div className="flex items-start gap-2 text-xs text-due-ink leading-relaxed">
+            <AlertTriangleIcon className="size-4 shrink-0 mt-0.5" />
+            נראה שההוצאה הזאת כבר קיימת — לשמור בכל זאת?
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onSaveAnyway}
+              disabled={saving}
+              className={cn(btn("secondary", "sm"), "flex-1 justify-center")}
+            >
+              {saving ? "שומר/ת..." : "שמירה בכל זאת"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancelDuplicate}
+              disabled={saving}
+              className={cn(btn("ghost", "sm"), "flex-1 justify-center")}
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
@@ -766,6 +955,50 @@ function ReviewStage({
         <MailIcon className="size-3.5" />
         נתקלת בבעיה? דווח/י לנו
       </a>
+    </div>
+  );
+}
+
+/**
+ * Spec §3: VAT is shown, never entered — a read-only derived line under the
+ * amount, tagged "חושב" so it's never mistaken for an editable field.
+ * Foreign currency: always 0, with the reason (no Israeli input-VAT on a
+ * foreign invoice). עוסק פטור (vatRate 0, local currency): still shown, but
+ * flagged as informational only — they have nothing to reclaim.
+ */
+function VatLine({
+  amountIls,
+  isForeignCurrency,
+  vatRate,
+}: {
+  amountIls: number;
+  isForeignCurrency: boolean;
+  vatRate: number;
+}) {
+  const vat = deriveVat(amountIls, isForeignCurrency, vatRate);
+  return (
+    <div className="rounded-xl border border-line-soft bg-cream/60 px-3 py-2.5 text-xs space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-muted">
+          מע״מ גלום בסכום
+          <span className="rounded-full bg-brand-deep/10 px-2 py-0.5 text-[10px] font-semibold text-brand-deep">
+            חושב
+          </span>
+        </span>
+        <span className="font-bold text-ink">
+          {vat.toLocaleString("he-IL", { maximumFractionDigits: 2 })} ₪
+        </span>
+      </div>
+      {isForeignCurrency && (
+        <p className="text-[11px] text-muted leading-relaxed">
+          חשבונית במטבע זר אינה כוללת מע״מ תשומות ישראלי לניכוי — לכן מוצג כאן 0.
+        </p>
+      )}
+      {!isForeignCurrency && vatRate === 0 && (
+        <p className="text-[11px] text-muted leading-relaxed">
+          כעוסק פטור אין לך מע״מ תשומות לניכוי — הערך מוצג לצורך מידע בלבד.
+        </p>
+      )}
     </div>
   );
 }

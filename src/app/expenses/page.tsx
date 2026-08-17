@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { activeExpenses, softDeleteExpense } from "@/lib/expenses/store";
 import { getCategoryLabel } from "@/lib/business-expenses/occupation-dataset";
+import {
+  buildExpensesCsv,
+  EXPENSE_PILL_ORDER,
+  expensePillLabel,
+  filterExpensesByPill,
+  type ExpensePillFilter,
+} from "@/lib/expenses/export";
 import type { ExpenseLine } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/brand/app-header";
@@ -17,6 +24,8 @@ import {
   ReceiptIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
+  DownloadIcon,
+  FileTextIcon,
 } from "@/components/brand/icons";
 
 const STATUS_LABEL: Record<NonNullable<ExpenseLine["status"]>, { label: string; cls: string }> = {
@@ -33,9 +42,40 @@ const SOURCE_LABEL: Record<NonNullable<ExpenseLine["source"]>, string> = {
   manual: "ידני",
 };
 
+/** Client-side file save — the CSV never leaves the browser. */
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function ExpensesListPage() {
   const { persona, setPersona } = useRequiredPersona();
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [filter, setFilter] = useState<ExpensePillFilter>("all");
+
+  // Hooks run unconditionally (rules of hooks) — the null-persona guard below
+  // returns AFTER these, never before, so hook order never changes.
+  const activeSorted = useMemo(() => {
+    if (!persona) return [];
+    const all = persona.income.expenses ?? [];
+    return activeExpenses(persona)
+      .map((e) => ({ e, fullIndex: all.indexOf(e) }))
+      .sort((a, b) => (a.e.date < b.e.date ? 1 : -1));
+  }, [persona]);
+
+  // Same predicate /expenses/print reads off the ?filter= query param — kept
+  // in lib/expenses/export.ts so the two screens can't drift (spec §3).
+  const filtered = useMemo(() => {
+    const matching = new Set(filterExpensesByPill(activeSorted.map(({ e }) => e), filter));
+    return activeSorted.filter(({ e }) => matching.has(e));
+  }, [activeSorted, filter]);
 
   if (!persona) {
     return (
@@ -45,14 +85,11 @@ export default function ExpensesListPage() {
     );
   }
 
-  const all = persona.income.expenses ?? [];
-  const active = activeExpenses(persona)
-    .map((e, i) => ({ e, fullIndex: all.indexOf(e) }))
-    .sort((a, b) => (a.e.date < b.e.date ? 1 : -1));
-
-  const total = active.reduce((s, { e }) => s + e.amount, 0);
+  // Top card, count and category breakdown recompute off the FILTERED set —
+  // the pills describe what's currently on screen, not the whole dataset.
+  const total = filtered.reduce((s, { e }) => s + e.amount, 0);
   const byCategory = new Map<string, number>();
-  for (const { e } of active) {
+  for (const { e } of filtered) {
     byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + e.amount);
   }
   const categoryBreakdown = Array.from(byCategory.entries()).sort((a, b) => b[1] - a[1]);
@@ -62,6 +99,20 @@ export default function ExpensesListPage() {
     setPersona(next);
     setConfirmDelete(null);
   }
+
+  function handleExportCsv() {
+    const csv = buildExpensesCsv(filtered.map(({ e }) => e));
+    downloadCsv(csv, `countme-expenses-${persona!.income.year}.csv`);
+  }
+
+  // Mockup-standard chip — navy pill for active, paper outline otherwise
+  // (same pattern as /invoices' year/month filters).
+  const chip = (isActive: boolean) =>
+    `rounded-full px-3.5 py-1 text-xs font-bold transition-colors ${
+      isActive
+        ? "bg-brand-navy text-white"
+        : "bg-paper border border-line text-ink hover:border-brand-deep hover:bg-aqua-soft"
+    }`;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -84,52 +135,86 @@ export default function ExpensesListPage() {
       />
 
       <main className="mx-auto max-w-screen-xl px-6 py-8">
-        {active.length === 0 ? (
+        {activeSorted.length === 0 ? (
           <EmptyState />
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
-              <div className="rounded-2xl border border-line bg-paper shadow-brand p-5 md:col-span-1">
-                <div className="text-[11px] font-bold text-brand-deep uppercase tracking-wider mb-1">
-                  סה״כ מתועד
-                </div>
-                <div className="text-2xl font-extrabold text-brand-navy">
-                  {total.toLocaleString("he-IL", { maximumFractionDigits: 0 })} ₪
-                </div>
-                <div className="text-xs text-muted mt-1">{active.length} הוצאות</div>
+            {/* ── Filters + export ── */}
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {EXPENSE_PILL_ORDER.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFilter(key)}
+                    className={chip(filter === key)}
+                  >
+                    {expensePillLabel(key)}
+                  </button>
+                ))}
               </div>
-              <div className="rounded-2xl border border-line bg-paper shadow-brand p-5 md:col-span-2">
-                <div className="text-[11px] font-bold text-brand-deep uppercase tracking-wider mb-2">
-                  לפי קטגוריה
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {categoryBreakdown.map(([category, amount]) => (
-                    <span
-                      key={category}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-cream border border-line px-3 py-1 text-[11px] text-ink"
-                    >
-                      {category}
-                      <span className="font-bold text-brand-navy">
-                        {amount.toLocaleString("he-IL", { maximumFractionDigits: 0 })} ₪
-                      </span>
-                    </span>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={handleExportCsv} className={btn("gold", "sm")}>
+                  <DownloadIcon className="size-3.5" />
+                  ייצוא CSV
+                </button>
+                <Link href={`/expenses/print?filter=${filter}`} className={btn("secondary", "sm")}>
+                  <FileTextIcon className="size-3.5" />
+                  ייצוא PDF
+                </Link>
               </div>
             </div>
 
-            <div className="grid gap-3 mb-6">
-              {active.map(({ e, fullIndex }) => (
-                <ExpenseRow
-                  key={fullIndex}
-                  expense={e}
-                  confirming={confirmDelete === fullIndex}
-                  onDeleteClick={() => setConfirmDelete(fullIndex)}
-                  onConfirmDelete={() => handleDelete(fullIndex)}
-                  onCancelDelete={() => setConfirmDelete(null)}
-                />
-              ))}
-            </div>
+            {filtered.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-line bg-paper py-10 text-center text-sm text-muted shadow-brand">
+                אין הוצאות מתאימות לסינון הזה
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-3 mb-6">
+                  <div className="rounded-2xl border border-line bg-paper shadow-brand p-5 md:col-span-1">
+                    <div className="text-[11px] font-bold text-brand-deep uppercase tracking-wider mb-1">
+                      סה״כ מתועד
+                    </div>
+                    <div className="text-2xl font-extrabold text-brand-navy">
+                      {total.toLocaleString("he-IL", { maximumFractionDigits: 0 })} ₪
+                    </div>
+                    <div className="text-xs text-muted mt-1">{filtered.length} הוצאות</div>
+                  </div>
+                  <div className="rounded-2xl border border-line bg-paper shadow-brand p-5 md:col-span-2">
+                    <div className="text-[11px] font-bold text-brand-deep uppercase tracking-wider mb-2">
+                      לפי קטגוריה
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {categoryBreakdown.map(([category, amount]) => (
+                        <span
+                          key={category}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-cream border border-line px-3 py-1 text-[11px] text-ink"
+                        >
+                          {category}
+                          <span className="font-bold text-brand-navy">
+                            {amount.toLocaleString("he-IL", { maximumFractionDigits: 0 })} ₪
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 mb-6">
+                  {filtered.map(({ e, fullIndex }) => (
+                    <ExpenseRow
+                      key={fullIndex}
+                      expense={e}
+                      confirming={confirmDelete === fullIndex}
+                      onDeleteClick={() => setConfirmDelete(fullIndex)}
+                      onConfirmDelete={() => handleDelete(fullIndex)}
+                      onCancelDelete={() => setConfirmDelete(null)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
 

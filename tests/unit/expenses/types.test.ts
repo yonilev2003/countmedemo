@@ -11,6 +11,8 @@ import {
   missingRequiredFields,
   emptyExpenseDraft,
   draftToExpenseLine,
+  validateAmount,
+  AMBIGUOUS_CATEGORY_IDS,
   REQUIRED_EXPENSE_FIELDS,
 } from "@/lib/expenses/types";
 
@@ -42,13 +44,73 @@ describe("computeExpenseStatus / missingRequiredFields", () => {
     expect(computeExpenseStatus(draft)).toBe("partial");
   });
 
-  it("needs_review when every required field is missing", () => {
+  it("needs_review when every required field is missing, regardless of source (nothing at all was entered/extracted)", () => {
     // emptyExpenseDraft pre-fills `date` with today (a sensible default, not
-    // an extracted value) — clear it too so this exercises the "nothing at
-    // all was extracted" case the status is actually meant to catch.
+    // an extracted value) — clear it too so this exercises "nothing at all
+    // entered/extracted".
     const empty = { ...emptyExpenseDraft("manual"), date: "" };
     expect(missingRequiredFields(empty)).toEqual([...REQUIRED_EXPENSE_FIELDS]);
     expect(computeExpenseStatus(empty)).toBe("needs_review");
+  });
+
+  it("stays partial for a manual draft missing only SOME fields — a normal in-progress fill, not a bad auto-extraction", () => {
+    const oneGap = { ...full, docNumber: "" };
+    expect(missingRequiredFields(oneGap)).toEqual(["docNumber"]);
+    expect(computeExpenseStatus(oneGap)).toBe("partial");
+  });
+
+  it("needs_review for an OCR/voice-sourced draft missing SOME (not all) required fields — spec §1: confidence gating left a gap, which is a review case, not a normal in-progress fill", () => {
+    const oneGap = { ...full, source: "voice" as const, docNumber: "" };
+    expect(missingRequiredFields(oneGap)).toEqual(["docNumber"]);
+    expect(computeExpenseStatus(oneGap)).toBe("needs_review");
+  });
+});
+
+describe("validateAmount (spec §6 — amount must be > 0)", () => {
+  it("allows empty (that's missingRequiredFields' concern, not this one)", () => {
+    expect(validateAmount("")).toBeNull();
+    expect(validateAmount("   ")).toBeNull();
+  });
+
+  it("allows a normal positive amount", () => {
+    expect(validateAmount("100")).toBeNull();
+    expect(validateAmount("0.5")).toBeNull();
+  });
+
+  it("blocks the string \"0\" with a clear message — passes the truthiness check missingRequiredFields uses, so this closes that specific gap", () => {
+    const err = validateAmount("0");
+    expect(err).not.toBeNull();
+    expect(err).toContain("0");
+  });
+
+  it("blocks a negative amount with a credit/refund-not-supported message", () => {
+    const err = validateAmount("-50");
+    expect(err).not.toBeNull();
+    expect(err).toMatch(/זיכוי|החזר/);
+  });
+});
+
+describe("AMBIGUOUS_CATEGORY_IDS / businessPurpose requirement (spec §7)", () => {
+  const base = { ...emptyExpenseDraft("manual"), vendorName: "ספק", docNumber: "123", amount: "100" };
+
+  it("does not require businessPurpose for a non-ambiguous category", () => {
+    const draft = { ...base, categoryId: "equipment" };
+    expect(AMBIGUOUS_CATEGORY_IDS.has("equipment")).toBe(false);
+    expect(missingRequiredFields(draft)).toEqual([]);
+  });
+
+  it("requires businessPurpose when the category is in AMBIGUOUS_CATEGORY_IDS", () => {
+    for (const categoryId of AMBIGUOUS_CATEGORY_IDS) {
+      const draft = { ...base, categoryId, businessPurpose: "" };
+      expect(missingRequiredFields(draft)).toContain("businessPurpose");
+      expect(computeExpenseStatus(draft)).not.toBe("full");
+    }
+  });
+
+  it("is satisfied once businessPurpose is filled in for an ambiguous category", () => {
+    const draft = { ...base, categoryId: "hospitality", businessPurpose: "ארוחת עבודה עם לקוח" };
+    expect(missingRequiredFields(draft)).toEqual([]);
+    expect(computeExpenseStatus(draft)).toBe("full");
   });
 });
 
