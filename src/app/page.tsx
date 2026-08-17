@@ -15,7 +15,23 @@ import {
   MicIcon,
 } from "@/components/brand/icons";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // OAuth safety net: when the Supabase redirect allowlist doesn't recognise
+  // the exact callback URL, Supabase falls back to the Site URL ROOT with
+  // `?code=...` — which used to sit here unexchanged, so the user saw the
+  // marketing page logged-out and had to sign in again (Yoni, 17/08:
+  // "צריך להיכנס פעמיים... דרך הקישור /?code=..."). Forward the code to the
+  // real callback, which exchanges it (the PKCE verifier cookie is same-origin)
+  // and lands on /dashboard in ONE login.
+  const params = (await searchParams) ?? {};
+  if (typeof params.code === "string") {
+    redirect(`/auth/callback?code=${encodeURIComponent(params.code)}`);
+  }
+
   // Session-aware chrome: a logged-in user clicking the logo/"home" must NOT
   // see anonymous "כניסה" chrome (reads as a phantom logout — Yoni, 19/07).
   const supabase = await createClient();

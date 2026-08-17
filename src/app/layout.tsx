@@ -28,6 +28,13 @@ const APP_DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(
+    // countmedemo-eight.vercel.app is the ONLY domain this Vercel project
+    // actually owns (verified live via the Vercel API, 17/08 — get_project
+    // on prj_3IlHVinVBsD8s16lXEEdGYUWMujj lists it plus 2 auto-aliases;
+    // countmedemo.vercel.app is NOT in that list and does not belong to any
+    // of the 9 projects on this account). Do not "fix" this back — that was
+    // tried once before (see memory/STATUS.md, 03/08) and reverted for the
+    // same reason.
     process.env.NEXT_PUBLIC_APP_URL ?? "https://countmedemo-eight.vercel.app",
   ),
   title: APP_TITLE,
