@@ -19,6 +19,8 @@ import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import { Persona, ExpenseLine } from "@/lib/persona";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
+import { deriveVat } from "@/lib/expenses/types";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 import { computeMonthSummary, eitanMonthLine } from "@/lib/dashboard/summary";
 import { getReceivablesSummary } from "@/lib/receivables/summary";
 import { trackClient } from "@/lib/analytics/track-client";
@@ -322,17 +324,31 @@ function ExpenseSheet({
 
   function save() {
     const amt = Number(amount);
-    if (!vendor.trim()) return setError("ממי ההוצאה? שם ספק חסר");
-    if (!amt || amt <= 0) return setError("סכום חייב להיות גדול מ-0");
-    if (!date) return setError("תאריך חסר");
+    // All problems reported together — same rule as /expenses/new (the shared
+    // capture contract: never stop at the first failing field).
+    const problems: string[] = [];
+    if (!vendor.trim()) problems.push("ממי ההוצאה? שם ספק חסר");
+    if (!amt || amt <= 0) problems.push("סכום חייב להיות גדול מ-0");
+    if (!date) problems.push("תאריך חסר");
+    if (problems.length > 0) return setError(problems.join(" · "));
 
+    // Align quick-capture with the shared Expense Object contract
+    // (lib/expenses/types.ts): VAT is derived, never omitted; the row carries
+    // source + status so /expenses flags it as "partial" (no docNumber /
+    // specific category yet) and prompts the user to complete it there.
+    const vatRate = getTaxYearConstants(
+      Number(date.slice(0, 4)) || persona.income.year,
+    ).vatRate;
     const line: ExpenseLine = {
       date,
       vendorName: vendor.trim(),
       description: note.trim() || vendor.trim(),
       amount: amt,
+      vat: deriveVat(amt, false, vatRate),
       category: "כללי",
       deductionRule: "full",
+      source: "manual",
+      status: "partial",
     };
     const updated: Persona = {
       ...persona,

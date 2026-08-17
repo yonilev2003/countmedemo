@@ -73,7 +73,9 @@ Skills come from the [skills-il](https://github.com/skills-il) org (the `agentsk
 | `israeli-freelancer-ops` | Core target user: עצמאי ישראלי — מקדמות, תזרים, תאריכים קריטיים; this IS our persona |
 | `israeli-privacy-shield` | Israeli Privacy Law + GDPR — cited for a concrete PII-minimization decision |
 
-**Demoted to Tier 2 on 2026-08-13** (no code/doc citation found beyond an archived planning doc's routing table — recoverable via `npx skills add`, all already in `skills-lock.json`): `hebrew-ocr-forms`, `israeli-id-validator`, `hebrew-i18n`, `hebrew-tailwind-preset`, `israeli-accessibility-compliance`, `israeli-ui-design-system`, `il-invoice-organizer`, `israeli-tax-withholding`, `israeli-ai-compliance-kit`. Re-promote any of these the moment real work starts in its area (e.g. `israeli-accessibility-compliance` when IS 5568 work begins — currently tracked open in `memory/regulatory-status.md`).
+**Demoted to Tier 2 on 2026-08-13** (no code/doc citation found beyond an archived planning doc's routing table — recoverable via `npx skills add`, all already in `skills-lock.json`): `hebrew-ocr-forms`, `israeli-id-validator`, `hebrew-i18n`, `hebrew-tailwind-preset`, `il-invoice-organizer`, `israeli-tax-withholding`, `israeli-ai-compliance-kit`. Re-promote any of these the moment real work starts in its area.
+
+**Re-promoted to Tier 1 on 2026-08-15/16** (exactly per the rule above — real work started in their areas): `israeli-ui-design-system` and `israeli-accessibility-compliance`, pulled back for the navigation/UX audit and the IS 5568 findings round (accessibility-statement gap, form labels, contrast — tracked in that audit's output). They are committed again under `.claude/skills/` — 11 folders total on disk, not 9. Do NOT re-demote them while the IS 5568 work is open.
 
 **Tier 2 — Vetted catalog (recorded, NOT loaded).** ~90+ more skills relevant to an AI accountant / Israeli startup are recorded in **`skills-lock.json`** only — they are **not** materialized as folders, so they cost **zero** session context and don't dilute skill selection. `skills-lock.json` is the durable catalog; it can grow indefinitely without bloating this file.
 

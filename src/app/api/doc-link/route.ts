@@ -3,6 +3,7 @@ import { requireUserIfGated } from "@/lib/security/api-guard";
 import { createClient } from "@/lib/supabase/server";
 import {
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
@@ -29,8 +30,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "disabled" }, { status: 404 });
   }
 
-  const rl = checkRateLimit("doc-link", resolveClientKey(request), 20);
+  const clientKey = resolveClientKey(request);
+  const rl = checkRateLimit("doc-link", clientKey, 20);
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+  // Durable layer too — this route mints public countme-branded URLs, so the
+  // per-instance in-memory budget alone is too easy to multiply.
+  const rlDurable = await checkRateLimitDurable("doc-link", clientKey, 20);
+  if (!rlDurable.allowed) return rateLimitResponse(rlDurable.retryAfter);
 
   const guard = await requireUserIfGated(request);
   if (guard.denied) return guard.denied;
@@ -60,6 +66,21 @@ export async function POST(request: Request) {
     (business.osekType !== "patur" && business.osekType !== "morshe")
   ) {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
+
+  // Length caps — the signed token embeds this content verbatim and the
+  // public /d/[token] page renders it; without caps a caller could mint
+  // arbitrarily large tokens/pages. Reject (not truncate): the signed
+  // content must stay byte-identical to what the client renders locally.
+  if (
+    doc.invoiceNumber.length > 40 ||
+    doc.date.length > 20 ||
+    doc.customerName.length > 120 ||
+    doc.description.length > 600 ||
+    doc.docType.length > 30 ||
+    business.tradeName.length > 120
+  ) {
+    return NextResponse.json({ error: "payload too large" }, { status: 400 });
   }
 
   if (guard.user) {

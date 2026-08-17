@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { isAuthGatingEnabled } from "@/lib/security/auth-gating";
 
 export type ApiGuardResult =
   | { user: User | null; denied?: undefined }
@@ -28,7 +29,9 @@ export type ApiGuardResult =
 export async function requireUserIfGated(
   _request: Request,
 ): Promise<ApiGuardResult> {
-  if (process.env.AUTH_GATING_ENABLED !== "true") {
+  // Fail-closed in production: see isAuthGatingEnabled() — an unset flag no
+  // longer silently disables API auth; only an explicit "false" does.
+  if (!isAuthGatingEnabled()) {
     return { user: null };
   }
 

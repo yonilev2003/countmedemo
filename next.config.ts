@@ -26,7 +26,10 @@ const cspReportOnly = [
   "font-src 'self' data:",
   // Browser-side Supabase: auth + PostgREST over https, realtime over wss.
   // (Anthropic is called server-side only — deliberately NOT listed.)
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  // boi.org.il: the browser-side Bank-of-Israel exchange-rate fetch
+  // (lib/expenses/boi-exchange-rate.ts) — without it, enforcing this CSP
+  // would silently break foreign-currency expense capture.
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://boi.org.il https://www.boi.org.il",
   // We never embed this app in a frame (modern twin of X-Frame-Options: DENY).
   "frame-ancestors 'none'",
   // No plugins / <object> embeds.

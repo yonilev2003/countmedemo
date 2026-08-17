@@ -56,6 +56,7 @@ export function computeMonthSummary(
   let expenseSum = 0;
   let expenseCount = 0;
   for (const e of expenses) {
+    if (e.deletedAt) continue; // soft-deleted — hidden in /expenses, must not inflate the card
     if (yearMonthKey(e.date) !== monthKey) continue;
     expenseSum += e.amount;
     expenseCount += 1;

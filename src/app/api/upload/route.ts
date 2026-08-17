@@ -60,6 +60,8 @@ export interface ExtractedData {
   donationsTotal?: number;
   /** Optional human-readable summary the UI can show */
   summary?: string;
+  /** Data-quality caveats the UI MUST surface (e.g. VAT-direction fallbacks). */
+  warnings?: string[];
 }
 
 export async function POST(request: Request) {
@@ -213,7 +215,7 @@ async function parseExpensesExcel(buffer: ArrayBuffer): Promise<ExtractedData> {
   // Prefer the ex-VAT column — everything downstream (field 150's revenue-minus-
   // expenses, etc.) treats totalExpenses as ex-VAT. Falling back to the incl-VAT
   // column when that's all the sheet has would silently overstate expenses; flag
-  // it in the summary instead of guessing a conversion (found by the 13/08/2026
+  // it in the summary instead of guessing a conversion (found by the 16/08/2026
   // audit workflow, same bug class as the income-report VAT-direction fix above).
   const usedInclVatFallback = amountNoVatCol === -1 && amountCol !== -1;
   const useCol = amountNoVatCol !== -1 ? amountNoVatCol : amountCol;
@@ -241,13 +243,19 @@ async function parseExpensesExcel(buffer: ArrayBuffer): Promise<ExtractedData> {
     .sort((a, b) => b.amount - a.amount);
 
   const rowCount = Array.from(byCategory.values()).reduce((s, v) => s + v.count, 0);
-  const vatWarning = usedInclVatFallback
-    ? " ⚠ לא נמצאה עמודת סכום ללא-מע\"מ — הסכומים כוללים מע\"מ, ייתכן שההוצאה הכוללת מוצגת גבוהה מדי."
-    : "";
   return {
     expensesByCategory,
     totalExpenses: Math.round(total),
-    summary: `זוהו ${expensesByCategory.length} קטגוריות הוצאה, סך ${Math.round(total).toLocaleString("he-IL")} ₪ ב-${rowCount} שורות.${vatWarning}`,
+    summary: `זוהו ${expensesByCategory.length} קטגוריות הוצאה, סך ${Math.round(total).toLocaleString("he-IL")} ₪ ב-${rowCount} שורות.`,
+    // Structured (not embedded in summary prose) so the UI renders it as a
+    // visible caveat — a warning nobody sees is a warning that doesn't exist.
+    ...(usedInclVatFallback
+      ? {
+          warnings: [
+            'לא נמצאה עמודת סכום ללא־מע"מ — הסכומים כוללים מע"מ, ייתכן שההוצאה הכוללת מוצגת גבוהה מדי.',
+          ],
+        }
+      : {}),
   };
 }
 

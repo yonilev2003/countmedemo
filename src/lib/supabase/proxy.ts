@@ -15,6 +15,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
+import { isAuthGatingEnabled } from "@/lib/security/auth-gating";
 
 /** Pathname prefixes that require an authenticated user. */
 const PROTECTED_PREFIXES = [
@@ -78,10 +79,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Auth gating only: unauthenticated → /login for protected routes.
-  // Behind a flag so auth can be merged/deployed BEFORE the Google provider is
-  // live without locking the app. Set AUTH_GATING_ENABLED=true to enforce.
+  // Fail-closed in production (see isAuthGatingEnabled): an unset flag no
+  // longer silently opens every protected page; only an explicit "false" does.
   if (
-    process.env.AUTH_GATING_ENABLED === "true" &&
+    isAuthGatingEnabled() &&
     !user &&
     isProtectedPath(request.nextUrl.pathname)
   ) {

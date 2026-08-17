@@ -898,7 +898,7 @@ export function estimateTaxLiability(persona: Persona): TaxEstimate {
   // capped at 5.5% of business income AND at TC.pensionCreditCap (the fixed NIS
   // ceiling on the credit base itself, e.g. 12,804 = 5.5% x the 232,800 qualifying-
   // income ceiling). SEPARATE from the §47 deduction above. The cap was previously
-  // missing from this min() — found by an audit workflow (13/08/2026) that traced
+  // missing from this min() — found by an audit workflow (16/08/2026) that traced
   // it against the sibling §47 deduction (computePersonalDeductions), which DOES
   // apply its analogous cap as a third min() term; without it, high earners
   // (businessIncome > 232,800) got an overstated §45A credit.

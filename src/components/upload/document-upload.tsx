@@ -318,15 +318,26 @@ function ExtractedSummary({ data }: { data: ExtractedData }) {
   }
 
   return (
-    <ul className="space-y-1">
-      {lines.map((l, i) => (
-        <li key={i} className="flex justify-between gap-2">
-          <span className="text-muted">{l.label}:</span>
-          <span className="font-semibold text-ink tabular-nums">
-            {l.value}
-          </span>
-        </li>
+    <div className="space-y-2">
+      <ul className="space-y-1">
+        {lines.map((l, i) => (
+          <li key={i} className="flex justify-between gap-2">
+            <span className="text-muted">{l.label}:</span>
+            <span className="font-semibold text-ink tabular-nums">
+              {l.value}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {/* Data-quality caveats from the parser (e.g. VAT-direction fallbacks) —
+          structured so they can never be silently dropped inside prose. */}
+      {data.warnings?.map((w, i) => (
+        <p key={i} className="text-xs text-alert flex items-start gap-1">
+          <AlertTriangleIcon className="size-3.5 shrink-0 mt-0.5" />
+          <span>{w}</span>
+        </p>
       ))}
-    </ul>
+      {data.summary && <p className="text-xs text-muted">{data.summary}</p>}
+    </div>
   );
 }

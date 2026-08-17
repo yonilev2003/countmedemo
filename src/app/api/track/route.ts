@@ -8,11 +8,21 @@ import { createClient } from "@/lib/supabase/server";
 import { track, type EventName } from "@/lib/analytics/track";
 import {
   checkRateLimit,
+  checkRateLimitDurable,
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
 
 const RATE_LIMIT_MAX_REQUESTS = 60; // generous — legitimate UI fires several events per page
+
+/**
+ * Hard cap on the serialized size of client-supplied event props. This route
+ * writes to public.events via the service-role client with no auth required,
+ * so without a cap an anonymous caller could insert MB-scale JSONB rows
+ * (bounded only by the platform body limit) and grow the table/storage bill.
+ * 2KB fits every legitimate event this app emits with a wide margin.
+ */
+const MAX_PROPS_BYTES = 2048;
 
 const ALLOWED: ReadonlySet<string> = new Set<EventName>([
   "setup_started",
@@ -49,12 +59,19 @@ export async function POST(request: NextRequest) {
     // anonymous event — fine.
   }
 
-  const rl = checkRateLimit(
+  const clientKey = resolveClientKey(request, userId);
+  const rl = checkRateLimit("track", clientKey, RATE_LIMIT_MAX_REQUESTS);
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+
+  // Durable cross-instance layer too: this is an unauthenticated write channel
+  // into the DB (service-role), so the per-instance in-memory limit alone
+  // multiplies by warm-lambda count and resets on cold starts.
+  const rlDurable = await checkRateLimitDurable(
     "track",
-    resolveClientKey(request, userId),
+    clientKey,
     RATE_LIMIT_MAX_REQUESTS,
   );
-  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+  if (!rlDurable.allowed) return rateLimitResponse(rlDurable.retryAfter);
 
   let body: { name?: unknown; props?: unknown; path?: unknown };
   try {
@@ -68,11 +85,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  // Keep props small + serializable; ignore anything unexpected.
-  const props =
+  // Keep props small + serializable; ignore anything unexpected. Oversized
+  // props are dropped (event still recorded, flagged) rather than stored.
+  let props =
     body.props && typeof body.props === "object" && !Array.isArray(body.props)
       ? (body.props as Record<string, unknown>)
       : {};
+  try {
+    if (JSON.stringify(props).length > MAX_PROPS_BYTES) {
+      props = { _dropped: "props-too-large" };
+    }
+  } catch {
+    props = { _dropped: "props-unserializable" };
+  }
   const path = typeof body.path === "string" ? body.path.slice(0, 256) : null;
 
   await track(name as EventName, props, { userId, path });
