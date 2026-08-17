@@ -15,7 +15,7 @@ export function CopyButton({ value }: { value: string | number }) {
     <button
       onClick={handleCopy}
       aria-label={copied ? "הועתק" : "העתק"}
-      className="inline-flex items-center gap-1 rounded-md border border-brand-navy/20 bg-info/20 px-2 py-0.5 text-xs text-brand-navy hover:bg-info/40 transition-colors"
+      className="inline-flex min-h-6 items-center gap-1 rounded-md border border-brand-navy/20 bg-info/20 px-2 py-1 text-xs text-brand-navy hover:bg-info/40 transition-colors"
     >
       {copied ? (
         <CheckIcon className="size-3.5" />
@@ -48,7 +48,7 @@ export function InlineCopyButton({ value }: { value: string | number }) {
       title={copied ? "הועתק" : "העתק לטופס gov.il"}
       aria-label="העתק"
       className={
-        "inline-flex h-5 w-5 items-center justify-center rounded text-[11px] " +
+        "inline-flex h-6 w-6 items-center justify-center rounded text-[11px] " +
         "border border-stone-300 bg-white hover:bg-stone-100 transition-colors " +
         (copied ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "text-stone-500")
       }

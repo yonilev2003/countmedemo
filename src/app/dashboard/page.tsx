@@ -127,6 +127,11 @@ export default function DashboardPage() {
             <Logo size={26} />
           </Link>
           <div className="flex items-center gap-2">
+            {/* Re-linked 2026-08-16 (was URL-only since the beta-lean pivot,
+                6c9d16a): the rich tax dashboard was unreachable by click. */}
+            <Link href="/dashboard/pro" className={btn("ghost", "sm")}>
+              מצב מורחב
+            </Link>
             <Link href="/coach" className={btn("gold", "sm")}>
               <SparklesIcon className="size-4" /> שקל
             </Link>

@@ -34,6 +34,15 @@ export function SignOutButton({
   function handleSignOut() {
     clearLocalPersona();
     clearFollowUpNotes();
+    // Privacy: the service worker caches rendered (authenticated) pages in
+    // Cache Storage — purge them so a later user of this browser can't read
+    // the previous user's dashboard/financial pages from cache. Best-effort.
+    if (typeof caches !== "undefined") {
+      void caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .catch(() => {});
+    }
     startTransition(() => signOut());
   }
 

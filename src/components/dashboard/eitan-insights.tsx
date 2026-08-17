@@ -14,8 +14,25 @@ export function EitanInsights({ persona, pl }: Props) {
   const [insights, setInsights] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Cache key: insights only change when the underlying P&L numbers change.
+  // Without this, every mount of /dashboard/pro paid for a fresh Sonnet call
+  // that almost always produced the same 2-3 observations (cost audit
+  // finding) — sessionStorage keeps it per-tab, per-session.
+  const cacheKey = `countme_insights:${pl.totalRevenue}:${pl.totalExpenses}:${pl.netProfit}`;
+
   useEffect(() => {
     let cancelled = false;
+
+    try {
+      const cachedText = sessionStorage.getItem(cacheKey);
+      if (cachedText) {
+        setInsights(cachedText);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      /* private mode — fall through to a live fetch */
+    }
 
     async function fetchInsights() {
       setLoading(true);
@@ -75,14 +92,27 @@ export function EitanInsights({ persona, pl }: Props) {
         }
         if (!cancelled) setInsights(accumulated);
       }
-      if (!cancelled) setLoading(false);
+      if (!cancelled) {
+        setLoading(false);
+        if (accumulated) {
+          try {
+            sessionStorage.setItem(cacheKey, accumulated);
+          } catch {
+            /* private mode / quota — cache miss next time, no harm */
+          }
+        }
+      }
     }
 
     fetchInsights();
     return () => {
       cancelled = true;
     };
-  }, [persona, pl]);
+    // cacheKey encodes the P&L numbers, so it (not the object identities)
+    // is the real dependency; persona identity changes don't warrant a
+    // fresh paid call when the numbers are unchanged.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cacheKey]);
 
   return (
     <div className="rounded-2xl border border-line bg-aqua-soft p-5 shadow-brand">

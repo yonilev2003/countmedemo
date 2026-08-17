@@ -29,13 +29,28 @@ export function persistPersona(persona: Persona): void {
  * is a defence-in-depth backstop to the sign-out cache-clear: it also covers
  * non-button sign-outs (cookie expiry, a second account logging in directly).
  */
-export async function syncPersonaFromDb(): Promise<Persona | null> {
+// In-flight dedupe: PersonaHydrator (root layout) and the per-page hooks all
+// call syncPersonaFromDb on mount, so a single navigation used to fire the
+// same auth+select round-trips 2-3x concurrently (efficiency-audit finding).
+// Concurrent callers now await one shared promise instead.
+let inFlight: Promise<Persona | null> | null = null;
+
+export function syncPersonaFromDb(): Promise<Persona | null> {
+  if (inFlight) return inFlight;
+  inFlight = syncPersonaFromDbUncached().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function syncPersonaFromDbUncached(): Promise<Persona | null> {
   const userId = await getCurrentUserId();
 
   // Signed out (anonymous/demo): keep whatever local cache exists, untouched.
   if (!userId) return loadLocal();
 
-  const remote = await fetchPersona();
+  // Pass the resolved id through — skips fetchPersona's own auth round-trip.
+  const remote = await fetchPersona(userId);
   if (remote) {
     // DB wins — overwrite the cache and claim it for this user.
     saveLocal(remote);

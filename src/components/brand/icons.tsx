@@ -373,3 +373,15 @@ export function CameraIcon({ className }: IconProps) {
     </LineIcon>
   );
 }
+
+/** Universal accessibility symbol (person in circle) — the a11y widget trigger. */
+export function AccessibilityIcon({ className }: IconProps) {
+  return (
+    <LineIcon className={className}>
+      <circle cx="12" cy="12" r="9.25" />
+      <circle cx="12" cy="7.5" r="1.4" />
+      <path d="M7.5 10.2c3 .8 6 .8 9 0" />
+      <path d="M12 10.8v3.4l-2 4M12 14.2l2 4" />
+    </LineIcon>
+  );
+}

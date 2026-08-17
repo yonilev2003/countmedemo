@@ -18,12 +18,21 @@ export async function getCurrentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
-/** Read this user's saved Persona from the DB. Null if none or signed out. */
-export async function fetchPersona(): Promise<Persona | null> {
+/**
+ * Read this user's saved Persona from the DB. Null if none or signed out.
+ * Pass an already-resolved `knownUserId` to skip the extra auth round-trip —
+ * auth.getUser() validates the JWT against the Auth server over the network,
+ * so callers that just resolved the user (e.g. syncPersonaFromDb) shouldn't
+ * pay for it twice (efficiency-audit finding).
+ */
+export async function fetchPersona(knownUserId?: string): Promise<Persona | null> {
   try {
     const supabase = createClient();
-    const { data: auth } = await supabase.auth.getUser();
-    const userId = auth.user?.id;
+    let userId = knownUserId;
+    if (!userId) {
+      const { data: auth } = await supabase.auth.getUser();
+      userId = auth.user?.id;
+    }
     if (!userId) return null;
     const { data, error } = await supabase
       .from("profiles")

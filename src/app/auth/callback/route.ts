@@ -12,8 +12,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   // `next` lets callers send the user somewhere specific post-login.
   // Guard against open-redirects: only honor same-origin absolute paths.
-  // Default → /home (the shortcuts hub), which itself forwards first-timers
-  // with no persona on to /setup, so returning users land on shortcuts directly.
+  // Default → /dashboard (changed from /home in the beta-lean pivot, commit
+  // 6c9d16a — /home still exists but nothing links to it).
   const nextParam = searchParams.get("next");
   // "/path" is ok; "//host" (protocol-relative) is not.
   const next =

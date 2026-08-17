@@ -3,6 +3,8 @@ import { Assistant, Rubik } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { PersonaHydrator } from "@/components/persona-hydrator";
+import { AccessibilityWidget } from "@/components/a11y/accessibility-widget";
+import { A11Y_BOOTSTRAP_SCRIPT } from "@/lib/a11y/core";
 
 const assistant = Assistant({
   variable: "--font-assistant",
@@ -68,6 +70,10 @@ export default function RootLayout({
       dir="rtl"
       className={`${assistant.variable} ${rubik.variable} h-full antialiased`}
     >
+      <head>
+        {/* FOUC bootstrap: applies persisted a11y prefs BEFORE hydration */}
+        <script dangerouslySetInnerHTML={{ __html: A11Y_BOOTSTRAP_SCRIPT }} />
+      </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-cream text-ink font-sans">
         {/* IS 5568: skip link — must be the first focusable element on every page */}
         <a href="#main-content" className="skip-link">
@@ -99,6 +105,8 @@ export default function RootLayout({
             תנאי שימוש
           </a>
         </footer>
+        {/* Regulation 35 accessibility-preferences widget (Alt+A) */}
+        <AccessibilityWidget />
       </body>
     </html>
   );

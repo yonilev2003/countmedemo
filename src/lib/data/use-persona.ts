@@ -23,7 +23,14 @@ export function usePersona() {
     // owner stamp). If the cache is stamped to a user, hold the skeleton until
     // syncPersonaFromDb confirms it belongs to the CURRENT session — otherwise a
     // previous user's persona could flash on a shared device before reconcile.
-    if (local && !getPersonaOwner()) setPersona(local);
+    if (local && !getPersonaOwner()) {
+      // Instant paint from the anonymous cache: content renders immediately
+      // (loading=false) and the DB reconcile below lands silently. Stamped
+      // caches still hold the skeleton — a previous user's persona must never
+      // flash on a shared device before reconcile confirms ownership.
+      setPersona(local);
+      setSource("local");
+    }
     (async () => {
       const resolved = await syncPersonaFromDb();
       if (cancelled) return;

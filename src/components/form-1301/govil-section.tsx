@@ -130,12 +130,6 @@ export function SectionCard({
   );
 }
 
-function isNotApplicable(field: FormField, persona: Persona): boolean {
-  if (field.status !== "calculated" || !field.calculator) return false;
-  const result = calculate(field.calculator, persona);
-  return result?.value === false;
-}
-
 function FieldRow({
   field,
   persona,
@@ -146,11 +140,18 @@ function FieldRow({
   isHighlighted?: boolean;
 }) {
   const isSkip = field.status === "skip";
-  const notApplicable = !isSkip && isNotApplicable(field, persona);
+  // Compute the calculator ONCE per row and thread the result down — this
+  // used to run identically in isNotApplicable + rawCopyValue + FieldValue
+  // (3x per rendered field; efficiency-audit finding).
+  const calc =
+    field.status === "calculated" && field.calculator
+      ? calculate(field.calculator, persona)
+      : null;
+  const notApplicable = !isSkip && calc?.value === false;
   // Dim irrelevant fields (skip, not applicable, or outside highlight).
   const isDimmed = isSkip || notApplicable || !isHighlighted;
 
-  const copyValue = !isDimmed ? rawCopyValue(field, persona) : null;
+  const copyValue = !isDimmed ? rawCopyValue(field, persona, calc) : null;
 
   return (
     <div
@@ -184,6 +185,7 @@ function FieldRow({
         <FieldValue
           field={field}
           persona={persona}
+          calc={calc}
           notApplicable={notApplicable}
         />
       </div>
@@ -203,9 +205,13 @@ function FieldRow({
  * Returns the string to paste into gov.il — must match what's displayed in the
  * cell (Hebrew enum labels, formatted dates, etc.).
  */
-function rawCopyValue(field: FormField, persona: Persona): string | null {
+function rawCopyValue(
+  field: FormField,
+  persona: Persona,
+  calc: ReturnType<typeof calculate> | null,
+): string | null {
   if (field.status === "calculated" && field.calculator) {
-    const r = calculate(field.calculator, persona);
+    const r = calc;
     if (!r || r.value === false || r.value === null || r.value === undefined)
       return null;
     if (typeof r.value === "number" && r.value === 0) return null;
@@ -224,10 +230,12 @@ function rawCopyValue(field: FormField, persona: Persona): string | null {
 function FieldValue({
   field,
   persona,
+  calc,
   notApplicable,
 }: {
   field: FormField;
   persona: Persona;
+  calc: ReturnType<typeof calculate> | null;
   notApplicable?: boolean;
 }) {
   if (field.status === "calculated" && field.calculator) {
@@ -236,7 +244,7 @@ function FieldValue({
         <span className="text-[11px] text-stone-400 italic">לא רלוונטי</span>
       );
     }
-    const result = calculate(field.calculator, persona);
+    const result = calc;
     if (result && result.value !== false) {
       const variant =
         field.kind === "currency"

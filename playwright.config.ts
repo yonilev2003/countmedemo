@@ -40,9 +40,15 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        // --webpack, matching the build script: Turbopack dev mode resolves
+        // Google Fonts over the network at server startup, and a transient
+        // fonts.gstatic.com failure once killed the whole CI e2e job with
+        // "Timed out waiting 60000ms from config.webServer" before a single
+        // test ran (run 31897415418). Webpack dev mode has no such runtime
+        // font-network dependency.
+        command: "npm run dev -- --webpack",
         url: "http://localhost:3000",
         reuseExistingServer: !process.env.CI,
-        timeout: 60_000,
+        timeout: 90_000,
       },
 });
