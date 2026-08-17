@@ -124,8 +124,13 @@ export interface YearSummary {
 export function computeYearSummary(persona: Persona): YearSummary {
   const year = persona.income.year;
   const revenueYtd = persona.income.totalRevenue;
+  // SYMMETRY with revenue (journey-scan finding): revenue docs bump the
+  // scalar unconditionally at creation, so the expense side must also count
+  // every non-deleted row regardless of its calendar year — otherwise a
+  // quick expense dated "today" silently vanishes from the card whenever the
+  // declared tax year lags the calendar year (e.g. year=2025, today=2026).
   const addedExpenses = (persona.income.expenses ?? [])
-    .filter((e) => !e.deletedAt && e.date.startsWith(String(year)))
+    .filter((e) => !e.deletedAt)
     .reduce((s, e) => s + e.amount, 0);
   const expensesYtd = persona.income.totalDeductibleExpenses + addedExpenses;
   return {

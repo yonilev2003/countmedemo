@@ -49,7 +49,13 @@ export function formatFieldValue(
   if (typeof value === "object") {
     const o = value as Record<string, unknown>;
     if ("street" in o) {
-      return `${o.street ?? ""} ${o.houseNumber ?? ""}, ${o.city ?? ""}`.trim();
+      // Join only the parts that exist — null street/city used to render as
+      // a bare "," on /demo (journey scan).
+      const streetPart = [o.street, o.houseNumber]
+        .filter((p) => p != null && p !== "")
+        .join(" ");
+      const parts = [streetPart, o.city].filter((p) => p != null && p !== "");
+      return parts.length > 0 ? parts.join(", ") : "—";
     }
     return JSON.stringify(value);
   }

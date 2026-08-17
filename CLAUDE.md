@@ -277,7 +277,7 @@ The `/demo` form is faithful to `secapp.taxes.gov.il` *except* for these conscio
 
 | Element | Real gov.il | countme | Why |
 |---|---|---|---|
-| Outer frame | None | Beige dashed border (`#C8B59A`, 3px) + "countme" LogoMark branding | Visual signal "this is countme, not the real form" — updated to brand kit palette (2026-06-03) |
+| Outer frame | None | Gold dashed border (`brand` token — `#F5A93F` since the 2026-08-12 palette reweight) + "countme" LogoMark branding | Visual signal "this is countme, not the real form" — uses the `border-brand` token, so it follows the palette automatically |
 | Calculated value boxes | Plain gray input | Pastel yellow with dashed gold border (`#fff8d6` / `#d4af37`) | Subtle highlight — the value is pre-computed; tooltip on click |
 | Section headers | Cream/gold band | Blue-grey gradient (`#cdddec` → `#dde7f0`) with navy text | Faithful match — gov.il uses blue-grey, never cream |
 | Filled persona inputs | White box | Light blue bg (`#eef3f8`) with navy border | Faithful match — gov.il highlights filled fields with blue tint |

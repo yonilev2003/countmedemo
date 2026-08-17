@@ -331,7 +331,13 @@ export default function SetupPage() {
    * selectable as a historical year. (Was 2024 while 2025 was provisional; that
    * reasoning is obsolete after the ty2025-alignment pass.)
    */
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  // Default to the CURRENT calendar year (clamped to the modeled range): the
+  // income question reads "כמה הכנסת השנה עד כה", so "השנה" must mean the year
+  // the user is living in — a 2025 default in August 2026 filed real 2026
+  // figures under 2025 (journey-scan finding).
+  const [selectedYear, setSelectedYear] = useState<number>(() =>
+    Math.min(Math.max(new Date().getFullYear(), 2024), 2026),
+  );
 
   // Derive step subtitles dynamically so they always show the current selected year
   const STEP_SUBTITLES = getStepSubtitles(selectedYear);

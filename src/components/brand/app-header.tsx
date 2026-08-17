@@ -24,7 +24,11 @@ export function AppHeader({
 }) {
   return (
     <header className={cn("bg-paper border-b border-line", className)}>
-      <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
+      {/* flex-wrap: on narrow phones a long actions row must wrap under the
+          logo instead of forcing the layout viewport wider than the screen —
+          an unwrappable 588px header zoomed the whole page out to 66% and put
+          the back-to-dashboard logo outside the tappable area (journey scan). */}
+      <div className="mx-auto flex max-w-screen-xl flex-wrap items-center justify-between gap-y-2 px-4 py-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Logo size={24} />
           {pageLabel && (
@@ -34,7 +38,7 @@ export function AppHeader({
           )}
         </Link>
         {actions && (
-          <nav aria-label="פעולות עמוד" className="flex items-center gap-2">
+          <nav aria-label="פעולות עמוד" className="flex flex-wrap items-center gap-2">
             {actions}
           </nav>
         )}

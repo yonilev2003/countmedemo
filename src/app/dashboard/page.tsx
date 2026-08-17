@@ -148,7 +148,9 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-screen-md px-4 pb-16 pt-6 sm:px-6">
+      {/* pb-28: clearance for the fixed a11y-widget button, which otherwise
+          covers the last action tile on phone heights (journey scan). */}
+      <main className="mx-auto w-full max-w-screen-md px-4 pb-28 pt-6 sm:px-6">
         <Reveal>
           <h1 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
             {firstName ? `שלום, ${firstName}` : "שלום"}
@@ -292,6 +294,34 @@ export default function DashboardPage() {
           ))}
         </Stagger>
 
+        {/* ── Quiet links to the list screens — previously unreachable from
+            the light dashboard (/expenses had no inbound link at all). ── */}
+        <nav
+          aria-label="אזורים נוספים"
+          className="mt-7 flex flex-wrap items-center justify-center gap-x-1 gap-y-2 border-t border-line pt-4 text-sm"
+        >
+          {[
+            { href: "/invoices", label: "המסמכים שלי" },
+            { href: "/expenses", label: "ההוצאות שלי" },
+            { href: "/alerts", label: "התראות" },
+            { href: "/deadlines", label: "תאריכים חשובים" },
+          ].map((l, i) => (
+            <span key={l.href} className="flex items-center gap-1">
+              {i > 0 && (
+                <span aria-hidden="true" className="text-faint">
+                  ·
+                </span>
+              )}
+              <Link
+                href={l.href}
+                className="rounded-full px-2 py-1 font-semibold text-brand-deep hover:bg-aqua-soft"
+              >
+                {l.label}
+              </Link>
+            </span>
+          ))}
+        </nav>
+
         {/* ── First-use welcome (the most important screen of the beta) ── */}
         {summary.isFirstUse && (
           <Reveal className="mt-6">
@@ -359,9 +389,13 @@ function ExpenseSheet({
     // (lib/expenses/types.ts): VAT is derived, never omitted; the row carries
     // source + status so /expenses flags it as "partial" (no docNumber /
     // specific category yet) and prompts the user to complete it there.
-    const vatRate = getTaxYearConstants(
-      Number(date.slice(0, 4)) || persona.income.year,
-    ).vatRate;
+    // vat means RECLAIMABLE input VAT — an עוסק פטור can't reclaim any, so
+    // their rate is 0 and the full gross amount is simply the cost.
+    const vatRate =
+      persona.business.osekType === "morshe"
+        ? getTaxYearConstants(Number(date.slice(0, 4)) || persona.income.year)
+            .vatRate
+        : 0;
     const line: ExpenseLine = {
       date,
       vendorName: vendor.trim(),

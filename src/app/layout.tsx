@@ -68,6 +68,13 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
+      // suppressHydrationWarning: the a11y FOUC bootstrap adds a11y-* classes
+      // to <html> BEFORE hydration (by design), which otherwise logs a React
+      // hydration-mismatch error for every user with saved a11y preferences.
+      suppressHydrationWarning
+      // data-scroll-behavior: opts in to Next 16's smooth-scroll handling and
+      // silences its console warning about the CSS scroll-behavior on <html>.
+      data-scroll-behavior="smooth"
       className={`${assistant.variable} ${rubik.variable} h-full antialiased`}
     >
       <head>

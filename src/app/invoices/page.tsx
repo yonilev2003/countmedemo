@@ -231,7 +231,7 @@ export default function InvoicesPage() {
                 אין חשבוניות מתאימות לסינון
               </div>
             ) : (
-              <div className="rounded-2xl bg-paper border border-line overflow-hidden shadow-brand">
+              <div className="rounded-2xl bg-paper border border-line shadow-brand overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr className="border-b border-line">

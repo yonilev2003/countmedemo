@@ -155,7 +155,13 @@ export default function NewExpensePage() {
     );
   }
 
-  const vatRate = getTaxYearConstants(persona.income.year).vatRate;
+  // Reclaimable-input-VAT rate: an עוסק פטור can't reclaim any input VAT, so
+  // their effective rate is 0 (the gross amount is simply the cost). Keeps the
+  // stored vat field honest on /expenses instead of showing a phantom מע"מ.
+  const vatRate =
+    persona.business.osekType === "morshe"
+      ? getTaxYearConstants(persona.income.year).vatRate
+      : 0;
 
   async function handleImageSelected(file: File, source: ExpenseSource) {
     setOcrError(null);

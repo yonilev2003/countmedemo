@@ -143,10 +143,10 @@ export function AccessibilityWidget() {
                 a11yStore.set({ contrast: v });
                 announce("ניגודיות", CONTRAST_LABEL[v]);
               }}
-              className={`${btnBase} ${prefs.contrast !== "off" ? btnOn : btnOff}`}
+              className={`${btnBase} flex items-center justify-between gap-2 ${prefs.contrast !== "off" ? btnOn : btnOff}`}
             >
-              ניגודיות{" "}
-              <span className="float-start text-xs text-muted">
+              <span>ניגודיות</span>
+              <span className="text-xs text-muted">
                 {CONTRAST_LABEL[prefs.contrast]}
               </span>
             </button>
@@ -159,10 +159,10 @@ export function AccessibilityWidget() {
                 a11yStore.set({ textSize: v });
                 announce("גודל טקסט", `${v}%`);
               }}
-              className={`${btnBase} ${prefs.textSize !== 100 ? btnOn : btnOff}`}
+              className={`${btnBase} flex items-center justify-between gap-2 ${prefs.textSize !== 100 ? btnOn : btnOff}`}
             >
-              גודל טקסט{" "}
-              <span className="float-start text-xs text-muted" dir="ltr">
+              <span>גודל טקסט</span>
+              <span className="text-xs text-muted" dir="ltr">
                 {prefs.textSize}%
               </span>
             </button>
@@ -175,10 +175,10 @@ export function AccessibilityWidget() {
                 a11yStore.set({ lineSpacing: v });
                 announce("ריווח שורות", LINES_LABEL[v]);
               }}
-              className={`${btnBase} ${prefs.lineSpacing !== "normal" ? btnOn : btnOff}`}
+              className={`${btnBase} flex items-center justify-between gap-2 ${prefs.lineSpacing !== "normal" ? btnOn : btnOff}`}
             >
-              ריווח שורות{" "}
-              <span className="float-start text-xs text-muted">
+              <span>ריווח שורות</span>
+              <span className="text-xs text-muted">
                 {LINES_LABEL[prefs.lineSpacing]}
               </span>
             </button>

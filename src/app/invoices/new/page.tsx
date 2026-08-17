@@ -224,7 +224,20 @@ export default function NewInvoicePage() {
   function handleSubmit() {
     if (!persona) return;
     const errs = validateInvoice({ ...form, amount, docType: effectiveDocType });
-    if (errs.length > 0) { setErrors(errs); return; }
+    if (errs.length > 0) {
+      setErrors(errs);
+      // The submit button sits at the bottom of a long page while the error
+      // banner renders at the top of the editor card — without scrolling it
+      // into view, a sighted user clicks and "nothing happens" (journey-scan
+      // finding: banner at y=-338 with scrollY=892). rAF waits for the banner
+      // to actually render before scrolling.
+      requestAnimationFrame(() => {
+        document
+          .querySelector('[role="alert"]')
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
 
     const invoiceNumber = nextDocNumber(persona, effectiveDocType);
     const newInvoice: InvoiceLine = {
