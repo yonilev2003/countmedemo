@@ -26,6 +26,7 @@ import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { EitanFab } from "@/components/agent/eitan-fab";
 import {
   ArrowLeftIcon,
@@ -152,6 +153,9 @@ export default function ReceivablesPage() {
             <Link href="/invoices/new?type=business-account" className={btn("primary", "sm")}>
               חשבון עסקה חדש
             </Link>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
           </div>
         </div>
       </header>

@@ -331,3 +331,44 @@ html.a11y-reduce-motion *::after {
   html[class*="a11y-"] { filter: none !important; font-size: 100% !important; }
   html[class*="a11y-lines-"] body * { line-height: normal !important; }
 }
+
+/* ── Route transition (Wave 2, docs/launch/status-vs-plan.md WS-A: "View
+   Transitions למעברי route") ─────────────────────────────────────────────
+   src/app/template.tsx applies this class to its wrapper. Per Next.js
+   template.js semantics, the template remounts (fresh DOM node) on every
+   route-segment navigation — unlike layout.tsx, which persists — so a plain
+   CSS mount animation here is enough to turn a hard swap into a subtle
+   settle-in, with no client JS and no framer-motion on the route boundary.
+   Kept intentionally tiny (fade + 6px rise, 180ms) — this is the cheapest
+   "a transition exists" layer, not a full page-transition system.
+
+   Deliberately animates `margin-block-start`, NOT `transform`/`translate`.
+   This wrapper sits around every page's content (fixed FAB in
+   eitan-fab.tsx, the mobile nav + backdrop in demo/page.tsx, the toast in
+   file/guided/page.tsx, etc. all render inside it). Any non-"none"
+   `transform` on an ancestor establishes a new containing block for
+   `position: fixed` descendants, which would silently mis-position every
+   one of those for the animation's duration — margin has no such effect,
+   so this stays a purely visual, zero-risk rise.
+
+   Reduced motion: honored twice — the OS-level query below, AND the
+   html.a11y-reduce-motion toggle above already zeroes it out via its `*`
+   selector, so the in-app a11y widget also disables this. */
+.cm-route-enter {
+  animation: cm-route-enter 180ms ease-out both;
+}
+@keyframes cm-route-enter {
+  from {
+    opacity: 0;
+    margin-block-start: 6px;
+  }
+  to {
+    opacity: 1;
+    margin-block-start: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-route-enter {
+    animation: none;
+  }
+}

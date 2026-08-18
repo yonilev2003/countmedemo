@@ -13,7 +13,7 @@
  * /dashboard/pro ("מצב מורחב").
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { YearSwitch } from "@/components/dashboard/year-switch";
@@ -39,6 +39,7 @@ import {
   ArrowLeftIcon,
   TrendingUpIcon,
   AlertTriangleIcon,
+  CheckCircleIcon,
 } from "@/components/brand/icons";
 
 const MONTH_NAMES = [
@@ -47,7 +48,21 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const { persona, setPersona } = useRequiredPersona();
+  const { persona, setPersona, saveStatus, retrySave } = useRequiredPersona();
+
+  // Transient "נשמר בענן" toast: fires on the transition INTO "saved" (the
+  // post-OAuth adoption lands here mid-mount), never on a status that was
+  // already "saved" when the page mounted, and clears itself after a beat.
+  const [showSaved, setShowSaved] = useState(false);
+  const prevSaveStatus = useRef(saveStatus);
+  useEffect(() => {
+    if (prevSaveStatus.current === "saving" && saveStatus === "saved") {
+      setShowSaved(true);
+      const t = window.setTimeout(() => setShowSaved(false), 4000);
+      return () => window.clearTimeout(t);
+    }
+    prevSaveStatus.current = saveStatus;
+  }, [saveStatus]);
 
   useEffect(() => {
     trackClient("dashboard_viewed");
@@ -159,6 +174,40 @@ export default function DashboardPage() {
       {/* pb-28: clearance for the fixed a11y-widget button, which otherwise
           covers the last action tile on phone heights (journey scan). */}
       <main className="mx-auto w-full max-w-screen-md px-4 pb-28 pt-6 sm:px-6">
+        {/* Cloud-save outcome of the post-OAuth persona adoption (beta-feedback
+            task #3, 18/08). DoneScreen shows its own inline confirmation for
+            the already-signed-in path; this covers the OAuth-redirect path,
+            which lands here without ever revisiting DoneScreen. Success is a
+            transient toast (transition-triggered, auto-dismissed) because the
+            shared status also flips on routine background saves (year switch,
+            document edits) — only errors stay pinned until resolved. */}
+        {showSaved && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/30 bg-success-light/60 px-3.5 py-2.5 text-xs font-medium text-success">
+            <CheckCircleIcon className="size-4 shrink-0" />
+            הנתונים שלך נשמרו בענן — אפשר להמשיך מכל מכשיר.
+          </div>
+        )}
+        {saveStatus === "error" && (
+          <div
+            role="alert"
+            className="mb-4 flex items-start gap-2 rounded-xl border border-alert/30 bg-overdue-bg/40 px-3.5 py-2.5 text-xs text-ink"
+          >
+            <AlertTriangleIcon className="size-4 mt-0.5 shrink-0 text-alert" />
+            <div className="flex-1">
+              <p className="font-medium text-alert-ink">השמירה בענן נכשלה</p>
+              <p className="mt-0.5 text-muted leading-relaxed">
+                הנתונים שמורים בדפדפן הזה בינתיים.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={retrySave}
+              className="shrink-0 self-center text-xs font-semibold text-brand-deep hover:underline"
+            >
+              נסה/י שוב
+            </button>
+          </div>
+        )}
         <Reveal>
           <h1 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
             {firstName ? `שלום, ${firstName}` : "שלום"}

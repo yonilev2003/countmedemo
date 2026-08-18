@@ -13,7 +13,7 @@ import {
   type ExpensePillFilter,
 } from "@/lib/expenses/export";
 import type { ExpenseLine } from "@/lib/persona";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
@@ -282,7 +282,8 @@ function ExpenseRow({
         </div>
         {expense.isForeignCurrency && expense.originalAmount && (
           <div className="text-[11px] text-faint mt-0.5">
-            {expense.originalAmount} {expense.originalCurrency} · שער {expense.exchangeRate}
+            {formatNumber(expense.originalAmount)} {expense.originalCurrency} · שער{" "}
+            {expense.exchangeRate != null ? formatNumber(expense.exchangeRate) : expense.exchangeRate}
           </div>
         )}
       </div>

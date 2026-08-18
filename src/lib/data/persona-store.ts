@@ -9,9 +9,11 @@ import {
   clearLocalPersona,
   getPersonaOwner,
   setPersonaOwner,
-  consumePersonaContinueIntent,
+  consumeExplicitContinueIntent,
 } from "@/lib/setup-storage";
 import { fetchPersona, upsertPersona, getCurrentUserId } from "./persona-repository";
+
+export { getCurrentUserId } from "./persona-repository";
 
 /**
  * The five ways a local persona cache can relate to the current browser
@@ -70,7 +72,13 @@ export interface PersonaOwnershipInput {
    * passes `false` and therefore never reaches "use-remote".
    */
   hasRemotePersona: boolean;
-  /** See `markPersonaContinueIntent` / `consumePersonaContinueIntent` in setup-storage.ts. */
+  /**
+   * See `markPersonaContinueIntent` (sessionStorage) and
+   * `CONTINUE_INTENT_QUERY_PARAM` (URL query, for OAuth redirects that land
+   * in a different tab/context) in setup-storage.ts — combined by
+   * `consumeExplicitContinueIntent()`, which every caller of this function
+   * should use to produce this boolean.
+   */
   explicitContinueIntent: boolean;
 }
 
@@ -103,50 +111,121 @@ export function decidePersonaOwnership(
 }
 
 /**
- * Save locally now (sync cache) and persist to the DB in the background —
- * but ONLY when the local cache is safe to attribute to the CURRENT
- * authenticated session (see decidePersonaOwnership). A cache stamped to a
- * different user, or an anonymous cache with no explicit continue-intent,
- * is saved locally (so the person in front of the screen keeps seeing their
- * own edits) but is never uploaded — this is the fix for QA #17, where the
- * old unconditional upsert let an anonymous wizard persona land in a stale
- * cookie's authenticated DB row.
+ * Shared cloud-save status (beta-feedback task #3, 18/08): `upsertPersona()`
+ * itself never throws — it swallows every error and returns a boolean that,
+ * before this store existed, nobody read (every call site was a
+ * fire-and-forget `void upsertPersona(...)`). A real write failure was
+ * therefore invisible: the user believed they were saved when they weren't.
+ *
+ * `attemptCloudUpsert` below is now the ONE place that calls `upsertPersona`
+ * — every branch that used to fire-and-forget it routes through here instead
+ * — recording the outcome here so any UI (DoneScreen's inline confirmation,
+ * or a future dashboard banner via `usePersonaSaveStatus` in
+ * use-required-persona.ts) can show it and retry. Deliberately a simple
+ * module-level store (not React state) since the write can be kicked off
+ * from a non-component context (syncPersonaFromDbUncached).
  */
-export async function persistPersona(persona: Persona): Promise<void> {
+export type PersonaSaveStatus = "idle" | "saving" | "saved" | "error";
+
+let saveStatus: PersonaSaveStatus = "idle";
+let retryTarget: Persona | null = null;
+const saveStatusListeners = new Set<(status: PersonaSaveStatus) => void>();
+
+function setSaveStatusState(next: PersonaSaveStatus, retry: Persona | null) {
+  saveStatus = next;
+  retryTarget = retry;
+  saveStatusListeners.forEach((listener) => listener(next));
+}
+
+/** Synchronous snapshot — for a hook's initial state before it subscribes. */
+export function getPersonaSaveStatus(): PersonaSaveStatus {
+  return saveStatus;
+}
+
+/** Subscribe to save-status changes. Returns an unsubscribe function. */
+export function subscribePersonaSaveStatus(
+  listener: (status: PersonaSaveStatus) => void,
+): () => void {
+  saveStatusListeners.add(listener);
+  return () => {
+    saveStatusListeners.delete(listener);
+  };
+}
+
+/**
+ * Re-attempt the most recently failed cloud save. No-op (returns false) when
+ * there's nothing to retry — e.g. nothing has failed, or a later save
+ * already succeeded/superseded it.
+ */
+export async function retryPersonaSave(): Promise<boolean> {
+  if (!retryTarget) return false;
+  return attemptCloudUpsert(retryTarget);
+}
+
+async function attemptCloudUpsert(persona: Persona): Promise<boolean> {
+  setSaveStatusState("saving", persona);
+  const ok = await upsertPersona(persona);
+  setSaveStatusState(ok ? "saved" : "error", ok ? null : persona);
+  return ok;
+}
+
+/** What actually happened when `persistPersona` ran, for callers (like
+ * DoneScreen) that need to show the user an honest outcome rather than
+ * fire-and-forget. "not-uploaded" covers every decidePersonaOwnership branch
+ * that never touches the DB (signed-out, discard-foreign, empty, use-remote)
+ * — not a failure, just nothing to report as "saved to the cloud". */
+export type PersonaSaveOutcome = "saved" | "error" | "not-uploaded";
+
+/**
+ * Save locally now (sync cache) and persist to the DB — but ONLY when the
+ * local cache is safe to attribute to the CURRENT authenticated session (see
+ * decidePersonaOwnership). A cache stamped to a different user, or an
+ * anonymous cache with no explicit continue-intent, is saved locally (so the
+ * person in front of the screen keeps seeing their own edits) but is never
+ * uploaded — this is the fix for QA #17, where the old unconditional upsert
+ * let an anonymous wizard persona land in a stale cookie's authenticated DB
+ * row.
+ */
+export async function persistPersona(persona: Persona): Promise<PersonaSaveOutcome> {
   saveLocal(persona);
 
-  const currentUserId = await getCurrentUserId();
-  // Keep the same-tab fast-path hint (see `lastKnownUserId` above) warm from
-  // every authoritative resolution, not just syncPersonaFromDb's — a save
-  // can be the first thing that resolves identity in a tab (e.g. mid-wizard).
-  lastKnownUserId = currentUserId;
-  const localOwner = getPersonaOwner();
-  const action = decidePersonaOwnership({
-    currentUserId,
-    localOwner,
-    hasLocalPersona: true,
-    hasRemotePersona: false,
-    explicitContinueIntent: consumePersonaContinueIntent(),
-  });
+  try {
+    const currentUserId = await getCurrentUserId();
+    // Keep the same-tab fast-path hint (see `lastKnownUserId` above) warm from
+    // every authoritative resolution, not just syncPersonaFromDb's — a save
+    // can be the first thing that resolves identity in a tab (e.g. mid-wizard).
+    lastKnownUserId = currentUserId;
+    const localOwner = getPersonaOwner();
+    const action = decidePersonaOwnership({
+      currentUserId,
+      localOwner,
+      hasLocalPersona: true,
+      hasRemotePersona: false,
+      explicitContinueIntent: consumeExplicitContinueIntent(),
+    });
 
-  switch (action) {
-    case "adopt-unclaimed":
-      setPersonaOwner(currentUserId);
-      void upsertPersona(persona);
-      return;
-    case "keep-own":
-      void upsertPersona(persona);
-      return;
-    case "discard-foreign":
-    case "signed-out":
-    case "empty":
-    case "use-remote":
-    default:
-      // No upload. "discard-foreign" in particular is the QA #17 guard: the
-      // cache we just wrote locally belongs to a different account than the
-      // one live in this browser — it stays on this screen, but it must
-      // never reach that account's DB row.
-      return;
+    switch (action) {
+      case "adopt-unclaimed":
+        setPersonaOwner(currentUserId);
+        return (await attemptCloudUpsert(persona)) ? "saved" : "error";
+      case "keep-own":
+        return (await attemptCloudUpsert(persona)) ? "saved" : "error";
+      case "discard-foreign":
+      case "signed-out":
+      case "empty":
+      case "use-remote":
+      default:
+        // No upload. "discard-foreign" in particular is the QA #17 guard: the
+        // cache we just wrote locally belongs to a different account than the
+        // one live in this browser — it stays on this screen, but it must
+        // never reach that account's DB row.
+        return "not-uploaded";
+    }
+  } catch {
+    // getCurrentUserId() (or anything above) threw — offline, Supabase
+    // misconfigured, etc. The local save above already succeeded, so the
+    // user's edit is never lost; only the cloud half failed.
+    return "error";
   }
 }
 
@@ -247,7 +326,7 @@ async function syncPersonaFromDbUncached(): Promise<Persona | null> {
     localOwner,
     hasLocalPersona: !!local,
     hasRemotePersona: !!remote,
-    explicitContinueIntent: consumePersonaContinueIntent(),
+    explicitContinueIntent: consumeExplicitContinueIntent(),
   });
 
   switch (action) {
@@ -270,14 +349,14 @@ async function syncPersonaFromDbUncached(): Promise<Persona | null> {
       // set right before authenticating. Claim it for this user and seed the
       // DB — the only path that may upload a previously-unstamped cache.
       setPersonaOwner(currentUserId);
-      void upsertPersona(local!);
+      void attemptCloudUpsert(local!);
       return local;
 
     case "keep-own":
       // Already this user's own cache (stamped in a previous reconcile), but
       // the DB row came back empty (e.g. a fresh row, or a prior write that
       // didn't land) — repair it. Always safe: it's this user's own data.
-      void upsertPersona(local!);
+      void attemptCloudUpsert(local!);
       return local;
 
     case "empty":

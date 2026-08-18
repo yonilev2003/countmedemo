@@ -157,3 +157,58 @@ create policy events_own_read on public.events
 -- ── אימות: שתי השאילתות צריכות להחזיר שורות ──
 select id, price_agorot from public.plans order by sort_order;
 select count(*) as events_table_ready from public.events;
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- 2026-08-18 — chat history: multiple named conversations + sidebar list
+-- Source: supabase/migrations/20260818200000_chat_history.sql
+-- ══════════════════════════════════════════════════════════════════════════
+-- profiles.chat_history (jsonb blob) is superseded by this — DEAD, slated
+-- for removal per the WS7 review, NOT dropped here (out of scope).
+-- The UI degrades gracefully until this is pasted/run (see history.ts).
+
+create table if not exists public.chat_threads (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references public.chat_threads(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null check (role = any (array['user','assistant'])),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists chat_threads_user_updated_idx
+  on public.chat_threads (user_id, updated_at desc);
+
+create index if not exists chat_messages_thread_created_idx
+  on public.chat_messages (thread_id, created_at);
+
+drop trigger if exists chat_threads_set_updated_at on public.chat_threads;
+create trigger chat_threads_set_updated_at
+  before update on public.chat_threads
+  for each row execute function public.set_updated_at();
+
+alter table public.chat_threads  enable row level security;
+alter table public.chat_messages enable row level security;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['chat_threads','chat_messages']
+  loop
+    execute format('drop policy if exists %I on public.%I', t || '_own', t);
+    execute format(
+      'create policy %I on public.%I for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)',
+      t || '_own', t);
+  end loop;
+end $$;
+
+-- ── אימות: אמורות להחזיר 0 שורות (טבלאות ריקות אך קיימות) ──
+select count(*) as chat_threads_table_ready from public.chat_threads;
+select count(*) as chat_messages_table_ready from public.chat_messages;

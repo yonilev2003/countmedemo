@@ -15,6 +15,7 @@ import {
 import { MonthlyPL, PLSummary } from "@/lib/p-and-l/index";
 import { BarChartIcon, PieChartIcon } from "@/components/brand/icons";
 import { BRAND_COLORS } from "@/components/brand/colors";
+import { formatNumber } from "@/lib/utils";
 
 // Brand palette for the pie slices (navy → teal → beige → aqua → terracotta).
 const COLORS = [
@@ -36,7 +37,9 @@ interface Props {
 }
 
 function formatShekels(v: number) {
-  return `₪${(v / 1000).toFixed(0)}K`;
+  // Grouped even though month totals are realistically <1000K today — cheap
+  // to make correct now rather than revisit if a persona ever spikes.
+  return `₪${formatNumber(Math.round(v / 1000))}K`;
 }
 
 export function PLChart({ monthlyData, expenseBreakdown }: Props) {

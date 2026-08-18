@@ -6,20 +6,25 @@
  * to the rest of the app so the chat reads as one surface of the product, not a
  * standalone page.
  *
- * The mockup's rail listed *past conversations*; we don't persist conversation
- * history yet, so — per the task — the rail instead links to the app's main
- * beta-scope surfaces (dashboard / invoices / business-expenses / receivables).
- * Each row is a real, verified route.
+ * The mockup's rail listed *past conversations* (`.sect` "שיחות אחרונות" +
+ * `.conv`/`.conv.on` rows) — that's now real, backed by
+ * `src/lib/chat/history.ts` (2026-08-18, Yoni's locked decision: multiple
+ * named conversations with a sidebar list). The nav rows to the app's other
+ * beta-scope surfaces (dashboard / invoices / business-expenses /
+ * receivables) sit below the thread list, same as before.
  *
  * One reusable component, two layouts via `variant` (the page picks which to
  * render at which breakpoint — mirrors `dashboard/quick-actions.tsx`):
  *
  *   variant="rail" → desktop: a vertical side panel — brand wordmark, a
- *                    "שיחה חדשה" CTA, the nav rows (the active route gets the
- *                    `.conv.on` treatment), and an Eitan card pinned to the
- *                    bottom. Matches the mockup's `.wrail`.
+ *                    "שיחה חדשה" CTA, the past-conversations list (only for a
+ *                    signed-in user with a persona — see `persona` prop), the
+ *                    nav rows (the active route gets the `.conv.on`
+ *                    treatment), and an Eitan card pinned to the bottom.
+ *                    Matches the mockup's `.wrail`.
  *   variant="bar"  → mobile: a fixed bottom nav bar so the shell collapses
- *                    gracefully to a single column.
+ *                    gracefully to a single column. Thread list props are
+ *                    irrelevant here — mobile has no room for a sidebar.
  *
  * Brand-kit compliant: no emoji, line icons only, logical RTL props,
  * brand tokens + shadow-brand, Assistant font (inherited).
@@ -28,6 +33,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { Persona } from "@/lib/persona";
+import type { ChatThread } from "@/lib/chat/history";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import {
   HomeIcon,
@@ -113,20 +120,80 @@ const BAR_ITEMS: NavItem[] = [
   },
 ];
 
+interface ChatNavRailProps {
+  variant: "rail" | "bar";
+  className?: string;
+  /** Gates the "שיחות אחרונות" section (rail variant only): hidden entirely
+   *  for an anonymous/signed-out visit, same signal coach-chat.tsx already
+   *  uses for its own persona-gated CTA bar. Irrelevant for variant="bar". */
+  persona?: Persona | null;
+  /** This user's persisted threads, most-recent first (from listThreads()).
+   *  Owned by the page (coach/page.tsx), not fetched here, so it always
+   *  agrees with whatever CoachChat is showing. */
+  threads?: ChatThread[];
+  activeThreadId?: string | null;
+  onSelectThread?: (id: string) => void;
+  /** "שיחה חדשה" CTA — starts a fresh, unsaved chat (see coach/page.tsx's
+   *  handleNewThread). Falls back to a plain link to /coach when omitted. */
+  onNewThread?: () => void;
+}
+
 export function ChatNavRail({
   variant,
   className,
-}: {
-  variant: "rail" | "bar";
-  className?: string;
-}) {
+  persona,
+  threads,
+  activeThreadId,
+  onSelectThread,
+  onNewThread,
+}: ChatNavRailProps) {
   if (variant === "bar") return <ChatNavBar className={className} />;
-  return <ChatNavSideRail className={className} />;
+  return (
+    <ChatNavSideRail
+      className={className}
+      persona={persona}
+      threads={threads}
+      activeThreadId={activeThreadId}
+      onSelectThread={onSelectThread}
+      onNewThread={onNewThread}
+    />
+  );
 }
 
 /* ── Desktop: vertical side rail (the mockup's `.wrail`) ────────────────────── */
 
-function ChatNavSideRail({ className }: { className?: string }) {
+/** Coarse Hebrew relative time for a thread's last-updated timestamp,
+ *  matching the mockup's `.conv .s` subtitle shape ("לפני 5 דקות" etc). Only
+ *  used here — not a general-purpose formatter, so it stays local rather
+ *  than joining lib/utils.ts's shared formatters. */
+function relativeTimeHe(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "עכשיו";
+  if (minutes < 60) return `לפני ${minutes} דקות`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `לפני ${hours} שעות`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "אתמול";
+  if (days < 7) return `לפני ${days} ימים`;
+  return new Date(iso).toLocaleDateString("he-IL");
+}
+
+function ChatNavSideRail({
+  className,
+  persona,
+  threads = [],
+  activeThreadId,
+  onSelectThread,
+  onNewThread,
+}: {
+  className?: string;
+  persona?: Persona | null;
+  threads?: ChatThread[];
+  activeThreadId?: string | null;
+  onSelectThread?: (id: string) => void;
+  onNewThread?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -145,14 +212,77 @@ function ChatNavSideRail({ className }: { className?: string }) {
         <Logo size={26} />
       </Link>
 
-      {/* Primary CTA — start a fresh chat (lands on /coach, the chat surface) */}
-      <Link
-        href="/coach"
-        className="mb-5 flex h-[46px] items-center justify-center gap-2 rounded-2xl bg-brand-navy text-[14.5px] font-bold text-white shadow-brand transition-colors hover:bg-navy-900"
-      >
-        <PlusIcon className="size-[17px]" />
-        שיחה חדשה
-      </Link>
+      {/* Primary CTA — start a fresh chat. With onNewThread wired (the
+          normal /coach case) it clears the active thread in place; without
+          it (defensive fallback) it just links to /coach. */}
+      {onNewThread ? (
+        <button
+          type="button"
+          onClick={onNewThread}
+          className="mb-5 flex h-[46px] items-center justify-center gap-2 rounded-2xl bg-brand-navy text-[14.5px] font-bold text-white shadow-brand transition-colors hover:bg-navy-900"
+        >
+          <PlusIcon className="size-[17px]" />
+          שיחה חדשה
+        </button>
+      ) : (
+        <Link
+          href="/coach"
+          className="mb-5 flex h-[46px] items-center justify-center gap-2 rounded-2xl bg-brand-navy text-[14.5px] font-bold text-white shadow-brand transition-colors hover:bg-navy-900"
+        >
+          <PlusIcon className="size-[17px]" />
+          שיחה חדשה
+        </Link>
+      )}
+
+      {/* Past conversations (the mockup's `.sect` + `.conv` list) — only for
+          a signed-in user with a persona. An anonymous /coach visit has
+          nothing persisted (history.ts no-ops while signed out), so the
+          section is hidden entirely rather than shown empty. */}
+      {persona && threads.length > 0 && (
+        <>
+          <div className="mb-2.5 px-1.5 text-[11.5px] font-bold uppercase tracking-[0.05em] text-faint">
+            שיחות אחרונות
+          </div>
+          <nav className="mb-4 flex flex-col gap-1" aria-label="שיחות קודמות">
+            {threads.map((thread) => {
+              const active = thread.id === activeThreadId;
+              return (
+                <button
+                  key={thread.id}
+                  type="button"
+                  onClick={() => onSelectThread?.(thread.id)}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-[13px] p-2.5 text-start transition-colors",
+                    active
+                      ? "border border-line bg-paper shadow-brand-sm"
+                      : "border border-transparent hover:bg-paper",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid size-[30px] shrink-0 place-items-center rounded-[10px] transition-colors",
+                      active
+                        ? "bg-brand-navy text-brand"
+                        : "bg-teal-100 text-teal-600",
+                    )}
+                  >
+                    <SparklesIcon className="size-[15px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-bold leading-tight text-brand-navy">
+                      {thread.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-muted">
+                      {relativeTimeHe(thread.updatedAt)}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </>
+      )}
 
       {/* Section label */}
       <div className="mb-2.5 px-1.5 text-[11.5px] font-bold uppercase tracking-[0.05em] text-faint">

@@ -348,7 +348,7 @@ function pdfExtractionPrompt(kind: string): string {
 - osekType ("patur" | "morshe") — אם כתוב "עוסק פטור" אז patur, אם "עוסק מורשה" אז morshe
 - dateRangeStart, dateRangeEnd (string YYYY-MM-DD) — טווח התקופה
 - fullName, email, phone, address (string)
-- summary (string, עברית, משפט קצר)
+- summary (string, עברית, משפט קצר; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 248,500 ולא 248500)
 
 החזר רק JSON תקין, ללא markdown, ללא הסברים.`;
   }
@@ -357,14 +357,14 @@ function pdfExtractionPrompt(kind: string): string {
 החזר JSON עם:
 - salaryGross (number) — סך הכנסה ברוטו
 - employerName (string)
-- summary (string, עברית קצרה)
+- summary (string, עברית קצרה; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 248,500 ולא 248500)
 החזר JSON בלבד.`;
   }
   if (kind === "donations") {
     return `חלץ סכום תרומות מקבלות לפי סעיף 46.
 החזר JSON עם:
 - donationsTotal (number)
-- summary (string, עברית קצרה)
+- summary (string, עברית קצרה; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 12,500 ולא 12500)
 החזר JSON בלבד.`;
   }
   return `חלץ מידע רלוונטי מהמסמך. החזר JSON בלבד.`;

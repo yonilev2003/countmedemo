@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -10,6 +11,12 @@ import { cn } from "@/lib/utils";
  * instead of hand-rolling the header, so "back to dashboard" is guaranteed
  * consistent and never silently omitted or mis-targeted (see /file/page.tsx's
  * old bug: its header linked to "/", not "/dashboard").
+ *
+ * Sign-out (2026-08-18 wave-2 fix, Roy beta feedback): every page using
+ * AppHeader gates its content on useRequiredPersona, so a SignOutButton
+ * always belongs here — fixes "could only log out from the dashboard" for
+ * every one of this component's consumers in one place, per the sweep's
+ * "edit the shared component once" directive.
  */
 export function AppHeader({
   pageLabel,
@@ -37,11 +44,16 @@ export function AppHeader({
             </span>
           )}
         </Link>
-        {actions && (
-          <nav aria-label="פעולות עמוד" className="flex flex-wrap items-center gap-2">
-            {actions}
-          </nav>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {actions && (
+            <nav aria-label="פעולות עמוד" className="flex flex-wrap items-center gap-2">
+              {actions}
+            </nav>
+          )}
+          <div className="border-s border-line ps-2">
+            <SignOutButton />
+          </div>
+        </div>
       </div>
     </header>
   );

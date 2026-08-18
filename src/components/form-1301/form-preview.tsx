@@ -25,7 +25,11 @@ export function FormPreview({ persona, onContinue, schema = form1301 }: Props) {
 
   return (
     <div
-      className="overflow-hidden border border-stone-400 shadow-sm bg-white"
+      // overflow-x-auto (not overflow-hidden) so that if any chrome row is
+      // still wider than a narrow viewport, it scrolls into view instead of
+      // being silently clipped. No horizontal overflow occurs at desktop
+      // widths, so this is a no-op there (no visible scrollbar).
+      className="overflow-x-auto border border-stone-400 shadow-sm bg-white"
       style={{ borderRadius: 2 }}
     >
       <GovTopBar year={persona.income.year} />

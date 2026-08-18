@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { SendIcon } from "@/components/brand/icons";
 import { LegalNote } from "@/components/brand/legal-note";
+import {
+  listThreads,
+  loadMessages,
+  createThread,
+  appendMessage,
+  dbRoleToUiRole,
+} from "@/lib/chat/history";
 
 /** Shekel's avatar image (3D character render, cropped to the head via object-top). */
 const SHEKEL_AVATAR = "/shekel/shekel-mascot.jpg";
@@ -81,11 +88,64 @@ export function ChatPanel({ persona }: Props) {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Reset greeting when persona switches (e.g. localStorage hydration on mount).
+  // Which persisted thread (if any) the current exchange should be appended
+  // to — see src/lib/chat/history.ts. Null means "not created yet"; the
+  // first completed exchange lazily creates one (persistExchange below).
+  // No sidebar on /demo (that's coach-chat.tsx's job), so this is entirely
+  // self-contained: no parent needs to know which thread is active.
+  const threadIdRef = useRef<string | null>(null);
+
+  // On persona (re)hydration: load this user's most recent persisted thread
+  // instead of always resetting to the canned greeting — the whole point of
+  // this persistence layer. Falls back to the canned greeting when there's
+  // no thread yet, the user is signed out, or the tables aren't live yet
+  // (history.ts degrades silently in all of those cases).
   useEffect(() => {
-    setMessages(initialMessages(persona));
-    historyRef.current = [];
+    let cancelled = false;
+    threadIdRef.current = null;
+    (async () => {
+      const threads = await listThreads();
+      const latest = threads[0];
+      if (latest) {
+        const rows = await loadMessages(latest.id);
+        if (cancelled) return;
+        if (rows.length > 0) {
+          threadIdRef.current = latest.id;
+          setMessages(
+            rows.map((r) => ({ role: dbRoleToUiRole(r.role), text: r.content })),
+          );
+          historyRef.current = rows.map((r) => ({ role: r.role, content: r.content }));
+          return;
+        }
+      }
+      if (cancelled) return;
+      setMessages(initialMessages(persona));
+      historyRef.current = [];
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persona.id]);
+
+  /** Best-effort persistence — lazily creates a thread on the first
+   *  exchange, then appends to it. Never throws; a failure here must never
+   *  interrupt the live chat, which already rendered from local state. */
+  async function persistExchange(userText: string, assistantText: string) {
+    try {
+      let threadId = threadIdRef.current;
+      if (!threadId) {
+        const created = await createThread(userText);
+        if (!created) return; // signed out, or the tables aren't live yet
+        threadId = created.id;
+        threadIdRef.current = threadId;
+      }
+      await appendMessage(threadId, "user", userText);
+      await appendMessage(threadId, "assistant", assistantText);
+    } catch {
+      /* best-effort only */
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -173,6 +233,7 @@ export function ChatPanel({ persona }: Props) {
               { role: "user", content: trimmed },
               { role: "assistant", content: finalText },
             ];
+            void persistExchange(trimmed, finalText);
             setIsLoading(false);
             return;
           }
@@ -205,6 +266,7 @@ export function ChatPanel({ persona }: Props) {
           { role: "user", content: trimmed },
           { role: "assistant", content: accumulated },
         ];
+        void persistExchange(trimmed, accumulated);
       }
       setStreamingText("");
       setIsLoading(false);

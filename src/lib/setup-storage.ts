@@ -65,6 +65,93 @@ export function consumePersonaContinueIntent(): boolean {
 }
 
 /**
+ * Query-param carrier for the SAME one-shot "continue with this local
+ * persona" signal, threaded through the OAuth redirect chain instead of
+ * sessionStorage: DoneScreen's single finish CTA → /login?next=..&intent=..
+ * → login-form.tsx forwards it into /auth/callback → auth/callback/route.ts
+ * carries it onto the final redirect (e.g. /dashboard?intent=save-persona).
+ *
+ * Why both exist (beta-feedback task #2, 18/08): sessionStorage is same-tab
+ * only. Google's OAuth round trip sometimes completes in a different
+ * tab/context (mobile browsers switching into an in-app browser, some SSO
+ * proxies) — that silently drops the sessionStorage flag and reopens the
+ * exact upload gap this mechanism exists to close. The query param survives
+ * that hop because it rides the URL itself, not the tab's storage.
+ *
+ * Deliberately simple (a fixed sentinel value, not a signed token) — "keep
+ * it simple and audited" per the task: decidePersonaOwnership only ever
+ * reaches "adopt-unclaimed" for a cache that is (a) already sitting in the
+ * visitor's OWN browser and (b) UNSTAMPED — a foreign-stamped cache is
+ * discarded before intent is even consulted (see persona-store.ts). Nobody
+ * can inject a persona into someone else's localStorage from outside, so a
+ * forged/replayed `?intent=save-persona` can at most make a user's own,
+ * already-local, already-anonymous wizard data get claimed slightly earlier
+ * than a click would have — never a cross-account leak.
+ */
+export const CONTINUE_INTENT_QUERY_PARAM = "intent";
+export const CONTINUE_INTENT_QUERY_VALUE = "save-persona";
+
+/**
+ * Non-consuming peek at BOTH intent sources (sessionStorage flag + URL query
+ * param) — for callers that need to know "is an adoption about to happen?"
+ * WITHOUT spending the one-shot signal. Used by useRequiredPersona to decide
+ * whether it's safe to optimistically paint an still-anonymous cache before
+ * the DB confirms it (see that file for the "flash of dashboard chrome, then
+ * bounced to /setup" bug this gates against). Never mutates state.
+ */
+export function hasPendingContinueIntent(): boolean {
+  if (typeof window === "undefined") return false;
+  if (sessionStorage.getItem(CONTINUE_INTENT_KEY) === "1") return true;
+  try {
+    return (
+      new URLSearchParams(window.location.search).get(
+        CONTINUE_INTENT_QUERY_PARAM,
+      ) === CONTINUE_INTENT_QUERY_VALUE
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One-shot read of the QUERY-PARAM intent source only: returns whether it
+ * was present, and strips it from the URL (via history.replaceState — no
+ * navigation, no reload) either way, so a refresh or a copied/shared link
+ * can never replay it. Mirrors consumePersonaContinueIntent's one-shot
+ * contract for the other source.
+ */
+function consumeQueryContinueIntent(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const url = new URL(window.location.href);
+    const had =
+      url.searchParams.get(CONTINUE_INTENT_QUERY_PARAM) ===
+      CONTINUE_INTENT_QUERY_VALUE;
+    if (had) {
+      url.searchParams.delete(CONTINUE_INTENT_QUERY_PARAM);
+      window.history.replaceState(window.history.state, "", url.toString());
+    }
+    return had;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * THE single place both explicit-intent sources are combined into the one
+ * boolean decidePersonaOwnership expects — every caller of that function's
+ * `explicitContinueIntent` input should route through here rather than
+ * reading either source directly, so the two can never drift out of sync.
+ * Both are consumed (not short-circuited) so a query param present alongside
+ * a stale sessionStorage flag still gets cleared either way.
+ */
+export function consumeExplicitContinueIntent(): boolean {
+  const sessionFlag = consumePersonaContinueIntent();
+  const queryFlag = consumeQueryContinueIntent();
+  return sessionFlag || queryFlag;
+}
+
+/**
  * Remove the cached Persona from localStorage (client-side only).
  *
  * Call this on sign-out so the next user on the same browser never inherits the

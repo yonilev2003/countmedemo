@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
-import { loadPersona, markPersonaContinueIntent } from "@/lib/setup-storage";
-import { persistPersona } from "@/lib/data/persona-store";
+import {
+  loadPersona,
+  markPersonaContinueIntent,
+  CONTINUE_INTENT_QUERY_PARAM,
+  CONTINUE_INTENT_QUERY_VALUE,
+} from "@/lib/setup-storage";
+import { persistPersona, getCurrentUserId } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
-import { cn, numberInputWheelGuard } from "@/lib/utils";
+import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
@@ -23,6 +30,7 @@ import {
   InfoIcon,
   SparklesIcon,
   ChevronDownIcon,
+  AlertTriangleIcon,
 } from "@/components/brand/icons";
 
 function validateTeudatZehut(id: string): boolean {
@@ -373,7 +381,85 @@ const BUSINESS_AGE_LABEL: Record<
  * account — Google sign-in (kept exactly as before) is what makes the data
  * persist across devices.
  */
-function DoneScreen({ persona }: { persona: Persona }) {
+function DoneScreen({
+  persona,
+  isSignedIn,
+}: {
+  persona: Persona;
+  /** Setup has no reactive session hook (unlike useRequiredPersona pages) —
+   * this is a one-shot getCurrentUserId() check done by the parent on mount.
+   * Gates the header SignOutButton: a not-yet-authenticated visitor (still
+   * mid-wizard, about to hand off through Google in handleContinue below)
+   * has no session to sign out of. */
+  isSignedIn: boolean;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+
+  /**
+   * The ONE finish path (Yoni's locked decision, 18/08 beta-feedback fix):
+   * a single primary CTA that ALWAYS marks continue-intent before leaving —
+   * whether the click resolves into persisting straight away (already
+   * signed in on this device) or into a Google sign-in hand-off (not yet
+   * signed in). Before this fix, a SECOND unsaved bare Link straight to
+   * /dashboard existed alongside the Google-login CTA — clicking it never
+   * called markPersonaContinueIntent(), so decidePersonaOwnership's
+   * "adopt-unclaimed" gate (a LOCKED contract — see persona-store.ts) never
+   * fired and the persona was silently never uploaded (exactly what
+   * happened to Roy). That path is removed; this is the only way to finish.
+   */
+  async function handleContinue() {
+    setPending(true);
+    setSaveState("idle");
+    // Set unconditionally, before either branch below — the one-shot signal
+    // decidePersonaOwnership's "adopt-unclaimed" branch requires. Safe even
+    // on the already-authenticated path: persistPersona() below consumes it
+    // on the very next reconcile either way, so it never lingers.
+    markPersonaContinueIntent();
+
+    const userId = await getCurrentUserId();
+    if (userId) {
+      // Already signed in on this device (e.g. a returning session) —
+      // persist right now, so the user gets an honest confirmation (or a
+      // retryable error) before leaving, instead of hoping a later reconcile
+      // silently picks it up.
+      const outcome = await persistPersona(persona);
+      if (outcome === "error") {
+        setPending(false);
+        setSaveState("error");
+        return;
+      }
+      setSaveState("saved");
+      // Keep the confirmation visible for a beat before moving on — still
+      // exactly one click, just not yanked away instantly.
+      window.setTimeout(() => router.push("/dashboard"), 700);
+      return;
+    }
+
+    // Not signed in — hand off through Google. Carry the SAME intent via the
+    // OAuth redirect's own query string too (not only sessionStorage), so it
+    // survives OAuth completing in a different tab/context on mobile (task
+    // #2) — login-form.tsx forwards it into /auth/callback, which forwards
+    // it onto the final landing URL.
+    setPending(false);
+    router.push(
+      `/login?next=${encodeURIComponent("/dashboard")}&${CONTINUE_INTENT_QUERY_PARAM}=${CONTINUE_INTENT_QUERY_VALUE}`,
+    );
+  }
+
+  async function handleRetrySave() {
+    setPending(true);
+    const outcome = await persistPersona(persona);
+    setPending(false);
+    if (outcome === "error") {
+      setSaveState("error");
+      return;
+    }
+    setSaveState("saved");
+    window.setTimeout(() => router.push("/dashboard"), 700);
+  }
+
   const firstName = persona.personal.firstName;
   const ageLabel = persona.business.businessAgeBucket
     ? BUSINESS_AGE_LABEL[persona.business.businessAgeBucket]
@@ -426,6 +512,7 @@ function DoneScreen({ persona }: { persona: Persona }) {
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={32} />
           </Link>
+          {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
         </div>
       </header>
 
@@ -495,6 +582,11 @@ function DoneScreen({ persona }: { persona: Persona }) {
                   <Link
                     key={s.n}
                     href={s.href}
+                    // Same residual gap as the removed bare-Link CTA: leaving
+                    // DoneScreen through a shortcut card must not skip the
+                    // one-shot adoption signal, or the persona is never
+                    // uploaded on the next auth reconcile (Roy's bug, 18/08).
+                    onClick={() => markPersonaContinueIntent()}
                     className="flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
                   >
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-bold text-white">
@@ -534,37 +626,76 @@ function DoneScreen({ persona }: { persona: Persona }) {
               )}
             </div>
 
-            {/* Google-login CTA — unchanged from before: /setup never creates a
-                real account, this is still the only thing that does.
-                markPersonaContinueIntent() is the ONLY place this fires: it's
-                the explicit, one-shot "I'm continuing into login with THIS
-                persona" signal that lets the next auth reconcile claim/upload
-                this still-anonymous cache (fix contract (c) — QA #17). Absent
-                this click, an anonymous cache is never adopted by whichever
-                account happens to be authenticated in this browser. */}
-            <Link
-              href="/login"
-              onClick={() => markPersonaContinueIntent()}
-              className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/60 px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
-            >
-              <div>
-                <div className="text-sm font-bold text-brand-navy">
-                  שמירה בענן, מכל מכשיר
-                </div>
-                <div className="text-xs text-muted mt-0.5 leading-relaxed">
-                  הנתונים שמורים כרגע רק בדפדפן הזה. התחברות עם Google שומרת
-                  אותם בענן ומאפשרת להמשיך מכל מכשיר.
-                </div>
-              </div>
-              <span className="shrink-0 text-xs font-semibold text-brand-deep whitespace-nowrap">
-                התחברות עם Google ←
-              </span>
-            </Link>
+            {/* Single finish path (Yoni's locked decision, 18/08): exactly
+                one primary CTA, and it ALWAYS marks continue-intent and
+                either persists directly or hands off through Google —
+                see handleContinue above. The copy below reflects what the
+                click actually does (it no longer just describes a separate,
+                optional Google button). */}
+            <div className="mt-7 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleContinue}
+                disabled={pending}
+                aria-busy={pending}
+                className={cn(btn("primary"), "w-full justify-center")}
+              >
+                {pending ? (
+                  <span
+                    aria-hidden
+                    className="size-4 shrink-0 rounded-full border-2 border-white/35 border-t-white animate-spin"
+                  />
+                ) : (
+                  <ArrowLeftIcon className="size-4" />
+                )}
+                {saveState === "saved" ? "נשמר — עוברים ללוח הבקרה" : "כניסה ללוח הבקרה"}
+              </button>
 
-            <Link href="/dashboard" className={cn(btn("primary"), "mt-7 w-full justify-center")}>
-              כניסה ללוח הבקרה
-              <ArrowLeftIcon className="size-4" />
-            </Link>
+              <p className="text-center text-xs text-muted leading-relaxed">
+                הכניסה ללוח הבקרה שומרת את הנתונים שלך בענן (מתחברים עם
+                Google אם עדיין לא) ומאפשרת להמשיך מכל מכשיר.
+              </p>
+
+              {saveState === "saved" && (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-success">
+                  <CheckCircleIcon className="size-3.5" />
+                  נשמר בענן
+                </div>
+              )}
+
+              {saveState === "error" && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-xl border border-alert/30 bg-alert/10 px-3.5 py-2.5 text-start text-xs text-ink"
+                >
+                  <AlertTriangleIcon className="size-4 mt-0.5 shrink-0 text-alert" />
+                  <div className="flex-1">
+                    <p className="font-medium text-alert">השמירה בענן נכשלה</p>
+                    <p className="mt-0.5 text-muted leading-relaxed">
+                      הנתונים שלך שמורים בדפדפן הזה, אבל לא הצלחנו לשמור
+                      אותם בענן. אפשר לנסות שוב.
+                    </p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleRetrySave}
+                        disabled={pending}
+                        className="text-xs font-semibold text-brand-deep hover:underline disabled:opacity-60"
+                      >
+                        נסה/י שוב
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSaveState("idle")}
+                        className="text-xs text-muted hover:underline"
+                      >
+                        סגירה
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <LegalNote variant="line" className="mt-5" />
           </div>
@@ -582,6 +713,24 @@ export default function SetupPage() {
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [uploadExpanded, setUploadExpanded] = useState(false);
   const currentYear = new Date().getFullYear();
+
+  // /setup has no reactive session hook (unlike useRequiredPersona pages,
+  // which are gated on a persona and always show SignOutButton) — a visitor
+  // can be here signed OUT (first-time, about to sign in via Google in
+  // DoneScreen's handleContinue) or signed IN (a returning user re-running
+  // "עדכן נתונים"). One-shot check on mount so the header can show sign-out
+  // only when there's actually a session to end (wave-2 sweep, 2026-08-18).
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const userId = await getCurrentUserId();
+      if (!cancelled) setIsSignedIn(!!userId);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * The tax year the user is filing for.
@@ -795,6 +944,9 @@ export default function SetupPage() {
     const e: Errors = {};
     if (s2.isSoldierDischarged && !s2.soldierDischargeDate) {
       e.soldierDischargeDate = "יש להזין תאריך שחרור";
+    }
+    if (s2.isNewResident && !s2.aliyahDate) {
+      e.aliyahDate = "יש להזין תאריך עלייה";
     }
     if (s2.academicDegreeYear) {
       const y = Number(s2.academicDegreeYear);
@@ -1242,7 +1394,7 @@ export default function SetupPage() {
     /^\d{9}$/.test(s1.teudatZehut) && validateTeudatZehut(s1.teudatZehut);
 
   if (doneData) {
-    return <DoneScreen persona={doneData} />;
+    return <DoneScreen persona={doneData} isSignedIn={isSignedIn} />;
   }
 
   return (
@@ -1252,7 +1404,16 @@ export default function SetupPage() {
           <Link href="/dashboard" className="flex items-center gap-3">
             <Logo size={32} />
           </Link>
-          <div className="text-sm text-muted">הגדרת פרופיל</div>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-muted">הגדרת פרופיל</div>
+            {/* Unobtrusive ghost/sm — setup has no reactive session hook, so
+                this only shows once the one-shot getCurrentUserId() check
+                above resolves signed-in (a returning user re-running the
+                wizard). A first-time visitor isn't signed in yet at this
+                point (that happens in DoneScreen's handleContinue), so
+                nothing renders here for them. */}
+            {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
+          </div>
         </div>
       </header>
 
@@ -1275,7 +1436,14 @@ export default function SetupPage() {
 
             <PhaseChipBar screen={screen} />
 
+            {/* Each wizard screen enters with the same CSS settle-in the
+                route boundary uses (globals.css .cm-route-enter) — each
+                block mounts fresh on a screen change, so the animation runs
+                per step. Deliberately NOT <Reveal>: its lazy engine swap
+                remounts the subtree when the framer chunk lands, which reads
+                as a blink and detaches DOM mid-interaction on slow loads. */}
             {screen === 1 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 <FastTrackCard
                   expanded={uploadExpanded}
@@ -1499,9 +1667,11 @@ export default function SetupPage() {
                   </label>
                 </div>
               </div>
+              </div>
             )}
 
             {screen === 2 && (
+              <div className="cm-route-enter">
               <div className="space-y-5">
                 <div className="rounded-xl border border-line bg-cream p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
@@ -1605,10 +1775,11 @@ export default function SetupPage() {
                         type="date"
                         value={s2.aliyahDate}
                         onChange={(e) => setS2({ ...s2, aliyahDate: e.target.value })}
-                        className={inputCls(false)}
+                        className={inputCls(!!errors.aliyahDate)}
                         dir="ltr"
                         max={new Date().toISOString().split("T")[0]}
                       />
+                      <ErrorMsg msg={errors.aliyahDate} />
                       <p className="mt-1 text-xs text-muted">
                         נדרש לחישוב מספר שנות הזכאות לנקודות עולה חדש/ה
                       </p>
@@ -1721,9 +1892,11 @@ export default function SetupPage() {
                   )}
                 </div>
               </div>
+              </div>
             )}
 
             {screen === 3 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 {/* ── Tap questions (onboarding-v5 היכרות) ─────────────────── */}
                 <TapChoiceGroup
@@ -1916,9 +2089,11 @@ export default function SetupPage() {
                   <ErrorMsg msg={errors.primaryOccupation} />
                 </div>
               </div>
+              </div>
             )}
 
             {screen === 4 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 {/* ── Business identity fields ──────────────────────────────── */}
                 <div>
@@ -2037,9 +2212,11 @@ export default function SetupPage() {
 
                 <DocHeaderPreview s1={s1} s3={s3} />
               </div>
+              </div>
             )}
 
             {screen === 5 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 {/* ── Tax-year selector ─────────────────────────────────── */}
                 <div className="rounded-xl bg-info/30 border border-brand-deep/20 px-4 py-3">
@@ -2092,6 +2269,11 @@ export default function SetupPage() {
                     placeholder="248500"
                   />
                   <ErrorMsg msg={errors.totalRevenue} />
+                  {step5Revenue > 0 && (
+                    <p className="mt-1 text-xs font-semibold text-brand-navy">
+                      {ils(step5Revenue)}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-muted">
                     זו נקודת ההתחלה — כל מסמך הכנסה שתפיק/י במערכת מכאן והלאה
                     יתווסף על הסכום הזה. (נכנס לשדות 238 ו-294 בטופס)
@@ -2099,9 +2281,11 @@ export default function SetupPage() {
                 </div>
 
               </div>
+              </div>
             )}
 
             {screen === 6 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 <div className="rounded-xl border border-brand-deep/20 bg-info/30 px-4 py-3 text-sm text-brand-navy flex gap-2 items-start">
                   <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
@@ -2135,6 +2319,11 @@ export default function SetupPage() {
                     placeholder="47800"
                   />
                   <ErrorMsg msg={errors.totalDeductibleExpenses} />
+                  {step5Expenses > 0 && (
+                    <p className="mt-1 text-xs font-semibold text-brand-navy">
+                      {ils(step5Expenses)}
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-muted">
                     {s3.osekType === "morshe"
                       ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
@@ -2199,9 +2388,13 @@ export default function SetupPage() {
                       />
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
                       <p className="mt-1 text-xs text-muted">
-                        {/* DRAFT — pending Roy: ב"ל/בריאות split (persona.ts FLAG) */}
-                        שימו לב: הסכום בשובר השנתי כולל גם דמי ביטוח בריאות —
-                        הניכוי (52%) חל על רכיב דמי הביטוח הלאומי בלבד
+                        {/* Pending Roy: real fix is splitting the persona field
+                            into ב"ל/בריאות (see FLAG(Roy) in lib/persona.ts) —
+                            until then, tell the user what to type so the 52%
+                            deduction isn't computed on an inflated base. */}
+                        הזינו רק את רכיב הביטוח הלאומי מהשובר השנתי — לא כולל
+                        דמי ביטוח בריאות. הניכוי (52%) חל רק על רכיב הביטוח
+                        הלאומי; אם יוזן הסכום הכולל, הניכוי יחושב ביתר.
                       </p>
                     </div>
 
@@ -2293,9 +2486,11 @@ export default function SetupPage() {
                   </div>
                 )}
               </div>
+              </div>
             )}
 
             {screen === 7 && (
+              <div className="cm-route-enter">
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-ink">
                   פרטי בנק להחזר
@@ -2424,6 +2619,7 @@ export default function SetupPage() {
                     </a>
                   </p>
                 </div>
+              </div>
               </div>
             )}
 

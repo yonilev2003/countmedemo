@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import type { Persona } from "@/lib/persona";
@@ -14,10 +14,12 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_ESTIMATE } from "@/components/brand/legal-note";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
   SparklesIcon,
   ReceiptIcon,
   AlertTriangleIcon,
+  XIcon,
 } from "@/components/brand/icons";
 
 type Phase = "form" | "estimate";
@@ -28,6 +30,21 @@ export default function DemoPage() {
   // cache doesn't get bounced into the wizard while it has real server data.
   const { persona } = useRequiredPersona();
   const [phase, setPhase] = useState<Phase>("form");
+  // Mobile-only (< lg): the chat panel lives as a bottom-sheet overlay,
+  // closed by default so the form is the default scroll content. Ignored
+  // at >= lg, where the chat is always visible in the sticky side column.
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Escape closes the mobile chat sheet (a11y: keyboard-only dismissal,
+  // matching the click-outside/close-button affordances).
+  useEffect(() => {
+    if (!isChatOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsChatOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isChatOpen]);
 
   if (!persona) {
     return (
@@ -41,7 +58,10 @@ export default function DemoPage() {
     <div className="min-h-screen bg-cream">
       {/* Brand header */}
       <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-2xl items-center justify-between px-6 py-3">
+        {/* flex-wrap on both rows: the actions row alone is ~630px of
+            buttons — on a 390px phone an unwrappable row forced 430px of
+            horizontal page scroll (caught by the five-osakim journey e2e). */}
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-y-2 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
               <Logo size={32} />
@@ -51,7 +71,7 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {phase === "estimate" && (
               <button
                 onClick={() => setPhase("form")}
@@ -78,6 +98,9 @@ export default function DemoPage() {
             >
               פתח טופס 1301 ב-gov.il →
             </a>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
           </div>
         </div>
       </header>
@@ -120,14 +143,65 @@ export default function DemoPage() {
             )}
           </section>
 
-          {/* Chat panel — always visible */}
+          {/* Chat panel — single ChatPanel instance, repositioned (not
+              remounted) via responsive CSS: a mobile bottom-sheet overlay
+              below lg, the original sticky side column at lg and up. Keeping
+              one mount means conversation state never forks between the two
+              layouts. */}
           <aside className="col-span-12 lg:col-span-4">
-            <div className="sticky top-6 h-[calc(100vh-7rem)]">
-              <ChatPanel persona={persona} />
+            {/* NOTE: plain template literal, deliberately NOT run through
+                cn()/twMerge — twMerge dedupes same-property utilities (e.g.
+                "h-[75vh] h-[75dvh]") and keeps only the last one, which
+                would silently delete the vh fallback line before the
+                browser ever sees it. The vh→dvh fallback only works if
+                both declarations reach the stylesheet, so this class list
+                is built the same way the rest of this file writes
+                base+lg: pairs: as a literal string. */}
+            <div
+              className={`fixed inset-x-0 bottom-0 z-40 flex h-[75vh] h-[75dvh] flex-col rounded-t-3xl shadow-brand transition-transform duration-300 ease-out ${isChatOpen ? "translate-y-0" : "translate-y-full"} lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-6 lg:z-auto lg:h-[calc(100vh-7rem)] lg:h-[calc(100dvh-7rem)] lg:translate-y-0 lg:rounded-none lg:shadow-none lg:transition-none`}
+            >
+              {/* Mobile-only sheet chrome: drag handle + close affordance */}
+              <div className="relative flex flex-shrink-0 items-center justify-center rounded-t-3xl border-b border-line bg-paper px-4 py-2 lg:hidden">
+                <span aria-hidden="true" className="h-1 w-10 rounded-full bg-line" />
+                <button
+                  type="button"
+                  onClick={() => setIsChatOpen(false)}
+                  aria-label="סגור צ׳אט"
+                  className="absolute end-3 top-1.5 flex size-7 items-center justify-center rounded-full text-muted hover:bg-cream"
+                >
+                  <XIcon className="size-4" />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1">
+                <ChatPanel persona={persona} />
+              </div>
             </div>
           </aside>
         </div>
       </main>
+
+      {/* Mobile floating toggle — opens the chat as a bottom sheet. Hidden
+          at >= lg (chat is already visible there) and while the sheet is
+          already open. */}
+      {!isChatOpen && (
+        <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center lg:hidden">
+          <button type="button" onClick={() => setIsChatOpen(true)} className={btn("primary", "md")}>
+            <SparklesIcon className="size-4" />
+            שאל את countme
+          </button>
+        </div>
+      )}
+
+      {/* Mobile backdrop behind the open chat sheet — click to dismiss.
+          Decorative only (aria-hidden): keyboard/AT users get the close
+          button + Escape instead. */}
+      {isChatOpen && (
+        <div
+          aria-hidden="true"
+          onClick={() => setIsChatOpen(false)}
+          className="fixed inset-0 z-30 bg-brand-navy/40 lg:hidden"
+        />
+      )}
 
       <footer className="mx-auto max-w-screen-2xl px-6 pb-8 pt-2 text-center text-[10px] leading-relaxed text-faint space-y-1">
         <p>countme · גרסת דמו · שנת מס {persona.income.year}</p>
