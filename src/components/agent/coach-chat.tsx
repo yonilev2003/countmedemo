@@ -391,10 +391,12 @@ export function CoachChat({ persona }: Props) {
               />
             </svg>
           </h1>
-          {/* Status line */}
-          <div className="flex items-center gap-1.5 mt-0.5 text-[12.5px] font-semibold text-teal-600 leading-none">
+          {/* Status line — min-w-0 + truncate so it shortens under the
+              action buttons on very narrow phones (~330px) instead of
+              overlapping "שיחה חדשה" (QA finding, 18/08). */}
+          <div className="flex min-w-0 items-center gap-1.5 mt-0.5 text-[12.5px] font-semibold text-teal-600 leading-none">
             <span className="inline-block h-[7px] w-[7px] rounded-full bg-success flex-shrink-0" />
-            מחובר · עונה תוך שניות
+            <span className="truncate">מחובר · עונה תוך שניות</span>
           </div>
         </div>
 
