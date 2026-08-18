@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import { YearSwitch } from "@/components/dashboard/year-switch";
 import { ils } from "@/lib/utils";
 import {
   calculatePL,
@@ -116,7 +117,7 @@ function greeting(): string {
 }
 
 export default function DashboardPage() {
-  const { persona } = useRequiredPersona();
+  const { persona, setPersona } = useRequiredPersona();
   const [granularity, setGranularity] = useState<Granularity>("year");
   const [filter, setFilter] = useState<Filter>({ kind: "year" });
   const [pl, setPL] = useState<PLSummary | null>(null);
@@ -449,10 +450,14 @@ export default function DashboardPage() {
                   <b className="font-bold text-due">
                     {imminentDeadlines.length} מועדים
                   </b>{" "}
-                  שדורשים מעקב · שנת מס {persona.income.year}
+                  שדורשים מעקב ·{" "}
+                  <YearSwitch persona={persona} onPersonaChange={setPersona} />
                 </>
               ) : (
-                <>שנת מס {persona.income.year} · אין מועדים דחופים כרגע</>
+                <>
+                  <YearSwitch persona={persona} onPersonaChange={setPersona} /> · אין מועדים
+                  דחופים כרגע
+                </>
               )}
             </p>
           </div>

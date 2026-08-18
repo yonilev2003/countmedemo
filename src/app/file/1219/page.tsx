@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { ArrowRightIcon, SparklesIcon } from "@/components/brand/icons";
 import { Form1219Preview } from "@/components/form-1219/form-preview";
+import { getFormSchema } from "@/lib/form-1301/get-form-schema";
 import { CountUp } from "@/components/brand/motion";
 import { ils as formatIls } from "@/lib/utils";
 
@@ -84,7 +85,7 @@ export default function Form1219Page() {
 
             {/* The form in the countme beige frame (signals "this is countme, not gov.il") */}
             <div className="rounded-lg border-[3px] border-dashed border-brand bg-paper p-2 sm:p-3">
-              <Form1219Preview persona={p} />
+              <Form1219Preview persona={p} schema={getFormSchema("1219", p.income.year)} />
             </div>
 
             <p className="mt-4 text-center text-xs text-faint">

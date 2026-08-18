@@ -11,11 +11,17 @@ interface Props {
   persona: Persona;
   /** Called when the user clicks the bottom "המשך" button — same destination as the page-level "ראה הערכת מס" CTA. */
   onContinue?: () => void;
+  /**
+   * The resolved schema for this filing year (see lib/form-1301/get-form-schema.ts).
+   * Optional and defaults to the static `form1301` export so any caller that
+   * hasn't been wired to the year-keyed resolver yet keeps working unchanged.
+   */
+  schema?: FormTab[];
 }
 
-export function FormPreview({ persona, onContinue }: Props) {
+export function FormPreview({ persona, onContinue, schema = form1301 }: Props) {
   const [activeTab, setActiveTab] = useState<FormTab["id"]>("personal");
-  const tab = form1301.find((t) => t.id === activeTab) ?? form1301[0];
+  const tab = schema.find((t) => t.id === activeTab) ?? schema[0];
 
   return (
     <div
@@ -25,7 +31,7 @@ export function FormPreview({ persona, onContinue }: Props) {
       <GovTopBar year={persona.income.year} />
       <GovTitleBar />
       <GovNavBar
-        tabs={form1301}
+        tabs={schema}
         activeId={activeTab}
         onSelect={(id) => setActiveTab(id)}
       />

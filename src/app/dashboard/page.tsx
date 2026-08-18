@@ -16,6 +16,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import { YearSwitch } from "@/components/dashboard/year-switch";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
 import {
   computeMonthSummary,
@@ -46,7 +47,7 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const { persona } = useRequiredPersona();
+  const { persona, setPersona } = useRequiredPersona();
 
   useEffect(() => {
     trackClient("dashboard_viewed");
@@ -162,8 +163,9 @@ export default function DashboardPage() {
           <h1 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
             {firstName ? `שלום, ${firstName}` : "שלום"}
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            {monthName} · {persona.business.tradeName} · שנת מס {persona.income.year}
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
+            {monthName} · {persona.business.tradeName} ·{" "}
+            <YearSwitch persona={persona} onPersonaChange={setPersona} />
           </p>
         </Reveal>
 

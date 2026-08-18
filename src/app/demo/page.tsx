@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import type { Persona } from "@/lib/persona";
 import { FormPreview } from "@/components/form-1301/form-preview";
+import { getFormSchema } from "@/lib/form-1301/get-form-schema";
 import { ChatPanel } from "@/components/agent/chat-panel";
 import { estimateTaxLiability, TaxEstimate } from "@/lib/calculators";
 import { getTaxYearConstants } from "@/lib/calculators/types";
@@ -108,7 +109,11 @@ export default function DemoPage() {
                     ראה הערכת מס שנתית →
                   </button>
                 </div>
-                <FormPreview persona={persona} onContinue={() => setPhase("estimate")} />
+                <FormPreview
+                  persona={persona}
+                  schema={getFormSchema("1301", persona.income.year)}
+                  onContinue={() => setPhase("estimate")}
+                />
               </div>
             ) : (
               <TaxEstimateGate persona={persona} onContinue={() => setPhase("form")} />

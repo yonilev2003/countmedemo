@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { form1219, Form1219TabId } from "@/lib/form-1219/schema";
+import { form1219, Form1219Tab, Form1219TabId } from "@/lib/form-1219/schema";
 import { Persona } from "@/lib/persona";
 import { calculate } from "@/lib/calculators";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,12 @@ import { SectionCard } from "@/components/form-1301/govil-section";
 
 interface Props {
   persona: Persona;
+  /**
+   * The resolved schema for this filing year (see lib/form-1301/get-form-schema.ts).
+   * Optional and defaults to the static `form1219` export so any caller that
+   * hasn't been wired to the year-keyed resolver yet keeps working unchanged.
+   */
+  schema?: Form1219Tab[];
 }
 
 /**
@@ -17,9 +23,9 @@ interface Props {
  * includes the capital calculators) and mirrors the gov chrome, with three tabs:
  * assets / liabilities / net-capital summary.
  */
-export function Form1219Preview({ persona }: Props) {
+export function Form1219Preview({ persona, schema = form1219 }: Props) {
   const [activeTab, setActiveTab] = useState<Form1219TabId>("assets");
-  const tab = form1219.find((t) => t.id === activeTab) ?? form1219[0];
+  const tab = schema.find((t) => t.id === activeTab) ?? schema[0];
   const declarationDate = persona.capitalDeclaration?.declarationDate;
 
   return (
@@ -51,7 +57,7 @@ export function Form1219Preview({ persona }: Props) {
 
       {/* Tab strip */}
       <div className="flex bg-[#eef3f8] border-b border-stone-300">
-        {form1219.map((t) => (
+        {schema.map((t) => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
