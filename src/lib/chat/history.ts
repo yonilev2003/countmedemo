@@ -16,7 +16,11 @@
 //
 // Persistence is client-side only for now (acceptable for beta per the task
 // brief) — a server-side write is a natural follow-up once /api/chat and
-// /api/coach know which thread a request belongs to.
+// /api/coach know which thread a request belongs to. That same follow-up is
+// also where appendMessage's two round-trips (insert message, then update
+// the thread's updated_at) should be consolidated into one write — e.g. a
+// DB trigger on chat_messages insert, or a single RPC — instead of two
+// client round-trips. Not restructured here; see appendMessage/touchThread.
 
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentUserId } from "@/lib/data/persona-repository";
@@ -71,7 +75,12 @@ export function dbRoleToUiRole(role: ChatRole): "agent" | "user" {
 }
 
 /** This user's threads, most-recently-updated first. Empty when signed out,
- *  the tables aren't reachable yet, or on any error. */
+ *  the tables aren't reachable yet, or on any error.
+ *
+ *  Capped to the 50 most recently updated threads: the sidebar ("שיחות
+ *  אחרונות") only ever shows a handful at once, so there's no UI that needs
+ *  more than this in one shot. A deeper archive / "load more" view is future
+ *  work if usage grows past what a bounded recent-list can serve. */
 export async function listThreads(): Promise<ChatThread[]> {
   if (unavailable) return [];
   try {
@@ -81,7 +90,8 @@ export async function listThreads(): Promise<ChatThread[]> {
       .from("chat_threads")
       .select("id, title, created_at, updated_at")
       .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(50);
     if (error) {
       noteIfSchemaMissing(error);
       return [];
@@ -97,7 +107,17 @@ export async function listThreads(): Promise<ChatThread[]> {
   }
 }
 
-/** All messages in a thread, oldest first. Empty on any failure. */
+/** The most recent 200 messages in a thread, returned oldest-first (ascending
+ *  createdAt) so callers/UI never have to know about the fetch direction.
+ *
+ *  Contract: this is a bounded *recent-history* view, not the full thread.
+ *  We fetch the last 200 by created_at descending (cheapest for Postgres to
+ *  satisfy with an index — "give me the tail") and reverse client-side to
+ *  hand back ascending order. A thread beyond 200 messages silently loses
+ *  its earliest turns from this view; that's an accepted tradeoff for now
+ *  (matches loadMessages' historical unbounded behavior for any thread that
+ *  never crosses 200) — a "load older messages" affordance is future work,
+ *  same as listThreads' 50-thread cap above. */
 export async function loadMessages(threadId: string): Promise<ChatMessageRow[]> {
   if (unavailable || !threadId) return [];
   try {
@@ -105,18 +125,21 @@ export async function loadMessages(threadId: string): Promise<ChatMessageRow[]> 
       .from("chat_messages")
       .select("id, thread_id, role, content, created_at")
       .eq("thread_id", threadId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (error) {
       noteIfSchemaMissing(error);
       return [];
     }
-    return (data ?? []).map((row) => ({
-      id: row.id,
-      threadId: row.thread_id,
-      role: row.role === "assistant" ? "assistant" : "user",
-      content: row.content,
-      createdAt: row.created_at,
-    }));
+    return (data ?? [])
+      .map((row): ChatMessageRow => ({
+        id: row.id,
+        threadId: row.thread_id,
+        role: row.role === "assistant" ? "assistant" : "user",
+        content: row.content,
+        createdAt: row.created_at,
+      }))
+      .reverse();
   } catch {
     return [];
   }
