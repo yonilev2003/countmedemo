@@ -72,7 +72,7 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
     safe: `המחזור השנתי שלך (${fmt(turnover)}) רחוק מתקרת ${year} (${fmt(threshold)}). אין צורך בפעולה.`,
     approaching: `המחזור שלך (${fmt(turnover)}) מתקרב לתקרת ${category} לשנת ${year} (${fmt(threshold)}). בשלב זה אין חובה, אבל כדאי לעקוב.`,
     warning: `עברת 80% מתקרת ${year}. בדוק/י: האם צפויות הכנסות נוספות השנה? אם כן, התחל/י תהליך העברה לעוסק מורשה.`,
-    critical: `90% מתקרת ${category} לשנת ${year} — מכאן כל חשבונית מקרבת חובת עוסק מורשה. הוסף/י מע"מ מיידית כשחורג/ת.`,
+    critical: `${percent}% מתקרת ${category} לשנת ${year} — מכאן כל חשבונית מקרבת חובת עוסק מורשה. הוסף/י מע"מ מיידית כשחורג/ת.`,
     exceeded: `המחזור (${fmt(turnover)}) חורג מתקרת שנת ${year} (${fmt(threshold)}). יש לפנות לרשות המסים לרישום כעוסק מורשה, ולרשום ${vatPercent}% מע"מ על כל חשבונית מרגע החריגה.`,
   }[level];
 

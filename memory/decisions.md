@@ -169,6 +169,25 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 - **`CLAUDE.md`** נשאר ייעודי ל-Claude Code (הקשר ארכיטקטוני), לא לסטטוס-סשן.
 - **טראקר המשימות** (`docs/meeting-records/yoni-tasks-27032026.md`) נשאר מקור-אמת ל-11 המשימות.
 
+## RAG — ביקורת 18/08/2026: לא קיים, ואין החלטה מתועדת שאישרה אותו
+
+בדיקה שלמה (grep על `pgvector|embedding|match_documents|rag|vector` בכל `src/`, `supabase/migrations/`,
+ו-`memory/*.md`) לא מצאה שום מימוש retrieval, ושום שורת החלטה שמאשרת "light RAG: Supabase pgvector +
+Claude" — למרות שזה הוצג בשיחה כ"ההחלטה המאושרת". שקל (`/coach`, `/api/coach`) וה-demo chat
+(`/api/chat`) עונים היום אך ורק דרך: (א) system prompt קבוע, (ב) 4 כלים דטרמיניסטיים שעוטפים את
+`lib/calculators`/`lib/deadlines`/`lib/alerts/ceiling` — אין שום אינדוקס/שליפה של טקסט (סקילים,
+מסמכים, נהלים). לכל שאלה מחוץ ל-8 השדות-כוכב + 4 הכלים — אין קרקוע, רק ה-guardrail הרך "אל תמציא".
+
+**מה כן נעשה 18/08:** חוזק ה-guardrail בשני המקומות (`lib/agent/tools.ts`, `src/app/api/coach/route.ts`)
+להנחיה מפורשת של סירוב-ולא-ניחוש מחוץ לכיסוי הכלים, ונוספה הערת "לא ייעוץ מס" ל-`/api/chat` (היחיד
+שהיה חסר לגמרי אחת).
+
+**מה לא נעשה, ולמה:** לא הותקנה שכבת RAG. בניית pgvector אמיתית דורשת ספק embeddings חדש (Anthropic
+אין לו endpoint embeddings; Voyage AI / OpenAI הן האופציות המעשיות) — זו החלטת ספק+תלות חדשה
+(עלות, וגם כלל העבודה ב-CLAUDE.md נגד הוספת תלות בלי לתעד קודם) שלא שלי לקחת חד-צדדית. סקיצת מימוש
+(סכימה + ingestion + retrieval היברידי + rerank) קיימת ותועדה בפלט הביקורת — ממתינה להחלטת יוני/רוי
+אם ולאיזה ספק להתחייב, לפני שנבנה.
+
 ## רקע (מ-CLAUDE.md, לא לפתוח מחדש)
 
 Stack: Next.js 16 + React 19 + TS + Tailwind 4 + Anthropic SDK · Vercel · Supabase (יום 2+) ·

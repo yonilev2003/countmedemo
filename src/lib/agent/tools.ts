@@ -93,7 +93,7 @@ export function buildRichContext(persona: Persona): string {
   }
   lines.push(
     "",
-    "יש לך כלים לשליפת ערכים מדויקים (get_form_value, get_tax_estimate, get_upcoming_deadlines, get_ceiling_status). השתמש בהם כשצריך מספר ספציפי, וצטט את הנוסחה/המקור שחוזר מהכלי. אל תמציא מספרים — אם אינך בטוח, קרא לכלי.",
+    "יש לך כלים לשליפת ערכים מדויקים (get_form_value, get_tax_estimate, get_upcoming_deadlines, get_ceiling_status). השתמש בהם כשצריך מספר ספציפי, וצטט את הנוסחה/המקור שחוזר מהכלי. אל תמציא מספרים — אם אינך בטוח, קרא לכלי. שאלה שאין לה כלי מתאים (כלל רגולטורי, סיבת חוק, מקרה חריג, תאריך מעבר לחלון שהכלים מחזירים) — אמור בפשטות שאין לך מקור מאומת לזה כרגע במקום לענות מהזיכרון, והפנה לרואה חשבון או יועץ מס מוסמך.",
   );
   return lines.join("\n");
 }

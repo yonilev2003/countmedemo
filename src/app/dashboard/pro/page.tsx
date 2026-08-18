@@ -160,8 +160,20 @@ export default function DashboardPage() {
         ? filterByQuarter(pl.monthlyData, filter.q)
         : filterByMonth(pl.monthlyData, filter.m);
 
-  const filteredRevenue = filteredMonthly.reduce((s, m) => s + m.revenue, 0);
-  const filteredExpenses = filteredMonthly.reduce((s, m) => s + m.expenses, 0);
+  // "Whole year" reads pl.totalRevenue/totalExpenses directly (the same
+  // baseline+docs YTD figures every other card on this page — and the
+  // light dashboard — already show). monthlyData only ever holds REAL
+  // DATED activity, by design (the chart's one job is showing where that
+  // activity actually happened, never a smoothed estimate) — summing it
+  // for "the whole year" silently dropped the undated setup-wizard
+  // baseline the moment even one dated document existed (audit,
+  // 2026-08-18: showed ₪6,500/₪3,009 next to a ₪119,500/₪23,009 total on
+  // the same screen). Quarter/month views correctly stay dated-only —
+  // that IS what "activity in this specific quarter/month" means.
+  const filteredRevenue =
+    filter.kind === "year" ? pl.totalRevenue : filteredMonthly.reduce((s, m) => s + m.revenue, 0);
+  const filteredExpenses =
+    filter.kind === "year" ? pl.totalExpenses : filteredMonthly.reduce((s, m) => s + m.expenses, 0);
   const filteredNet = filteredRevenue - filteredExpenses;
 
   const fmt = ils;
@@ -324,7 +336,13 @@ export default function DashboardPage() {
         {[
           { label: "מחזור לשדה 238", value: pl.totalRevenue },
           {
-            label: "הכנסה חייבת (שדה 150)",
+            // Field 150 is business income BEFORE personal deductions — NOT
+            // taxable income (computeBusinessIncome's own doc comment says
+            // so explicitly; audit, 2026-08-18, found this card mislabeled
+            // "הכנסה חייבת"/taxable-income, which field 150 never is — the
+            // canonical taxable figure is computeTaxableIncome, shown in
+            // the tax-estimate card elsewhere, not duplicated here).
+            label: "הכנסה מעסק (שדה 150)",
             // Use the canonical field-150 calculator (zeir-aware: 70% of turnover
             // for עוסק זעיר), NOT raw netProfit which ignores the 30% rule.
             value: Number(calculate("field-150-business-income", persona)?.value ?? pl.netProfit),

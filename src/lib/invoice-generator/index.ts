@@ -107,3 +107,30 @@ export function formatHebrewDate(isoDate: string): string {
   const d = new Date(isoDate);
   return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+
+/**
+ * SHAAM allocation-number threshold (מספר הקצאה) — the net (ex-VAT) amount
+ * ABOVE which a tax invoice (300/305/310) legally requires an allocation
+ * number to support input-VAT deduction. Amendment 157 to the VAT Law,
+ * progressively lowered; dated by the DOCUMENT's issue date, not the tax
+ * year (the schedule itself accelerated between rate announcements).
+ * Source: .claude/skills/israeli-e-invoice/references/compliance-timeline.md
+ * (rashut-hamisim.gov.il / themarker.com, verified 2025-03; audit 2026-08-18
+ * confirmed the ₪5,000/2026-06-01 step is already in effect for "today").
+ */
+export function allocationNumberThreshold(issueDateIso: string): number {
+  const d = new Date(issueDateIso);
+  if (Number.isNaN(d.getTime())) return 5_000; // unparsable date — assume the strictest current rule
+  if (d >= new Date("2026-06-01")) return 5_000;
+  if (d >= new Date("2026-01-01")) return 10_000;
+  if (d >= new Date("2025-01-01")) return 20_000;
+  return 25_000; // from 2024-05-01
+}
+
+/** True when a tax invoice of `netAmount` issued on `issueDateIso` legally
+ *  requires a SHAAM allocation number the app does not yet issue (countme
+ *  has no live Tax-Authority API integration — phase 2). Used to gate any
+ *  wording that implies unconditional input-VAT-deduction support. */
+export function requiresAllocationNumber(netAmount: number, issueDateIso: string): boolean {
+  return netAmount > allocationNumberThreshold(issueDateIso);
+}

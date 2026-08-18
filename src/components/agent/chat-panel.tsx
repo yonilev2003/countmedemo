@@ -5,6 +5,7 @@ import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { SendIcon } from "@/components/brand/icons";
+import { LegalNote } from "@/components/brand/legal-note";
 
 /** Shekel's avatar image (3D character render, cropped to the head via object-top). */
 const SHEKEL_AVATAR = "/shekel/shekel-mascot.jpg";
@@ -336,9 +337,10 @@ export function ChatPanel({ persona }: Props) {
             <SendIcon className="size-[20px]" />
           </button>
         </div>
-        <div className="mt-2 text-center text-[10px] text-faint">
-          {isLoading ? "מחובר ל-Claude Sonnet — מעבד..." : "מחובר ל-Claude Sonnet"}
-        </div>
+        {/* Persistent advice-boundary note — this surface had zero
+            disclaimer anywhere (audit, 2026-08-18); every other advisory
+            card in the app already carries one. */}
+        <LegalNote variant="line" className="mt-2 text-center" />
       </div>
     </div>
   );

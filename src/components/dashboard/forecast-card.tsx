@@ -25,6 +25,11 @@ const TONE_STYLES = {
 
 const fmt = (n: number) => ils(Math.round(n));
 
+const MONTH_NAMES_FULL = [
+  "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+];
+
 export function ForecastCard({ persona }: { persona: Persona }) {
   const [basis, setBasis] = useState<ForecastBasis>("average");
   const forecast = useMemo(() => buildForecast(persona), [persona]);
@@ -45,7 +50,9 @@ export function ForecastCard({ persona }: { persona: Persona }) {
               תכנון מול ביצוע — מקדמות
             </h3>
             <p className="text-xs text-muted mt-0.5">
-              תחזית קדימה על בסיס החודשים שכבר נרשמו. על איזה חודש לחשב?
+              {forecast.yearIsComplete
+                ? `שנת ${persona.income.year} הסתיימה — אלו הנתונים בפועל, לא הקרנה.`
+                : `תחזית קדימה על בסיס ${forecast.monthsElapsed} החודשים שחלפו השנה. על איזה חודש לחשב?`}
             </p>
           </div>
         </div>
@@ -83,6 +90,18 @@ export function ForecastCard({ persona }: { persona: Persona }) {
         <Figure label="מקדמות שנתיות צפויות" value={fmt(scenario.projectedAdvancesDue)} />
         <Figure label="מקדמה חודשית לפי התחזית" value={fmt(scenario.recommendedMonthlyMikdama)} />
       </div>
+
+      {/* Proactive ceiling-crossing projection (Yoni, 18/08): "צפי" and
+          "הכנסה" are different things — a run-rate that implies crossing
+          the עוסק פטור/זעיר ceiling later this year is exactly the kind of
+          forward warning a YTD-only number can't give on its own. */}
+      {forecast.projectedCeilingCrossingMonth && (
+        <div className="mt-3 rounded-xl border border-due/40 bg-due-bg px-3 py-2 text-[11px] text-due-ink">
+          בקצב הנוכחי, המחזור צפוי לחצות את התקרה במהלך{" "}
+          <b>{MONTH_NAMES_FULL[forecast.projectedCeilingCrossingMonth - 1]}</b> — כדאי להתחיל להיערך
+          למעבר לעוסק מורשה מבעוד מועד.
+        </div>
+      )}
 
       {/* Plan vs actual */}
       <div className={`mt-4 rounded-xl border px-4 py-3 ${tone.box}`}>

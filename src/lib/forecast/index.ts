@@ -20,6 +20,7 @@ import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import { ils } from "@/lib/utils";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { estimateTaxLiability } from "@/lib/calculators/index";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 
 export type ForecastBasis = "strong" | "average" | "weak";
 
@@ -51,9 +52,34 @@ export interface ForecastResult {
   scenarios: Record<ForecastBasis, ForecastScenario>;
   /** What the user has actually paid in advances so far. */
   paidMikdamot: number;
+  /** True when persona.income.year is a past/completed tax year relative to
+   *  today — the "forecast" then just reports the final actual figure
+   *  (monthsElapsed=12), it is not extrapolating anything. */
+  yearIsComplete: boolean;
+  /** How many months of persona.income.year have elapsed (1-12) — the honest
+   *  denominator for a YTD run-rate. 12 whenever the year is complete. */
+  monthsElapsed: number;
+  /** For an in-progress patur/zeir year projected to cross the turnover
+   *  ceiling: the calendar month (1-12, within income.year) the "average"
+   *  scenario's run-rate implies the crossing. Null when not patur/zeir,
+   *  the year is already complete, or the average projection stays under
+   *  the ceiling. */
+  projectedCeilingCrossingMonth: number | null;
 }
 
 const clamp0 = (n: number) => (n > 0 ? n : 0);
+
+/** Months of `year` that have elapsed as of `today` — 12 when `year` is
+ *  already in the past (a completed, filed-or-filing year has no "months
+ *  remaining" to project), the current month number when `year` is the
+ *  present calendar year, and 0 for a not-yet-started future year (never
+ *  actually reachable via the wizard's clamped year range, guarded anyway). */
+function monthsElapsedInYear(year: number, today: Date = new Date()): number {
+  const currentYear = today.getFullYear();
+  if (year < currentYear) return 12;
+  if (year > currentYear) return 0;
+  return today.getMonth() + 1;
+}
 
 /** Clone the persona with a hypothetical annual revenue, scaling deductible
  *  expenses to keep the same expense ratio. */
@@ -88,7 +114,7 @@ function makeScenario(persona: Persona, basis: ForecastBasis, runRate: number): 
   };
 }
 
-export function buildForecast(persona: Persona): ForecastResult {
+export function buildForecast(persona: Persona, today: Date = new Date()): ForecastResult {
   const pl = calculatePL(persona);
   const active: MonthStat[] = pl.monthlyData
     .filter((m) => m.revenue > 0)
@@ -100,19 +126,49 @@ export function buildForecast(persona: Persona): ForecastResult {
   const strongMonths = sorted.slice(0, third);
   const weakMonths = sorted.slice(-third);
 
-  // Enough data to distinguish months: real dated data + at least 3 active months
-  // whose strong/weak run-rates actually differ.
-  const strongRate = mean(strongMonths.map((m) => m.revenue));
-  const weakRate = mean(weakMonths.map((m) => m.revenue));
-  const avgRate = mean(active.map((m) => m.revenue));
-  const hasEnoughData = pl.hasDatedData && active.length >= 3 && strongRate > weakRate;
+  const strongRateDated = mean(strongMonths.map((m) => m.revenue));
+  const weakRateDated = mean(weakMonths.map((m) => m.revenue));
+  const avgRateDated = mean(active.map((m) => m.revenue));
+  const hasEnoughData = pl.hasDatedData && active.length >= 3 && strongRateDated > weakRateDated;
 
-  // Fallback when we can't tell months apart: use the even annual run-rate so the
-  // projection still equals the actual annual figure.
-  const evenRate = (persona.income.totalRevenue || 0) / 12;
-  const sRate = hasEnoughData ? strongRate : evenRate;
-  const wRate = hasEnoughData ? weakRate : evenRate;
-  const aRate = hasEnoughData ? avgRate : evenRate;
+  // The honest run-rate anchor: totalRevenue is a YTD figure (baseline +
+  // documents, "how much you've earned this year so far" — never a
+  // completed-year total on its own), so the denominator must be how many
+  // months have actually elapsed, not a blind /12. For a COMPLETED year
+  // (income.year in the past) monthsElapsed is 12, so this collapses to
+  // exactly totalRevenue with zero extrapolation — no special-casing
+  // needed. For an in-progress year this is the fix for the reported bug:
+  // ₪119,500 in August (month 8) used to show as "מחזור שנתי צפוי 119,500"
+  // (dividing by 12, i.e. a no-op); it now correctly implies a run-rate of
+  // ₪119,500/8 ≈ ₪14,937/month → ≈ ₪179,250 for the full year (audit,
+  // 2026-08-18).
+  const monthsElapsed = Math.max(1, monthsElapsedInYear(persona.income.year, today));
+  const yearIsComplete = monthsElapsed >= 12 && persona.income.year < today.getFullYear();
+  const anchorRate = (persona.income.totalRevenue || 0) / monthsElapsed;
+
+  // hasEnoughData scenarios: anchor the ABSOLUTE level to the true YTD pace
+  // (anchorRate), but keep the REAL strong/weak SHAPE from dated months by
+  // applying their ratio to the dated average — instead of using the dated
+  // months' absolute mean directly, which silently ignored any undated
+  // setup-wizard baseline revenue and could understate the run-rate by a
+  // large factor once a few dated months existed alongside a big baseline
+  // (audit finding, second bug in the same root cause).
+  const sRate = hasEnoughData && avgRateDated > 0 ? anchorRate * (strongRateDated / avgRateDated) : anchorRate;
+  const wRate = hasEnoughData && avgRateDated > 0 ? anchorRate * (weakRateDated / avgRateDated) : anchorRate;
+  const aRate = anchorRate;
+
+  // Projected ceiling-crossing month (patur/zeir, in-progress year only):
+  // at the average run-rate, which month within income.year would
+  // cumulative revenue first exceed the threshold?
+  let projectedCeilingCrossingMonth: number | null = null;
+  if (!yearIsComplete && persona.business.osekType === "patur") {
+    const ceiling = computeCeilingAlert(persona);
+    if (ceiling && ceiling.level !== "exceeded" && aRate > 0) {
+      const monthsToStillEarn = Math.ceil(ceiling.remaining / aRate);
+      const crossingMonth = monthsElapsed + monthsToStillEarn;
+      if (crossingMonth <= 12) projectedCeilingCrossingMonth = crossingMonth;
+    }
+  }
 
   return {
     hasEnoughData,
@@ -125,6 +181,9 @@ export function buildForecast(persona: Persona): ForecastResult {
       weak: makeScenario(persona, "weak", clamp0(wRate)),
     },
     paidMikdamot: persona.income.mikdamot ?? 0,
+    yearIsComplete,
+    monthsElapsed,
+    projectedCeilingCrossingMonth,
   };
 }
 

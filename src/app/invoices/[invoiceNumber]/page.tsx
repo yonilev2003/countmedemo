@@ -5,7 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { InvoiceLine } from "@/lib/persona";
-import { formatHebrewDate } from "@/lib/invoice-generator/index";
+import {
+  formatHebrewDate,
+  requiresAllocationNumber,
+  allocationNumberThreshold,
+} from "@/lib/invoice-generator/index";
+import { ils } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
@@ -52,6 +57,13 @@ export default function InvoicePrintPage() {
   // SHAAM allocation numbers: a REAL allocation must come from the Tax
   // Authority API (phase 2). Never display an invented number on a document —
   // the previous mock here was a regulatory exposure (removed 2026-07-19).
+  // Legal-blocker fix (audit, 2026-08-18): above the current-dated allocation
+  // threshold (₪5,000 net from 2026-06-01), the document must NOT claim
+  // unconditional input-VAT-deduction backing — countme has no live
+  // allocation-number issuance, so a real accountant relying on that wording
+  // above threshold could have the deduction rejected by the Tax Authority.
+  const needsAllocationNumber =
+    isPaymentDoc && !isPatur && requiresAllocationNumber(invoice.amount, invoice.date);
 
   // Initial of the trade name for the issuer monogram (mockup: navy circle, beige glyph).
   const monogram = persona.business.tradeName?.trim().charAt(0) || "C";
@@ -314,7 +326,20 @@ export default function InvoicePrintPage() {
         {/* Legal footer text — visible below card */}
         <div className="no-print mx-auto mt-6 px-2 text-xs text-faint leading-relaxed space-y-1">
           {isPaymentDoc && isPatur && <p>עוסק פטור ממע&quot;מ לפי סעיף 31(1) לחוק מע&quot;מ — אין חיוב מע&quot;מ.</p>}
-          {isPaymentDoc && !isPatur && <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>}
+          {isPaymentDoc && !isPatur && !needsAllocationNumber && (
+            <p>חשבונית מס זו מהווה אסמכתא לקיזוז מע&quot;מ תשומות ולפי סעיף 38 לחוק מע&quot;מ.</p>
+          )}
+          {/* DRAFT — NEEDS LEGAL REVIEW: countme has no live SHAAM allocation-
+              number issuance (phase 2) — above the current threshold the
+              document must say so instead of asserting unconditional
+              deduction support (legal-blocker fix, audit 2026-08-18). */}
+          {needsAllocationNumber && (
+            <p>
+              חשבונית מס מעל {ils(allocationNumberThreshold(invoice.date))} (ללא מע&quot;מ) מחייבת מספר
+              הקצאה מרשות המסים כדי לשמש לקיזוז מע&quot;מ תשומות — countme אינה מנפיקה עדיין מספר הקצאה
+              (בקרוב). יש לוודא מול רואה החשבון כיצד להשלים את הדרישה עד אז.
+            </p>
+          )}
           {/* DRAFT — NEEDS LEGAL REVIEW (Roy: חשבונית ישראל / doc requirements) */}
           {docType === "business-account" && (
             <p>חשבון עסקה — דרישת תשלום בלבד; אינו מסמך מס. קבלה תופק עם קבלת התשלום.</p>

@@ -8,6 +8,7 @@ import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { LegalNote } from "@/components/brand/legal-note";
 import {
   PaperclipIcon,
   MicIcon,
@@ -651,12 +652,14 @@ export function CoachChat({ persona }: Props) {
           </button>
         </div>
 
-        {/* Status line */}
+        {/* Status + advice-boundary note — the note was missing entirely
+            from the actual chat surface (only the page shell around it had
+            one, invisible once scrolled into a conversation — audit,
+            2026-08-18). */}
         <div className="mt-2 text-end text-[10px] text-faint">
-          {isLoading
-            ? "מחובר ל-Claude Sonnet — מעבד..."
-            : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
+          {isLoading ? "מחובר ל-Claude Sonnet — מעבד..." : "מחובר ל-Claude Sonnet · אפשר לצרף קבלה או PDF"}
         </div>
+        <LegalNote variant="line" className="mt-1 text-end" />
       </div>
     </div>
   );

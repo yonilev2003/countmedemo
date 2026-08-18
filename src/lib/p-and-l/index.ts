@@ -61,6 +61,16 @@ function monthFromIso(iso: string): number | null {
   return m;
 }
 
+/** True when an ISO date's year matches the persona's declared tax year —
+ *  without this, a document dated in a DIFFERENT calendar year than
+ *  income.year (e.g. a real Aug-2026 receipt on a persona still declaring
+ *  income.year=2025) got bucketed into that month as if it belonged to the
+ *  declared year, corrupting both the P&L monthly view and the forecast's
+ *  active-months detection (audit, 2026-08-18). */
+function isInTaxYear(iso: string, year: number): boolean {
+  return iso.startsWith(String(year));
+}
+
 export function calculatePL(persona: Persona): PLSummary {
   const totalRevenue = persona.income.totalRevenue;
   // Shared YTD derivation (baseline + non-deleted rows, net of reclaimable
@@ -102,6 +112,10 @@ export function calculatePL(persona: Persona): PLSummary {
         // VAT as income and inflated the P&L cards (journey-scan round 2:
         // 8,260 shown against a true 2,000 net).
         if (!isRevenueDoc(inv.docType)) continue;
+        // A document dated outside the persona's declared tax year isn't
+        // this year's activity (audit finding, 2026-08-18) — e.g. a real
+        // Aug-2026 receipt on a persona still declaring income.year=2025.
+        if (!isInTaxYear(inv.date, persona.income.year)) continue;
         const m = monthFromIso(inv.date);
         if (m !== null) {
           revenueByMonth[m - 1] += inv.amount;
@@ -112,6 +126,7 @@ export function calculatePL(persona: Persona): PLSummary {
     if (expensesLines.length > 0) {
       for (const exp of expensesLines) {
         if (exp.deletedAt) continue; // soft-deleted — hidden everywhere else too
+        if (!isInTaxYear(exp.date, persona.income.year)) continue;
         const m = monthFromIso(exp.date);
         if (m !== null) {
           // Net of reclaimable input VAT — same basis as totalExpenses above.
@@ -120,6 +135,15 @@ export function calculatePL(persona: Persona): PLSummary {
         }
       }
     }
+    // NOTE: the undated setup-wizard baseline is intentionally NOT smoothed
+    // into monthlyData here — that would corrupt the monthly chart's one
+    // job (showing where REAL dated activity happened) with synthetic
+    // filler. The year-total reconciliation (baseline+docs must equal
+    // totalRevenue/totalExpenses) instead happens at the CALLER: read
+    // pl.totalRevenue/totalExpenses directly for a "whole year" view rather
+    // than re-summing monthlyData, which only ever holds dated-only figures
+    // (audit, 2026-08-18 — see dashboard/pro/page.tsx and the expense-pie
+    // reconciliation below).
   }
 
   // Source 3: even distribution (only if both sources above produced nothing)
@@ -166,6 +190,16 @@ export function calculatePL(persona: Persona): PLSummary {
       category,
       amount,
     }));
+    // Reconcile against the setup-wizard BASELINE (totalExpenses is the
+    // authoritative YTD figure — baseline + rows; the loop above only ever
+    // sees categorized rows). Without this the pie silently dropped the
+    // baseline entirely the moment even one dated row existed — 100% of a
+    // ₪23,009 total rendering as one ₪3,009 category (audit, 2026-08-18).
+    const categorizedSum = rawBreakdown.reduce((s, r) => s + r.amount, 0);
+    const uncategorized = Math.round(totalExpenses - categorizedSum);
+    if (uncategorized > 0) {
+      rawBreakdown.push({ category: "יתרה לא מסווגת (מהגדרה הראשונית)", amount: uncategorized });
+    }
   } else {
     rawBreakdown = [
       { category: "תוכנות ומנויים", amount: Math.round(totalExpenses * 0.25) },
