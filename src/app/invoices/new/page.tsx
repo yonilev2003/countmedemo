@@ -17,7 +17,7 @@ import {
 } from "@/lib/invoice-generator/index";
 import { Persona, InvoiceLine, InvoiceDocType } from "@/lib/persona";
 import { trackClient } from "@/lib/analytics/track-client";
-import { cn } from "@/lib/utils";
+import { cn, numberInputWheelGuard } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
 import {
@@ -785,6 +785,7 @@ function DetailsStage({
               min={0}
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              onWheel={numberInputWheelGuard}
               placeholder="0"
               className={inputCls(hasError("missingAmount"))}
               dir="ltr"

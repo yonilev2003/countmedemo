@@ -1,9 +1,26 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { WheelEvent } from "react";
 
 /** Tailwind class merger with clsx — standard shadcn helper. */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * onWheel handler for input[type=number]: blurs the input when it's the one
+ * currently focused. Constraint: browsers (Chrome/Firefox/Edge) silently
+ * increment/decrement a FOCUSED number input on mouse-wheel scroll — on an
+ * official document amount that's a real data-integrity risk (e.g. 1500 →
+ * 1499 from one accidental scroll tick while the cursor passes over the
+ * field). Blurring on wheel is the standard fix: once the input isn't
+ * focused, the browser no longer routes the scroll into its value. Wire it
+ * as `onWheel={numberInputWheelGuard}` on every numeric input.
+ */
+export function numberInputWheelGuard(e: WheelEvent<HTMLInputElement>) {
+  if (document.activeElement === e.currentTarget) {
+    e.currentTarget.blur();
+  }
 }
 
 /** Format ILS currency for the demo. */

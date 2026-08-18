@@ -9,13 +9,141 @@ import {
   clearLocalPersona,
   getPersonaOwner,
   setPersonaOwner,
+  consumePersonaContinueIntent,
 } from "@/lib/setup-storage";
 import { fetchPersona, upsertPersona, getCurrentUserId } from "./persona-repository";
 
-/** Save locally now (sync cache) and persist to the DB in the background. */
-export function persistPersona(persona: Persona): void {
+/**
+ * The five ways a local persona cache can relate to the current browser
+ * session, and what's safe to do about it. This is the single source of
+ * truth for cross-account safety (QA #17 — session bleed): both the DB→cache
+ * READ reconcile (syncPersonaFromDb) and the cache→DB WRITE (persistPersona)
+ * classify through this same function before touching the DB, so the rule
+ * can never drift between the two paths.
+ *
+ * - "signed-out"       no authenticated session — local cache is untouched,
+ *                       never uploaded (there's nowhere safe to upload it to).
+ * - "use-remote"        the DB already has a persona for this user — it wins,
+ *                       unconditionally. Read-path only (persist never fetches
+ *                       remote first, see below).
+ * - "discard-foreign"   local cache is stamped to a DIFFERENT user than the
+ *                       one live in this browser right now. NEVER read it as
+ *                       this user's data, NEVER upload it, NEVER merge it —
+ *                       drop it. This is the exact QA #17 shape: a stale
+ *                       Yoni cookie must never inherit/receive Dana's data
+ *                       just because her anonymous /setup cache is sitting in
+ *                       the same browser's localStorage.
+ * - "adopt-unclaimed"   local cache has NO owner stamp (anonymous) AND the
+ *                       one-shot continue-intent flag is set — i.e. the user
+ *                       just finished /setup in THIS browser and explicitly
+ *                       clicked through into login with that exact persona.
+ *                       Safe to claim for the now-authenticated user and
+ *                       upload. This is the ONLY path that may stamp/upload
+ *                       an unstamped cache (fix contract (a)/(c)).
+ * - "keep-own"          local cache is already stamped to the CURRENT user —
+ *                       their own data, previously reconciled. Safe to keep
+ *                       showing and safe to upload edits.
+ * - "empty"             nothing usable: no local cache, or an anonymous cache
+ *                       with no continue-intent (a stale cookie must NOT
+ *                       silently adopt an anonymous cache it has no claim to
+ *                       — fix contract (c)). Never uploads.
+ */
+export type PersonaOwnershipAction =
+  | "signed-out"
+  | "use-remote"
+  | "discard-foreign"
+  | "adopt-unclaimed"
+  | "keep-own"
+  | "empty";
+
+export interface PersonaOwnershipInput {
+  /** Authenticated user id for the CURRENT browser session, or null when signed out. */
+  currentUserId: string | null;
+  /** Owner stamp on the cached local persona (see setPersonaOwner), or null if unstamped/absent. */
+  localOwner: string | null;
+  /** Whether a persona object currently exists in the local cache. */
+  hasLocalPersona: boolean;
+  /**
+   * Whether the DB already holds a persona row for `currentUserId`. Only the
+   * read (sync) path ever knows this — persist() never fetches remote first
+   * (that would cost a network round-trip on every save), so it always
+   * passes `false` and therefore never reaches "use-remote".
+   */
+  hasRemotePersona: boolean;
+  /** See `markPersonaContinueIntent` / `consumePersonaContinueIntent` in setup-storage.ts. */
+  explicitContinueIntent: boolean;
+}
+
+/** Pure decision function — no I/O, fully unit-testable (see tests/unit/persona-ownership.test.ts). */
+export function decidePersonaOwnership(
+  input: PersonaOwnershipInput,
+): PersonaOwnershipAction {
+  const {
+    currentUserId,
+    localOwner,
+    hasLocalPersona,
+    hasRemotePersona,
+    explicitContinueIntent,
+  } = input;
+
+  if (!currentUserId) return "signed-out";
+  if (hasRemotePersona) return "use-remote";
+  if (!hasLocalPersona) return "empty";
+
+  // A cache stamped to someone else is radioactive: never read it as this
+  // user's, never write it up — checked BEFORE the unstamped/adopt branch so
+  // a foreign stamp can never be misread as "unclaimed".
+  if (localOwner && localOwner !== currentUserId) return "discard-foreign";
+  if (localOwner === currentUserId) return "keep-own";
+
+  // localOwner is null/unstamped here — the only branch where adoption is
+  // even on the table, and only with the explicit one-shot signal.
+  if (explicitContinueIntent) return "adopt-unclaimed";
+  return "empty";
+}
+
+/**
+ * Save locally now (sync cache) and persist to the DB in the background —
+ * but ONLY when the local cache is safe to attribute to the CURRENT
+ * authenticated session (see decidePersonaOwnership). A cache stamped to a
+ * different user, or an anonymous cache with no explicit continue-intent,
+ * is saved locally (so the person in front of the screen keeps seeing their
+ * own edits) but is never uploaded — this is the fix for QA #17, where the
+ * old unconditional upsert let an anonymous wizard persona land in a stale
+ * cookie's authenticated DB row.
+ */
+export async function persistPersona(persona: Persona): Promise<void> {
   saveLocal(persona);
-  void upsertPersona(persona);
+
+  const currentUserId = await getCurrentUserId();
+  const localOwner = getPersonaOwner();
+  const action = decidePersonaOwnership({
+    currentUserId,
+    localOwner,
+    hasLocalPersona: true,
+    hasRemotePersona: false,
+    explicitContinueIntent: consumePersonaContinueIntent(),
+  });
+
+  switch (action) {
+    case "adopt-unclaimed":
+      setPersonaOwner(currentUserId);
+      void upsertPersona(persona);
+      return;
+    case "keep-own":
+      void upsertPersona(persona);
+      return;
+    case "discard-foreign":
+    case "signed-out":
+    case "empty":
+    case "use-remote":
+    default:
+      // No upload. "discard-foreign" in particular is the QA #17 guard: the
+      // cache we just wrote locally belongs to a different account than the
+      // one live in this browser — it stays on this screen, but it must
+      // never reach that account's DB row.
+      return;
+  }
 }
 
 /**
@@ -23,11 +151,8 @@ export function persistPersona(persona: Persona): void {
  * logged-in user; the local cache is only a fast paint. Returns the
  * authoritative persona (DB → local → null).
  *
- * Cross-user safety: the cache carries an "owner" stamp (the user id it was last
- * reconciled for). A cache stamped to a *different* user is treated as stale and
- * dropped — it must never be shown to, or pushed up for, the current user. This
- * is a defence-in-depth backstop to the sign-out cache-clear: it also covers
- * non-button sign-outs (cookie expiry, a second account logging in directly).
+ * Cross-user safety: routed entirely through decidePersonaOwnership — see
+ * that function's doc comment for the full state table.
  */
 // In-flight dedupe: PersonaHydrator (root layout) and the per-page hooks all
 // call syncPersonaFromDb on mount, so a single navigation used to fire the
@@ -44,35 +169,56 @@ export function syncPersonaFromDb(): Promise<Persona | null> {
 }
 
 async function syncPersonaFromDbUncached(): Promise<Persona | null> {
-  const userId = await getCurrentUserId();
+  const currentUserId = await getCurrentUserId();
+  const local = loadLocal();
+  const localOwner = getPersonaOwner();
 
   // Signed out (anonymous/demo): keep whatever local cache exists, untouched.
-  if (!userId) return loadLocal();
+  if (!currentUserId) return local;
 
   // Pass the resolved id through — skips fetchPersona's own auth round-trip.
-  const remote = await fetchPersona(userId);
-  if (remote) {
-    // DB wins — overwrite the cache and claim it for this user.
-    saveLocal(remote);
-    setPersonaOwner(userId);
-    return remote;
-  }
+  const remote = await fetchPersona(currentUserId);
 
-  // Logged in, but the DB has no persona yet.
-  const owner = getPersonaOwner();
-  if (owner && owner !== userId) {
-    // Leftover cache from a previous user on this browser — never expose or
-    // upload it. Drop it and report "empty" so the user starts clean.
-    clearLocalPersona();
-    return null;
-  }
+  const action = decidePersonaOwnership({
+    currentUserId,
+    localOwner,
+    hasLocalPersona: !!local,
+    hasRemotePersona: !!remote,
+    explicitContinueIntent: consumePersonaContinueIntent(),
+  });
 
-  // Cache is this user's own, or anonymous and not yet claimed (the
-  // signup → /setup → DB hand-off): adopt it and seed the DB.
-  const local = loadLocal();
-  if (local) {
-    setPersonaOwner(userId);
-    void upsertPersona(local);
+  switch (action) {
+    case "use-remote":
+      // DB wins — overwrite the cache and claim it for this user.
+      saveLocal(remote!);
+      setPersonaOwner(currentUserId);
+      return remote;
+
+    case "discard-foreign":
+      // Leftover cache from a previous/different user on this browser —
+      // never expose or upload it. Drop it and report "empty" so the user
+      // starts clean (QA #17: this is the exact cross-account bleed guard).
+      clearLocalPersona();
+      return null;
+
+    case "adopt-unclaimed":
+      // The signup → /setup → login hand-off, completed: an anonymous cache
+      // created in THIS browser, with the explicit one-shot continue-intent
+      // set right before authenticating. Claim it for this user and seed the
+      // DB — the only path that may upload a previously-unstamped cache.
+      setPersonaOwner(currentUserId);
+      void upsertPersona(local!);
+      return local;
+
+    case "keep-own":
+      // Already this user's own cache (stamped in a previous reconcile), but
+      // the DB row came back empty (e.g. a fresh row, or a prior write that
+      // didn't land) — repair it. Always safe: it's this user's own data.
+      void upsertPersona(local!);
+      return local;
+
+    case "empty":
+    default:
+      return null;
   }
-  return local;
 }

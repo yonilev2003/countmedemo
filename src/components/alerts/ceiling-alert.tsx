@@ -37,8 +37,15 @@ export function CeilingAlertCard({ alert }: { alert: CeilingAlert }) {
         />
       </div>
 
+      {/* The scale used to label its origin "₪0" — read twice (user + QA) as
+          a broken remaining-amount. Show the USEFUL number instead: distance
+          to the ceiling, or the overage once crossed. */}
       <div className="flex justify-between text-[10px] text-muted">
-        <span>₪0</span>
+        <span className="font-medium tabular-nums">
+          {alert.turnover > alert.threshold
+            ? `חריגה של ${ils(alert.turnover - alert.threshold)}`
+            : `נותרו ${ils(alert.remaining)}`}
+        </span>
         <span className="font-medium">תקרה {ils(alert.threshold)}</span>
       </div>
     </div>

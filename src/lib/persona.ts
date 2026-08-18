@@ -177,6 +177,34 @@ export interface PersonaBank {
   accountOwnerName: string;
 }
 
+/**
+ * תכנון מקדמות (advances plan) — the real-world מקדמות mechanic (task #24):
+ * a self-employed person doesn't just wait for a bill — they (or the Tax
+ * Authority, off the prior year's filing) set a MONTHLY ADVANCE rate against
+ * the CURRENT year's expected income, and pay it every month through the
+ * year. At year end the actual annual return (שומה) settles against those
+ * advances:
+ *   - underpaid  → the shortfall is due, plus הצמדה (linkage/indexation);
+ *   - overpaid   → a refund is due, plus הצמדה and ריבית (interest) where
+ *     the filer is entitled to it.
+ * Any on-screen settlement estimate built from this plan must say so
+ * explicitly EXCLUDES ריביות, הצמדות וקנסות — the final amount is set in the
+ * שומה, not by this estimate.
+ *
+ * `setBy` records who set the rate: the filer can proactively file a plan
+ * with their own expected revenue/expenses ("user"), or the Tax Authority
+ * can set/adjust the rate unilaterally, typically off the prior year's
+ * actual results ("authority") — in that case the filer may not have (or
+ * share) the revenue/expense assumptions behind it, so those two fields stay
+ * optional. `monthlyAdvance` is what's actually paid each month either way.
+ */
+export interface MikdamotPlan {
+  plannedAnnualRevenue?: number;
+  plannedAnnualExpenses?: number;
+  monthlyAdvance?: number;
+  setBy?: "user" | "authority";
+}
+
 export interface PersonaIncome {
   year: number;
   totalRevenue: number;
@@ -184,8 +212,10 @@ export interface PersonaIncome {
   netIncome: number;
   invoiceCount: number;
   expenseCount: number;
-  /** Advance tax payments (מקדמות) paid during the year. Used in tax estimate card. */
+  /** Advance tax payments (מקדמות) ACTUALLY paid during the year so far. Used in tax estimate card. */
   mikdamot?: number;
+  /** The advances PLAN behind those payments — see MikdamotPlan's doc comment. Absent = no plan on file yet. */
+  mikdamotPlan?: MikdamotPlan;
   invoices?: InvoiceLine[];
   expenses?: ExpenseLine[];
   financialInstitutionsIncome?: number;   // for field 032

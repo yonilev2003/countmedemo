@@ -59,9 +59,14 @@ export function LoginForm() {
         type="button"
         onClick={handleGoogleSignIn}
         disabled={loading}
+        aria-busy={loading}
         className="flex h-[54px] w-full items-center justify-center gap-3 rounded-full bg-white px-6 text-base font-bold text-brand-navy shadow-brand transition-all hover:-translate-y-px hover:bg-aqua-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-transparent disabled:pointer-events-none disabled:opacity-60"
       >
-        <GoogleGlyph />
+        {loading ? (
+          <span className="size-5 shrink-0 rounded-full border-2 border-brand-navy/30 border-t-brand-navy animate-spin" />
+        ) : (
+          <GoogleGlyph />
+        )}
         {loading ? "מעביר ל-Google…" : "התחברות עם Google"}
       </button>
 

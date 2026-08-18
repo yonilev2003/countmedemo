@@ -16,7 +16,7 @@
  * (persona.income.mikdamot). The UI lets the user flip the basis.
  */
 
-import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
+import { Persona, MikdamotPlan, effectiveDeductibleExpenses } from "@/lib/persona";
 import { ils } from "@/lib/utils";
 import { calculatePL } from "@/lib/p-and-l/index";
 import { estimateTaxLiability } from "@/lib/calculators/index";
@@ -65,6 +65,9 @@ export interface ForecastResult {
    *  the year is already complete, or the average projection stays under
    *  the ceiling. */
   projectedCeilingCrossingMonth: number | null;
+  /** The advances-plan comparison (task #24) — null when the persona has no
+   *  mikdamotPlan on file yet (the UI shows the "create a plan" mini-form). */
+  planComparison: PlanComparison | null;
 }
 
 const clamp0 = (n: number) => (n > 0 ? n : 0);
@@ -100,6 +103,28 @@ function mean(xs: number[]): number {
   return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0;
 }
 
+/** Clone the persona with the PLANNED annual revenue/expenses from a
+ *  mikdamotPlan — same expense-ratio fallback as withProjectedRevenue when
+ *  the plan doesn't state its own expense figure. */
+function withPlannedFigures(
+  persona: Persona,
+  plannedRevenue: number,
+  plannedExpenses?: number,
+): Persona {
+  const actualRevenue = persona.income.totalRevenue || 1;
+  const expenseRatio = effectiveDeductibleExpenses(persona.income) / actualRevenue;
+  const expenses =
+    plannedExpenses != null ? plannedExpenses : Math.round(plannedRevenue * expenseRatio);
+  return {
+    ...persona,
+    income: {
+      ...persona.income,
+      totalRevenue: Math.round(plannedRevenue),
+      totalDeductibleExpenses: Math.round(expenses),
+    },
+  };
+}
+
 function makeScenario(persona: Persona, basis: ForecastBasis, runRate: number): ForecastScenario {
   const projectedAnnualRevenue = Math.round(runRate * 12);
   // Single tax-engine run on the projected persona (reused for both figures).
@@ -111,6 +136,102 @@ function makeScenario(persona: Persona, basis: ForecastBasis, runRate: number): 
     projectedTaxableIncome: est.taxableIncome,
     projectedAdvancesDue: est.taxAfterCredits,
     recommendedMonthlyMikdama: Math.round(est.taxAfterCredits / 12),
+  };
+}
+
+export type SettlementDirection = "due" | "refund" | "even";
+
+/**
+ * One year-end שומה settlement estimate: an estimated annual tax figure
+ * minus the advances the year is projected to have accumulated by December,
+ * on ONE of two bases (see PlanComparison.yearEndSettlement). Positive
+ * balance = still owed at settlement (plus הצמדה); negative = refund due
+ * (plus הצמדה/ריבית where entitled). This is an ESTIMATE ONLY — it excludes
+ * ריביות, הצמדות וקנסות; the UI must always pair it with that disclaimer.
+ */
+export interface SettlementEstimate {
+  estimatedAnnualTax: number;
+  projectedAdvances: number;
+  balance: number;
+  direction: SettlementDirection;
+}
+
+/**
+ * The advances-plan mechanic (task #24, Yoni 18/08): a filer plans expected
+ * annual revenue/expenses (or the Tax Authority sets a rate for them) and
+ * pays a MONTHLY ADVANCE accordingly. This compares that plan against the
+ * system's own recommendation and what's actually been paid, then estimates
+ * where the year is heading.
+ */
+export interface PlanComparison {
+  plan: MikdamotPlan;
+  /** plan.monthlyAdvance, or null when the plan doesn't state one (e.g. an
+   *  authority-set plan the filer only knows the revenue assumption for). */
+  plannedMonthlyAdvance: number | null;
+  /** The system-forecast recommended monthly advance (average-basis scenario). */
+  recommendedMonthlyAdvance: number;
+  /** What's actually been paid so far this year (persona.income.mikdamot). */
+  paidSoFar: number;
+  /** The monthly rate assumed for the months still remaining this year —
+   *  the plan's own monthlyAdvance when set, else the system recommendation. */
+  assumedMonthlyAdvanceForRemainder: number;
+  /** 12 − monthsElapsed, floored at 0. */
+  remainingMonths: number;
+  /** paidSoFar + assumedMonthlyAdvanceForRemainder × remainingMonths — the
+   *  advances the FULL YEAR is projected to accumulate if the current pace
+   *  continues. This (not just paidSoFar) is what a year-end settlement
+   *  estimate must compare the annual tax against. */
+  projectedTotalAdvances: number;
+  yearEndSettlement: {
+    /** Estimated tax on the actual-YTD-annualized (average scenario) basis. */
+    actualBasis: SettlementEstimate;
+    /** Estimated tax on the plan's own revenue/expenses — null when the plan
+     *  has no plannedAnnualRevenue to run the tax engine on. */
+    planBasis: SettlementEstimate | null;
+  };
+}
+
+function settlementEstimate(estimatedAnnualTax: number, projectedAdvances: number): SettlementEstimate {
+  const tax = Math.round(estimatedAnnualTax);
+  const advances = Math.round(projectedAdvances);
+  const balance = tax - advances;
+  const direction: SettlementDirection = balance > 0 ? "due" : balance < 0 ? "refund" : "even";
+  return { estimatedAnnualTax: tax, projectedAdvances: advances, balance, direction };
+}
+
+function buildPlanComparison(
+  persona: Persona,
+  monthsElapsed: number,
+  averageScenario: ForecastScenario,
+): PlanComparison | null {
+  const plan = persona.income.mikdamotPlan;
+  if (!plan) return null;
+
+  const paidSoFar = persona.income.mikdamot ?? 0;
+  const recommendedMonthlyAdvance = averageScenario.recommendedMonthlyMikdama;
+  const plannedMonthlyAdvance = plan.monthlyAdvance ?? null;
+  const remainingMonths = Math.max(0, 12 - monthsElapsed);
+  const assumedMonthlyAdvanceForRemainder = plannedMonthlyAdvance ?? recommendedMonthlyAdvance;
+  const projectedTotalAdvances = paidSoFar + assumedMonthlyAdvanceForRemainder * remainingMonths;
+
+  const actualBasis = settlementEstimate(averageScenario.projectedAdvancesDue, projectedTotalAdvances);
+
+  let planBasis: SettlementEstimate | null = null;
+  if (plan.plannedAnnualRevenue != null) {
+    const planPersona = withPlannedFigures(persona, plan.plannedAnnualRevenue, plan.plannedAnnualExpenses);
+    const est = estimateTaxLiability(planPersona);
+    planBasis = settlementEstimate(est.taxAfterCredits, projectedTotalAdvances);
+  }
+
+  return {
+    plan,
+    plannedMonthlyAdvance,
+    recommendedMonthlyAdvance,
+    paidSoFar,
+    assumedMonthlyAdvanceForRemainder,
+    remainingMonths,
+    projectedTotalAdvances,
+    yearEndSettlement: { actualBasis, planBasis },
   };
 }
 
@@ -170,24 +291,27 @@ export function buildForecast(persona: Persona, today: Date = new Date()): Forec
     }
   }
 
+  const scenarios = {
+    strong: makeScenario(persona, "strong", clamp0(sRate)),
+    average: makeScenario(persona, "average", clamp0(aRate)),
+    weak: makeScenario(persona, "weak", clamp0(wRate)),
+  };
+
   return {
     hasEnoughData,
     activeMonths: active.sort((a, b) => a.month - b.month),
     strongMonths,
     weakMonths,
-    scenarios: {
-      strong: makeScenario(persona, "strong", clamp0(sRate)),
-      average: makeScenario(persona, "average", clamp0(aRate)),
-      weak: makeScenario(persona, "weak", clamp0(wRate)),
-    },
+    scenarios,
     paidMikdamot: persona.income.mikdamot ?? 0,
     yearIsComplete,
     monthsElapsed,
     projectedCeilingCrossingMonth,
+    planComparison: buildPlanComparison(persona, monthsElapsed, scenarios.average),
   };
 }
 
-export type PlanVsActualTone = "ok" | "under" | "over";
+export type PlanVsActualTone = "ok" | "under" | "over" | "neutral";
 
 export interface PlanVsActual {
   due: number;
@@ -198,13 +322,36 @@ export interface PlanVsActual {
   detailHe: string;
 }
 
-/** Compare a chosen scenario's recommended advances against what's been paid. */
-export function planVsActual(scenario: ForecastScenario, paid: number): PlanVsActual {
+/**
+ * Compare a chosen scenario's recommended advances against what's been paid.
+ *
+ * `hasPlan` (Yoni, 18/08): when NOTHING has been paid AND there's no
+ * mikdamotPlan on file either, there is no real signal of under-payment —
+ * it's just that we don't have data yet. The old copy showed a gap equal to
+ * the ENTIRE forecast and called it "תת-תשלום מקדמות צפוי", which reads as an
+ * alarm for a brand-new persona that hasn't recorded anything. Once a plan
+ * IS on file, paid=0 against it is a real signal again (the plan says
+ * advances should be flowing) — so this calm branch only fires when both
+ * paid AND hasPlan are absent.
+ */
+export function planVsActual(
+  scenario: ForecastScenario,
+  paid: number,
+  hasPlan: boolean = false,
+): PlanVsActual {
   const due = scenario.projectedAdvancesDue;
   const gap = due - paid;
   // 8% band counts as "on track".
   const band = Math.max(2000, due * 0.08);
   const fmt = (n: number) => ils(Math.abs(Math.round(n)));
+
+  if (paid === 0 && !hasPlan) {
+    return {
+      due, paid, gap, tone: "neutral",
+      headlineHe: "אין עדיין נתוני מקדמות",
+      detailHe: `לפי התחזית, מקדמה שנתית של כ-${fmt(due)}. הזנת תשלומי מקדמות תדייק את התמונה.`,
+    };
+  }
 
   if (Math.abs(gap) <= band) {
     return {

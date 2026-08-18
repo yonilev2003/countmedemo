@@ -244,8 +244,15 @@ export default function DashboardPage() {
         // Real annual estimate (zeir-aware taxable + brackets + credit points +
         // deductions) — income tax is annual, so this is the yearly figure, not
         // net×20%. Was a flat 20% of net profit, which ignored zeir + brackets.
+        //
+        // SCOPE (Yoni, 18/08 audit): this is computed on ACTUAL YTD data
+        // (persona.income.totalRevenue as recorded so far) — unlike the
+        // forecast card's "מקדמות שנתיות צפויות", which runs the same tax
+        // engine on the PROJECTED annual revenue. Both are correct; without a
+        // scope label they read as two unlabeled, disagreeing tax figures on
+        // the same page. Same principle as the KPI strip's periodQualifier.
         value={fmt(estimateTaxLiability(persona).taxAfterCredits)}
-        sub="הערכה שנתית"
+        sub="לפי הנתונים עד כה"
         color="text-muted"
         dot="bg-due"
         icon={<PercentIcon className="size-4" />}

@@ -25,7 +25,7 @@ import {
 import { addExpense, activeExpenses } from "@/lib/expenses/store";
 import { uploadReceiptImage } from "@/lib/expenses/receipt-storage";
 import { fetchBoiRate } from "@/lib/expenses/boi-exchange-rate";
-import { cn } from "@/lib/utils";
+import { cn, numberInputWheelGuard } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
@@ -819,6 +819,7 @@ function ReviewStage({
                 min={0}
                 value={draft.originalAmount}
                 onChange={(e) => update({ originalAmount: e.target.value })}
+                onWheel={numberInputWheelGuard}
                 className={inputCls(false)}
                 dir="ltr"
               />
@@ -842,6 +843,7 @@ function ReviewStage({
               step="0.0001"
               value={draft.exchangeRate}
               onChange={(e) => update({ exchangeRate: e.target.value, exchangeRateIsManual: true })}
+              onWheel={numberInputWheelGuard}
               className={inputCls(false)}
               dir="ltr"
               placeholder={boiLoading ? "מחפש שער..." : "הזן/י שער"}
@@ -867,6 +869,7 @@ function ReviewStage({
             min={0}
             value={draft.amount}
             onChange={(e) => update({ amount: e.target.value })}
+            onWheel={numberInputWheelGuard}
             className={inputCls(hasError("amount"))}
             dir="ltr"
           />

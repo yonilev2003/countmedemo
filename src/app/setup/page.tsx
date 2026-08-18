@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
-import { loadPersona } from "@/lib/setup-storage";
+import { loadPersona, markPersonaContinueIntent } from "@/lib/setup-storage";
 import { persistPersona } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
-import { cn } from "@/lib/utils";
+import { cn, numberInputWheelGuard } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
 import { Logo } from "@/components/brand/logo";
@@ -99,7 +99,11 @@ interface Step1Data {
   lastName: string;
   teudatZehut: string;
   birthDate: string;
-  gender: "male" | "female";
+  // "" = not yet chosen. It affects credit points (2.75 vs 2.25) so a silent
+  // default is a wrong-tax risk (QA #12) — the wizard must force an explicit
+  // pick before the persona is built (validateStep1 below), unlike the persona
+  // type itself which stays "male" | "female" (no empty state downstream).
+  gender: "male" | "female" | "";
   maritalStatus: MaritalStatus;
 }
 
@@ -531,9 +535,16 @@ function DoneScreen({ persona }: { persona: Persona }) {
             </div>
 
             {/* Google-login CTA — unchanged from before: /setup never creates a
-                real account, this is still the only thing that does. */}
+                real account, this is still the only thing that does.
+                markPersonaContinueIntent() is the ONLY place this fires: it's
+                the explicit, one-shot "I'm continuing into login with THIS
+                persona" signal that lets the next auth reconcile claim/upload
+                this still-anonymous cache (fix contract (c) — QA #17). Absent
+                this click, an anonymous cache is never adopted by whichever
+                account happens to be authenticated in this browser. */}
             <Link
               href="/login"
+              onClick={() => markPersonaContinueIntent()}
               className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-cream/60 px-4 py-3 hover:border-brand-deep/40 hover:bg-cream transition-colors"
             >
               <div>
@@ -601,7 +612,7 @@ export default function SetupPage() {
     lastName: "",
     teudatZehut: "",
     birthDate: "",
-    gender: "female",
+    gender: "",
     maritalStatus: "single",
   });
 
@@ -666,7 +677,12 @@ export default function SetupPage() {
     accountNumber: "",
   });
 
-  const [errors, setErrors] = useState<Errors>({});
+  // `showValidation` gates whether the CURRENT screen's errors render at all;
+  // once true, `errors` below is recomputed on every render (not just on the
+  // "הבא" click), so a field that gets fixed clears its red state immediately
+  // instead of waiting for the next step click (QA #5). Same live-recompute
+  // pattern as /expenses/new's `missing`/`showValidation`.
+  const [showValidation, setShowValidation] = useState(false);
 
   useEffect(() => {
     const saved = loadPersona();
@@ -768,6 +784,7 @@ export default function SetupPage() {
       e.teudatZehut = "מספר תעודת הזהות אינו תקין";
     }
     if (!s1.birthDate) e.birthDate = "שדה חובה";
+    if (!s1.gender) e.gender = "שדה חובה";
     if (!termsAccepted) {
       e.termsAccepted = "יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להמשיך";
     }
@@ -894,16 +911,30 @@ export default function SetupPage() {
     return {};
   }
 
+  /** Validator for whatever screen is currently showing — single source of
+   * truth for both the "הבא"/"שלח" gate and the live re-render below. */
+  function validateCurrentScreen(): Errors {
+    if (screen === 1) return validateStep1();
+    if (screen === 2) return validateStep2();
+    if (screen === 3) return validateStep3Intro();
+    if (screen === 4) return validateStep3Identity();
+    if (screen === 5) return validateStep4();
+    if (screen === 6) return validateStep5();
+    return validateStep6();
+  }
+
+  // Recomputed on every render (not only on "הבא"): once the user has hit an
+  // invalid "הבא" for this screen, fixing the field must clear its error the
+  // same render it becomes valid — not stay red until the next click (QA #5).
+  const errors = showValidation ? validateCurrentScreen() : {};
+
   function handleNext() {
-    let errs: Errors = {};
-    if (screen === 1) errs = validateStep1();
-    if (screen === 2) errs = validateStep2();
-    if (screen === 3) errs = validateStep3Intro();
-    if (screen === 4) errs = validateStep3Identity();
-    if (screen === 5) errs = validateStep4();
-    if (screen === 6) errs = validateStep5();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    const errs = validateCurrentScreen();
+    if (Object.keys(errs).length > 0) {
+      setShowValidation(true);
+      return;
+    }
+    setShowValidation(false);
     setScreen((p) => p + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -948,7 +979,7 @@ export default function SetupPage() {
   }
 
   function handleBack() {
-    setErrors({});
+    setShowValidation(false);
     setScreen((p) => p - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -974,7 +1005,10 @@ export default function SetupPage() {
         fatherName: null,
         teudatZehut: s1.teudatZehut,
         birthDate: s1.birthDate,
-        gender: s1.gender,
+        // Non-empty guaranteed: validateStep1 blocks screen 1 -> 2 while
+        // s1.gender is "" (QA #12), and buildPersona only runs after every
+        // screen up to the final "הבא"/submit has passed validation.
+        gender: s1.gender as "male" | "female",
         maritalStatus: s1.maritalStatus,
         spouse: null,
         isNewResident: s2.isNewResident,
@@ -1128,8 +1162,10 @@ export default function SetupPage() {
 
   function handleSubmit() {
     const errs = validateStep6();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (Object.keys(errs).length > 0) {
+      setShowValidation(true);
+      return;
+    }
     const persona = buildPersona();
     persistPersona(persona);
     setDoneData(persona);
@@ -1162,7 +1198,10 @@ export default function SetupPage() {
     Number(s2.academicDegreeYear) > currentYear;
 
   const creditPoints = (() => {
-    let pts = s1.gender === "female" ? 2.75 : 2.25;
+    // No silent default for unselected gender (QA #12) — by the time this
+    // preview is visible (screen 7) validateStep1 already required a pick, but
+    // stay defensive rather than assume "male" for an empty value.
+    let pts = s1.gender === "female" ? 2.75 : s1.gender === "male" ? 2.25 : 0;
     if (s2.isNewResident) pts += 3;
     if (s2.isSoldierDischarged) pts += 1;
     pts += s2.children.filter((c) => c.birthYear).length * 0.5;
@@ -1329,14 +1368,20 @@ export default function SetupPage() {
                 </div>
 
                 <div>
-                  <FieldLabel>מגדר (משפיע על נקודות זיכוי)</FieldLabel>
-                  <div className="flex gap-3">
+                  <FieldLabel required>מגדר (משפיע על נקודות זיכוי)</FieldLabel>
+                  <div
+                    className="flex gap-3"
+                    role="radiogroup"
+                    aria-required="true"
+                  >
                     <label
                       className={cn(
                         "flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors text-sm",
                         s1.gender === "female"
                           ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
-                          : "border-line bg-paper hover:bg-cream",
+                          : errors.gender
+                            ? "border-alert bg-paper hover:bg-cream"
+                            : "border-line bg-paper hover:bg-cream",
                       )}
                     >
                       <input
@@ -1354,7 +1399,9 @@ export default function SetupPage() {
                         "flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors text-sm",
                         s1.gender === "male"
                           ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
-                          : "border-line bg-paper hover:bg-cream",
+                          : errors.gender
+                            ? "border-alert bg-paper hover:bg-cream"
+                            : "border-line bg-paper hover:bg-cream",
                       )}
                     >
                       <input
@@ -1368,6 +1415,7 @@ export default function SetupPage() {
                       זכר (2.25 נקודות)
                     </label>
                   </div>
+                  <ErrorMsg msg={errors.gender} />
                 </div>
 
                 <div>
@@ -1505,6 +1553,7 @@ export default function SetupPage() {
                         <input
                           id="serviceMonths"
                           type="number"
+                          onWheel={numberInputWheelGuard}
                           min={0}
                           max={60}
                           value={s2.soldierServiceMonths}
@@ -1574,6 +1623,7 @@ export default function SetupPage() {
                   <input
                     id="academicYear"
                     type="number"
+                    onWheel={numberInputWheelGuard}
                     min={1950}
                     value={s2.academicDegreeYear}
                     onChange={(e) =>
@@ -1605,6 +1655,7 @@ export default function SetupPage() {
                   <input
                     id="combatReserveDays"
                     type="number"
+                    onWheel={numberInputWheelGuard}
                     min={0}
                     max={400}
                     value={s2.combatReserveDays}
@@ -1642,6 +1693,7 @@ export default function SetupPage() {
                         <div key={i} className="flex gap-2 items-start">
                           <input
                             type="number"
+                            onWheel={numberInputWheelGuard}
                             min={1980}
                             max={currentYear}
                             value={c.birthYear}
@@ -1814,6 +1866,7 @@ export default function SetupPage() {
                           <input
                             id="priorInvoiceNumber"
                             type="number"
+                            onWheel={numberInputWheelGuard}
                             min={1}
                             value={s3.priorInvoiceNumber}
                             onChange={(e) =>
@@ -2028,6 +2081,7 @@ export default function SetupPage() {
                   <input
                     id="totalRevenue"
                     type="number"
+                    onWheel={numberInputWheelGuard}
                     min={0}
                     value={s4.totalRevenue}
                     onChange={(e) =>
@@ -2067,6 +2121,7 @@ export default function SetupPage() {
                   <input
                     id="expenses"
                     type="number"
+                    onWheel={numberInputWheelGuard}
                     min={0}
                     value={s5.totalDeductibleExpenses}
                     onChange={(e) =>
@@ -2129,6 +2184,7 @@ export default function SetupPage() {
                       <input
                         id="bituachLeumi"
                         type="number"
+                        onWheel={numberInputWheelGuard}
                         min={0}
                         value={s5.bituachLeumiAnnualPaid}
                         onChange={(e) =>
@@ -2156,6 +2212,7 @@ export default function SetupPage() {
                       <input
                         id="kerenH"
                         type="number"
+                        onWheel={numberInputWheelGuard}
                         min={0}
                         value={s5.kerenHishtalmut}
                         onChange={(e) =>
@@ -2175,6 +2232,7 @@ export default function SetupPage() {
                       <input
                         id="pension"
                         type="number"
+                        onWheel={numberInputWheelGuard}
                         min={0}
                         value={s5.pensionContributions}
                         onChange={(e) =>
@@ -2197,6 +2255,7 @@ export default function SetupPage() {
                       <input
                         id="donations"
                         type="number"
+                        onWheel={numberInputWheelGuard}
                         min={0}
                         value={s5.donations}
                         onChange={(e) =>
