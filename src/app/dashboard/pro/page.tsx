@@ -204,10 +204,19 @@ export default function DashboardPage() {
 
   // ── Reusable blocks shared by both layouts ───────────────────────────────
 
+  // The period banner above already states the active filter, but a reader
+  // who only scans the big bold number (or a screenshot cropped to just the
+  // tiles — exactly how the 82,000-vs-125,500 "mismatch" got flagged, verified
+  // 2026-08-18: both read the identical pl.totalRevenue, it was the quarter
+  // filter showing Q1-only) never sees it. Same principle as the tax-year
+  // labeling requirement: every number carries its own scope, not just a
+  // banner someone can miss.
+  const periodQualifier = filter.kind === "year" ? "" : ` (${periodLabel})`;
+
   const kpiStrip = (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       <KPI
-        label="הכנסות"
+        label={`הכנסות${periodQualifier}`}
         value={fmt(filteredRevenue)}
         color="text-brand-deep"
         dot="bg-brand-deep"
@@ -215,7 +224,7 @@ export default function DashboardPage() {
         iconChip="bg-teal-100 text-brand-deep"
       />
       <KPI
-        label="הוצאות"
+        label={`הוצאות${periodQualifier}`}
         value={fmt(filteredExpenses)}
         color="text-ink"
         dot="bg-brand"
@@ -223,7 +232,7 @@ export default function DashboardPage() {
         iconChip="bg-beige-100 text-beige-600"
       />
       <KPI
-        label="רווח נקי"
+        label={`רווח נקי${periodQualifier}`}
         value={fmt(filteredNet)}
         color={filteredNet >= 0 ? "text-success" : "text-alert"}
         dot={filteredNet >= 0 ? "bg-success" : "bg-alert"}
