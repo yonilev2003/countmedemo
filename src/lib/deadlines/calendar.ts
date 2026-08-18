@@ -268,6 +268,41 @@ export const DEADLINE_CALENDAR: DeadlineEntry[] = [
   },
 ];
 
+// ─── Helper: Israel-timezone "today" ───────────────────────────────────────
+
+/** IANA timezone every "days until due" computation in this module rolls over at. */
+const CALENDAR_TIMEZONE = "Asia/Jerusalem";
+
+/**
+ * Collapse an instant to the CALENDAR DATE it falls on in Asia/Jerusalem,
+ * expressed as a Date at local midnight (00:00:00.000).
+ *
+ * Every function below reads back only `getFullYear()`/`getMonth()`/`getDate()`
+ * from its `fromDate` — i.e. this module already does pure calendar-date
+ * arithmetic, never wall-clock arithmetic. The bug this fixes: `new Date()`
+ * exposes those getters in the HOST's local timezone, not Israel's. On a
+ * server running UTC, 2026-08-18T22:30Z is still "Aug 18" by
+ * `getDate()`/`getMonth()` — but it's already 2026-08-19 01:30 in Israel
+ * (UTC+3, DST). Left uncorrected, a deadline due "tomorrow" in Israel would
+ * still show as due "in 2 days" until the host's own midnight, hours after
+ * Israeli users already consider it "today".
+ *
+ * Normalizing every `fromDate` through this function makes the whole
+ * module's day-diff arithmetic roll over at Israel midnight regardless of
+ * the host timezone the code happens to run in (server, browser, or CI).
+ */
+export function jerusalemToday(instant: Date = new Date()): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CALENDAR_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: string): number =>
+    Number(parts.find((p) => p.type === type)?.value ?? NaN);
+  return new Date(get("year"), get("month") - 1, get("day"));
+}
+
 // ─── Helper: compute next occurrences ───────────────────────────────────────
 
 /**
@@ -367,7 +402,11 @@ function nextAnnual(id: string, fromDate: Date): Date {
  * through a `shiftForIsraeliHolidays(dates)` utility (to be added in a
  * future task using the `hebcal` library) before displaying.
  *
- * @param fromDate   Reference date (defaults to `new Date()`)
+ * `fromDate` is an instant (any timezone) — it is normalized to the
+ * Asia/Jerusalem calendar date via `jerusalemToday()` before any arithmetic,
+ * so `daysUntilDue` always rolls over at Israel midnight.
+ *
+ * @param fromDate   Reference instant (defaults to `new Date()`)
  * @param filerType  Filter to a specific filer type (default: all types)
  * @param limit      Maximum number of results to return (default: 20)
  */
@@ -376,6 +415,11 @@ export function getUpcomingDeadlines(
   filerType: FilerType | "all" = "all",
   limit = 20,
 ): UpcomingDeadline[] {
+  // Normalize to the Israel calendar date FIRST — every date built below
+  // (nextMonthly/nextBiMonthly/nextAnnual, and the day-diff) derives from
+  // this single value, so the whole result set rolls over at Israel
+  // midnight, not the host's local midnight (see jerusalemToday doc).
+  const today = jerusalemToday(fromDate);
   const results: UpcomingDeadline[] = [];
 
   for (const entry of DEADLINE_CALENDAR) {
@@ -389,19 +433,19 @@ export function getUpcomingDeadlines(
 
     switch (entry.cadence) {
       case "monthly":
-        nextDueDate = nextMonthly(fromDate, dueDay);
+        nextDueDate = nextMonthly(today, dueDay);
         break;
       case "bi-monthly":
-        nextDueDate = nextBiMonthly(fromDate, dueDay);
+        nextDueDate = nextBiMonthly(today, dueDay);
         break;
       case "annual":
-        nextDueDate = nextAnnual(entry.id, fromDate);
+        nextDueDate = nextAnnual(entry.id, today);
         break;
     }
 
     const msPerDay = 1000 * 60 * 60 * 24;
     const daysUntilDue = Math.round(
-      (nextDueDate.getTime() - fromDate.getTime()) / msPerDay,
+      (nextDueDate.getTime() - today.getTime()) / msPerDay,
     );
 
     results.push({ ...entry, nextDueDate, daysUntilDue });

@@ -270,26 +270,37 @@ export default function DashboardPage() {
             alone (Yoni, 18/08). ── */}
         {ceiling && (ceiling.level === "warning" || ceiling.level === "critical" || ceiling.level === "exceeded") && (
           <Reveal className="mt-4">
-            <Link
-              href="/alerts"
-              className={`flex items-center gap-3 rounded-2xl border p-4 shadow-brand transition-all hover:-translate-y-0.5 ${
+            <div
+              className={`rounded-2xl border p-4 shadow-brand ${
                 ceiling.level === "warning"
-                  ? "border-due/40 bg-due-bg/40 hover:border-due"
-                  : "border-alert/40 bg-overdue-bg/40 hover:border-alert"
+                  ? "border-due/40 bg-due-bg/40"
+                  : "border-alert/40 bg-overdue-bg/40"
               }`}
             >
-              <span
-                className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-paper ${
-                  ceiling.level === "warning" ? "text-due-ink" : "text-alert-ink"
-                }`}
+              <Link
+                href="/alerts"
+                className="flex items-center gap-3 transition-all hover:-translate-y-0.5"
               >
-                <AlertTriangleIcon className="size-5" />
-              </span>
-              <div>
-                <div className="text-sm font-bold text-brand-navy">{ceiling.headlineHe}</div>
-                <div className="mt-0.5 text-xs text-muted">{ceiling.detailHe}</div>
-              </div>
-            </Link>
+                <span
+                  className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-paper ${
+                    ceiling.level === "warning" ? "text-due-ink" : "text-alert-ink"
+                  }`}
+                >
+                  <AlertTriangleIcon className="size-5" />
+                </span>
+                <div>
+                  <div className="text-sm font-bold text-brand-navy">{ceiling.headlineHe}</div>
+                  <div className="mt-0.5 text-xs text-muted">{ceiling.detailHe}</div>
+                </div>
+              </Link>
+              {/* CTA to the transition guide — crossing the ceiling forces
+                  עוסק מורשה registration regardless of level here, so this
+                  belongs alongside the strip, not buried inside /alerts
+                  alone (Yoni, 18/08, task #22). */}
+              <Link href="/guides/morshe" className={`${btn("secondary", "sm")} mt-3`}>
+                למדריך המעבר למורשה
+              </Link>
+            </div>
           </Reveal>
         )}
 

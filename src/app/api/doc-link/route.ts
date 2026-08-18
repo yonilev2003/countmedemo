@@ -7,7 +7,13 @@ import {
   rateLimitResponse,
   resolveClientKey,
 } from "@/lib/security/rate-limit";
-import { createDocToken, isDocLinkEnabled } from "@/lib/doc-link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  createDocToken,
+  generateShortId,
+  isDocLinkEnabled,
+  verifyDocToken,
+} from "@/lib/doc-link";
 
 /**
  * POST /api/doc-link — sign a shareable read-only document link.
@@ -121,5 +127,54 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ token });
+  // Short opaque id (QA #32 fix): the signed token alone is ~479 chars, and
+  // WhatsApp's own message-linkifier only recognizes part of it as a URL —
+  // recipients ended up with a truncated, dead link. A short id resolved
+  // server-side (via /s/[id]) fixes that without changing the token itself.
+  // Best-effort: insert failure falls back to the long /d/{token} link
+  // rather than failing the whole share action.
+  const shortId = await mintShortLink(token);
+
+  return NextResponse.json({ token, shortId });
+}
+
+/**
+ * Insert a doc_short_links row mapping a fresh short id to the just-minted
+ * token, expiring alongside it. Returns null (never throws) on any failure
+ * — missing table pre-migration, collision exhaustion, network blip — so
+ * the caller can fall back to the long link instead of failing the share.
+ */
+async function mintShortLink(token: string): Promise<string | null> {
+  const payload = verifyDocToken(token);
+  if (!payload) return null; // should be unreachable — token was just minted
+  const expiresAt = new Date(payload.exp * 1000).toISOString();
+
+  try {
+    const admin = createAdminClient();
+    // Untyped view: doc_short_links predates the generated Supabase types
+    // (same pattern as `events` in src/lib/analytics/track.ts) until the
+    // migration is applied and types regenerated.
+    const shortLinks = (
+      admin as unknown as {
+        from: (t: string) => {
+          insert: (row: Record<string, unknown>) => Promise<{ error: unknown }>;
+        };
+      }
+    ).from("doc_short_links");
+
+    // A handful of retries absorbs the astronomically rare id collision
+    // (62^9 keyspace) without ever surfacing it to the user.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const id = generateShortId();
+      const { error } = await shortLinks.insert({
+        id,
+        token,
+        expires_at: expiresAt,
+      });
+      if (!error) return id;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

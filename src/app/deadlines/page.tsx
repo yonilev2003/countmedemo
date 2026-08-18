@@ -20,6 +20,7 @@ import {
   XIcon,
 } from "@/components/brand/icons";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import type { Persona } from "@/lib/persona";
 import {
   getUpcomingDeadlines,
   type UpcomingDeadline,
@@ -27,6 +28,7 @@ import {
   type FilerType,
 } from "@/lib/deadlines/calendar";
 import { googleCalendarUrl, icsDataUrl } from "@/lib/deadlines/calendar-links";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import {
   getNotes,
   addNote,
@@ -79,6 +81,34 @@ function deadlineStatus(days: number): Status {
   return "plan";
 }
 
+/**
+ * The page subtitle's filer-type phrase — QA #36: this used to hardcode
+ * "עוסק פטור" for every non-murshe persona, which stayed wrong even after
+ * the turnover ceiling was exceeded (the copy never mentioned the mandatory
+ * transition) and even for עוסק זעיר users (a sub-registration of patur —
+ * see lib/alerts/ceiling.ts — reading "עוסק פטור" about their own
+ * registration reads as a typo). Derived from computeCeilingAlert so it
+ * stays in sync with the same ceiling logic the rest of the app uses,
+ * without duplicating the ceiling STRINGS themselves (those stay owned by
+ * lib/alerts/ceiling.ts — this only reads the returned `level`).
+ */
+function deadlinesSubtitle(persona: Persona): string {
+  const followUpHint = "ניתן להוסיף הערה / פולו-אפ לכל מועד.";
+
+  if (persona.business.osekType !== "patur") {
+    return `מועדים קרובים עבור עוסק מורשה · ${followUpHint}`;
+  }
+
+  const category = persona.business.isOsekZeir ? "עוסק זעיר" : "עוסק פטור";
+  const ceiling = computeCeilingAlert(persona);
+
+  if (ceiling?.level === "exceeded") {
+    return `חרגת מתקרת ${category} — נדרש מעבר לעוסק מורשה מול רשות המסים. עד השלמת הרישום, המועדים שלהלן עדיין מוצגים לפי הרישום הנוכחי כ${category}.`;
+  }
+
+  return `מועדים קרובים עבור ${category} · ${followUpHint}`;
+}
+
 export default function DeadlinesPage() {
   const { persona } = useRequiredPersona();
   const [deadlines, setDeadlines] = useState<UpcomingDeadline[]>([]);
@@ -127,9 +157,9 @@ export default function DeadlinesPage() {
             לוח מועדי הגשה
           </h1>
           <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">
-            מועדים קרובים עבור {persona.business.osekType === "patur" ? "עוסק פטור" : "עוסק מורשה"} ·
-            ניתן להוסיף הערה / פולו-אפ לכל מועד.
+            {deadlinesSubtitle(persona)}
           </p>
+          <p className="mt-1 text-[12px] text-faint">הימים מתעדכנים בחצות, שעון ישראל.</p>
         </div>
 
         <div className="space-y-3">

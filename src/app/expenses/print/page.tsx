@@ -32,6 +32,31 @@ export default function ExpensesPrintPage() {
   );
 }
 
+/**
+ * QA #26: the header used to always read `סיכום הוצאות לשנת {persona.income.year}`
+ * — but the table underneath is grouped from the ACTUAL expense dates
+ * (`groupExpensesByMonth`, keyed "YYYY-MM"), which can land in a different
+ * calendar year than `persona.income.year` (e.g. a persona whose income.year
+ * is the filing year 2025 while its recorded expense rows are dated across
+ * calendar 2024 — the tax-year label and the transaction dates are simply
+ * two different things). The header must describe what's actually printed
+ * below it, so it's derived from the same `months` groups the table renders
+ * from, not from the persona's tax year. Falls back to `persona.income.year`
+ * only when there's no data to derive a year from (empty filter result).
+ */
+function expensesPeriodLabel(
+  months: { key: string }[],
+  fallbackYear: number,
+): string {
+  if (months.length === 0) return `לשנת ${fallbackYear}`;
+
+  const years = Array.from(new Set(months.map((m) => Number(m.key.slice(0, 4))))).sort(
+    (a, b) => a - b,
+  );
+
+  return years.length === 1 ? `לשנת ${years[0]}` : `לתקופה ${years[0]}–${years[years.length - 1]}`;
+}
+
 function PrintSkeleton() {
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -86,7 +111,9 @@ function ExpensesPrintContent() {
             <h1 className="font-display text-3xl font-bold text-brand-navy">
               {persona.business.tradeName || persona.displayName}
             </h1>
-            <p className="text-sm text-muted mt-1">סיכום הוצאות לשנת {persona.income.year}</p>
+            <p className="text-sm text-muted mt-1">
+              סיכום הוצאות {expensesPeriodLabel(months, persona.income.year)}
+            </p>
             {filter !== "all" && (
               <p className="text-xs text-faint mt-1">מסונן לפי: {expensePillLabel(filter)}</p>
             )}

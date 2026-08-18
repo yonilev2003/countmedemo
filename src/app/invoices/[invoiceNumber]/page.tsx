@@ -98,8 +98,18 @@ export default function InvoicePrintPage() {
         }),
       });
       if (res.ok) {
-        const { token } = (await res.json()) as { token: string };
-        link = `${window.location.origin}/d/${encodeURIComponent(token)}`;
+        const { token, shortId } = (await res.json()) as {
+          token: string;
+          shortId: string | null;
+        };
+        // Prefer the short /s/{id} link — the long /d/{token} link is long
+        // enough (~479 chars) that WhatsApp's own message-linkifier only
+        // recognizes part of it as a URL, leaving recipients with a dead
+        // partial link (QA #32). Falls back to the long link when the
+        // short-id mint failed server-side (e.g. DB unavailable).
+        link = shortId
+          ? `${window.location.origin}/s/${shortId}`
+          : `${window.location.origin}/d/${encodeURIComponent(token)}`;
       }
     } catch {
       /* text-only fallback */

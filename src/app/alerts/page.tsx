@@ -104,6 +104,21 @@ function AlertCard({ alert }: { alert: Alert }) {
           </Link>
         </div>
       )}
+
+      {/* Ceiling-specific guide CTA — warning/critical/exceeded (severity
+          warn/alert on this alert only) all mean the same thing: crossing
+          the ceiling forces עוסק מורשה registration. Kept separate from
+          alert.cta above (which only fires at critical/exceeded and points
+          to /dashboard) so warning-level users see it too (task #22). */}
+      {alert.id === "ceiling-osek-patur" &&
+        (alert.severity === "warn" || alert.severity === "alert") && (
+          <div className="px-5 pb-4 pt-0">
+            <Link href="/guides/morshe" className={btn("secondary", "sm")}>
+              למדריך המעבר למורשה
+              <ArrowLeftIcon className="size-4" />
+            </Link>
+          </div>
+        )}
     </div>
   );
 }

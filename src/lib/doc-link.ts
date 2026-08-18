@@ -11,9 +11,36 @@
  * user action. Feature is DISABLED entirely until DOC_LINK_SECRET is set.
  */
 
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, randomInt, timingSafeEqual } from "crypto";
 
 export const DOC_LINK_TTL_DAYS = 90;
+
+// Base62, no ambiguous-character exclusions — this id is never hand-typed,
+// only tapped from a link, so 0/O and 1/l/I collisions don't matter and a
+// full 62-symbol alphabet keeps entropy-per-char maximal.
+const SHORT_ID_ALPHABET =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+export const SHORT_ID_LENGTH = 9;
+
+/**
+ * Opaque short id for /s/{id} share links (QA #32 fix — see the
+ * doc_short_links migration for why: the full signed token is too long for
+ * WhatsApp's own linkifier to recognize as one URL).
+ *
+ * crypto.randomInt is a CSPRNG with a rejection-sampled uniform draw per
+ * character (no modulo-bias from randomBytes % 62), so every character of
+ * the 9-char id is drawn uniformly from all 62 symbols independently.
+ */
+export function generateShortId(length: number = SHORT_ID_LENGTH): string {
+  if (!Number.isInteger(length) || length < 8 || length > 10) {
+    throw new Error("short id length must be an integer between 8 and 10");
+  }
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out += SHORT_ID_ALPHABET[randomInt(SHORT_ID_ALPHABET.length)];
+  }
+  return out;
+}
 
 export interface SharedDocPayload {
   v: 1;
