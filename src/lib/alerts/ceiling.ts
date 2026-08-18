@@ -28,7 +28,8 @@ export interface CeilingAlert {
 }
 
 export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
-  // Only relevant for עוסק פטור
+  // Only relevant for עוסק פטור (עוסק זעיר is a sub-registration of patur —
+  // same threshold, distinguished only in copy below).
   if (persona.business.osekType !== "patur") return null;
 
   const TC = getTaxYearConstants(persona.income.year);
@@ -36,6 +37,12 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
   const turnover = persona.income.totalRevenue;
   const percent = threshold > 0 ? Math.round((turnover / threshold) * 100) : 0;
   const remaining = Math.max(0, threshold - turnover);
+  const year = persona.income.year;
+  // Reader-facing category word — a זעיר user reading "עוסק פטור" copy about
+  // THEIR OWN registration reads as a typo, not a category they're in
+  // (journey-scan/audit finding, 2026-08-18).
+  const category = persona.business.isOsekZeir ? "עוסק זעיר" : "עוסק פטור";
+  const vatPercent = Math.round(TC.vatRate * 100);
 
   // Level from EXACT figures, not the display-rounded percent: 119,999 ₪ is
   // 99.999% (rounds to 100) but has NOT exceeded the ceiling. "Exceeded" means
@@ -49,20 +56,24 @@ export function computeCeilingAlert(persona: Persona): CeilingAlert | null {
 
   const fmt = ils;
 
+  // Every level names the tax year the threshold belongs to (₪120,000 for
+  // 2024-2025 vs ₪122,833 from 2026 are BOTH correct — the ambiguity was
+  // never in the number, only in which year it applied to; see
+  // memory/decisions.md's tax-year model + the 2026-08-18 audit).
   const headlineHe: string = {
-    safe: `מחזור ${percent}% מהתקרה — בטווח עוסק פטור`,
-    approaching: `מחזור ${percent}% מהתקרה — מתקרב לגבול`,
-    warning: `${fmt(remaining)} עד תקרת עוסק פטור`,
-    critical: `קריטי: נותרו ${fmt(remaining)} בלבד לתקרה`,
-    exceeded: `חרגת מתקרת עוסק פטור — נדרשת רישום כמורשה`,
+    safe: `מחזור ${percent}% מהתקרה — בטווח ${category} (שנת מס ${year})`,
+    approaching: `מחזור ${percent}% מהתקרה — מתקרב לגבול (שנת מס ${year})`,
+    warning: `${fmt(remaining)} עד תקרת ${category} לשנת ${year}`,
+    critical: `קריטי: נותרו ${fmt(remaining)} בלבד לתקרת ${category} לשנת ${year}`,
+    exceeded: `חרגת מתקרת ${category} לשנת ${year} — נדרשת רישום כמורשה`,
   }[level];
 
   const detailHe: string = {
-    safe: `המחזור השנתי שלך (${fmt(turnover)}) רחוק מהתקרה (${fmt(threshold)}). אין צורך בפעולה.`,
-    approaching: `המחזור שלך (${fmt(turnover)}) מתקרב לתקרת עוסק פטור (${fmt(threshold)}). בשלב זה אין חובה, אבל כדאי לעקוב.`,
-    warning: `עברת 80% מהתקרה. בדוק/י: האם צפויות הכנסות נוספות השנה? אם כן, התחל/י תהליך העברה לעוסק מורשה.`,
-    critical: `90% מהתקרה — מכאן כל חשבונית מקרבת חובת עוסק מורשה. הוסף/י מע"מ מיידית כשחורג/ת.`,
-    exceeded: `המחזור (${fmt(turnover)}) חורג מ-${fmt(threshold)}. יש לפנות לרשות המסים לרישום כעוסק מורשה, ולרשום 18% מע"מ על כל חשבונית מרגע החריגה.`,
+    safe: `המחזור השנתי שלך (${fmt(turnover)}) רחוק מתקרת ${year} (${fmt(threshold)}). אין צורך בפעולה.`,
+    approaching: `המחזור שלך (${fmt(turnover)}) מתקרב לתקרת ${category} לשנת ${year} (${fmt(threshold)}). בשלב זה אין חובה, אבל כדאי לעקוב.`,
+    warning: `עברת 80% מתקרת ${year}. בדוק/י: האם צפויות הכנסות נוספות השנה? אם כן, התחל/י תהליך העברה לעוסק מורשה.`,
+    critical: `90% מתקרת ${category} לשנת ${year} — מכאן כל חשבונית מקרבת חובת עוסק מורשה. הוסף/י מע"מ מיידית כשחורג/ת.`,
+    exceeded: `המחזור (${fmt(turnover)}) חורג מתקרת שנת ${year} (${fmt(threshold)}). יש לפנות לרשות המסים לרישום כעוסק מורשה, ולרשום ${vatPercent}% מע"מ על כל חשבונית מרגע החריגה.`,
   }[level];
 
   const tone: CeilingAlert["tone"] = {

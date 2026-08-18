@@ -162,7 +162,9 @@ export default function DashboardPage() {
           <h1 className="font-display text-2xl font-extrabold tracking-tight text-brand-navy sm:text-3xl">
             {firstName ? `שלום, ${firstName}` : "שלום"}
           </h1>
-          <p className="mt-1 text-sm text-muted">{monthName} · {persona.business.tradeName}</p>
+          <p className="mt-1 text-sm text-muted">
+            {monthName} · {persona.business.tradeName} · שנת מס {persona.income.year}
+          </p>
         </Reveal>
 
         {/* ── The three numbers ── */}

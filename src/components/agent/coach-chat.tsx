@@ -114,7 +114,11 @@ function eitanGreeting(persona: Persona | null | undefined): string {
   const ceiling = persona ? computeCeilingAlert(persona) : null;
   const ceilingNote =
     ceiling && ceiling.level !== "safe" ? ` דבר ראשון: ${ceiling.headlineHe}.` : "";
-  return `${prefix} אני שקל, השותף הדיגיטלי שלך לדוח השנתי.${ceilingNote} ${suffix}`;
+  // Year visibility (audit, 18/08): /coach never named which tax year it was
+  // talking about at all — a persona sitting on a lagging income.year (e.g.
+  // 2025 while the calendar reads 2026) gave no clue via the chat either.
+  const yearNote = persona ? ` לדוח השנתי לשנת ${persona.income.year}` : " לדוח השנתי";
+  return `${prefix} אני שקל, השותף הדיגיטלי שלך${yearNote}.${ceilingNote} ${suffix}`;
 }
 
 interface Props {

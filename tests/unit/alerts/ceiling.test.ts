@@ -44,3 +44,33 @@ describe("computeCeilingAlert — 2026 CPI-indexed ceiling (122,833)", () => {
     expect(computeCeilingAlert(paturWithTurnover(0, 2024))?.threshold).toBe(120_000);
   });
 });
+
+describe("computeCeilingAlert — copy correctness (2026-08-18 audit fixes)", () => {
+  it("names the tax year the threshold belongs to, so 2025 vs 2026 is never ambiguous on screen", () => {
+    const a2025 = computeCeilingAlert(paturWithTurnover(119_500, 2025))!;
+    const a2026 = computeCeilingAlert(paturWithTurnover(119_500, 2026))!;
+    expect(a2025.headlineHe).toContain("2025");
+    expect(a2026.headlineHe).toContain("2026");
+    // Same turnover, different year → different remaining (this was the
+    // user-reported "500 ₪" confusion: correct for 2025, not 2026).
+    expect(a2025.remaining).toBe(500);
+    expect(a2026.remaining).toBe(3_333);
+  });
+
+  it("calls an עוסק זעיר persona זעיר, not פטור, in its own copy", () => {
+    const zeir = makePersona({
+      business: { osekType: "patur", isOsekZeir: true },
+      income: { year: 2026, totalRevenue: 111_000 },
+    });
+    const alert = computeCeilingAlert(zeir)!;
+    expect(alert.headlineHe + alert.detailHe).toContain("עוסק זעיר");
+    expect(alert.headlineHe + alert.detailHe).not.toContain("עוסק פטור");
+  });
+
+  it("exceeded-level VAT instruction matches the persona's actual year-keyed VAT rate", () => {
+    const a2024 = computeCeilingAlert(paturWithTurnover(130_000, 2024))!;
+    const a2026 = computeCeilingAlert(paturWithTurnover(130_000, 2026))!;
+    expect(a2024.detailHe).toContain("17% מע\"מ");
+    expect(a2026.detailHe).toContain("18% מע\"מ");
+  });
+});

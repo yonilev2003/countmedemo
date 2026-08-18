@@ -7,6 +7,7 @@ import type { Persona } from "@/lib/persona";
 import { FormPreview } from "@/components/form-1301/form-preview";
 import { ChatPanel } from "@/components/agent/chat-panel";
 import { estimateTaxLiability, TaxEstimate } from "@/lib/calculators";
+import { getTaxYearConstants } from "@/lib/calculators/types";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
@@ -144,6 +145,7 @@ function TaxEstimateGate({
   onContinue: () => void;
 }) {
   const est = estimateTaxLiability(persona);
+  const TC = getTaxYearConstants(persona.income.year);
   const isRefund = est.balance < 0;
   const isOsekZeir = persona.business.isOsekZeir;
 
@@ -205,7 +207,11 @@ function TaxEstimateGate({
           <EstimateRow label="הכנסה חייבת (בקירוב)" value={est.taxableIncome} bold />
         </div>
         <EstimateRow label={`מס גולמי (לפי מדרגות ${persona.income.year})`} value={est.grossTax} />
-        <EstimateRow label="זיכוי נקודות (×2,904 ₪)" value={est.creditPointsValue} deduct />
+        <EstimateRow
+          label={`זיכוי נקודות (×${TC.pointValueAnnual.toLocaleString("he-IL")} ₪)`}
+          value={est.creditPointsValue}
+          deduct
+        />
         <EstimateRow label="זיכוי ביטוח לאומי — 48% (שדה 048)" value={est.blCredit} deduct />
 
         {est.excessCredits > 0 && (

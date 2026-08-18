@@ -607,7 +607,7 @@ const tabIncome: FormTab = {
           kind: "currency",
           status: "calculated",
           calculator: "field-137-keren-hishtalmut",
-          hint: "ניכוי בשיעור עד 4.5% מההכנסה (תקרת ניכוי מוכר 13,203 ₪, 2024–2025).",
+          hint: "ניכוי בשיעור עד 4.5% מההכנסה (תקרת ניכוי מוכר 13,203 ₪, 2024–2026).",
         },
       ],
     },
