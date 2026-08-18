@@ -43,6 +43,13 @@ export function LoginForm() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback${next}`,
+        // Force Google's account chooser on every sign-in. Without it, a
+        // browser with a live Google session silently completes OAuth with
+        // zero prompts — which (a) reads as "mock login" (QA misdiagnosed it
+        // exactly that way, 18/08), and (b) on a shared computer lets anyone
+        // re-enter the previous account with one click even after countme
+        // sign-out (Google's own session outlives ours by design).
+        queryParams: { prompt: "select_account" },
       },
     });
     // On success the browser is already navigating to Google; we only land
