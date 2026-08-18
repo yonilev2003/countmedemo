@@ -15,6 +15,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getProvider } from "@/lib/billing/provider";
 import { trackFor, type PlanId } from "@/lib/billing/tracks";
 import { track } from "@/lib/analytics/track";
+import { isBillingEnabled } from "@/lib/billing/entitlement";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
+
+const RATE_LIMIT_MAX_REQUESTS = 20; // per minute per IP
 
 // Always ack 2xx for handled events so the PSP doesn't retry-storm.
 function ack(extra: Record<string, unknown> = {}) {
@@ -22,6 +30,25 @@ function ack(extra: Record<string, unknown> = {}) {
 }
 
 export async function POST(request: NextRequest) {
+  // v2 plan item 2.7: this endpoint has no signature verification (locked —
+  // not implementable without real Tranzila docs, see the module header) and
+  // writes via the service-role client. While Tranzila is shelved and
+  // BILLING_ENABLED is off, there is no legitimate caller at all, so refuse
+  // before touching the request body or the DB — deliberate hardening, not a
+  // behavior change to the (currently inert) activation path below. 404
+  // rather than 200/403 so an unauthenticated prober learns nothing about
+  // whether this route "exists" as a live integration.
+  if (!isBillingEnabled()) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  const rl = checkRateLimit(
+    "billing-webhook",
+    resolveClientKey(request),
+    RATE_LIMIT_MAX_REQUESTS,
+  );
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+
   let payload: unknown;
   try {
     payload = await request.json();

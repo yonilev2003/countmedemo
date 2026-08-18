@@ -1,5 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  checkRateLimit,
+  rateLimitResponse,
+  resolveClientKey,
+} from "@/lib/security/rate-limit";
+
+// v2 plan item 2.7: this route reads via the service-role client (RLS-bypassing)
+// with no auth, keyed only by the URL id — see resolveShortLink's shape check.
+// The id itself is high-entropy (see the JSDoc note below), so this limiter is
+// a cheap speed bump against brute-force enumeration, not the primary defense.
+const RATE_LIMIT_MAX_REQUESTS = 30; // per minute per IP
 
 /**
  * GET /s/{id} — opaque short-link resolver (QA #32 fix).
@@ -12,6 +23,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * boundary. Missing/expired/DB-unavailable all redirect to /d (bare), which
  * already renders the friendly "link is incomplete/expired" page — so a
  * dead short link degrades exactly like a dead long link always has.
+ *
+ * The id is unguessable enough to justify no-auth: generateShortId()
+ * (src/lib/doc-link.ts) draws SHORT_ID_LENGTH=9 characters uniformly (via
+ * crypto.randomInt, CSPRNG, no modulo bias) from a 62-symbol alphabet — that's
+ * 62^9 (~1.3×10^16) possible ids. checkRateLimit below caps a single client at
+ * 30 guesses/minute, so brute-forcing a live id this way is not practical.
  */
 export async function GET(
   request: NextRequest,
@@ -20,6 +37,13 @@ export async function GET(
   const { id } = await params;
   const origin = request.nextUrl.origin;
   const missing = new URL("/d", origin);
+
+  const rl = checkRateLimit(
+    "s-shortlink",
+    resolveClientKey(request),
+    RATE_LIMIT_MAX_REQUESTS,
+  );
+  if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
 
   const token = await resolveShortLink(id);
   if (!token) return NextResponse.redirect(missing, { status: 302 });

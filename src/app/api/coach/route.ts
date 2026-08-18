@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { MODEL_SONNET, logAiUsage, withMessageCacheBreakpoint } from "@/lib/ai/models";
+import { MODEL_SONNET, MODEL_HAIKU, logAiUsage, withMessageCacheBreakpoint } from "@/lib/ai/models";
+import { dailyUserCap, getBudgetState } from "@/lib/ai/usage";
 import { renderEitanConstants, renderKnowledgeCatalog } from "@/lib/agent/knowledge";
 import { Persona } from "@/lib/persona";
 import {
@@ -103,8 +104,18 @@ const SYSTEM_DASHBOARD_INSIGHTS = `אתה שקל. אתה מסתכל על דשב�
 const RATE_LIMIT_MAX_REQUESTS = 12; // per client per minute
 
 const MAX_MESSAGE_CHARS = 2000;
-const MAX_HISTORY_ITEMS = 40;
-const MAX_HISTORY_ITEM_CHARS = 4000;
+// History caps (2026-08-18 cost-guard pass, v2 plan 2.4): the `messages`
+// array built from this history is resent to Anthropic on EVERY tool-loop
+// round (initial call + up to MAX_TOOL_ROUNDS=4 retries below = up to 5
+// calls per user turn), so every char kept here is billed up to 5x once
+// tool use kicks in. Cut from 40/4000 to keep that multiplier bounded.
+const MAX_HISTORY_ITEMS = 12;
+const MAX_HISTORY_ITEM_CHARS = 2000;
+// Total history budget in chars, enforced server-side in validateBody()
+// regardless of how the client chunked it — oldest items are dropped first
+// (newest kept), so a long conversation still costs a bounded amount per
+// request even before the ×5 tool-loop multiplier above.
+const MAX_HISTORY_TOTAL_CHARS = 8000;
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5 MB after base64 decode
 const ALLOWED_ATTACHMENT_TYPES = [
   "image/jpeg",
@@ -186,6 +197,18 @@ function validateBody(
     history.push({ role: it.role, content: it.content });
   }
 
+  // Enforce the TOTAL char budget across the whole history, dropping the
+  // OLDEST items first (keep the newest) — see MAX_HISTORY_TOTAL_CHARS'
+  // comment above for the cost rationale. The per-item/per-count caps above
+  // bound the worst case; this bounds the common case of many mid-sized items.
+  let historyChars = 0;
+  const boundedHistory: typeof history = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    historyChars += history[i].content.length;
+    if (historyChars > MAX_HISTORY_TOTAL_CHARS && boundedHistory.length > 0) break;
+    boundedHistory.unshift(history[i]);
+  }
+
   let persona: Persona | undefined;
   if (r.persona !== undefined && r.persona !== null) {
     if (typeof r.persona !== "object") {
@@ -229,7 +252,7 @@ function validateBody(
 
   return {
     ok: true,
-    body: { message, history, mode, persona, attachment },
+    body: { message, history: boundedHistory, mode, persona, attachment },
   };
 }
 
@@ -239,20 +262,53 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const clientKey = resolveClientKey(request);
-  const rl = checkRateLimit("coach", clientKey, RATE_LIMIT_MAX_REQUESTS);
+  // Cheap in-memory IP limit first — catches an obvious flood before even
+  // resolving a user.
+  const ipKey = resolveClientKey(request);
+  const rl = checkRateLimit("coach", ipKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) {
     return rateLimitResponse(rl.retryAfter);
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the cheap
+  // limiter, before any further DB round-trip or Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
+  const userId = guard.user?.id ?? null;
+
+  // Durable cross-instance per-minute limit — keyed by the authenticated
+  // user when we have one, IP otherwise (resolveClientKey's fallback).
+  const clientKey = resolveClientKey(request, userId);
   const rlDurable = await checkRateLimitDurable("coach", clientKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rlDurable.allowed) {
     return rateLimitResponse(rlDurable.retryAfter);
   }
 
-  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
-  // before we spend a Supabase round-trip or Anthropic tokens.
-  const guard = await requireUserIfGated(request);
-  if (guard.denied) return guard.denied;
+  // Per-user daily cap (v2 plan 2.2) — same key as above, separate
+  // namespace/window (86400s). Falls back to the IP-keyed bucket when auth
+  // gating is off.
+  const dailyCap = dailyUserCap("coach");
+  const rlDaily = await checkRateLimitDurable("coach-daily", clientKey, dailyCap, 86_400);
+  if (!rlDaily.allowed) {
+    return rateLimitResponse(
+      rlDaily.retryAfter,
+      "הגעת/ה למכסת השיחות היומית עם שקל. אפשר להמשיך מחר.",
+    );
+  }
+
+  // Global spend budget (v2 plan 2.3) — checked once per request. "paused"
+  // stops the route outright; "degraded" swaps Sonnet for Haiku below
+  // rather than blocking the request.
+  const budgetState = await getBudgetState();
+  if (budgetState === "paused") {
+    return Response.json(
+      {
+        error:
+          "כרגע יש עומס גבוה על שירותי ה-AI וקאונטמי השהתה אותם זמנית. נסי שוב מאוחר יותר.",
+      },
+      { status: 503 },
+    );
+  }
 
   let raw: unknown;
   try {
@@ -268,7 +324,9 @@ export async function POST(request: Request) {
 
   const { message, history, mode, persona, attachment } = validated.body;
 
-  const trimmedHistory = history.slice(-20);
+  // history is already bounded (count + per-item chars + total-char budget)
+  // by validateBody() — no further trimming needed here.
+  const trimmedHistory = history;
 
   // Build the current user turn. If a file is attached, include it as a vision
   // content block alongside the text — Claude can read receipts and PDFs directly.
@@ -343,6 +401,19 @@ export async function POST(request: Request) {
   const useTools = !!persona && mode !== "dashboard-insights";
   const MAX_TOOL_ROUNDS = 4;
 
+  // Model for this request: Haiku when the global budget is "degraded"
+  // (manual kill-switch or spend threshold), Sonnet otherwise. NOTE: the
+  // model string is part of the prompt-cache key (see models.ts) — a
+  // degraded request simply misses the Sonnet cache for this turn, which is
+  // an accepted cost, not a correctness issue.
+  const model = budgetState === "degraded" ? MODEL_HAIKU : MODEL_SONNET;
+  if (budgetState === "degraded") {
+    // Streaming SSE contract only recognizes "[DONE]"/"[ERROR] " control
+    // lines (same client parser as chat-panel.tsx) — anything else lands in
+    // the visible reply, so we log instead of adding a user-visible note.
+    console.log("[ai-usage] coach: degraded to Haiku for this request (budget threshold)");
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
@@ -363,7 +434,7 @@ export async function POST(request: Request) {
         let roundsDone = 0;
         for (let round = 0; ; round++) {
           const anthropicStream = anthropic.messages.stream({
-            model: MODEL_SONNET,
+            model,
             max_tokens: 1024,
             system: systemBlocks,
             messages: withMessageCacheBreakpoint(messages),
@@ -420,7 +491,7 @@ export async function POST(request: Request) {
           break; // normal end_turn (or tool budget exhausted)
         }
 
-        logAiUsage({ route: "coach", model: MODEL_SONNET, rounds: roundsDone, ...usageTotal });
+        logAiUsage({ route: "coach", model, rounds: roundsDone, userId, ...usageTotal });
         enqueue("[DONE]");
         controller.close();
       } catch (err) {
