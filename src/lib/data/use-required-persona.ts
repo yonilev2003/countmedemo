@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Persona } from "@/lib/persona";
 import { loadPersona, getPersonaOwner } from "@/lib/setup-storage";
-import { syncPersonaFromDb } from "./persona-store";
+import {
+  syncPersonaFromDb,
+  canOptimisticallyPaintStampedCache,
+  getLastKnownUserId,
+} from "./persona-store";
 
 /**
  * Persona for a protected app page, with a DB check before giving up.
@@ -37,8 +41,19 @@ export function useRequiredPersona() {
     let cancelled = false;
 
     const local = loadPersona();
-    const localIsAnonymous = !!local && !getPersonaOwner();
+    const localOwner = getPersonaOwner();
+    const localIsAnonymous = !!local && !localOwner;
     if (localIsAnonymous) {
+      setPersona(local);
+    } else if (
+      local &&
+      localOwner &&
+      canOptimisticallyPaintStampedCache(getLastKnownUserId(), localOwner)
+    ) {
+      // STAMPED cache, optimistic paint (perf-vs-security reconciliation for
+      // QA #17) — see the matching comment in use-persona.ts for the full
+      // rationale. syncPersonaFromDb() below is still the authoritative
+      // check and hard-swaps (or routes to /setup) the instant it disagrees.
       setPersona(local);
     }
 

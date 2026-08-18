@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { PROXY_USER_ID_HEADER } from "@/lib/supabase/proxy";
 import { LogoMark } from "@/components/brand/logo";
 import {
   AlertTriangleIcon,
@@ -38,11 +39,12 @@ export default async function LoginPage({
   // landing on /login saw the Google button again instead of the app. Honors
   // a valid same-origin `next` target, same open-redirect guard as the
   // OAuth callback.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (user) {
+  //
+  // The proxy (updateSession) already ran `auth.getUser()` for this exact
+  // request and stamped the result onto PROXY_USER_ID_HEADER — read that
+  // instead of a second Supabase auth round-trip here.
+  const userId = (await headers()).get(PROXY_USER_ID_HEADER);
+  if (userId) {
     const nextParam = typeof params.next === "string" ? params.next : null;
     redirect(
       nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")

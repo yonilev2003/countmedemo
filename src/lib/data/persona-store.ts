@@ -116,6 +116,10 @@ export async function persistPersona(persona: Persona): Promise<void> {
   saveLocal(persona);
 
   const currentUserId = await getCurrentUserId();
+  // Keep the same-tab fast-path hint (see `lastKnownUserId` above) warm from
+  // every authoritative resolution, not just syncPersonaFromDb's — a save
+  // can be the first thing that resolves identity in a tab (e.g. mid-wizard).
+  lastKnownUserId = currentUserId;
   const localOwner = getPersonaOwner();
   const action = decidePersonaOwnership({
     currentUserId,
@@ -168,8 +172,67 @@ export function syncPersonaFromDb(): Promise<Persona | null> {
   return inFlight;
 }
 
+/**
+ * Last AUTHORITATIVE currentUserId this tab has resolved (via a real
+ * `auth.getUser()` round-trip inside syncPersonaFromDbUncached, below) —
+ * `undefined` until the first such resolution completes this session, then
+ * `null` (confirmed signed out) or a user id (confirmed signed in as them).
+ *
+ * PERF (2026-08-18, perf-vs-security reconciliation for QA #17): exists
+ * solely so `canOptimisticallyPaintStampedCache` below can let a STAMPED
+ * local cache render immediately on navigations AFTER the first one this
+ * tab — e.g. clicking between /dashboard → /invoices → /expenses no longer
+ * has to wait out a fresh network reconcile every single time just because
+ * the cache happens to carry an owner stamp. It is a cheap, same-tab-only
+ * hint, NEVER a substitute for the authoritative check: every read of it is
+ * paired with a full `syncPersonaFromDb()` call that hard-swaps the state
+ * (via its existing "discard-foreign" cache-clearing / "keep-own" / etc.
+ * handling, all unchanged below) the instant the real answer disagrees.
+ */
+let lastKnownUserId: string | null | undefined = undefined;
+
+/**
+ * Non-authoritative, synchronous, no-I/O preview of what
+ * `decidePersonaOwnership` would say about a STAMPED local cache, given only
+ * same-tab knowledge (see `lastKnownUserId`) — this makes NO network call
+ * itself. Returns `false` whenever there isn't yet enough same-tab
+ * knowledge to make ANY safe claim (this tab's very first persona-consuming
+ * render this session), which keeps the caller's behavior identical to
+ * before this optimization existed: hold the skeleton and wait for the real
+ * `syncPersonaFromDb()`.
+ *
+ * Deliberately routes through the SAME `decidePersonaOwnership` used
+ * everywhere else (that function's rules are not changed by this file) and
+ * only ever treats two of its outcomes as "safe to paint": `"keep-own"`
+ * (this tab already knows the cache is this user's own) and `"signed-out"`
+ * (persona caches are shown as-is while signed out — same as today, just
+ * without the wait). Every other outcome — in particular `"discard-foreign"`
+ * — returns `false`: a foreign-owned stamped cache must NEVER paint,
+ * exactly as today.
+ */
+export function canOptimisticallyPaintStampedCache(
+  currentUserId: string | null | undefined,
+  localOwner: string,
+): boolean {
+  if (currentUserId === undefined) return false;
+  const action = decidePersonaOwnership({
+    currentUserId,
+    localOwner,
+    hasLocalPersona: true,
+    hasRemotePersona: false,
+    explicitContinueIntent: false,
+  });
+  return action === "keep-own" || action === "signed-out";
+}
+
+/** Synchronous snapshot of `lastKnownUserId`, for the hooks in use-persona.ts / use-required-persona.ts. */
+export function getLastKnownUserId(): string | null | undefined {
+  return lastKnownUserId;
+}
+
 async function syncPersonaFromDbUncached(): Promise<Persona | null> {
   const currentUserId = await getCurrentUserId();
+  lastKnownUserId = currentUserId;
   const local = loadLocal();
   const localOwner = getPersonaOwner();
 

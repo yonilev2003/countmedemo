@@ -9,7 +9,9 @@ import { A11Y_BOOTSTRAP_SCRIPT } from "@/lib/a11y/core";
 const assistant = Assistant({
   variable: "--font-assistant",
   subsets: ["hebrew", "latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  // 300 removed 2026-08-18: grep-verified unused across src/ (no
+  // font-[300]/font-light usage referencing Assistant anywhere).
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 

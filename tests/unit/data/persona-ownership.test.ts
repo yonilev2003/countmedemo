@@ -11,6 +11,7 @@
 import { describe, it, expect } from "vitest";
 import {
   decidePersonaOwnership,
+  canOptimisticallyPaintStampedCache,
   type PersonaOwnershipInput,
 } from "@/lib/data/persona-store";
 
@@ -157,5 +158,60 @@ describe("decidePersonaOwnership", () => {
         expect(action).not.toBe("use-remote");
       }
     }
+  });
+});
+
+/**
+ * canOptimisticallyPaintStampedCache — the gate behind the perf-vs-security
+ * reconciliation for QA #17 (2026-08-18): a STAMPED local cache may now
+ * render BEFORE the authoritative `syncPersonaFromDb()` reconcile lands, but
+ * ONLY when this tab already has same-tab knowledge (a `currentUserId` value
+ * resolved earlier this session) that painting it is safe. It is pure and
+ * side-effect-free — it takes `currentUserId` as an explicit parameter
+ * rather than reading the module's internal same-tab cache — so, like
+ * `decidePersonaOwnership` above, every branch is exercised directly here
+ * with no localStorage/Supabase/React involved.
+ *
+ * This function is deliberately a thin wrapper around `decidePersonaOwnership`
+ * (never reimplements its rules), so these tests also serve as a regression
+ * guard: whenever that function would say "discard-foreign", this gate must
+ * say `false`; whenever it would say "keep-own", this gate must say `true`.
+ */
+describe("canOptimisticallyPaintStampedCache", () => {
+  it("same-owner cache (currentUserId === localOwner): paints instantly — the normal repeat-navigation path", () => {
+    expect(canOptimisticallyPaintStampedCache(YONI, YONI)).toBe(true);
+    // Cross-check against the authoritative function this gate wraps.
+    expect(
+      decidePersonaOwnership(
+        input({ currentUserId: YONI, localOwner: YONI, hasLocalPersona: true }),
+      ),
+    ).toBe("keep-own");
+  });
+
+  it("foreign-owner cache (currentUserId !== localOwner, both known): NEVER paints — waits for DB, exactly as today, even though this tab DOES have same-tab knowledge of both identities", () => {
+    // This is the exact QA #17 shape, now exercised through the fast path
+    // too: knowing Yoni is live AND knowing the cache says Dana must still
+    // refuse to paint — same-tab knowledge is not an excuse to skip the
+    // foreign-cache guard.
+    expect(canOptimisticallyPaintStampedCache(YONI, DANA)).toBe(false);
+    expect(
+      decidePersonaOwnership(
+        input({ currentUserId: YONI, localOwner: DANA, hasLocalPersona: true }),
+      ),
+    ).toBe("discard-foreign");
+  });
+
+  it("confirmed signed-out (currentUserId null) with a leftover stamped cache: paints — signed-out sessions already show local caches as-is (decidePersonaOwnership's 'signed-out' branch), this just removes the wait", () => {
+    expect(canOptimisticallyPaintStampedCache(null, DANA)).toBe(true);
+    expect(
+      decidePersonaOwnership(
+        input({ currentUserId: null, localOwner: DANA, hasLocalPersona: true }),
+      ),
+    ).toBe("signed-out");
+  });
+
+  it("no same-tab knowledge yet (currentUserId undefined — this tab's first persona-consuming render this session): NEVER paints, must wait for the real reconcile — the pre-optimization baseline behavior", () => {
+    expect(canOptimisticallyPaintStampedCache(undefined, YONI)).toBe(false);
+    expect(canOptimisticallyPaintStampedCache(undefined, DANA)).toBe(false);
   });
 });

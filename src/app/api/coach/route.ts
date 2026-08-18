@@ -405,7 +405,7 @@ export async function POST(request: Request) {
                 toolResults.push({
                   type: "tool_result",
                   tool_use_id: block.id,
-                  content: runEitanTool(
+                  content: await runEitanTool(
                     block.name,
                     (block.input ?? {}) as Record<string, unknown>,
                     persona!,

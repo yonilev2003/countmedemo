@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
+    "postbuild": "node scripts/index-knowledge.mjs || echo '[postbuild] knowledge index sync skipped (no Supabase env — expected in local/CI builds)'",
     "start": "next start",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

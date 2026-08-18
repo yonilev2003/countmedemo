@@ -5,6 +5,7 @@ import {
   EITAN_TOOLS,
   runEitanTool,
   buildRichContext,
+  renderKnowledgeToc,
 } from "@/lib/agent/tools";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
@@ -154,10 +155,13 @@ export async function POST(request: Request) {
   const personaContext = buildRichContext(persona);
   const MAX_TOOL_ROUNDS = 4;
 
-  // Two cached system blocks: stable instructions + the computed snapshot.
+  // Three cached system blocks: stable instructions + the computed snapshot +
+  // the knowledge-vault TOC (RAG audit #20 — build-time constant, so this
+  // block is byte-stable across requests and caches like the other two).
   const systemBlocks: Anthropic.TextBlockParam[] = [
     { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
     { type: "text", text: personaContext, cache_control: { type: "ephemeral" } },
+    { type: "text", text: renderKnowledgeToc(), cache_control: { type: "ephemeral" } },
   ];
 
   // Build a ReadableStream that pipes Anthropic SSE deltas as our own SSE
@@ -215,7 +219,7 @@ export async function POST(request: Request) {
                 toolResults.push({
                   type: "tool_result",
                   tool_use_id: block.id,
-                  content: runEitanTool(
+                  content: await runEitanTool(
                     block.name,
                     (block.input ?? {}) as Record<string, unknown>,
                     persona,

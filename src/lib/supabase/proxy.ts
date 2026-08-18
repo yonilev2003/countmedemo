@@ -40,8 +40,31 @@ function isProtectedPath(pathname: string): boolean {
   );
 }
 
+/**
+ * Header the proxy stamps with the resolved Supabase auth user id, so
+ * downstream Server Components (e.g. `/` and `/login`) can tell "is this
+ * request authenticated" without a second `auth.getUser()` network
+ * round-trip — the proxy already paid for that call on every request.
+ *
+ * SECURITY: this is the sole writer of this header. `updateSession` strips
+ * any incoming value BEFORE resolving the real session and only ever sets it
+ * from the freshly-resolved `user`, so an external request can never spoof
+ * it to impersonate another user downstream. Read it via
+ * `(await headers()).get(PROXY_USER_ID_HEADER)` in a Server Component —
+ * see src/app/page.tsx / src/app/login/page.tsx for the pattern.
+ */
+export const PROXY_USER_ID_HEADER = "x-countme-user";
+
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Clone + strip immediately, before anything else runs: no downstream
+  // reader may ever see a client-supplied value for this header — only one
+  // we set ourselves below, after the real session is resolved.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(PROXY_USER_ID_HEADER);
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +86,9 @@ export async function updateSession(request: NextRequest) {
             request.cookies.set(name, value),
           );
           // …then recreate the response and copy cookies onto it for the browser.
-          supabaseResponse = NextResponse.next({ request });
+          supabaseResponse = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -95,7 +120,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // IMPORTANT: return the supabaseResponse object as-is so the refreshed
-  // auth cookies survive. If you create a new response, copy its cookies over.
-  return supabaseResponse;
+  // Stamp the resolved identity now that auth is known. Next.js snapshots
+  // `request.headers` at the moment `NextResponse.next()` is called (it
+  // encodes them into internal x-middleware-request-* headers right then),
+  // so the header must be set on `requestHeaders` and the response rebuilt
+  // AFTER this point — setting it earlier (or mutating supabaseResponse's
+  // already-captured snapshot) would silently never reach the page.
+  if (user) requestHeaders.set(PROXY_USER_ID_HEADER, user.id);
+  const finalResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+  // Carry over any Set-Cookie from a session refresh above (IMPORTANT note
+  // preserved: the refreshed auth cookies must survive on whatever response
+  // we actually return).
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie);
+  });
+  return finalResponse;
 }

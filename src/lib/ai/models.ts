@@ -37,7 +37,9 @@ import type Anthropic from "@anthropic-ai/sdk";
  * Return a copy of `messages` where ONLY the final content block of the final
  * message carries a cache_control breakpoint (any earlier message-level
  * breakpoints are stripped — Anthropic allows max 4 per request, and the
- * system blocks already use up to 2). Serving tool-loop rounds 2+ and
+ * chat route's system blocks already use 3 (instructions + persona snapshot
+ * + knowledge TOC, RAG audit #20) — so this is the last one available.
+ * Serving tool-loop rounds 2+ and
  * follow-up turns within the TTL from cache is the single biggest saving on
  * long chats and PDF-attachment turns.
  */

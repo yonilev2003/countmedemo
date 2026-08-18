@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Persona } from "@/lib/persona";
 import { loadPersona as loadLocal, getPersonaOwner } from "@/lib/setup-storage";
-import { persistPersona, syncPersonaFromDb } from "./persona-store";
+import {
+  persistPersona,
+  syncPersonaFromDb,
+  canOptimisticallyPaintStampedCache,
+  getLastKnownUserId,
+} from "./persona-store";
 
 export type PersonaSource = "loading" | "db" | "local" | "empty";
 
@@ -19,15 +24,27 @@ export function usePersona() {
   useEffect(() => {
     let cancelled = false;
     const local = loadLocal();
-    // Instant cache paint ONLY for an anonymous / not-yet-claimed cache (no
-    // owner stamp). If the cache is stamped to a user, hold the skeleton until
-    // syncPersonaFromDb confirms it belongs to the CURRENT session — otherwise a
-    // previous user's persona could flash on a shared device before reconcile.
-    if (local && !getPersonaOwner()) {
-      // Instant paint from the anonymous cache: content renders immediately
-      // (loading=false) and the DB reconcile below lands silently. Stamped
-      // caches still hold the skeleton — a previous user's persona must never
-      // flash on a shared device before reconcile confirms ownership.
+    const localOwner = getPersonaOwner();
+    // Instant cache paint for an anonymous / not-yet-claimed cache (no owner
+    // stamp) — always safe, unconditionally. Content renders immediately
+    // (loading=false) and the DB reconcile below lands silently.
+    if (local && !localOwner) {
+      setPersona(local);
+      setSource("local");
+    } else if (
+      local &&
+      localOwner &&
+      canOptimisticallyPaintStampedCache(getLastKnownUserId(), localOwner)
+    ) {
+      // STAMPED cache, optimistic paint (perf-vs-security reconciliation for
+      // QA #17): this tab already knows — from an earlier authoritative
+      // reconcile this session — that the cache is either this same user's
+      // own, or that the tab is confirmed signed-out. Paint it now; the
+      // authoritative syncPersonaFromDb() below still runs and hard-swaps
+      // the state the instant it disagrees. Every OTHER case (no same-tab
+      // knowledge yet, or the cache is known/turns out to be foreign) holds
+      // the skeleton exactly as before — a previous user's persona must
+      // never flash on a shared device before reconcile confirms ownership.
       setPersona(local);
       setSource("local");
     }

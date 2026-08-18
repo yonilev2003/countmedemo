@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
+import { PROXY_USER_ID_HEADER } from "@/lib/supabase/proxy";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { BRAND_COLORS } from "@/components/brand/colors";
@@ -34,15 +35,17 @@ export default async function Home({
 
   // Session-aware chrome: a logged-in user clicking the logo/"home" must NOT
   // see anonymous "כניסה" chrome (reads as a phantom logout — Yoni, 19/07).
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // The proxy (updateSession) already ran `auth.getUser()` for this exact
+  // request and stamped the result onto PROXY_USER_ID_HEADER — read that
+  // instead of paying for a second Supabase auth round-trip here (was: this
+  // page + /login each independently re-resolved the user before any HTML).
+  const userId = (await headers()).get(PROXY_USER_ID_HEADER);
 
   // Typing the bare address should drop a signed-in user straight into the
   // app, not the marketing page (Yoni, 16/08). This also makes every logo
   // that links to "/" behave as "back to dashboard" for logged-in users.
-  if (user) redirect("/dashboard");
+  if (userId) redirect("/dashboard");
 
   return (
     <div className="flex flex-1 flex-col bg-paper">
@@ -66,7 +69,7 @@ export default async function Home({
             </Link>
           </nav>
           <div className="flex items-center gap-2.5">
-            {user ? (
+            {userId ? (
               <Link href="/dashboard" className={btn("primary", "sm")}>
                 לאזור האישי
                 <ArrowLeftIcon className="size-[17px]" />

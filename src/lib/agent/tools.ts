@@ -1,16 +1,28 @@
-// Eitan's data-retrieval layer (workstream H).
+// Eitan's data-retrieval layer (workstream H; extended for the RAG audit
+// #20 knowledge-vault + client-graph tools, 2026-08-18).
 //
-// Two things live here:
+// What lives here:
 //   • buildRichContext(persona) — a comprehensive COMPUTED snapshot injected into
 //     the system prompt so Eitan answers common questions without a round-trip
 //     ("richer static context").
 //   • EITAN_TOOLS + runEitanTool() — Anthropic tool-use so Eitan can FETCH a
-//     specific computed value on demand ("live data retrieval").
+//     specific computed value on demand ("live data retrieval"). This now
+//     covers three families: (1) the original calculator/deadline/ceiling
+//     tools, all pure over Persona; (2) search_knowledge/read_knowledge,
+//     which DO hit Supabase (the only DB-backed tools here — see the
+//     "Knowledge vault retrieval" section below for the degradation story);
+//     (3) top_customers/expense_breakdown_by_category/
+//     open_receivables_by_customer, over lib/agent/client-graph.ts (pure
+//     over Persona, zero DB, same as family 1).
+//   • renderKnowledgeToc() — the prompt-cached table-of-contents block for
+//     the knowledge vault (route.ts's 3rd system block).
 //
-// Everything is derived from the Persona that the request already carries +
-// the pure calculators, so this works server-side WITHOUT the (currently
-// blocked) Supabase DB. When the live DB lands, invoice/expense tools can be
-// added here with the same shape, RLS-scoped to the authenticated user.
+// Calculator/deadline/ceiling/client-graph tools are derived from the
+// Persona the request already carries + pure functions, so they work
+// server-side WITHOUT any DB. The knowledge tools are the one place this
+// file talks to Supabase — always through createAdminClient(), always
+// wrapped so a missing table/env degrades to an honest message instead of
+// breaking the chat (see safeKnowledgeCall).
 
 import type Anthropic from "@anthropic-ai/sdk";
 import { effectiveDeductibleExpenses, type Persona } from "@/lib/persona";
@@ -25,6 +37,20 @@ import {
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { getUpcomingDeadlines, type FilerType } from "@/lib/deadlines/calendar";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  buildClientGraph,
+  topCustomers,
+  expenseBreakdownByCategory,
+  openReceivablesByCustomer,
+} from "@/lib/agent/client-graph";
+// Committed by scripts/index-knowledge.mjs off knowledge/**/*.md — one row
+// per note: {id, title, topic, summary}. Statically imported (not read via
+// fs at request time) so it's inlined into the serverless bundle at build
+// time, same reasoning as any other build-time JSON asset. Ships as `[]`
+// until the vault + indexer have run at least once; the TOC block below
+// degrades to an honest "still empty" line rather than an empty array dump.
+import knowledgeToc from "../../../knowledge/toc.generated.json";
 
 // Rendered into the LLM system prompt only (no UI surface); standardized on ₪.
 const ils = (n: number) => formatIls(Math.round(n));
@@ -98,6 +124,156 @@ export function buildRichContext(persona: Persona): string {
   return lines.join("\n");
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Knowledge vault retrieval (RAG audit #20, 2026-08-18) — Claude-native, no
+ * embeddings: a prompt-cached table of contents (this section) plus two
+ * tools, search_knowledge and read_knowledge, that hit ONE hybrid SQL RPC
+ * (pg_trgm + FTS 'simple', supabase/migrations/20260818100000_knowledge_
+ * chunks.sql) over rows produced by scripts/index-knowledge.mjs from
+ * knowledge/**\/*.md. See that migration's header comment for the full
+ * architecture note.
+ *
+ * Numbers discipline: notes are prose + pointers ONLY — the model is told,
+ * here and in the TOC block, to never quote a figure from a note; every
+ * number still comes from get_form_value/get_tax_estimate/etc. above.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+interface TocEntry {
+  id: string;
+  title: string;
+  topic: string | null;
+  summary: string;
+}
+
+const KNOWLEDGE_TOC = knowledgeToc as TocEntry[];
+
+/**
+ * Prompt-cached system block: instructions + the compact TOC. Deterministic
+ * (KNOWLEDGE_TOC is a build-time constant), so it caches as a stable prefix
+ * exactly like SYSTEM_PROMPT/buildRichContext's blocks in route.ts.
+ */
+export function renderKnowledgeToc(): string {
+  const header =
+    "מאגר ידע (knowledge vault) — טבלת תוכן. לפני מענה על שאלה רגולטורית/מושגית (לא מספר שדה), עיינו בטבלה, ואם רלוונטי קראו לכלי search_knowledge ואז read_knowledge כדי לצטט מדויק. ציינו את שם הפתק כשאתם מסתמכים עליו. לעולם אל תצטטו סכום, אחוז, תקרה או תאריך-יעד ממאגר הידע — מספרים מגיעים אך ורק מכלי המחשבון (get_form_value וכו').";
+
+  if (KNOWLEDGE_TOC.length === 0) {
+    return `${header}\n\n(המאגר עדיין ריק — search_knowledge/read_knowledge יחזירו הודעת "לא זמין" עד שהאינדקסר ירוץ על פתקים אמיתיים.)`;
+  }
+
+  const rows = KNOWLEDGE_TOC.map(
+    (e) => `- [${e.id}] ${e.title}${e.topic ? ` (${e.topic})` : ""}: ${e.summary}`,
+  ).join("\n");
+  return `${header}\n\n${rows}`;
+}
+
+/**
+ * Minimal shape for the two knowledge_chunks operations below, used ONLY to
+ * cast createAdminClient()'s result at those call sites — see the comment
+ * next to each cast for why (the table/RPC predate database.types.ts).
+ */
+interface UntypedAdmin {
+  rpc(
+    fn: string,
+    args: Record<string, unknown>,
+  ): Promise<{ data: unknown; error: { message: string } | null }>;
+  from(table: string): {
+    select(cols: string): {
+      in(col: string, vals: string[]): Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+  };
+}
+
+const KNOWLEDGE_UNAVAILABLE = JSON.stringify({
+  error: "הידע עוד לא זמין",
+  note: "טבלת knowledge_chunks/RPC טרם קיימת או שאין חיבור ל-Supabase — התשובה תמשיך בלי מקור מהמאגר.",
+});
+
+/** Run a knowledge-vault operation, degrading to an honest message on any failure
+ *  (missing env, missing table/RPC, network) — never throws, matches
+ *  checkRateLimitDurable's fail-soft convention for optional Supabase reads. */
+async function safeKnowledgeCall<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+
+export async function searchKnowledge(query: string): Promise<string> {
+  const q = query.trim();
+  if (!q) return JSON.stringify({ error: "שאילתה ריקה" });
+
+  const result = await safeKnowledgeCall(async () => {
+    // knowledge_chunks/search_knowledge_chunks are defined in
+    // supabase/migrations/20260818100000_knowledge_chunks.sql, but that
+    // migration is intentionally NOT applied yet (task scope), so
+    // database.types.ts (generated FROM the live schema) doesn't know
+    // them. `as UntypedAdmin` narrows ONLY this call site rather than
+    // weakening createAdminClient()'s type everywhere — regenerate types
+    // and drop this cast once the migration ships.
+    const admin = createAdminClient() as unknown as UntypedAdmin;
+    const { data, error } = await admin.rpc("search_knowledge_chunks", {
+      p_query: q,
+      p_limit: 8,
+    });
+    if (error) throw error;
+    return (data ?? []) as { id: string; title: string; snippet: string }[];
+  });
+
+  if (result === null) return KNOWLEDGE_UNAVAILABLE;
+  return JSON.stringify(
+    result.map((r: { id: string; title: string; snippet: string }) => ({
+      id: r.id,
+      title: r.title,
+      snippet: r.snippet,
+    })),
+  );
+}
+
+export async function readKnowledge(ids: string[]): Promise<string> {
+  const wanted = ids.filter((id) => typeof id === "string" && id.trim()).slice(0, 4);
+  if (wanted.length === 0) return JSON.stringify({ error: "לא סופקו מזהים" });
+
+  const result = await safeKnowledgeCall(async () => {
+    // See the identical comment in searchKnowledge above.
+    const admin = createAdminClient() as unknown as UntypedAdmin;
+    const { data, error } = await admin
+      .from("knowledge_chunks")
+      .select("id,title,note_path,topic,year_sensitive,body,links")
+      .in("id", wanted);
+    if (error) throw error;
+    return data ?? [];
+  });
+
+  if (result === null) return KNOWLEDGE_UNAVAILABLE;
+  return JSON.stringify(result);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Client relationship graph tools (RAG audit #20) — over lib/agent/client-
+ * graph.ts, pure/local, no DB. Always available (no degradation path needed).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+function runClientGraphTool(name: string, input: Record<string, unknown>, persona: Persona): string | null {
+  const graph = buildClientGraph(persona);
+  switch (name) {
+    case "top_customers": {
+      const limit = typeof input.limit === "number" ? Math.min(Math.max(1, input.limit), 20) : 5;
+      return JSON.stringify(topCustomers(graph, limit));
+    }
+    case "expense_breakdown_by_category": {
+      const year =
+        typeof input.year === "number" ? input.year : persona.income.year;
+      return JSON.stringify(expenseBreakdownByCategory(graph, year));
+    }
+    case "open_receivables_by_customer": {
+      return JSON.stringify(openReceivablesByCustomer(graph));
+    }
+    default:
+      return null;
+  }
+}
+
 /** Tool definitions exposed to the model (only meaningful when a persona exists). */
 export const EITAN_TOOLS: Anthropic.Tool[] = [
   {
@@ -136,16 +312,80 @@ export const EITAN_TOOLS: Anthropic.Tool[] = [
     description: "מחזיר את מצב תקרת המחזור (עוסק פטור/זעיר): מחזור נוכחי, התקרה, אחוז וניצול.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "search_knowledge",
+    description:
+      "מחפש במאגר הידע הרגולטורי (הסברים מושגיים, לא מספרים) לפי שאילתה חופשית. מחזיר עד 8 פתקים רלוונטיים {id, title, snippet}. השתמש לפני שאלות עקרוניות/רגולטוריות; קרא ל-read_knowledge כדי לקבל את הגוף המלא לציטוט.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "שאילתת החיפוש (בעברית, חופשית)." },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "read_knowledge",
+    description: "מחזיר את הגוף המלא של עד 4 פתקי ידע לפי מזהה (id שהוחזר מ-search_knowledge).",
+    input_schema: {
+      type: "object",
+      properties: {
+        ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "עד 4 מזהי פתקים.",
+        },
+      },
+      required: ["ids"],
+    },
+  },
+  {
+    name: "top_customers",
+    description: "מחזיר את הלקוחות עם ההכנסה הגבוהה ביותר (לא כולל מע\"מ, רק מסמכי תשלום), ממוין מהגבוה לנמוך.",
+    input_schema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: "כמה לקוחות להחזיר (ברירת מחדל 5, מקסימום 20)." },
+      },
+    },
+  },
+  {
+    name: "expense_breakdown_by_category",
+    description:
+      "מחזיר פילוח הוצאות לפי קטגוריה לשנה נתונה (ברירת מחדל שנת הדוח), כולל השוואה שנה-מול-שנה (YoY) כשיש נתונים לשנה הקודמת.",
+    input_schema: {
+      type: "object",
+      properties: {
+        year: { type: "number", description: "שנת המס לפילוח (ברירת מחדל: שנת הדוח של המשתמש/ת)." },
+      },
+    },
+  },
+  {
+    name: "open_receivables_by_customer",
+    description: "מחזיר את חשבונות העסקה הפתוחים (לא שולמו), מקובצים לפי לקוח, כולל סכום פתוח וסכום באיחור.",
+    input_schema: { type: "object", properties: {} },
+  },
 ];
 
 /** Run a tool by name against the persona. Always returns a string (never throws). */
-export function runEitanTool(
+export async function runEitanTool(
   name: string,
   input: Record<string, unknown>,
   persona: Persona,
-): string {
+): Promise<string> {
   try {
+    const graphResult = runClientGraphTool(name, input, persona);
+    if (graphResult !== null) return graphResult;
+
     switch (name) {
+      case "search_knowledge": {
+        const query = String(input.query ?? "").trim();
+        return await searchKnowledge(query);
+      }
+      case "read_knowledge": {
+        const ids = Array.isArray(input.ids) ? input.ids.map(String) : [];
+        return await readKnowledge(ids);
+      }
       case "get_form_value": {
         const field = String(input.field ?? "").trim();
         const calcId = FIELD_TO_CALCULATOR[field] ?? field;
