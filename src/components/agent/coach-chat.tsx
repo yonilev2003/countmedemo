@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { trackClient } from "@/lib/analytics/track-client";
 import Link from "next/link";
 import { Persona } from "@/lib/persona";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -106,7 +107,14 @@ function eitanGreeting(persona: Persona | null | undefined): string {
   const suffix = female
     ? "ספרי לי בקצרה מה את צריכה היום?"
     : "ספר לי בקצרה מה אתה צריך היום?";
-  return `${prefix} אני שקל, השותף הדיגיטלי שלך לדוח השנתי. ${suffix}`;
+  // Proactive ceiling flag (Yoni, 18/08): opening the chat is itself a
+  // moment worth using — a user near/over the עוסק פטור/זעיר ceiling should
+  // hear it from שקל before asking, not only if they think to ask. Same
+  // engine as the dashboard strip and /alerts — one source of truth.
+  const ceiling = persona ? computeCeilingAlert(persona) : null;
+  const ceilingNote =
+    ceiling && ceiling.level !== "safe" ? ` דבר ראשון: ${ceiling.headlineHe}.` : "";
+  return `${prefix} אני שקל, השותף הדיגיטלי שלך לדוח השנתי.${ceilingNote} ${suffix}`;
 }
 
 interface Props {

@@ -14,6 +14,7 @@
 
 import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
 import { isRevenueDoc } from "@/lib/invoice-generator";
+import type { CeilingAlert } from "@/lib/alerts/ceiling";
 
 export interface MonthSummary {
   /** "YYYY-MM" of the summarized calendar month. */
@@ -91,20 +92,38 @@ export function computeMonthSummary(
  * (zero LLM calls from the dashboard; "עובדות, לא עצות"). Kept to 1-2 short
  * factual sentences in Eitan's register.
  */
-export function eitanMonthLine(s: MonthSummary, firstName?: string): string {
+/**
+ * Ceiling awareness (Yoni, 18/08): the deterministic "שקל אומר" line is the
+ * ONE always-visible AI voice on the light dashboard — a user approaching
+ * the עוסק פטור/זעיר turnover ceiling must see it react here, not only on
+ * /alerts (which nothing links to from the light dashboard's daily flow).
+ * Crossing the ceiling is not optional — registration as עוסק מורשה becomes
+ * mandatory and the זעיר/פטור benefits are lost, so this is surfaced from
+ * "approaching" (60%+) onward, using the SAME headline the ceiling engine
+ * already computes (one source of truth, never a second hand-written copy
+ * of the threshold rule).
+ */
+export function eitanMonthLine(
+  s: MonthSummary,
+  firstName?: string,
+  ceiling?: CeilingAlert | null,
+): string {
   const name = firstName?.trim() ? `${firstName.trim()}, ` : "";
+  const ceilingNote =
+    ceiling && ceiling.level !== "safe" ? ` ${ceiling.headlineHe}.` : "";
+
   if (s.isFirstUse) {
     return (
       `${name}ברוכים הבאים! ברגע שתפיקו את המסמך הראשון או תתעדו הוצאה — ` +
-      `המספרים כאן יתחילו לזוז.`
+      `המספרים כאן יתחילו לזוז.${ceilingNote}`
     );
   }
   if (s.revenue === 0 && s.expenses === 0) {
-    return `${name}החודש עוד לא תועדו הכנסות או הוצאות. הכפתורים למטה מחכים.`;
+    return `${name}החודש עוד לא תועדו הכנסות או הוצאות. הכפתורים למטה מחכים.${ceilingNote}`;
   }
   const rev = `${s.revenue.toLocaleString("he-IL")} ₪`;
   if (s.revenue === 0) {
-    return `${name}החודש תועדו הוצאות של ${s.expenses.toLocaleString("he-IL")} ₪ ועדיין אין הכנסות.`;
+    return `${name}החודש תועדו הוצאות של ${s.expenses.toLocaleString("he-IL")} ₪ ועדיין אין הכנסות.${ceilingNote}`;
   }
   const ratioPart =
     s.ratio !== null && s.ratio > 0
@@ -112,7 +131,7 @@ export function eitanMonthLine(s: MonthSummary, firstName?: string): string {
       : "";
   return (
     `${name}החודש נכנסו ${rev} מ-${s.revenueDocCount} ` +
-    `${s.revenueDocCount === 1 ? "מסמך" : "מסמכים"}.${ratioPart ? ratioPart + "." : ""}`
+    `${s.revenueDocCount === 1 ? "מסמך" : "מסמכים"}.${ratioPart ? ratioPart + "." : ""}${ceilingNote}`
   );
 }
 

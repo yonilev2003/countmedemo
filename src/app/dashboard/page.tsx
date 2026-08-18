@@ -23,6 +23,7 @@ import {
   eitanMonthLine,
 } from "@/lib/dashboard/summary";
 import { getReceivablesSummary } from "@/lib/receivables/summary";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { trackClient } from "@/lib/analytics/track-client";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
@@ -61,6 +62,13 @@ export default function DashboardPage() {
   );
   const receivables = useMemo(
     () => (persona ? getReceivablesSummary(persona) : null),
+    [persona],
+  );
+  // null for עוסק מורשה (no ceiling) or when nowhere near it — computeCeilingAlert
+  // is the SAME engine /alerts and the chat's get_ceiling_status tool use, so
+  // the dashboard's reaction can never disagree with theirs.
+  const ceiling = useMemo(
+    () => (persona ? computeCeilingAlert(persona) : null),
     [persona],
   );
 
@@ -222,7 +230,7 @@ export default function DashboardPage() {
                 שקל אומר
               </div>
               <p className="mt-0.5 text-sm leading-relaxed text-ink">
-                {eitanMonthLine(summary, firstName)}
+                {eitanMonthLine(summary, firstName, ceiling)}
               </p>
             </div>
           </div>
@@ -247,6 +255,37 @@ export default function DashboardPage() {
                     : `${summary.needsReviewCount} קבלות מחכות לבדיקה שלך`}
                 </div>
                 <div className="mt-0.5 text-xs text-muted">חסרים בהן פרטים — כדאי להשלים</div>
+              </div>
+            </Link>
+          </Reveal>
+        )}
+
+        {/* ── ceiling strip — warning/critical/exceeded only ("approaching"
+            already speaks through the שקל line above; this is the
+            unmissable version for when action is genuinely needed). Crossing
+            the ceiling forces עוסק מורשה registration regardless — losing
+            the פטור/זעיר benefits — so this must not be buried on /alerts
+            alone (Yoni, 18/08). ── */}
+        {ceiling && (ceiling.level === "warning" || ceiling.level === "critical" || ceiling.level === "exceeded") && (
+          <Reveal className="mt-4">
+            <Link
+              href="/alerts"
+              className={`flex items-center gap-3 rounded-2xl border p-4 shadow-brand transition-all hover:-translate-y-0.5 ${
+                ceiling.level === "warning"
+                  ? "border-due/40 bg-due-bg/40 hover:border-due"
+                  : "border-alert/40 bg-overdue-bg/40 hover:border-alert"
+              }`}
+            >
+              <span
+                className={`flex size-9 shrink-0 items-center justify-center rounded-xl bg-paper ${
+                  ceiling.level === "warning" ? "text-due-ink" : "text-alert-ink"
+                }`}
+              >
+                <AlertTriangleIcon className="size-5" />
+              </span>
+              <div>
+                <div className="text-sm font-bold text-brand-navy">{ceiling.headlineHe}</div>
+                <div className="mt-0.5 text-xs text-muted">{ceiling.detailHe}</div>
               </div>
             </Link>
           </Reveal>
