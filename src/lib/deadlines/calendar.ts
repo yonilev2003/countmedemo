@@ -366,22 +366,33 @@ function nextBiMonthly(fromDate: Date, dueDay: number): Date {
 }
 
 /**
+ * Absolute due-date factories for each annual deadline id, keyed by the
+ * FILING year (the calendar year the deadline itself falls in — e.g. tax
+ * year 2025's online return is due in filing year 2026). A future scraper
+ * would replace these with live scraped dates.
+ *
+ * Module-level (not local to `nextAnnual`) so `isAnnualFilingDeadlinePassed`
+ * (FP-08) can look up a SPECIFIC tax year's due date from the same factory
+ * `nextAnnual` uses for "next occurrence from today" — one definition, two
+ * call shapes, no drift between them.
+ */
+const ANNUAL_DUE_DATE_FACTORIES: Record<string, (filingYear: number) => Date> = {
+  "form-1301-paper": (y) => new Date(y, 4, 31),      // May 31
+  "form-1301-online": (y) => new Date(y, 5, 30),     // June 30
+  "form-1301-accountant-extension": (y) => new Date(y, 6, 31), // July 31 (approximate)
+  "vat-osek-patur-annual": (y) => new Date(y, 0, 31), // Jan 31
+};
+
+/**
  * Return the next due date for an ANNUAL deadline relative to `fromDate`.
  *
- * Uses a hard-coded mapping keyed on the deadline id.
+ * Uses ANNUAL_DUE_DATE_FACTORIES, keyed on the deadline id.
  * A future scraper would replace these with live scraped dates.
  */
 function nextAnnual(id: string, fromDate: Date): Date {
   const year = fromDate.getFullYear();
 
-  const annualDates: Record<string, (y: number) => Date> = {
-    "form-1301-paper": (y) => new Date(y, 4, 31),      // May 31
-    "form-1301-online": (y) => new Date(y, 5, 30),     // June 30
-    "form-1301-accountant-extension": (y) => new Date(y, 6, 31), // July 31 (approximate)
-    "vat-osek-patur-annual": (y) => new Date(y, 0, 31), // Jan 31
-  };
-
-  const factory = annualDates[id];
+  const factory = ANNUAL_DUE_DATE_FACTORIES[id];
   if (!factory) {
     // Unknown annual deadline — return end of June as a safe fallback
     return new Date(year, 5, 30);
@@ -390,6 +401,38 @@ function nextAnnual(id: string, fromDate: Date): Date {
   const candidate = factory(year);
   // If already past, return the same date next year
   return candidate >= fromDate ? candidate : factory(year + 1);
+}
+
+/**
+ * Whether the annual Form 1301 filing deadline for tax year `taxYear` has
+ * already passed, as of `today` (defaults to now; normalized to the
+ * Asia/Jerusalem calendar date via `jerusalemToday`, same rollover rule as
+ * the rest of this module).
+ *
+ * The annual-report deadline for tax year N falls in FILING year N+1 (see
+ * DEADLINE_CALENDAR's `form-1301-*` entries) — this checks the ONLINE
+ * deadline ("form-1301-online", 30 ביוני), the one the vast majority of
+ * filers are subject to. The paper deadline (31 במאי) is earlier and the
+ * accountant-extension deadline is later and individually negotiated per
+ * filer, so neither is a safe universal default. Built on the SAME
+ * ANNUAL_DUE_DATE_FACTORIES entry `nextAnnual` uses for "next occurrence",
+ * so the two definitions can never drift apart.
+ *
+ * FP-08, verified 2026-08-19: for tax years 2024 and 2025 the online
+ * deadline (30.6.2025 and 30.6.2026 respectively) is already behind today —
+ * returns true. For tax year 2026 (deadline 30.6.2027) it returns false.
+ *
+ * A deadline that falls exactly ON `today` is NOT yet "passed" (still due
+ * today) — this returns true only once `today` is strictly after the due
+ * date.
+ */
+export function isAnnualFilingDeadlinePassed(
+  taxYear: number,
+  today: Date = new Date(),
+): boolean {
+  const todayJerusalem = jerusalemToday(today);
+  const dueDate = ANNUAL_DUE_DATE_FACTORIES["form-1301-online"](taxYear + 1);
+  return todayJerusalem > dueDate;
 }
 
 /**

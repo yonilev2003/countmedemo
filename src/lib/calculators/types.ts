@@ -518,14 +518,55 @@ const TAX_YEAR_REGISTRY: Record<number, TaxYearConstants> = {
 /** Most recent tax year we have an explicit definition for. */
 const LATEST_TAX_YEAR = 2026;
 
+/** Earliest tax year we have an explicit definition for. */
+const EARLIEST_TAX_YEAR = 2024;
+
+/**
+ * `getTaxYearConstants`'s return shape: the year's constants plus a flag
+ * saying whether they were an exact registry hit or a silent fallback carry.
+ */
+export interface TaxYearConstantsResult extends TaxYearConstants {
+  /**
+   * True when `year` had no explicit entry in TAX_YEAR_REGISTRY and the
+   * constants below were silently backfilled from the nearest defined year
+   * (TAX_YEAR_2024 for years below range, TAX_YEAR_2026 for years above).
+   * Added 2026-08-19 (FP-05): callers that previously treated every
+   * `getTaxYearConstants(year)` result as a `confidence: "high"` exact match
+   * (e.g. CalcResult.confidence in the calculators, or copy in the coach
+   * system prompt) should check this and downgrade confidence / surface a
+   * caveat when it's true, instead of assuming the year was actually modeled.
+   * Additive field — existing `TC.someConstant` access is unaffected.
+   */
+  isFallbackYear: boolean;
+}
+
 /**
  * Returns the constants for a filing year. Exact match wins; future years fall
- * back to the latest defined set (2026), earlier years to 2024.
+ * back to the latest defined set (2026), earlier years to 2024 — see
+ * `isFallbackYear` on the result to detect when that carry happened.
  */
-export function getTaxYearConstants(year: number): TaxYearConstants {
+export function getTaxYearConstants(year: number): TaxYearConstantsResult {
   const exact = TAX_YEAR_REGISTRY[year];
-  if (exact) return exact;
-  return year > LATEST_TAX_YEAR ? TAX_YEAR_2026 : TAX_YEAR_2024;
+  if (exact) return { ...exact, isFallbackYear: false };
+  const fallback = year > LATEST_TAX_YEAR ? TAX_YEAR_2026 : TAX_YEAR_2024;
+  return { ...fallback, isFallbackYear: true };
+}
+
+/**
+ * Clamps a date's calendar year into the range of tax years we have explicit
+ * constants for (EARLIEST_TAX_YEAR..LATEST_TAX_YEAR = 2024..2026), so a
+ * hardcoded fallback like `persona?.income?.year ?? 2025` never drifts stale
+ * behind the registry as years turn over. Accepts an optional `today` for
+ * testability; defaults to `new Date()`.
+ *
+ * NOTE (FP-05, 2026-08-19): `src/app/setup/page.tsx` (~line 769) computes the
+ * same clamp inline (`Math.min(Math.max(new Date().getFullYear(), 2024), 2026)`)
+ * rather than calling this helper — left as-is (owned by another agent as of
+ * this change); converge it to call `currentSupportedTaxYear()` in a follow-up.
+ */
+export function currentSupportedTaxYear(today: Date = new Date()): number {
+  const year = today.getFullYear();
+  return Math.min(Math.max(year, EARLIEST_TAX_YEAR), LATEST_TAX_YEAR);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

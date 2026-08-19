@@ -6,6 +6,7 @@ import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { Alert, AlertSeverity, generateAllAlerts } from "@/lib/alerts/index";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "@/components/brand/app-header";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
@@ -193,7 +194,10 @@ export default function AlertsPage() {
         }
       />
 
-      <main className="mx-auto max-w-screen-md px-6 py-8">
+      {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
+          (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since
+          the bar is lg:hidden. */}
+      <main className="mx-auto max-w-screen-md px-6 py-8 pb-28 lg:pb-8">
         {/* Page title */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -268,6 +272,9 @@ export default function AlertsPage() {
           </div>
         )}
       </main>
+
+      {/* Canonical bottom bar (2026-08-19 global-nav sweep, FP-23). */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/alerts" />
     </div>
   );
 }

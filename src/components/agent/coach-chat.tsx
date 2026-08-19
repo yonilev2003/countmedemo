@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { trackClient } from "@/lib/analytics/track-client";
 import Link from "next/link";
 import { Persona } from "@/lib/persona";
@@ -34,6 +35,12 @@ const SHEKEL_AVATAR = "/shekel/shekel-mascot.jpg";
 /**
  * Shekel avatar — circular cropped image on a soft-beige disc. Falls back to
  * the navy LogoMark disc if the art is missing.
+ *
+ * PERF (FP-27, live-mobile finding): was a raw <img> serving the full
+ * 61.6KB/941x1024 source at a 28-44px display size. next/image generates a
+ * properly-sized/optimized asset for the requested box instead. `onError`
+ * behaves the same as the native <img> event here — next/image forwards it
+ * to the underlying element — so the LogoMark fallback is unchanged.
  */
 function EitanAvatar({ size, className }: { size: number; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -49,10 +56,11 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
       {failed ? (
         <LogoMark size={size * 0.5} className="text-brand" />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={SHEKEL_AVATAR}
           alt="שקל"
+          width={size}
+          height={size}
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />
@@ -156,6 +164,14 @@ interface Props {
 
 export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
+  // PERF (coach perceived-load, live-mobile finding): the mount effect below
+  // does a real Supabase round-trip (loadMessages) before anything renders
+  // here — on top of the page's own threadsResolved gate around <CoachChat>.
+  // Starts true so the FIRST paint after mount is a skeleton instead of a
+  // blank messages pane; flipped false the moment the effect below resolves
+  // either branch (loaded transcript or the canned greeting). Purely a
+  // render-state addition — does not touch when/how that effect resolves.
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
@@ -190,12 +206,14 @@ export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Pro
             rows.map((r) => ({ role: dbRoleToUiRole(r.role), text: r.content })),
           );
           historyRef.current = rows.map((r) => ({ role: r.role, content: r.content }));
+          setMessagesLoading(false);
           return;
         }
       }
       if (cancelled) return;
       setMessages([{ role: "agent", text: eitanGreeting(persona) }]);
       historyRef.current = [];
+      setMessagesLoading(false);
     })();
 
     return () => {
@@ -507,6 +525,27 @@ export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Pro
 
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-gradient-to-b from-paper to-cream">
+        {messagesLoading ? (
+          // PERF (coach perceived-load): lightweight pulse-bubble skeleton so
+          // first paint is instant instead of blank space while the mount
+          // effect's Supabase round-trip is in flight — brand-style pulse
+          // pattern matching dashboard/page.tsx's `animate-pulse` + `bg-sand`
+          // skeleton. Purely decorative — hidden from assistive tech.
+          <div className="flex flex-1 flex-col gap-3.5 animate-pulse" aria-hidden="true">
+            <div className="flex max-w-[84%] gap-2 self-start">
+              <span className="size-[30px] flex-shrink-0 rounded-full bg-sand" />
+              <span className="h-9 w-44 rounded-[18px] rounded-es-[5px] bg-sand" />
+            </div>
+            <div className="flex max-w-[84%] self-end">
+              <span className="h-9 w-56 rounded-[18px] rounded-ee-[5px] bg-sand" />
+            </div>
+            <div className="flex max-w-[84%] gap-2 self-start">
+              <span className="size-[30px] flex-shrink-0 rounded-full bg-sand" />
+              <span className="h-9 w-36 rounded-[18px] rounded-es-[5px] bg-sand" />
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Day separator pill */}
         <div className="self-center rounded-full bg-line-soft px-3 py-1 text-[11.5px] font-bold text-faint">
           היום
@@ -594,6 +633,8 @@ export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Pro
               </button>
             ))}
           </div>
+        )}
+          </>
         )}
 
         <div ref={messagesEndRef} />

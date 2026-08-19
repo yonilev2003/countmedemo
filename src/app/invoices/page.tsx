@@ -7,6 +7,7 @@ import { InvoiceLine } from "@/lib/persona";
 import { formatHebrewDate, isRevenueDoc } from "@/lib/invoice-generator/index";
 import { effectiveStatus } from "@/lib/receivables/summary";
 import { AppHeader } from "@/components/brand/app-header";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
 import { EitanFab } from "@/components/agent/eitan-fab";
@@ -105,7 +106,10 @@ export default function InvoicesPage() {
         }
       />
 
-      <main className="mx-auto max-w-screen-lg px-6 py-10">
+      {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
+          (2026-08-19 global-nav sweep, FP-23); lg:pb-10 resets it back since
+          the bar is lg:hidden. */}
+      <main className="mx-auto max-w-screen-lg px-6 py-10 pb-28 lg:pb-10">
         {/* Page head — mockup `.pagehead` with eyebrow */}
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -303,6 +307,13 @@ export default function InvoicesPage() {
           </>
         )}
       </main>
+
+      {/* Canonical bottom bar (2026-08-19 global-nav sweep, FP-23). Note:
+          its "שקל" shortcut now sits alongside the pre-existing EitanFab
+          below, a double chat affordance on this page specifically — left
+          in place since removing EitanFab wasn't part of this sweep's
+          scope; flagged for Yoni to decide. */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/invoices" />
       <EitanFab />
     </div>
   );

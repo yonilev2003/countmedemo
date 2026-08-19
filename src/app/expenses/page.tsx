@@ -15,6 +15,7 @@ import {
 import type { ExpenseLine } from "@/lib/persona";
 import { cn, formatNumber } from "@/lib/utils";
 import { AppHeader } from "@/components/brand/app-header";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
@@ -134,7 +135,10 @@ export default function ExpensesListPage() {
         }
       />
 
-      <main className="mx-auto max-w-screen-xl px-6 py-8">
+      {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
+          (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since
+          the bar is lg:hidden. */}
+      <main className="mx-auto max-w-screen-xl px-6 py-8 pb-28 lg:pb-8">
         {activeSorted.length === 0 ? (
           <EmptyState />
         ) : (
@@ -224,6 +228,11 @@ export default function ExpensesListPage() {
         </div>
         <LegalNote variant="dataset" />
       </main>
+
+      {/* Canonical bottom bar (2026-08-19 global-nav sweep, FP-23) — already
+          includes a "שקל" chat shortcut, so no separate EitanFab here (would
+          be a second chat affordance on the same screen, FP-24). */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/expenses" />
     </div>
   );
 }

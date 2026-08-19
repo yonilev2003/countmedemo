@@ -9,7 +9,7 @@ import { listThreads, type ChatThread } from "@/lib/chat/history";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { ArrowRightIcon, ClipboardCheckIcon } from "@/components/brand/icons";
+import { ArrowRightIcon, ClipboardCheckIcon, SettingsIcon } from "@/components/brand/icons";
 
 export default function CoachPage() {
   const { persona, loading } = usePersona();
@@ -114,6 +114,12 @@ export default function CoachPage() {
               >
                 <ClipboardCheckIcon className="size-3.5" />
                 <span className="hidden sm:inline">מדריך הוצאות</span>
+              </Link>
+              {/* 2026-08-19 global-nav sweep (FP-22): this shell is hand-rolled,
+                  not AppHeader, so it needs its own "עדכן נתונים" link. */}
+              <Link href="/setup" className={btn("ghost", "sm", "gap-1.5")}>
+                <SettingsIcon className="size-3.5" />
+                <span className="hidden sm:inline">עדכן נתונים</span>
               </Link>
               <Link href="/dashboard" className={btn("secondary", "sm", "gap-1.5")}>
                 <ArrowRightIcon className="size-3.5" />

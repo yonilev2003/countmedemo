@@ -13,6 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   getUpcomingDeadlines,
   getImminentDeadlines,
+  isAnnualFilingDeadlinePassed,
   jerusalemToday,
   DEADLINE_CALENDAR,
 } from "@/lib/deadlines/calendar";
@@ -52,6 +53,30 @@ describe("getUpcomingDeadlines — Israel-midnight boundary (pinned)", () => {
     expect(alreadyAug19.nextDueDate.getDate()).toBe(15);
     expect(stillAug18.nextDueDate.getTime()).toBe(alreadyAug19.nextDueDate.getTime());
     expect(alreadyAug19.daysUntilDue).toBe(stillAug18.daysUntilDue - 1);
+  });
+});
+
+describe("isAnnualFilingDeadlinePassed (FP-08, verified 2026-08-19)", () => {
+  // "today" pinned to the current environment date, 2026-08-19.
+  const today = new Date("2026-08-19T09:00:00Z"); // 12:00 IDT — safely within Aug 19 Israel-side
+
+  it("is true for tax year 2024 (online deadline 30.6.2025 already passed)", () => {
+    expect(isAnnualFilingDeadlinePassed(2024, today)).toBe(true);
+  });
+
+  it("is true for tax year 2025 (online deadline 30.6.2026 already passed)", () => {
+    expect(isAnnualFilingDeadlinePassed(2025, today)).toBe(true);
+  });
+
+  it("is false for tax year 2026 (online deadline 30.6.2027 still ahead)", () => {
+    expect(isAnnualFilingDeadlinePassed(2026, today)).toBe(false);
+  });
+
+  it("is not yet passed exactly ON the due date, only strictly after it", () => {
+    const onDueDate = new Date(2027, 5, 30, 9, 0, 0); // local morning, June 30 2027
+    const dayAfter = new Date(2027, 6, 1, 9, 0, 0); // July 1 2027
+    expect(isAnnualFilingDeadlinePassed(2026, onDueDate)).toBe(false);
+    expect(isAnnualFilingDeadlinePassed(2026, dayAfter)).toBe(true);
   });
 });
 

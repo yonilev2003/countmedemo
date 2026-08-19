@@ -12,6 +12,8 @@ import {
 } from "@/lib/setup-storage";
 import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import type { ExtractedData } from "@/app/api/upload/route";
@@ -1127,7 +1129,10 @@ export default function SetupPage() {
         setS3((s) => ({
           ...s,
           osekType: data.osekType!,
-          isOsekZeir: data.osekType === "patur" ? s.isOsekZeir : false,
+          // isOsekZeir is intentionally left untouched by ...s — עוסק זעיר
+          // is turnover-gated only, independent of osekType (murshe-זעיר
+          // reform), so a document-derived osekType must not silently clear
+          // an existing זעיר election.
           // A document-derived osekType is a real answer, not the unpicked
           // default — don't force the user to re-tap פטור/מורשה on step 3.
           osekTrackPicked: true,
@@ -1246,11 +1251,12 @@ export default function SetupPage() {
         bookkeepingMethod: "single-entry",
         bookkeepingType: "computerized",
         isSmallBusiness: totalRevenue < 100000,
-        // Explicit toggle from step 3 — only valid if עוסק פטור AND under the
-        // year-keyed ceiling (120,000 for 2024–2025, 122,833 from 2026).
+        // Explicit toggle from step 3 — עוסק זעיר is a pure income-tax track
+        // (תיקון 265), turnover-gated only and independent of VAT status, so
+        // it's valid under EITHER osekType as long as turnover stays under
+        // the year-keyed ceiling (120,000 for 2024–2025, 122,833 from 2026).
         isOsekZeir:
           s3.isOsekZeir &&
-          s3.osekType === "patur" &&
           totalRevenue <= getTaxYearConstants(selectedYear).osekZeirThreshold,
         hasEmployees: false,
         employerNames: [],
@@ -1360,6 +1366,13 @@ export default function SetupPage() {
     s4.totalRevenue && s5.totalDeductibleExpenses
       ? Number(s4.totalRevenue) - Number(s5.totalDeductibleExpenses)
       : null;
+
+  // FP-02: live ceiling warning on the revenue screen. Reuses the shared
+  // computeCeilingAlert engine (covers patur, patur-זעיר, and morshe-זעיר —
+  // each with its own copy) rather than re-deriving the ceiling math here —
+  // buildPersona() already carries every field the alert needs (osekType,
+  // isOsekZeir, income.year, totalRevenue).
+  const ceilingAlert = computeCeilingAlert(buildPersona());
 
   // Soft heads-up (NOT a blocking error): the academic-degree year is in the
   // future. The credit applies once the degree is actually awarded — see the
@@ -1937,33 +1950,36 @@ export default function SetupPage() {
                   <FieldLabel>סוג עוסק</FieldLabel>
                   {/*
                     Two first-class radio options — פטור / מורשה — plus a
-                    separate עוסק-זעיר toggle (only meaningful under פטור).
-                    Data-model note: the persona keeps `osekType: "patur" | "morshe"`
-                    plus a separate `isOsekZeir` flag (זעיר is an income-tax track
-                    layered on עוסק פטור — both share the same VAT ceiling).
-                    Facts per israeli-vat-reporting + israeli-freelancer-ops skills
-                    (תיקון 257): עוסק זעיר = 30% normative expense recognition +
-                    simplified reporting, SAME revenue ceiling as עוסק פטור.
+                    separate עוסק-זעיר toggle, shown once either track is
+                    picked. Data-model note: the persona keeps
+                    `osekType: "patur" | "morshe"` plus a separate
+                    `isOsekZeir` flag.
 
-                    FLAG (product decision needed): the user asked whether choosing
-                    מורשה should expose an "עוסק מורשה זעיר" path. The skills do NOT
-                    support a זעיר track for an עוסק מורשה — עוסק זעיר shares the
-                    עוסק-פטור ceiling and is unavailable above it. We therefore do
-                    NOT offer זעיר under מורשה. Confirm with a tax professional
-                    before adding any murshe→zeir behavior.
+                    Verified rule (תיקון 265; verified 2026-08-19 against
+                    gov.il/kolzchut/CPA sources): עוסק זעיר is a pure
+                    INCOME-TAX track — eligibility is turnover ≤ the same
+                    ceiling as עוסק פטור, independent of VAT registration.
+                    A מורשה under the ceiling may elect it too; VAT
+                    collection/reporting is unaffected (מסלול מס-הכנסה
+                    בלבד). An earlier version of this comment cited
+                    "תיקון 257" and claimed murshe-זעיר was unsupported —
+                    that was incorrect and has been corrected here. Still
+                    verify with a tax professional before relying on this
+                    in production.
                   */}
                   <OsekTypeChoice
                     osekType={s3.osekType}
                     isOsekZeir={s3.isOsekZeir}
                     picked={s3.osekTrackPicked}
                     ceilingHe={osekCeilingHe}
+                    year={selectedYear}
                     onChange={(next) => {
                       setOtherOsekCase("");
                       setS3({ ...s3, ...next });
                     }}
                   />
 
-                  {s3.osekTrackPicked && s3.osekType === "patur" && (
+                  {s3.osekTrackPicked && (
                     <label className="mt-2.5 flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 cursor-pointer transition-colors hover:bg-cream">
                       <input
                         type="checkbox"
@@ -1980,8 +1996,11 @@ export default function SetupPage() {
                         <p className="text-xs text-muted mt-0.5 leading-relaxed">
                           30% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח
                           לאומי), בלי צורך לתעד הוצאות בפועל ובלי חובת מקדמות.
-                          פתוח עד מחזור של {osekCeilingHe} ₪ — אותה תקרה של
-                          עוסק פטור. יציאה מהמסלול חוסמת חזרה אליו לשנתיים.
+                          פתוח עד מחזור של {osekCeilingHe} ₪ (שנת מס{" "}
+                          {selectedYear}) — אותה תקרה של עוסק פטור. יציאה
+                          מהמסלול חוסמת חזרה אליו לשנתיים.
+                          {s3.osekType === "morshe" &&
+                            " גביית ודיווח המע״מ ממשיכים כרגיל — זהו מסלול מס-הכנסה בלבד."}
                         </p>
                       </div>
                     </label>
@@ -2299,6 +2318,13 @@ export default function SetupPage() {
                     יתווסף על הסכום הזה. (נכנס לשדות 238 ו-294 בטופס)
                   </p>
                 </div>
+
+                {/* FP-02: live ceiling warning — only once revenue is
+                    actually approaching/over the year's ceiling ("safe"
+                    stays quiet so an empty/low field isn't noisy). */}
+                {ceilingAlert && ceilingAlert.level !== "safe" && (
+                  <CeilingAlertCard alert={ceilingAlert} />
+                )}
 
               </div>
               </div>
@@ -2734,10 +2760,11 @@ function TapChoiceGroup<T extends string>({
  * Two osek-track selector: פטור / מורשה.
  *
  * The persona data model stores `osekType` ("patur" | "morshe") + a separate
- * `isOsekZeir` boolean (זעיר is an income-tax track layered on עוסק פטור,
- * surfaced by the caller as its own toggle once פטור is picked — see the FLAG
- * comment at the call site re: why מורשה does NOT expose a זעיר sub-track).
- * `picked` gates the active highlight AND is what validateStep3 checks —
+ * `isOsekZeir` boolean (זעיר is an income-tax track, independent of VAT
+ * status — turnover-gated, not osekType-gated — surfaced by the caller as
+ * its own toggle once EITHER track is picked; see the verified-rule comment
+ * at the call site). `picked` gates the active highlight AND is what
+ * validateStep3 checks —
  * the persona always carries a concrete osekType (default "patur"), but the
  * UI must not treat that default as a real user choice until they tap one.
  */
@@ -2750,33 +2777,38 @@ function OsekTypeChoice({
   isOsekZeir,
   picked,
   ceilingHe,
+  year,
   onChange,
 }: {
   osekType: OsekType;
   isOsekZeir: boolean;
   picked: boolean;
   ceilingHe: string;
-  onChange: (next: { osekType: OsekType; isOsekZeir: boolean; osekTrackPicked: boolean }) => void;
+  year: number;
+  onChange: (next: { osekType: OsekType; osekTrackPicked: boolean }) => void;
 }) {
   const selected = picked ? currentOsekChoice(osekType) : null;
 
+  // Neither option sets `isOsekZeir` any more — the עוסק-זעיר checkbox lives
+  // independently of the פטור/מורשה radio once a track is picked (murshe-זעיר
+  // reform, 2026-08-19), so switching the radio must not silently clear it.
   const options: {
     key: "patur" | "morshe";
     title: string;
     desc: string;
-    next: { osekType: OsekType; isOsekZeir: boolean };
+    next: { osekType: OsekType };
   }[] = [
     {
       key: "patur",
       title: "עוסק פטור",
-      desc: `פטור מגביית מע״מ, מדווח הוצאות בפועל. מחזור עד ${ceilingHe} ₪.`,
-      next: { osekType: "patur", isOsekZeir: false },
+      desc: `פטור מגביית מע״מ, מדווח הוצאות בפועל. מחזור עד ${ceilingHe} ₪ (שנת מס ${year}).`,
+      next: { osekType: "patur" },
     },
     {
       key: "morshe",
       title: "עוסק מורשה",
       desc: "גובה ומדווח מע״מ, מקזז מע״מ תשומות. ללא תקרת מחזור.",
-      next: { osekType: "morshe", isOsekZeir: false },
+      next: { osekType: "morshe" },
     },
   ];
 
@@ -2960,7 +2992,7 @@ function DocHeaderPreview({ s1, s3 }: { s1: Step1Data; s3: Step3Data }) {
  * user what to do. The advice framing was intentionally removed (product
  * decision: "facts, not advice"). The legal disclaimer lives elsewhere.
  *
- * Reference: מסלול עוסק זעיר (תיקון 257 לפקודת מס הכנסה, 2024) — ניכוי אוטומטי
+ * Reference: מסלול עוסק זעיר (תיקון 265 לפקודת מס הכנסה) — ניכוי אוטומטי
  * של 30% מהמחזור כהוצאות במקום הוצאות בפועל. The 30% rate flows in via
  * `expenseRate` from the year constants (never hardcoded here).
  */

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { btn } from "@/components/brand/button";
+import { SettingsIcon } from "@/components/brand/icons";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,6 +19,11 @@ import { cn } from "@/lib/utils";
  * always belongs here — fixes "could only log out from the dashboard" for
  * every one of this component's consumers in one place, per the sweep's
  * "edit the shared component once" directive.
+ *
+ * "עדכן נתונים" → /setup (2026-08-19 global-nav sweep, Yoni: "מכל מסך
+ * לערוך פרטים"): permanent, next to sign-out, for the same reason as
+ * above — every AppHeader consumer gets it in one place instead of each
+ * page remembering to add its own link back into the data-entry wizard.
  */
 export function AppHeader({
   pageLabel,
@@ -50,6 +57,10 @@ export function AppHeader({
               {actions}
             </nav>
           )}
+          <Link href="/setup" className={btn("ghost", "sm")}>
+            <SettingsIcon className="size-3.5" />
+            עדכן נתונים
+          </Link>
           <div className="border-s border-line ps-2">
             <SignOutButton />
           </div>

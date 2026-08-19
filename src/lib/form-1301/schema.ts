@@ -333,7 +333,14 @@ const tabGeneral: FormTab = {
           kind: "boolean",
           status: "personal",
           personaPath: "business.isOsekZeir",
-          hint: "עוסק פטור שמחזורו עד 120,000 ₪ רשאי לדווח במסלול מקוצר: 30% מהמחזור מוכרים כהוצאות אוטומטית (כולל ביטוח לאומי). אין חובת מקדמות. יציאה מהמסלול חוסמת חזרה ל-2 שנים.",
+          // FP-01 (2026-08-19): was hardcoded "עוסק פטור שמחזורו עד 120,000 ₪..."
+          // with no year label (inconsistent with the sibling field-034 hint
+          // above) AND conditioned the track on being עוסק פטור. Per Amendment
+          // 265 (tonight's verified reform research), the מסלול עוסק זעיר income-
+          // tax-simplified track is open to עוסק מורשה too (it's an income-tax-only
+          // track, independent of the VAT-exempt status) — reworded to not
+          // condition on patur, and year-labeled to match the 034 hint's format.
+          hint: "עוסק שמחזורו עד 120,000 ₪ לשנים 2024–2025 (122,833 ₪ מ-2026) רשאי לדווח במסלול מקוצר: 30% מהמחזור מוכרים כהוצאות אוטומטית (כולל ביטוח לאומי). אין חובת מקדמות. יציאה מהמסלול חוסמת חזרה ל-2 שנים.",
         },
       ],
     },

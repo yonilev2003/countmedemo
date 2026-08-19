@@ -5,6 +5,7 @@ import type { Persona } from "@/lib/persona";
 import { persistPersona } from "@/lib/data/persona-store";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon } from "@/components/brand/icons";
+import { isAnnualFilingDeadlinePassed } from "@/lib/deadlines/calendar";
 
 /**
  * Selectable filing years. Mirrors the range lib/calculators/types.ts
@@ -21,8 +22,22 @@ interface YearSwitchProps {
    * persisted (write-through via persistPersona — the same pattern the
    * pages already use for their own edits: persistPersona(next) then
    * setPersona(next)). Wire this straight to the page's setPersona.
+   *
+   * With `persist={false}` the write-through is skipped and this fires with
+   * the year-overridden persona as a plain view-model — nothing reaches
+   * storage.
    */
   onPersonaChange: (next: Persona) => void;
+  /**
+   * Whether picking a year writes the persona through to storage
+   * (persistPersona). Default true — the declared-year mutation contract
+   * pro/page.tsx relies on. The plain dashboard passes false (FP-10): there
+   * a year pick is a VIEW filter over a synthetic persona clone, and
+   * persisting that clone would silently promote the viewing year into the
+   * real declared year on the next reload — re-attributing the whole setup
+   * baseline to the wrong year (integration mismatch caught 2026-08-19).
+   */
+  persist?: boolean;
   className?: string;
 }
 
@@ -34,7 +49,7 @@ interface YearSwitchProps {
  * nothing else needs to know this component exists. A brand-new user never
  * has to think about it: it just shows the current year until touched.
  */
-export function YearSwitch({ persona, onPersonaChange, className }: YearSwitchProps) {
+export function YearSwitch({ persona, onPersonaChange, persist = true, className }: YearSwitchProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -71,7 +86,7 @@ export function YearSwitch({ persona, onPersonaChange, className }: YearSwitchPr
         ...persona,
         income: { ...persona.income, year: nextYear },
       };
-      persistPersona(next);
+      if (persist) persistPersona(next);
       onPersonaChange(next);
     }
     setOpen(false);
@@ -122,7 +137,16 @@ export function YearSwitch({ persona, onPersonaChange, className }: YearSwitchPr
                   : "font-medium text-ink hover:bg-cream",
               )}
             >
-              שנת מס {y}
+              <span>שנת מס {y}</span>
+              {/* FP-25: presentation-only past-deadline flag — does NOT touch
+                  persona.income.year or any calculator; isAnnualFilingDeadlinePassed
+                  is the same helper the pro dashboard (FP-18) reads for its
+                  historical-year banner, so this stays consistent with it. */}
+              {isAnnualFilingDeadlinePassed(y) && (
+                <span className="shrink-0 rounded-full bg-line-soft px-1.5 py-0.5 text-[10px] font-semibold text-faint">
+                  מועד הגשה עבר
+                </span>
+              )}
             </button>
           ))}
           <p className="mt-1.5 border-t border-line px-3 pt-1.5 text-[11px] leading-snug text-faint">

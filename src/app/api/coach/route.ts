@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { MODEL_SONNET, MODEL_HAIKU, logAiUsage, withMessageCacheBreakpoint } from "@/lib/ai/models";
 import { dailyUserCap, getBudgetState } from "@/lib/ai/usage";
 import { renderEitanConstants, renderKnowledgeCatalog } from "@/lib/agent/knowledge";
+import { currentSupportedTaxYear } from "@/lib/calculators/types";
 import { Persona } from "@/lib/persona";
 import {
   EITAN_TOOLS,
@@ -372,7 +373,10 @@ export async function POST(request: Request) {
   // for backward compatibility.
   // Constants year: the persona's filing year when present (cache is shared
   // per-year cohort — byte-stable serialization in renderEitanConstants).
-  const constantsYear = persona?.income?.year ?? 2025;
+  // FP-04 (2026-08-19): the fallback used to hardcode `?? 2025`, which goes
+  // stale as tax years turn over. currentSupportedTaxYear() clamps "now" into
+  // the 2024..LATEST_TAX_YEAR range we actually have constants for instead.
+  const constantsYear = persona?.income?.year ?? currentSupportedTaxYear();
   const baseSystem =
     mode === "dashboard-insights"
       ? SYSTEM_DASHBOARD_INSIGHTS

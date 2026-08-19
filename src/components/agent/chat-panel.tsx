@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Persona } from "@/lib/persona";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/brand/logo";
@@ -20,6 +21,12 @@ const SHEKEL_AVATAR = "/shekel/shekel-mascot.jpg";
 /**
  * Shekel avatar — circular cropped image on a soft-beige disc. Falls back to
  * the navy LogoMark disc if the art is missing.
+ *
+ * PERF (FP-27, live-mobile finding): was a raw <img> serving the full
+ * 61.6KB/941x1024 source at a 28-40px display size. next/image generates a
+ * properly-sized/optimized asset for the requested box instead. `onError`
+ * behaves the same as the native <img> event here — next/image forwards it
+ * to the underlying element — so the LogoMark fallback is unchanged.
  */
 function EitanAvatar({ size, className }: { size: number; className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -35,10 +42,11 @@ function EitanAvatar({ size, className }: { size: number; className?: string }) 
       {failed ? (
         <LogoMark size={size * 0.5} className="text-brand" />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={SHEKEL_AVATAR}
           alt="שקל"
+          width={size}
+          height={size}
           className="h-full w-full object-cover object-top"
           onError={() => setFailed(true)}
         />

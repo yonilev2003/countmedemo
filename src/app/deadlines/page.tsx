@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
 import {
   ArrowLeftIcon,
@@ -132,7 +133,7 @@ export default function DeadlinesPage() {
     <div className="min-h-screen bg-cream">
       <header className="bg-white border-b border-line">
         <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Logo size={24} />
             <span className="text-base font-semibold text-muted">· לוח מועדים</span>
           </Link>
@@ -151,7 +152,10 @@ export default function DeadlinesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-screen-lg px-6 py-8">
+      {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
+          (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since
+          the bar is lg:hidden. */}
+      <main className="mx-auto max-w-screen-lg px-6 py-8 pb-28 lg:pb-8">
         <div className="mb-7">
           <div className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-teal-600">
             <span className="size-[7px] rounded-full bg-brand" />
@@ -180,6 +184,11 @@ export default function DeadlinesPage() {
           </span>
         </p>
       </main>
+
+      {/* Canonical bottom bar (2026-08-19 global-nav sweep, FP-23) — already
+          includes a "שקל" chat shortcut, so no separate EitanFab here (would
+          be a second chat affordance on the same screen, FP-24). */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/deadlines" />
     </div>
   );
 }

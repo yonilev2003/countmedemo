@@ -154,7 +154,18 @@ export interface PersonaBusiness {
   bookkeepingMethod: "single-entry" | "double-entry";
   bookkeepingType: "manual" | "computerized";
   isSmallBusiness: boolean;
-  /** עוסק זעיר — simplified 30% expense track. Only valid if osekType === "patur". */
+  /**
+   * עוסק זעיר — the simplified 30%-of-turnover expense-recognition track
+   * (מסלול עוסק זעיר, תיקון 257/265). VERIFIED 2026-08-19: this is an
+   * INCOME-TAX track only, gated purely on annual turnover being at/under
+   * the year-keyed ceiling (osekZeirThreshold) — it is INDEPENDENT of VAT
+   * registration/osekType. A plain עוסק פטור can be זעיר, and so can an
+   * עוסק מורשה who is already VAT-registered and keeps charging VAT
+   * normally (MURSHE-ZEIR). The earlier "only valid if osekType === 'patur'"
+   * rule documented here was wrong and has been corrected — see
+   * lib/alerts/ceiling.ts and lib/p-and-l/expense-ratio.ts, which now read
+   * this flag turnover-gated and osekType-independent.
+   */
   isOsekZeir: boolean;
   hasEmployees: boolean;
   employerNames: string[];

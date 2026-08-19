@@ -120,17 +120,33 @@ export const QUICK_ACTIONS: QuickAction[] = [
 export function QuickActions({
   variant,
   className,
+  currentHref,
 }: {
   variant: "bar" | "rail";
   className?: string;
+  /**
+   * The current page's route, e.g. "/deadlines" — marks the matching
+   * shortcut as the active destination instead of a plain link. Needed
+   * since 2026-08-19 (global-nav sweep, FP-23): QuickActionsBar now mounts
+   * on every content page it links to, not just /dashboard, so a shortcut
+   * can point at the page you're already standing on.
+   */
+  currentHref?: string;
 }) {
-  if (variant === "rail") return <QuickActionsRail className={className} />;
-  return <QuickActionsBar className={className} />;
+  if (variant === "rail")
+    return <QuickActionsRail className={className} currentHref={currentHref} />;
+  return <QuickActionsBar className={className} currentHref={currentHref} />;
 }
 
 /* ── Desktop: vertical side rail of shortcut tiles ─────────────────────────── */
 
-function QuickActionsRail({ className }: { className?: string }) {
+function QuickActionsRail({
+  className,
+  currentHref,
+}: {
+  className?: string;
+  currentHref?: string;
+}) {
   return (
     <section
       className={cn(
@@ -147,7 +163,13 @@ function QuickActionsRail({ className }: { className?: string }) {
           <Link
             key={a.href}
             href={a.href}
-            className="group flex items-center gap-3.5 rounded-2xl border border-line-soft bg-cream/60 p-3 transition-all hover:border-brand-deep hover:bg-paper"
+            aria-current={a.href === currentHref ? "page" : undefined}
+            className={cn(
+              "group flex items-center gap-3.5 rounded-2xl border p-3 transition-all hover:border-brand-deep hover:bg-paper",
+              a.href === currentHref
+                ? "border-brand-deep bg-paper"
+                : "border-line-soft bg-cream/60",
+            )}
           >
             <span
               className={cn(
@@ -184,7 +206,13 @@ function QuickActionsRail({ className }: { className?: string }) {
  * the primary "create" action). Mirrors the App mockup's tab bar shape, but
  * each item performs a real action rather than switching a tab.
  */
-function QuickActionsBar({ className }: { className?: string }) {
+function QuickActionsBar({
+  className,
+  currentHref,
+}: {
+  className?: string;
+  currentHref?: string;
+}) {
   // FAB = primary create action; the 4 side items are the next most-used.
   const fab = QUICK_ACTIONS[0]; // /invoices/new
   const sideItems = [
@@ -209,31 +237,36 @@ function QuickActionsBar({ className }: { className?: string }) {
     >
       <div className="mx-auto flex max-w-screen-sm items-center justify-between px-4 py-2">
         {start.map((a) => (
-          <BarItem key={a.href} action={a} />
+          <BarItem key={a.href} action={a} active={a.href === currentHref} />
         ))}
 
         {/* Center FAB — the primary "create" shortcut */}
         <Link
           href={fab.href}
           aria-label={fab.label}
+          aria-current={fab.href === currentHref ? "page" : undefined}
           className="-mt-7 grid size-14 shrink-0 place-items-center rounded-full bg-brand text-brand-navy shadow-brand transition-transform hover:scale-105 hover:bg-beige-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
         >
           <PlusIcon className="size-7" />
         </Link>
 
         {end.map((a) => (
-          <BarItem key={a.href} action={a} />
+          <BarItem key={a.href} action={a} active={a.href === currentHref} />
         ))}
       </div>
     </nav>
   );
 }
 
-function BarItem({ action }: { action: QuickAction }) {
+function BarItem({ action, active }: { action: QuickAction; active?: boolean }) {
   return (
     <Link
       href={action.href}
-      className="flex flex-1 flex-col items-center gap-1 py-1 text-faint transition-colors hover:text-brand-navy"
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex flex-1 flex-col items-center gap-1 py-1 transition-colors hover:text-brand-navy",
+        active ? "text-brand-navy" : "text-faint",
+      )}
     >
       <span className="[&_svg]:size-[22px]">{action.icon}</span>
       <span className="text-[10.5px] font-semibold leading-none">

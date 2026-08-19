@@ -140,30 +140,76 @@ export function eitanMonthLine(
    the app add on top from that point. Revenue docs already bump
    income.totalRevenue at creation (invoices/new), so the scalar IS the YTD
    figure; expense rows never bump their scalar, so YTD expenses = baseline +
-   active in-app rows for the declared year. ─────────────────────────────── */
+   active in-app rows for the declared year. ───────────────────────────────
+ *
+ * FP-07 (2026-08-19, Yoni's live finding — "אין הפרדה לנתונים"): the wizard
+ * baseline scalars (totalRevenue/totalDeductibleExpenses) describe ONE year
+ * only — persona.income.year, the year the user typed them in for — but
+ * computeYearSummary used to read them unconditionally regardless of which
+ * year the dashboard was actually showing, so every year looked identical.
+ *
+ * Scoping rule (product-approved middle path — no data-model overhaul):
+ *   - year === persona.income.year (the default): UNCHANGED behavior —
+ *     baseline + every non-deleted document, exactly as before this fix.
+ *   - year !== persona.income.year: the baseline contributes ZERO (it isn't
+ *     this year's figure), and only documents whose OWN date falls in the
+ *     requested year count — revenue docs via isRevenueDoc + date, expense
+ *     rows via non-deleted + date, both ex-VAT.
+ * Every call site that omits `year` keeps its exact current behavior. */
 
 export interface YearSummary {
-  /** Declared tax year the totals describe. */
+  /** The tax year these totals describe (the requested `year`, or the
+   *  persona's declared year when no `year` argument is passed). */
   year: number;
-  /** Baseline from setup + revenue docs created since (ex-VAT). */
+  /** Baseline (declared year only) + matching revenue docs, ex-VAT. */
   revenueYtd: number;
-  /** Baseline from setup + non-deleted in-app expense rows for the year. */
+  /** Baseline (declared year only) + matching non-deleted expense rows. */
   expensesYtd: number;
   /** expensesYtd / revenueYtd, null when revenue is 0. */
   ratioYtd: number | null;
 }
 
-export function computeYearSummary(persona: Persona): YearSummary {
-  const year = persona.income.year;
-  const revenueYtd = persona.income.totalRevenue;
-  // SYMMETRY with revenue (journey-scan finding): revenue docs bump the
-  // scalar unconditionally at creation, so the expense side must also count
-  // every non-deleted row regardless of its calendar year — otherwise a
-  // quick expense dated "today" silently vanishes from the card whenever the
-  // declared tax year lags the calendar year (e.g. year=2025, today=2026).
-  // The shared helper is also what שדה 150 / P&L / forecast read, so the
-  // light dashboard can never disagree with the tax surfaces again.
-  const expensesYtd = effectiveDeductibleExpenses(persona.income);
+/** True when an ISO date's year matches `year` — local copy of the same
+ *  convention p-and-l/index.ts's isInTaxYear uses (module-ownership
+ *  boundaries keep this a duplicate, not a shared import; keep both in sync
+ *  if the underlying rule ever changes). */
+function isInYear(iso: string, year: number): boolean {
+  return iso.startsWith(String(year));
+}
+
+export function computeYearSummary(
+  persona: Persona,
+  year: number = persona.income.year,
+): YearSummary {
+  const isDeclaredYear = year === persona.income.year;
+
+  // Revenue: for the DECLARED year the scalar already IS baseline + docs
+  // (revenue docs bump income.totalRevenue unconditionally at creation —
+  // see invoices/new) — reading it directly is unchanged from before this
+  // fix. For any OTHER requested year the scalar carries no meaning (it
+  // describes the declared year only), so sum only revenue docs dated in
+  // that year instead — the baseline contributes 0.
+  const revenueYtd = isDeclaredYear
+    ? persona.income.totalRevenue
+    : Math.round(
+        (persona.income.invoices ?? [])
+          .filter((inv) => isRevenueDoc(inv.docType) && isInYear(inv.date, year))
+          .reduce((sum, inv) => sum + inv.amount, 0) * 100,
+      ) / 100;
+
+  // Expenses: for the DECLARED year, SYMMETRY with revenue (journey-scan
+  // finding, unchanged from before this fix) — every non-deleted row counts
+  // regardless of its own calendar date, via the shared helper that שדה 150
+  // / P&L / forecast also read. For any OTHER requested year the baseline
+  // contributes 0 and only rows dated in that year count.
+  const expensesYtd = isDeclaredYear
+    ? effectiveDeductibleExpenses(persona.income)
+    : Math.round(
+        (persona.income.expenses ?? [])
+          .filter((e) => !e.deletedAt && isInYear(e.date, year))
+          .reduce((sum, e) => sum + (e.amount - (e.vat ?? 0)), 0) * 100,
+      ) / 100;
+
   return {
     year,
     revenueYtd,

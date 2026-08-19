@@ -24,6 +24,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentUserId } from "@/lib/data/persona-repository";
+import { getLastKnownUserId } from "@/lib/data/persona-store";
 
 export type ChatRole = "user" | "assistant";
 
@@ -62,6 +63,30 @@ function noteIfSchemaMissing(error: { code?: string } | null | undefined): void 
   }
 }
 
+/** Resolve the current user id the way every function below needs it, without
+ *  paying for a fresh `auth.getUser()` round-trip when persona-store already
+ *  knows the answer for this tab.
+ *
+ *  PERF (FP-26, live-mobile finding — every Supabase RTT here crosses
+ *  fra1↔Singapore, ~250-350ms): listThreads/createThread/appendMessage used
+ *  to each call getCurrentUserId() independently, even on a page where
+ *  syncPersonaFromDb() (root layout's PersonaHydrator, or a page's own
+ *  usePersona()) had already resolved identity moments earlier. persona-store
+ *  keeps that resolution warm in `getLastKnownUserId()` — see its doc comment
+ *  in src/lib/data/persona-store.ts: `undefined` only until this tab's FIRST
+ *  authoritative resolution this session, `null`/a user id after that.
+ *
+ *  So: `undefined` (cache truly empty, nothing resolved yet) is the ONLY case
+ *  that falls back to a fresh lookup. A cached `null` is itself a resolved,
+ *  authoritative answer ("signed out") and is returned as-is — that's what
+ *  keeps the signed-out no-op contract free (no network call at all), same as
+ *  every other branch below. */
+async function resolveUserId(): Promise<string | null> {
+  const cached = getLastKnownUserId();
+  if (cached !== undefined) return cached;
+  return getCurrentUserId();
+}
+
 /** Thread title = first user message, trimmed to ~40 chars (mockup shape). */
 export function titleFromFirstMessage(text: string): string {
   const trimmed = text.trim().replace(/\s+/g, " ");
@@ -84,7 +109,7 @@ export function dbRoleToUiRole(role: ChatRole): "agent" | "user" {
 export async function listThreads(): Promise<ChatThread[]> {
   if (unavailable) return [];
   try {
-    const userId = await getCurrentUserId();
+    const userId = await resolveUserId();
     if (!userId) return [];
     const { data, error } = await createClient()
       .from("chat_threads")
@@ -150,7 +175,7 @@ export async function loadMessages(threadId: string): Promise<ChatMessageRow[]> 
 export async function createThread(title: string): Promise<ChatThread | null> {
   if (unavailable) return null;
   try {
-    const userId = await getCurrentUserId();
+    const userId = await resolveUserId();
     if (!userId) return null;
     const { data, error } = await createClient()
       .from("chat_threads")
@@ -182,7 +207,7 @@ export async function appendMessage(
 ): Promise<boolean> {
   if (unavailable || !threadId || !content) return false;
   try {
-    const userId = await getCurrentUserId();
+    const userId = await resolveUserId();
     if (!userId) return false;
     const { error } = await createClient()
       .from("chat_messages")

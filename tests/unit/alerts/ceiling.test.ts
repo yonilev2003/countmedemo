@@ -45,6 +45,91 @@ describe("computeCeilingAlert — 2026 CPI-indexed ceiling (122,833)", () => {
   });
 });
 
+describe("computeCeilingAlert — MURSHE-ZEIR (Amendment 265, verified 2026-08-19)", () => {
+  const murshezeir = (turnover: number, year = 2025) =>
+    makePersona({
+      business: { osekType: "morshe", isOsekZeir: true },
+      income: { year, totalRevenue: turnover },
+    });
+  const plainMorshe = (turnover: number, year = 2025) =>
+    makePersona({
+      business: { osekType: "morshe", isOsekZeir: false },
+      income: { year, totalRevenue: turnover },
+    });
+
+  it("still returns null for a plain (non-זעיר) עוסק מורשה", () => {
+    expect(computeCeilingAlert(plainMorshe(50_000))).toBeNull();
+  });
+
+  it("returns an alert for an עוסק מורשה marked isOsekZeir, same threshold as פטור", () => {
+    const alert = computeCeilingAlert(murshezeir(108_000))!;
+    expect(alert).not.toBeNull();
+    expect(alert.threshold).toBe(120_000);
+    expect(alert.level).toBe("critical");
+  });
+
+  it("exceeded-level copy talks about losing מסלול זעיר eligibility, NOT VAT/registration", () => {
+    const alert = computeCeilingAlert(murshezeir(130_000))!;
+    const text = alert.headlineHe + alert.detailHe;
+    expect(text).toContain("עוסק זעיר");
+    expect(text).not.toContain("נדרשת רישום כמורשה");
+    expect(text).not.toContain("לרישום כעוסק מורשה");
+    // Same finding must NOT read the same way for a patur-זעיר persona —
+    // that one DOES still need to register as murshe on crossing.
+    const paturZeir = computeCeilingAlert(
+      makePersona({
+        business: { osekType: "patur", isOsekZeir: true },
+        income: { year: 2025, totalRevenue: 130_000 },
+      }),
+    )!;
+    expect(paturZeir.headlineHe).toContain("נדרשת רישום כמורשה");
+  });
+
+  it("warning/critical copy for murshe-זעיר drops the patur-only 'become מורשה'/'add VAT' instructions", () => {
+    const warning = computeCeilingAlert(murshezeir(96_000))!;
+    const critical = computeCeilingAlert(murshezeir(108_000))!;
+    // These are the exact patur-track phrases that would be actively wrong
+    // for someone who is already registered and already charging VAT.
+    expect(warning.detailHe).not.toContain("התחל/י תהליך העברה לעוסק מורשה");
+    expect(critical.detailHe).not.toContain("הוסף/י מע\"מ מיידית");
+  });
+});
+
+describe("computeCeilingAlert — FP-07 year param (2026-08-19)", () => {
+  it("defaults to persona.income.year and matches the old (pre-param) behavior exactly", () => {
+    const p = paturWithTurnover(96_000, 2025);
+    const withDefault = computeCeilingAlert(p);
+    const withExplicitSameYear = computeCeilingAlert(p, 2025);
+    expect(withDefault).toEqual(withExplicitSameYear);
+  });
+
+  it("scopes turnover to a requested year via dated revenue docs, ignoring the baseline scalar", () => {
+    const p = makePersona({
+      business: { osekType: "patur" },
+      income: {
+        year: 2025,
+        totalRevenue: 119_000, // 2025 baseline — must NOT leak into a 2026 read
+        invoices: [
+          {
+            invoiceNumber: "2026-0001",
+            date: "2026-03-01",
+            customerName: "לקוח",
+            description: "שירות",
+            amount: 50_000,
+            vat: 0,
+            total: 50_000,
+            docType: "receipt",
+            status: "paid",
+          },
+        ],
+      },
+    });
+    const for2026 = computeCeilingAlert(p, 2026)!;
+    expect(for2026.turnover).toBe(50_000); // only the dated 2026 doc, baseline excluded
+    expect(for2026.threshold).toBe(122_833); // 2026's own ceiling, not 2025's
+  });
+});
+
 describe("computeCeilingAlert — copy correctness (2026-08-18 audit fixes)", () => {
   it("names the tax year the threshold belongs to, so 2025 vs 2026 is never ambiguous on screen", () => {
     const a2025 = computeCeilingAlert(paturWithTurnover(119_500, 2025))!;

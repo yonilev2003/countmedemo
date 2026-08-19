@@ -73,6 +73,32 @@ describe("calculatePL — cross-year document filtering", () => {
   });
 });
 
+describe("calculatePL — FP-06: monthlyBreakdown rows are year-filtered too (2026-08-19)", () => {
+  it("excludes a monthlyBreakdown row dated outside income.year, even with ≥6 rows total", () => {
+    const p = makePersona({
+      income: {
+        year: 2026,
+        totalRevenue: 120_000,
+        totalDeductibleExpenses: 24_000,
+        monthlyBreakdown: [
+          { month: "2026-01", revenue: 10_000, expenses: 2_000 },
+          { month: "2026-02", revenue: 10_000, expenses: 2_000 },
+          { month: "2026-03", revenue: 10_000, expenses: 2_000 },
+          { month: "2026-04", revenue: 10_000, expenses: 2_000 },
+          { month: "2026-05", revenue: 10_000, expenses: 2_000 },
+          // A stale prior-year row that must NOT land in August 2026 just
+          // because the array has ≥6 entries.
+          { month: "2025-08", revenue: 99_999, expenses: 8_888 },
+        ],
+      },
+    });
+    const pl = calculatePL(p);
+    expect(pl.monthlyData[7].revenue).toBe(0); // August 2026 untouched
+    expect(pl.monthlyData[7].expenses).toBe(0);
+    expect(pl.monthlyData[0].revenue).toBe(10_000); // in-year rows still count
+  });
+});
+
 describe("calculatePL — expense-breakdown reconciles to totalExpenses", () => {
   it("adds an unclassified-baseline slice so the pie sum always equals totalExpenses", () => {
     const p = makePersona({

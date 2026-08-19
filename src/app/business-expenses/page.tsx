@@ -15,6 +15,7 @@ import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { LegalNote } from "@/components/brand/legal-note";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import {
   ArrowLeftIcon,
   SettingsIcon,
@@ -68,7 +69,10 @@ export default function BusinessExpensesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-screen-xl px-6 py-8">
+      {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
+          (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since
+          the bar is lg:hidden. */}
+      <main className="mx-auto max-w-screen-xl px-6 py-8 pb-28 lg:pb-8">
         {/* Hero */}
         <div className="rounded-2xl border border-line bg-paper shadow-brand p-6 mb-6">
           <div className="flex items-start justify-between gap-4">
@@ -110,6 +114,11 @@ export default function BusinessExpensesPage() {
 
         <FooterDisclaimer year={persona.income.year} />
       </main>
+
+      {/* Canonical bottom bar (2026-08-19 global-nav sweep, FP-23) — already
+          includes a "שקל" chat shortcut, so no separate EitanFab here (would
+          be a second chat affordance on the same screen, FP-24). */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/business-expenses" />
     </div>
   );
 }

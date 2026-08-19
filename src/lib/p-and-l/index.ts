@@ -4,6 +4,10 @@
  *
  * Strategy for monthly breakdown (in priority order):
  *   1. If persona.income.monthlyBreakdown covers ≥ 6 months → use it (complete truth).
+ *      Rows are year-filtered via isInTaxYear same as source 2 below (FP-06,
+ *      2026-08-19) — a row dated outside income.year doesn't count towards
+ *      the ≥6-months coverage, and won't push a wrong-year figure into the
+ *      chart even when the OTHER rows are enough to clear the threshold.
  *   2. Else if persona.income.invoices[] has dated entries → group revenue by month.
  *      Same for expenses. `hasDatedData` = true.
  *   3. Else distribute totals evenly across 12 months (demo fallback).
@@ -92,7 +96,17 @@ export function calculatePL(persona: Persona): PLSummary {
       const monthVal = row.month;
       let m: number | null = null;
       if (typeof monthVal === "number") m = monthVal;
-      else if (typeof monthVal === "string") m = monthFromIso(monthVal);
+      else if (typeof monthVal === "string") {
+        // FP-06 (2026-08-19): a monthlyBreakdown row dated outside the
+        // persona's declared tax year isn't this year's activity either —
+        // the SAME rule Source-2 already applies to invoices/expenses below
+        // was missing here, so a row like {"month":"2025-08",...} still got
+        // bucketed into August even when income.year=2026. Rows without a
+        // year-bearing string (m stayed a plain number above) have no year
+        // to check and are accepted as before.
+        if (!isInTaxYear(monthVal, persona.income.year)) continue;
+        m = monthFromIso(monthVal);
+      }
       if (m === null) continue;
       revenueByMonth[m - 1] = row.revenue;
       expensesByMonth[m - 1] = row.expenses;

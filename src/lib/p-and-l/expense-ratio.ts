@@ -1,10 +1,13 @@
 /**
  * Expense-to-revenue ratio + the עוסק זעיר 30% recognition rule.
  *
- * Per תיקון 257 לפקודת מס הכנסה (2024 "green track" reform):
- * a sole proprietor in the עוסק פטור flow can opt into the
- * "מסלול עוסק זעיר" track, which auto-recognises **30% of revenue
- * as expenses** — no need to keep receipts. Sounds great until you
+ * Per תיקון 257/265 לפקודת מס הכנסה (2024 "green track" reform, MURSHE-ZEIR
+ * correction verified 2026-08-19): a sole proprietor whose turnover is under
+ * the ceiling can opt into the "מסלול עוסק זעיר" track, which auto-recognises
+ * **30% of revenue as expenses** — no need to keep receipts. Eligibility is
+ * TURNOVER-ONLY: it applies to an עוסק פטור AND to an עוסק מורשה under the
+ * same ceiling (the track is an income-tax mechanic, independent of VAT
+ * registration) — see isZeirEligible below. Sounds great until you
  * realise that real expenses above 30% are simply not deducted.
  *
  * This module is the single source of truth for that logic. Reuse it
@@ -37,7 +40,8 @@ export interface ExpenseRatioInsight {
   isZeirFavorable: boolean;
   /** is the persona currently marked as zeir? */
   isMarkedZeir: boolean;
-  /** is the persona eligible to be zeir (patur + revenue ≤ 120k)? */
+  /** is the persona eligible to be zeir (revenue ≤ the year-keyed ceiling —
+   *  turnover-only, independent of osekType; see MURSHE-ZEIR note above)? */
   isZeirEligible: boolean;
   status: RatioStatus;
   /** One-line headline in Hebrew. Different copy for zeir-marked vs not. */
@@ -77,10 +81,13 @@ export function computeExpenseRatio(persona: Persona): ExpenseRatioInsight {
   const isZeirFavorable = totalExpenses < zeirCapAmount;
 
   const isMarkedZeir = !!persona.business.isOsekZeir;
-  const isZeirEligible =
-    persona.business.osekType === "patur" &&
-    totalRevenue > 0 &&
-    totalRevenue <= revenueCeiling;
+  // Turnover-only gate (MURSHE-ZEIR, Amendment 265 — verified 2026-08-19):
+  // מסלול עוסק זעיר is an INCOME-TAX track, independent of VAT registration
+  // (osekType). It used to be restricted to osekType === "patur" here, which
+  // wrongly hid the track's eligibility for an עוסק מורשה under the ceiling —
+  // see lib/alerts/ceiling.ts's MURSHE-ZEIR note and persona.ts's isOsekZeir
+  // doc comment for the same correction.
+  const isZeirEligible = totalRevenue > 0 && totalRevenue <= revenueCeiling;
 
   const status = statusFromRatio(ratioPercent);
 

@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import type { Persona } from "@/lib/persona";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { YearSwitch } from "@/components/dashboard/year-switch";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
@@ -25,10 +26,11 @@ import {
 } from "@/lib/dashboard/summary";
 import { getReceivablesSummary } from "@/lib/receivables/summary";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
+import { isAnnualFilingDeadlinePassed } from "@/lib/deadlines/calendar";
 import { trackClient } from "@/lib/analytics/track-client";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { Reveal, Stagger, StaggerItem } from "@/components/brand/motion";
 import {
   WalletIcon,
@@ -40,6 +42,7 @@ import {
   TrendingUpIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
+  InfoIcon,
 } from "@/components/brand/icons";
 
 const MONTH_NAMES = [
@@ -48,7 +51,7 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const { persona, setPersona, saveStatus, retrySave } = useRequiredPersona();
+  const { persona, saveStatus, retrySave } = useRequiredPersona();
 
   // Transient "נשמר בענן" toast: fires on the transition INTO "saved" (the
   // post-OAuth adoption lands here mid-mount), never on a status that was
@@ -72,9 +75,48 @@ export default function DashboardPage() {
     () => (persona ? computeMonthSummary(persona) : null),
     [persona],
   );
+
+  // FP-10 (Yoni's live finding, "אין הפרדה לנתונים"): with YearSwitch's
+  // default write-through, persona.income.year always equals whatever was
+  // just picked, so computeYearSummary(persona)/computeCeilingAlert(persona)
+  // with no explicit `year` always hit the "declared year" branch (baseline
+  // + every row) — every year looked identical: the wizard baseline never
+  // actually changed.
+  //
+  // Here a year pick is a VIEW filter, not a declaration change:
+  // `selectedYear` is tracked LOCALLY, onYearSwitchChange below only updates
+  // this state and never calls setPersona, and YearSwitch gets
+  // `persist={false}` so nothing reaches storage either (without that flag
+  // its internal persistPersona would silently promote the viewing year into
+  // the real declared year on the next reload). `persona.income.year` stays
+  // at its true declared value while `selectedYear` can genuinely differ
+  // from it. Passing BOTH into computeYearSummary/computeCeilingAlert is
+  // what actually lets year !== persona.income.year happen — the branch that
+  // scopes a non-declared year to real dated documents only (baseline
+  // excluded), verified in tests/unit/dashboard/summary.test.ts.
+  // `yearSwitchPersona` below feeds YearSwitch a persona whose displayed
+  // income.year matches selectedYear, so its own chip/popover stay visually
+  // in sync even though the underlying `persona` object is never mutated.
+  // (pro/page.tsx deliberately keeps the opposite contract — a pick there IS
+  // a declared-year change, persisted — until the persona.income.year
+  // semantics question is settled with Yoni.)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const activeYear = selectedYear ?? persona?.income.year ?? new Date().getFullYear();
+
+  const yearSwitchPersona: Persona | null = useMemo(() => {
+    if (!persona) return null;
+    return activeYear === persona.income.year
+      ? persona
+      : { ...persona, income: { ...persona.income, year: activeYear } };
+  }, [persona, activeYear]);
+
+  function onYearSwitchChange(next: Persona) {
+    setSelectedYear(next.income.year);
+  }
+
   const yearSummary = useMemo(
-    () => (persona ? computeYearSummary(persona) : null),
-    [persona],
+    () => (persona ? computeYearSummary(persona, activeYear) : null),
+    [persona, activeYear],
   );
   const receivables = useMemo(
     () => (persona ? getReceivablesSummary(persona) : null),
@@ -82,10 +124,11 @@ export default function DashboardPage() {
   );
   // null for עוסק מורשה (no ceiling) or when nowhere near it — computeCeilingAlert
   // is the SAME engine /alerts and the chat's get_ceiling_status tool use, so
-  // the dashboard's reaction can never disagree with theirs.
+  // the dashboard's reaction can never disagree with theirs. Year-aware (FP-10):
+  // scoped to activeYear exactly like yearSummary above.
   const ceiling = useMemo(
-    () => (persona ? computeCeilingAlert(persona) : null),
-    [persona],
+    () => (persona ? computeCeilingAlert(persona, activeYear) : null),
+    [persona, activeYear],
   );
 
   if (!persona || !summary || !yearSummary || !receivables)
@@ -108,6 +151,10 @@ export default function DashboardPage() {
   const canTaxInvoice = allowedDocTypesFor(persona.business.osekType).includes(
     "tax-invoice-receipt",
   );
+  // FP-10: the annual Form 1301 online deadline for the year being VIEWED
+  // (not necessarily persona's true declared year) — same engine
+  // src/lib/deadlines/calendar.ts's other consumers use.
+  const filingDeadlinePassed = isAnnualFilingDeadlinePassed(activeYear);
 
   // The ratio, phrased so it feels informative — never alarming (CEO §3.2).
   const ratioLine =
@@ -152,12 +199,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-md items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo size={26} />
-          </Link>
-          <div className="flex items-center gap-2">
+      {/* AppHeader (2026-08-19, FP-11) supplies "עדכן נתונים" → /setup and
+          sign-out for free, same as every other logged-in page — this page
+          used to hand-roll its own header with neither. No pageLabel: this
+          IS the dashboard (AppHeader's own convention for that case). */}
+      <AppHeader
+        actions={
+          <>
             {/* Re-linked 2026-08-16 (was URL-only since the beta-lean pivot,
                 6c9d16a): the rich tax dashboard was unreachable by click. */}
             <Link href="/dashboard/pro" className={btn("ghost", "sm")}>
@@ -166,13 +214,13 @@ export default function DashboardPage() {
             <Link href="/coach" className={btn("gold", "sm")}>
               <SparklesIcon className="size-4" /> שקל
             </Link>
-            <SignOutButton />
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      {/* pb-28: clearance for the fixed a11y-widget button, which otherwise
-          covers the last action tile on phone heights (journey scan). */}
+      {/* pb-28: clearance for the fixed a11y-widget button AND the
+          QuickActionsBar bottom nav (FP-12), which otherwise cover the last
+          action tile on phone heights (journey scan). */}
       <main className="mx-auto w-full max-w-screen-md px-4 pb-28 pt-6 sm:px-6">
         {/* Cloud-save outcome of the post-OAuth persona adoption (beta-feedback
             task #3, 18/08). DoneScreen shows its own inline confirmation for
@@ -214,21 +262,48 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted">
             {monthName} · {persona.business.tradeName} ·{" "}
-            <YearSwitch persona={persona} onPersonaChange={setPersona} />
+            <YearSwitch
+              persona={yearSwitchPersona ?? persona}
+              onPersonaChange={onYearSwitchChange}
+              persist={false}
+            />
           </p>
         </Reveal>
+
+        {/* FP-10: only for a year whose Form 1301 online deadline already
+            passed (2024/2025 as of 2026-08-19 — see calendar.ts) — a past
+            year is still fully viewable, this just sets expectations. */}
+        {filingDeadlinePassed && (
+          <Reveal className="mt-4">
+            <div className="flex items-center gap-2 rounded-2xl bg-info border border-teal-100 px-4 py-2.5 text-xs text-brand-navy">
+              <InfoIcon className="size-4 shrink-0 text-brand-deep" />
+              <span>
+                תאריך הגשת הדוח השנתי ל-{activeYear} עבר — ניתן למלא נתוני עבר
+                לצרכי נוחות.
+              </span>
+            </div>
+          </Reveal>
+        )}
 
         {/* ── The three numbers ── */}
         <Stagger className="mt-6 grid grid-cols-3 gap-3">
           {/* YTD-with-baseline model (Yoni, 16/08): the big numbers are the
               year so far — the setup baseline + everything added in the app —
               matching /dashboard/pro and the ceiling alert. The month figure
-              (real dated documents only) is the small line underneath. */}
+              (real dated documents only) is the small line underneath.
+              FP-09: cards are links now (with a subtle hover affordance) —
+              they used to be plain, undiscoverable divs. */}
           <StaggerItem>
-            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-                <span className="size-2 rounded-full bg-brand-deep" />
-                הכנסות השנה
+            <Link
+              href="/invoices"
+              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  <span className="size-2 rounded-full bg-brand-deep" />
+                  הכנסות השנה
+                </div>
+                <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-deep sm:text-2xl" dir="ltr">
                 ₪{yearSummary.revenueYtd.toLocaleString("he-IL")}
@@ -236,13 +311,19 @@ export default function DashboardPage() {
               <div className="mt-0.5 text-[11px] text-faint">
                 לפני מע&quot;מ · החודש: ₪{summary.revenue.toLocaleString("he-IL")}
               </div>
-            </div>
+            </Link>
           </StaggerItem>
           <StaggerItem>
-            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-                <span className="size-2 rounded-full bg-brand" />
-                הוצאות השנה
+            <Link
+              href="/expenses"
+              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  <span className="size-2 rounded-full bg-brand" />
+                  הוצאות השנה
+                </div>
+                <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-ink sm:text-2xl" dir="ltr">
                 ₪{yearSummary.expensesYtd.toLocaleString("he-IL")}
@@ -254,13 +335,19 @@ export default function DashboardPage() {
                 {persona.business.osekType === "morshe" && "לפני מע\"מ · "}
                 החודש: ₪{summary.expenses.toLocaleString("he-IL")}
               </div>
-            </div>
+            </Link>
           </StaggerItem>
           <StaggerItem>
-            <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-                <span className="size-2 rounded-full bg-brand-navy" />
-                היחס
+            <Link
+              href="/dashboard/pro"
+              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+            >
+              <div className="flex items-center justify-between gap-1">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  <span className="size-2 rounded-full bg-brand-navy" />
+                  היחס
+                </div>
+                <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
               <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
                 {yearSummary.ratioYtd === null
@@ -268,7 +355,7 @@ export default function DashboardPage() {
                   : `${Math.round(yearSummary.ratioYtd * 100)}%`}
               </div>
               <div className="mt-0.5 text-[11px] leading-snug text-faint">{ratioLine}</div>
-            </div>
+            </Link>
           </StaggerItem>
         </Stagger>
 
@@ -455,6 +542,11 @@ export default function DashboardPage() {
           </Reveal>
         )}
       </main>
+
+      {/* Quick-actions bottom bar (FP-12, mobile only) — the page already
+          reserves pb-28 above for it, same clearance pattern /deadlines and
+          /dashboard/pro use for the same component. */}
+      <QuickActions variant="bar" className="lg:hidden" currentHref="/dashboard" />
     </div>
   );
 }
