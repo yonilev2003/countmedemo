@@ -5,6 +5,7 @@ import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { PersonaHydrator } from "@/components/persona-hydrator";
 import { AccessibilityWidget } from "@/components/a11y/accessibility-widget";
 import { A11Y_BOOTSTRAP_SCRIPT } from "@/lib/a11y/core";
+import { getSiteOrigin } from "@/lib/site";
 
 const assistant = Assistant({
   variable: "--font-assistant",
@@ -29,16 +30,16 @@ const APP_DESCRIPTION =
   "חשבוניות, קבלות, הוצאות ומי לא שילם לי — הכספים של העסק העצמאי שלך, בשפה של בני אדם. מחשבון מדויק, לא ייעוץ מס.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    // countmedemo-eight.vercel.app is the ONLY domain this Vercel project
-    // actually owns (verified live via the Vercel API, 17/08 — get_project
-    // on prj_3IlHVinVBsD8s16lXEEdGYUWMujj lists it plus 2 auto-aliases;
-    // countmedemo.vercel.app is NOT in that list and does not belong to any
-    // of the 9 projects on this account). Do not "fix" this back — that was
-    // tried once before (see memory/STATUS.md, 03/08) and reverted for the
-    // same reason.
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://countmedemo-eight.vercel.app",
-  ),
+  // Canonical origin resolved via getSiteOrigin() (src/lib/site.ts) — see
+  // that file for the full domain-migration plan. The vercel.app fallback
+  // baked in there is the ONLY domain this Vercel project actually owns
+  // (verified live via the Vercel API, 17/08 — get_project on
+  // prj_3IlHVinVBsD8s16lXEEdGYUWMujj lists it plus 2 auto-aliases;
+  // countmedemo.vercel.app is NOT in that list and does not belong to any
+  // of the 9 projects on this account). Do not "fix" this back — that was
+  // tried once before (see memory/STATUS.md, 03/08) and reverted for the
+  // same reason.
+  metadataBase: new URL(getSiteOrigin()),
   title: APP_TITLE,
   description: APP_DESCRIPTION,
   manifest: "/manifest.json",

@@ -10,6 +10,12 @@ import { LogoMark } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
+  loadMessages,
+  createThread,
+  appendMessage,
+  dbRoleToUiRole,
+} from "@/lib/chat/history";
+import {
   PaperclipIcon,
   MicIcon,
   SendIcon,
@@ -125,9 +131,30 @@ function eitanGreeting(persona: Persona | null | undefined): string {
 interface Props {
   /** Optional persona — used for greeting and richer context in conversations. */
   persona?: Persona | null;
+  /**
+   * Which persisted thread (src/lib/chat/history.ts) this instance should
+   * load on mount — `null` means "start fresh" (canned greeting), a real id
+   * loads that thread's transcript. Owned by the page (coach/page.tsx), not
+   * this component: the page also feeds it to ChatNavSideRail so a row
+   * click there and this component agree on what "active" means.
+   *
+   * The page keys <CoachChat> by this value, so switching threads (a rail
+   * click, or "שיחה חדשה") always arrives here as a fresh mount — this
+   * component therefore only ever needs to resolve it ONCE, on mount, never
+   * react to it changing under an existing instance.
+   */
+  activeThreadId?: string | null;
+  /**
+   * Fired whenever this component's own idea of the active thread changes:
+   * once, when the first exchange of a fresh chat lazily creates a thread
+   * (id), and whenever "שיחה חדשה" is pressed (null). The page uses this to
+   * keep its own state — and therefore the sidebar's selection/ordering —
+   * in sync without knowing anything about how CoachChat persists.
+   */
+  onActiveThreadChange?: (id: string | null) => void;
 }
 
-export function CoachChat({ persona }: Props) {
+export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,13 +166,69 @@ export function CoachChat({ persona }: Props) {
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // The thread the next persisted exchange appends to (see persistExchange).
+  // Seeded from the controlled prop; a lazily-created thread updates it
+  // in-place without waiting for a re-render.
+  const threadIdRef = useRef<string | null>(activeThreadId ?? null);
 
-  // Show Eitan's greeting immediately on mount
+  // Load the requested thread's transcript on mount, or show Eitan's canned
+  // greeting when there's nothing to load (new chat, signed out, or the
+  // chat_* tables aren't live yet — history.ts degrades silently). Mount-only
+  // by design: the page remounts this component (via a `key` on
+  // activeThreadId) whenever the active thread should change, so this effect
+  // never needs to react to the prop changing under an existing instance.
   useEffect(() => {
-    setMessages([{ role: "agent", text: eitanGreeting(persona) }]);
-    historyRef.current = [];
+    let cancelled = false;
+    threadIdRef.current = activeThreadId ?? null;
+
+    (async () => {
+      if (threadIdRef.current) {
+        const rows = await loadMessages(threadIdRef.current);
+        if (cancelled) return;
+        if (rows.length > 0) {
+          setMessages(
+            rows.map((r) => ({ role: dbRoleToUiRole(r.role), text: r.content })),
+          );
+          historyRef.current = rows.map((r) => ({ role: r.role, content: r.content }));
+          return;
+        }
+      }
+      if (cancelled) return;
+      setMessages([{ role: "agent", text: eitanGreeting(persona) }]);
+      historyRef.current = [];
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Best-effort persistence — lazily creates a thread on the first exchange
+   *  of a fresh chat, then appends to it. Never throws; a failure here must
+   *  never interrupt the live chat, which already rendered from local state. */
+  async function persistExchange(userText: string, assistantText: string) {
+    try {
+      let threadId = threadIdRef.current;
+      if (!threadId) {
+        const created = await createThread(userText);
+        if (!created) return; // signed out, or the tables aren't live yet
+        threadId = created.id;
+        threadIdRef.current = threadId;
+      }
+      await appendMessage(threadId, "user", userText);
+      await appendMessage(threadId, "assistant", assistantText);
+      // Only meaningfully changes anything the first time (null → a real
+      // id — the page re-keys <CoachChat> on it, which remounts and reloads
+      // from the DB, now showing exactly what was just written). On later
+      // turns it's the same id the page already has, so React bails the
+      // update out with no remount — but the page still uses the call to
+      // refresh the sidebar's ordering/updated_at.
+      onActiveThreadChange?.(threadId);
+    } catch {
+      /* best-effort only */
+    }
+  }
 
   useEffect(() => {
     // Scroll ONLY the messages pane — scrollIntoView also scrolled the WINDOW
@@ -163,6 +246,12 @@ export function CoachChat({ persona }: Props) {
     setAttachment(null);
     setAttachError(null);
     historyRef.current = [];
+    // "שיחה חדשה" — the NEXT persisted exchange starts a brand new thread
+    // rather than continuing this one. Cleared locally regardless of
+    // whether a parent is listening; also reported up so the page (and
+    // therefore ChatNavSideRail) deselects whatever thread was active.
+    threadIdRef.current = null;
+    onActiveThreadChange?.(null);
   }
 
   async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
@@ -292,6 +381,7 @@ export function CoachChat({ persona }: Props) {
               },
               { role: "assistant", content: finalText },
             ];
+            void persistExchange(resolvedText, finalText);
             setIsLoading(false);
             return;
           }
@@ -323,6 +413,7 @@ export function CoachChat({ persona }: Props) {
           { role: "user", content: resolvedText },
           { role: "assistant", content: accumulated },
         ];
+        void persistExchange(resolvedText, accumulated);
       }
       setStreamingText("");
       setIsLoading(false);

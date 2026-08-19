@@ -109,18 +109,21 @@ test.describe("/demo — gov.il-faithful form preview", () => {
 });
 
 test.describe("/setup — wizard", () => {
-  test("step 0 fast-track upload step is the entry point", async ({ page }) => {
+  // Onboarding-v5: the upload fast-track is no longer a separate opening
+  // step — it's a collapsed card at the top of screen 1 (see FastTrackCard
+  // in setup/page.tsx). The wizard opens directly on פרטים אישיים.
+  test("fast-track upload card sits collapsed on screen 1 and expands to the slots", async ({ page }) => {
     await page.goto("/setup");
-    await expect(page.getByText("מסלול מהיר — אופציונלי")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "פרטים אישיים" })).toBeVisible();
+    const card = page.getByRole("button", { name: /מסלול מהיר/ });
+    await expect(card).toBeVisible();
+    await card.click();
     await expect(page.getByText("דו״ח הכנסות תקופתי")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "אקסל הוצאות" })).toBeVisible();
+    await expect(page.getByText("אקסל הוצאות").first()).toBeVisible();
   });
 
   test("step 1 blocks advance when required fields are empty", async ({ page }) => {
     await page.goto("/setup");
-
-    // Skip the optional fast-track step
-    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
 
     await page.getByRole("button", { name: /הבא/ }).click();
 
@@ -130,42 +133,57 @@ test.describe("/setup — wizard", () => {
 
   /** Fill step 1 and advance to step 3 (פרטי עסק), asserting each arrival. */
   async function goToBusinessStep(page: Page) {
-    await page.getByRole("button", { name: /דלג על העלאה/ }).click();
     await page.getByLabel("שם פרטי").fill("טסט");
     await page.getByLabel("שם משפחה").fill("טסטסון");
     // Must pass the israeli-id check-digit validation (the previous fixture
     // value 318274561 was invalid, so step 1 silently blocked the advance).
     await page.getByLabel("תעודת זהות").fill("123456782");
     await page.getByLabel("תאריך לידה").fill("1996-08-14");
+    // מגדר became a required screen-1 field with the credit-points work.
+    // Click the visible label — the radio input itself is sr-only (1×1,
+    // clipped), so a direct .check() on it can't receive the pointer.
+    await page.getByText("נקבה (2.75 נקודות)").click();
+    // Terms+privacy consent is also required on screen 1 now (a real
+    // checkbox, not sr-only — .check() works directly).
+    await page.getByRole("checkbox").first().check();
     await page.getByRole("button", { name: /הבא/ }).click();
     await expect(page.getByRole("heading", { name: "מעמד ומשפחה" })).toBeVisible();
     await page.getByRole("button", { name: /הבא/ }).click();
-    await expect(page.getByRole("heading", { name: "פרטי עסק" })).toBeVisible();
+    // Onboarding-v5: the osek picker lives on screen 3, "היכרות עם העסק"
+    // (the old "פרטי עסק" screen is now screen 4, business name/address).
+    await expect(page.getByRole("heading", { name: "היכרות עם העסק" })).toBeVisible();
   }
 
-  test("עוסק זעיר is offered; its info box follows the chosen track", async ({ page }) => {
+  // Onboarding-v5 osek model: two first-class radio tracks (פטור / מורשה)
+  // and עוסק זעיר as a checkbox toggle that only exists under פטור — the
+  // skills don't support a זעיר track above the פטור ceiling (see the FLAG
+  // comment at the OsekTypeChoice call site in setup/page.tsx).
+  test("עוסק זעיר is a toggle under פטור only; hidden under מורשה", async ({ page }) => {
     await page.goto("/setup");
     await goToBusinessStep(page);
 
-    // Default track is עוסק פטור — the zeir info box is hidden.
-    await expect(page.getByRole("radio", { name: /עוסק זעיר/ })).toBeVisible();
-    await expect(page.getByText("מסלול עוסק זעיר:")).toHaveCount(0);
+    // No track picked yet — the זעיר toggle isn't offered at all.
+    await expect(page.getByText("עוסק זעיר")).toHaveCount(0);
 
-    // Choosing זעיר reveals the info box; switching to מורשה hides it again.
-    await page.getByRole("radio", { name: /עוסק זעיר/ }).check();
-    await expect(page.getByText("מסלול עוסק זעיר:")).toBeVisible();
-    await page.getByRole("radio", { name: /עוסק מורשה/ }).check();
-    await expect(page.getByText("מסלול עוסק זעיר:")).toHaveCount(0);
+    // Picking פטור reveals the זעיר toggle; switching to מורשה hides it.
+    await page.getByText("עוסק פטור", { exact: true }).click();
+    await expect(page.getByText("עוסק זעיר")).toBeVisible();
+    await page.getByText("עוסק מורשה", { exact: true }).click();
+    await expect(page.getByText("עוסק זעיר")).toHaveCount(0);
   });
 
-  test("חברה בע״מ is not offered — individuals-only osek tracks", async ({ page }) => {
+  test("חברה בע״מ is an explainer-only dead end, not an osek track", async ({ page }) => {
     await page.goto("/setup");
     await goToBusinessStep(page);
 
+    // Exactly two real tracks — פטור / מורשה. No company radio.
     const tracks = page.getByRole("radiogroup", { name: "סוג עוסק" }).getByRole("radio");
-    await expect(tracks).toHaveCount(3); // זעיר / פטור / מורשה
-    await expect(page.getByText("חברה בע\"מ")).toHaveCount(0);
-    await expect(page.getByRole("radio", { name: /עוסק מורשה/ })).toBeVisible();
+    await expect(tracks).toHaveCount(2);
+
+    // The חברה card exists but only opens an honest explainer (Form 1214),
+    // deliberately without selecting a track (onboarding-v5 §5 "not silent").
+    await page.getByRole("button", { name: "חברה בע״מ" }).click();
+    await expect(page.getByText(/חברות מגישות טופס 1214/)).toBeVisible();
   });
 });
 

@@ -101,8 +101,11 @@ export function SectionCard({
         )}
       </div>
 
+      {/* Column-header row mirrors the FieldRow grid below — only meaningful
+          in the 4-column desktop layout, so it's hidden on the stacked
+          mobile layout (task: don't let it mislabel the stacked rows). */}
       <div
-        className="grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium"
+        className="hidden sm:grid bg-[#eef3f8] border-b border-[#bdcde0] px-3 py-1 text-[10px] text-[#3a5775] font-medium"
         style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}
       >
         <div>פרטים</div>
@@ -154,9 +157,14 @@ function FieldRow({
   const copyValue = !isDimmed ? rawCopyValue(field, persona, calc) : null;
 
   return (
+    // Mobile (<sm): stacked — label on its own full-width line, then a
+    // compact row of copy-button / value / code-chip beneath it.
+    // Desktop (>=sm): `sm:grid` + the original inline gridTemplateColumns
+    // restores today's exact 4-column layout (label | copy | value | code).
     <div
       className={cn(
-        "grid items-center gap-2 px-3 py-1.5",
+        "flex flex-col gap-1.5 px-3 py-1.5",
+        "sm:grid sm:items-center sm:gap-2",
         isDimmed && "opacity-40",
       )}
       style={{ gridTemplateColumns: "1fr 28px 140px 36px" }}
@@ -177,25 +185,31 @@ function FieldRow({
         )}
       </div>
 
-      <div className="flex items-center justify-center">
-        {copyValue !== null && <InlineCopyButton value={copyValue} />}
-      </div>
+      {/* `sm:contents` makes this wrapper disappear at the desktop
+          breakpoint so its three children become direct grid items again
+          (same DOM order → same 4 grid columns as before). Below sm it's a
+          plain flex row: copy-button, value, code-chip. */}
+      <div className="flex items-center gap-2 sm:contents">
+        <div className="flex items-center justify-center">
+          {copyValue !== null && <InlineCopyButton value={copyValue} />}
+        </div>
 
-      <div className="flex items-center justify-center">
-        <FieldValue
-          field={field}
-          persona={persona}
-          calc={calc}
-          notApplicable={notApplicable}
-        />
-      </div>
+        <div className="flex items-center justify-center flex-1 min-w-0">
+          <FieldValue
+            field={field}
+            persona={persona}
+            calc={calc}
+            notApplicable={notApplicable}
+          />
+        </div>
 
-      <div className="flex items-center justify-end">
-        {field.code && (
-          <span className="inline-flex items-center justify-center min-w-[28px] px-1 py-0.5 rounded-sm text-[9px] font-bold bg-[#c62828] text-white font-mono">
-            {field.code}
-          </span>
-        )}
+        <div className="flex items-center justify-end">
+          {field.code && (
+            <span className="inline-flex items-center justify-center min-w-[28px] px-1 py-0.5 rounded-sm text-[9px] font-bold bg-[#c62828] text-white font-mono">
+              {field.code}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

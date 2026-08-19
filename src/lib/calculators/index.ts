@@ -214,6 +214,7 @@ export const field150BusinessIncome: Calculator = (p) => {
         {
           label: `${p.income.invoiceCount} חשבוניות בשנת ${p.income.year}`,
           detail: "מסלול מקוצר — 30% מהמחזור מוכרים אוטומטית כהוצאות",
+          href: "/invoices",
         },
       ],
       confidence: "high",
@@ -237,10 +238,12 @@ export const field150BusinessIncome: Calculator = (p) => {
       {
         label: `${p.income.invoiceCount} חשבוניות שהוצאת בשנת ${p.income.year}`,
         detail: 'מתוך ספרי החשבונות (לחץ לראות פירוט)',
+        href: "/invoices",
       },
       {
         label: `${p.income.expenseCount} הוצאות מוכרות`,
         detail: 'אחרי קטלוג ע"י israeli-expense-categorizer (תקרות וניכויים חלקיים יושמו)',
+        href: "/expenses",
       },
     ],
     confidence: "high",
@@ -263,6 +266,7 @@ export const field238Turnover: Calculator = (p) => {
       {
         label: `${p.income.invoiceCount} חשבוניות בשנת ${p.income.year}`,
         detail: "מצורף פירוט חודשי",
+        href: "/invoices",
       },
     ],
     confidence: "high",

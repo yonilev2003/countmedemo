@@ -16,6 +16,17 @@
 //     over Persona, zero DB, same as family 1).
 //   • renderKnowledgeToc() — the prompt-cached table-of-contents block for
 //     the knowledge vault (route.ts's 3rd system block).
+//   • probeKnowledgeAvailable() (v2 plan item 2.8, 2026-08-18) — a one-shot,
+//     cached-promise check for whether knowledge_chunks/its RPC actually
+//     exist. EITAN_TOOLS is built from it DYNAMICALLY: search_knowledge/
+//     read_knowledge are omitted from the exported list only once the probe
+//     has CONFIRMED the schema is missing (a real query error from a
+//     reachable Supabase), so the model doesn't burn a whole extra round
+//     calling a tool that can only 404 today (the migration is authored but
+//     not applied — see the knowledge-vault section below). An ambiguous
+//     probe result (no Supabase configured at all, network blip) leaves
+//     them advertised — see the doc comment on probeKnowledgeAvailable()
+//     for why, and on EITAN_TOOLS for the mechanics of the async update.
 //
 // Calculator/deadline/ceiling/client-graph tools are derived from the
 // Persona the request already carries + pure functions, so they work
@@ -175,10 +186,15 @@ interface UntypedAdmin {
   rpc(
     fn: string,
     args: Record<string, unknown>,
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
+  ): Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
   from(table: string): {
     select(cols: string): {
-      in(col: string, vals: string[]): Promise<{ data: unknown; error: { message: string } | null }>;
+      in(
+        col: string,
+        vals: string[],
+      ): Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
+      // Used only by probeKnowledgeAvailable() below (`select id … limit 1`).
+      limit(n: number): Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
     };
   };
 }
@@ -250,6 +266,71 @@ export async function readKnowledge(ids: string[]): Promise<string> {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+ * Knowledge-tool availability probe (v2 plan item 2.8, 2026-08-18).
+ *
+ * The knowledge_chunks table + search_knowledge_chunks RPC (see the
+ * migration header cited above) are authored but NOT applied on the live
+ * DB, so until now every turn where the model reached for search_knowledge/
+ * read_knowledge burned a full extra Sonnet round just to get back
+ * KNOWLEDGE_UNAVAILABLE (safeKnowledgeCall catches the failure, but only
+ * AFTER the model already spent a round deciding to call the tool). This
+ * probe lets EITAN_TOOLS stop ADVERTISING those two tools while the schema
+ * is missing, so the model never reaches for them in the first place.
+ *
+ * One-shot circuit breaker, same spirit as src/lib/chat/history.ts's
+ * `unavailable` flag — but cached as a PROMISE (not a plain boolean) so the
+ * many concurrent requests that can hit a fresh serverless instance while
+ * the first probe is still in flight all await the SAME check instead of
+ * each firing their own. Once resolved, the boolean is fixed for the rest
+ * of this module instance's life.
+ *
+ * Fails closed ONLY on a CONFIRMED "not there yet" response — a real
+ * Postgrest query error from a reachable Supabase (e.g. 42P01
+ * undefined_table, PGRST202/PGRST205 function/table not in schema cache),
+ * exactly the documented target scenario (migration authored, not applied,
+ * on the live project). Any AMBIGUOUS failure — missing env/credentials
+ * (createAdminClient() throws before any network call, e.g. a preview/test
+ * environment with no Supabase configured at all), a bare network blip, an
+ * unexpected exception — fails OPEN (stays advertised) instead: we haven't
+ * actually confirmed the schema is missing, so hiding the tool would be
+ * over-eager, and a genuinely broken call still degrades to the honest
+ * KNOWLEDGE_UNAVAILABLE message at call time via safeKnowledgeCall. Same
+ * "no false negatives" bias as history.ts's *recognized*-error-code check,
+ * just inverted here because this probe's failure mode is "hide a tool
+ * from the model" rather than "skip an optional read".
+ * ────────────────────────────────────────────────────────────────────────── */
+
+let knowledgeAvailablePromise: Promise<boolean> | null = null;
+
+/**
+ * Cheap existence check — `select id from knowledge_chunks limit 1` via the
+ * admin client — cached as a single in-flight/resolved promise per module
+ * instance. Never throws and never rejects; resolves false ONLY on a
+ * confirmed query error, true otherwise (including on ambiguous failures —
+ * see the header comment above). Call this (don't read the module-level
+ * promise directly) so "start the probe" and "read its cached result" stay
+ * the same one-liner everywhere.
+ */
+function probeKnowledgeAvailable(): Promise<boolean> {
+  if (!knowledgeAvailablePromise) {
+    knowledgeAvailablePromise = (async () => {
+      try {
+        // Reuses the same UntypedAdmin cast as searchKnowledge/readKnowledge
+        // above — see the comment on that interface for why.
+        const admin = createAdminClient() as unknown as UntypedAdmin;
+        const { error } = await admin.from("knowledge_chunks").select("id").limit(1);
+        return !error;
+      } catch {
+        // Couldn't even attempt the query (no credentials, network down,
+        // etc.) — ambiguous, not a confirmed "schema missing". Fail open.
+        return true;
+      }
+    })();
+  }
+  return knowledgeAvailablePromise;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
  * Client relationship graph tools (RAG audit #20) — over lib/agent/client-
  * graph.ts, pure/local, no DB. Always available (no degradation path needed).
  * ────────────────────────────────────────────────────────────────────────── */
@@ -274,8 +355,10 @@ function runClientGraphTool(name: string, input: Record<string, unknown>, person
   }
 }
 
-/** Tool definitions exposed to the model (only meaningful when a persona exists). */
-export const EITAN_TOOLS: Anthropic.Tool[] = [
+/** Full catalog of tool definitions, incl. the two knowledge-vault tools —
+ *  NOT exported directly; EITAN_TOOLS below is derived from this and kept
+ *  in sync with probeKnowledgeAvailable(). */
+const ALL_EITAN_TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: "get_form_value",
     description:
@@ -366,6 +449,50 @@ export const EITAN_TOOLS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: {} },
   },
 ];
+
+/** The two tools probeKnowledgeAvailable() gates — ONLY these two; every
+ *  other tool (calculator/deadline/ceiling/client-graph) is pure over
+ *  Persona with zero DB and is always advertised. */
+const KNOWLEDGE_TOOL_NAMES = new Set(["search_knowledge", "read_knowledge"]);
+
+/**
+ * Tool definitions exposed to the model (only meaningful when a persona
+ * exists). Starts EXCLUDING search_knowledge/read_knowledge — fail closed —
+ * and is mutated IN PLACE (push, never reassigned) to include them once
+ * probeKnowledgeAvailable() resolves true, so every holder of this array
+ * reference (both route.ts consumers below, every in-flight request's
+ * per-round tool list) observes the change without re-importing anything.
+ *
+ * Exported as a plain array rather than turned into an async getTools():
+ * both src/app/api/chat/route.ts and src/app/api/coach/route.ts import
+ * EITAN_TOOLS as a static value and read it synchronously inside their
+ * per-round `{ tools: EITAN_TOOLS }` spread — converting the export to a
+ * function would require editing those two files, which is out of scope
+ * for a tools.ts-only change. TRADEOFF this choice makes: any request whose
+ * first tool-use round runs before the probe resolves (in practice, only
+ * the first request or two right after a cold start — the probe is one
+ * cheap query, not a chain) won't see search_knowledge/read_knowledge for
+ * that round even if the schema turns out to be available. That's the
+ * intended fail-closed default: the cost of a rare, brief under-advertise
+ * is far lower than the cost this whole change exists to remove — a wasted
+ * model round calling a tool that 404s on every single turn.
+ */
+export const EITAN_TOOLS: Anthropic.Tool[] = ALL_EITAN_TOOL_DEFS.filter(
+  (t) => !KNOWLEDGE_TOOL_NAMES.has(t.name),
+);
+
+// Kick off the probe as soon as this module loads (not lazily on the first
+// tool call) so it has the best chance of resolving before any request's
+// first tool-use round reads EITAN_TOOLS. Fire-and-forget: deliberately
+// never awaited at module scope (a top-level await here would block route
+// compilation/cold start on a Supabase round-trip for every request, which
+// is strictly worse than the problem this change fixes). Errors are
+// already swallowed inside probeKnowledgeAvailable, so this .then() only
+// ever receives true/false, never rejects.
+void probeKnowledgeAvailable().then((available) => {
+  if (!available) return;
+  EITAN_TOOLS.push(...ALL_EITAN_TOOL_DEFS.filter((t) => KNOWLEDGE_TOOL_NAMES.has(t.name)));
+});
 
 /** Run a tool by name against the persona. Always returns a string (never throws). */
 export async function runEitanTool(

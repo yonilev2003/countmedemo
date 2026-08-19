@@ -6,13 +6,17 @@
  * SEPARATE caches — keep every surface on these constants.
  */
 
+import { recordAiUsage } from "./usage";
+
 /** Conversational tier — Eitan chat + coach (decision: stay on Sonnet 4.6 for beta). */
 export const MODEL_SONNET = "claude-sonnet-4-6";
 
 /** Cheap-ops tier — document extraction, parsing, classification. */
 export const MODEL_HAIKU = "claude-haiku-4-5";
 
-/** Shape of the usage block we log from every Anthropic response. */
+/** Shape of the usage block we log from every Anthropic response.
+ *  `userId` is optional so every existing call site keeps compiling
+ *  unchanged — pass it once a route has the authenticated user id at hand. */
 export interface AiUsageLog {
   route: string;
   model: string;
@@ -21,14 +25,22 @@ export interface AiUsageLog {
   output_tokens: number;
   cache_creation_input_tokens: number;
   cache_read_input_tokens: number;
+  userId?: string | null;
 }
 
 /**
  * One-line spend log, greppable in Vercel logs as "[ai-usage]".
  * Keep it a single JSON line — dashboards and `vercel logs | grep` rely on it.
+ *
+ * Also persists the row to public.ai_usage (fire-and-forget — see
+ * src/lib/ai/usage.ts's module doc for why this must never throw or slow
+ * down the caller) so the cost-guard (daily caps, degrade/pause, threshold
+ * alerts — Yoni's locked decision, 2026-08-18) has real data to work from
+ * instead of only this console line.
  */
 export function logAiUsage(entry: AiUsageLog): void {
   console.log("[ai-usage]", JSON.stringify(entry));
+  void recordAiUsage(entry);
 }
 
 import type Anthropic from "@anthropic-ai/sdk";

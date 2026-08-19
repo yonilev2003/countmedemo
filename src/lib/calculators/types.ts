@@ -20,6 +20,14 @@ import type { Persona } from "@/lib/persona";
 export interface CalcSource {
   label: string;
   detail?: string;
+  /**
+   * Optional link to the itemized page that backs this source — e.g. revenue/
+   * invoice-derived sources point to /invoices, expense-derived sources point
+   * to /expenses. When present, the tooltip renders the source as a navigable
+   * row instead of static text (fulfils the "לחץ לראות פירוט" promise in the
+   * field-150/238 formula copy). Internal app route only — never an external URL.
+   */
+  href?: string;
 }
 
 export interface CalcResult {

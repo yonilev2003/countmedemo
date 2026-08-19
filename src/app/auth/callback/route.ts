@@ -6,6 +6,10 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  CONTINUE_INTENT_QUERY_PARAM,
+  CONTINUE_INTENT_QUERY_VALUE,
+} from "@/lib/setup-storage";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,6 +25,19 @@ export async function GET(request: Request) {
       ? nextParam
       : "/dashboard";
 
+  // Carry the continue-intent signal (beta-feedback task #2, 18/08) onto the
+  // landing page's own URL, so a client-side reconcile there (persona-store's
+  // consumeExplicitContinueIntent, via setup-storage's query-param peek/read)
+  // can treat it as explicit consent even when the sessionStorage flag didn't
+  // survive this redirect (different tab/context). Only forwarded when it
+  // matches the one known sentinel value — never passed through verbatim —
+  // so this can't become an open param-injection vector.
+  const intentParam = searchParams.get(CONTINUE_INTENT_QUERY_PARAM);
+  const destination =
+    intentParam === CONTINUE_INTENT_QUERY_VALUE
+      ? `${next}${next.includes("?") ? "&" : "?"}${CONTINUE_INTENT_QUERY_PARAM}=${CONTINUE_INTENT_QUERY_VALUE}`
+      : next;
+
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -32,11 +49,11 @@ export async function GET(request: Request) {
       const isLocalEnv = process.env.NODE_ENV === "development";
 
       if (isLocalEnv) {
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${origin}${destination}`);
       } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
+        return NextResponse.redirect(`https://${forwardedHost}${destination}`);
       } else {
-        return NextResponse.redirect(`${origin}${next}`);
+        return NextResponse.redirect(`${origin}${destination}`);
       }
     }
   }

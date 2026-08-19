@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getPersonaOwner, clearLocalPersona } from "@/lib/setup-storage";
+import {
+  getPersonaOwner,
+  clearLocalPersona,
+  CONTINUE_INTENT_QUERY_PARAM,
+  CONTINUE_INTENT_QUERY_VALUE,
+} from "@/lib/setup-storage";
 
 /**
  * The interactive part of the login screen: a single "sign in with Google"
@@ -32,17 +37,30 @@ export function LoginForm() {
     setFailed(false);
     setLoading(true);
     const supabase = createClient();
-    // Preserve the destination the gate redirected from (?next=/invoices …),
-    // so the OAuth callback can send the user back where they were headed.
-    const nextParam = new URLSearchParams(window.location.search).get("next");
-    const next =
-      nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")
-        ? `?next=${encodeURIComponent(nextParam)}`
-        : "";
+    // Preserve the destination the gate (or DoneScreen's finish CTA)
+    // redirected from (?next=/invoices …), so the OAuth callback can send the
+    // user back where they were headed. Also forward the continue-intent
+    // signal (?intent=save-persona) the SAME way — this is the query-param
+    // half of task #2's fix: it survives OAuth completing in a different
+    // tab/context, where the sessionStorage flag alone would silently drop.
+    // Only the exact known sentinel value is ever forwarded (validated, not
+    // passed through verbatim) — see setup-storage.ts's doc comment on
+    // CONTINUE_INTENT_QUERY_PARAM for why that's enough.
+    const incoming = new URLSearchParams(window.location.search);
+    const nextParam = incoming.get("next");
+    const intentParam = incoming.get(CONTINUE_INTENT_QUERY_PARAM);
+    const callbackParams = new URLSearchParams();
+    if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
+      callbackParams.set("next", nextParam);
+    }
+    if (intentParam === CONTINUE_INTENT_QUERY_VALUE) {
+      callbackParams.set(CONTINUE_INTENT_QUERY_PARAM, intentParam);
+    }
+    const callbackQs = callbackParams.toString();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback${next}`,
+        redirectTo: `${window.location.origin}/auth/callback${callbackQs ? `?${callbackQs}` : ""}`,
         // Force Google's account chooser on every sign-in. Without it, a
         // browser with a live Google session silently completes OAuth with
         // zero prompts — which (a) reads as "mock login" (QA misdiagnosed it

@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { MODEL_HAIKU, logAiUsage } from "@/lib/ai/models";
+import { dailyUserCap, getBudgetState } from "@/lib/ai/usage";
 import ExcelJS from "exceljs";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
@@ -65,20 +66,55 @@ export interface ExtractedData {
 }
 
 export async function POST(request: Request) {
-  const clientKey = resolveClientKey(request);
-  const rl = checkRateLimit("upload", clientKey, RATE_LIMIT_MAX_UPLOADS);
+  // Cheap in-memory IP limit first — catches an obvious flood before even
+  // resolving a user.
+  const ipKey = resolveClientKey(request);
+  const rl = checkRateLimit("upload", ipKey, RATE_LIMIT_MAX_UPLOADS);
   if (!rl.allowed) {
     return rateLimitResponse(rl.retryAfter, "יותר מדי העלאות. נסי שוב בעוד כמה שניות.");
   }
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the cheap
+  // limiter, before we touch the multipart body or spend Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
+  const userId = guard.user?.id ?? null;
+
+  // Durable cross-instance per-minute limit — keyed by the authenticated
+  // user when we have one, IP otherwise (resolveClientKey's fallback).
+  const clientKey = resolveClientKey(request, userId);
   const rlDurable = await checkRateLimitDurable("upload", clientKey, RATE_LIMIT_MAX_UPLOADS);
   if (!rlDurable.allowed) {
     return rateLimitResponse(rlDurable.retryAfter, "יותר מדי העלאות. נסי שוב בעוד כמה שניות.");
   }
 
-  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the limiter,
-  // before we touch the multipart body or spend Anthropic tokens.
-  const guard = await requireUserIfGated(request);
-  if (guard.denied) return guard.denied;
+  // Per-user daily cap (v2 plan 2.2) — shared "upload-daily" namespace with
+  // /api/parse-expense and /api/parse-invoice (all three are document-
+  // ingestion routes; dailyUserCap() maps all three route names to the same
+  // AI_USER_DAILY_UPLOAD_CAP). Falls back to the IP-keyed bucket when auth
+  // gating is off.
+  const dailyCap = dailyUserCap("upload");
+  const rlDaily = await checkRateLimitDurable("upload-daily", clientKey, dailyCap, 86_400);
+  if (!rlDaily.allowed) {
+    return rateLimitResponse(
+      rlDaily.retryAfter,
+      "הגעת/ה למכסת העלאות המסמכים היומית. אפשר להמשיך מחר.",
+    );
+  }
+
+  // Global spend budget (v2 plan 2.3) — "paused" stops all AI features,
+  // including document ingestion. This route is already Haiku-only, so
+  // there's no "degraded" model swap to apply here.
+  const budgetState = await getBudgetState();
+  if (budgetState === "paused") {
+    return Response.json(
+      {
+        error:
+          "כרגע יש עומס גבוה על שירותי ה-AI וקאונטמי השהתה אותם זמנית. נסי שוב מאוחר יותר.",
+      },
+      { status: 503 },
+    );
+  }
 
   let formData: FormData;
   try {
@@ -154,7 +190,7 @@ export async function POST(request: Request) {
     }
 
     const base64 = Buffer.from(arrayBuffer).toString("base64");
-    const data = await parsePdfWithClaude(base64, kind, apiKey);
+    const data = await parsePdfWithClaude(base64, kind, apiKey, userId);
     return Response.json({ ok: true, data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -267,6 +303,7 @@ async function parsePdfWithClaude(
   base64: string,
   kind: string,
   apiKey: string,
+  userId: string | null,
 ): Promise<ExtractedData> {
   const anthropic = new Anthropic({ apiKey });
 
@@ -301,6 +338,7 @@ async function parsePdfWithClaude(
     output_tokens: response.usage.output_tokens,
     cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
     cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+    userId,
   });
 
   if (!textBlock || textBlock.type !== "text") {
@@ -348,7 +386,7 @@ function pdfExtractionPrompt(kind: string): string {
 - osekType ("patur" | "morshe") — אם כתוב "עוסק פטור" אז patur, אם "עוסק מורשה" אז morshe
 - dateRangeStart, dateRangeEnd (string YYYY-MM-DD) — טווח התקופה
 - fullName, email, phone, address (string)
-- summary (string, עברית, משפט קצר)
+- summary (string, עברית, משפט קצר; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 248,500 ולא 248500)
 
 החזר רק JSON תקין, ללא markdown, ללא הסברים.`;
   }
@@ -357,14 +395,14 @@ function pdfExtractionPrompt(kind: string): string {
 החזר JSON עם:
 - salaryGross (number) — סך הכנסה ברוטו
 - employerName (string)
-- summary (string, עברית קצרה)
+- summary (string, עברית קצרה; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 248,500 ולא 248500)
 החזר JSON בלבד.`;
   }
   if (kind === "donations") {
     return `חלץ סכום תרומות מקבלות לפי סעיף 46.
 החזר JSON עם:
 - donationsTotal (number)
-- summary (string, עברית קצרה)
+- summary (string, עברית קצרה; כל סכום שמוזכר ב-summary יוצג עם פסיקים כמפריד אלפים, למשל 12,500 ולא 12500)
 החזר JSON בלבד.`;
   }
   return `חלץ מידע רלוונטי מהמסמך. החזר JSON בלבד.`;

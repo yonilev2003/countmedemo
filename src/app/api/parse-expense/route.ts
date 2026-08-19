@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { MODEL_HAIKU, logAiUsage } from "@/lib/ai/models";
+import { dailyUserCap, getBudgetState } from "@/lib/ai/usage";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
   checkRateLimit,
@@ -27,7 +28,16 @@ import { DATASET } from "@/lib/business-expenses/occupation-dataset";
  */
 
 const RATE_LIMIT_MAX_REQUESTS = 10; // per client per minute — vision calls cost more than parse-invoice's text-only
-const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB base64-decoded — same cap for images and PDFs
+const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB base64-decoded — images only
+// PDFs get a much tighter cap than images: Claude bills a document by its
+// full byte size regardless of how many pages we actually want, and the
+// prompt above only ever asks it to read page 1. This repo has no PDF
+// library to physically truncate to page 1 server-side before sending (and
+// adding one is out of scope tonight — see AGENTS.md's "no new dependency"
+// rule) — so a multi-page PDF that would otherwise bill for every page is
+// capped small enough to stay cheap, and the 413 below nudges the user
+// toward a single-page photo instead.
+const MAX_PDF_BYTES = 2 * 1024 * 1024; // 2MB base64-decoded
 
 const CATEGORY_LIST = DATASET.categories
   .map((c) => `${c.id}: ${c.nameHe}`)
@@ -91,14 +101,51 @@ export async function POST(request: Request) {
     return Response.json({ error: "API key not configured" }, { status: 503 });
   }
 
-  const clientKey = resolveClientKey(request);
-  const rl = checkRateLimit("parse-expense", clientKey, RATE_LIMIT_MAX_REQUESTS);
+  // Cheap in-memory IP limit first — catches an obvious flood before even
+  // resolving a user.
+  const ipKey = resolveClientKey(request);
+  const rl = checkRateLimit("parse-expense", ipKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rl.allowed) return rateLimitResponse(rl.retryAfter);
+
+  // Auth gate (no-op while AUTH_GATING_ENABLED is off) — after the cheap
+  // limiter, before we spend a Supabase round-trip or Anthropic tokens.
+  const guard = await requireUserIfGated(request);
+  if (guard.denied) return guard.denied;
+  const userId = guard.user?.id ?? null;
+
+  // Durable cross-instance per-minute limit — keyed by the authenticated
+  // user when we have one, IP otherwise (resolveClientKey's fallback).
+  const clientKey = resolveClientKey(request, userId);
   const rlDurable = await checkRateLimitDurable("parse-expense", clientKey, RATE_LIMIT_MAX_REQUESTS);
   if (!rlDurable.allowed) return rateLimitResponse(rlDurable.retryAfter);
 
-  const guard = await requireUserIfGated(request);
-  if (guard.denied) return guard.denied;
+  // Per-user daily cap (v2 plan 2.2) — shared "upload-daily" namespace with
+  // /api/upload and /api/parse-invoice (all three are document-ingestion
+  // routes; dailyUserCap() maps all three route names to the same
+  // AI_USER_DAILY_UPLOAD_CAP). Falls back to the IP-keyed bucket when auth
+  // gating is off.
+  const dailyCap = dailyUserCap("parse-expense");
+  const rlDaily = await checkRateLimitDurable("upload-daily", clientKey, dailyCap, 86_400);
+  if (!rlDaily.allowed) {
+    return rateLimitResponse(
+      rlDaily.retryAfter,
+      "הגעת/ה למכסת חילוצי המסמכים היומית. אפשר להמשיך מחר.",
+    );
+  }
+
+  // Global spend budget (v2 plan 2.3) — "paused" stops all AI features,
+  // including expense parsing. This route is already Haiku-only, so there's
+  // no "degraded" model swap to apply here.
+  const budgetState = await getBudgetState();
+  if (budgetState === "paused") {
+    return Response.json(
+      {
+        error:
+          "כרגע יש עומס גבוה על שירותי ה-AI וקאונטמי השהתה אותם זמנית. נסי שוב מאוחר יותר.",
+      },
+      { status: 503 },
+    );
+  }
 
   let raw: unknown;
   try {
@@ -139,9 +186,14 @@ export async function POST(request: Request) {
       { type: "text", text: "חלץ את פרטי הקבלה/החשבונית מהתמונה." },
     ];
   } else if (typeof body.pdfBase64 === "string") {
-    // Rough bound on decoded size — base64 is ~4/3 the byte length. Same cap as images.
-    if (body.pdfBase64.length > (MAX_FILE_BYTES * 4) / 3) {
-      return Response.json({ error: "PDF too large" }, { status: 413 });
+    // Rough bound on decoded size — base64 is ~4/3 the byte length. Tighter
+    // cap than images (see MAX_PDF_BYTES above): a multi-page PDF bills in
+    // full even though we only read page 1.
+    if (body.pdfBase64.length > (MAX_PDF_BYTES * 4) / 3) {
+      return Response.json(
+        { error: "קובץ ה-PDF גדול מדי (מקסימום 2MB) — נסי לצלם את הקבלה במקום." },
+        { status: 413 },
+      );
     }
     userContent = [
       {
@@ -179,6 +231,7 @@ export async function POST(request: Request) {
       output_tokens: response.usage.output_tokens,
       cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
       cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+      userId,
     });
 
     const textBlock = response.content.find((b) => b.type === "text");

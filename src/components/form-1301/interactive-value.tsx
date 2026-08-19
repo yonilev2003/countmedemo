@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { CalcResult } from "@/lib/calculators";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { ArrowLeftIcon } from "@/components/brand/icons";
 
 interface Props {
   result: CalcResult;
@@ -139,16 +141,39 @@ export function InteractiveValue({ result, variant = "currency", fieldCode }: Pr
           <div className="mb-3">
             <div className="mb-1.5 text-xs font-medium text-stone-500">מקור</div>
             <ul className="space-y-1.5">
-              {result.sources.map((s, i) => (
-                <li key={i} className="text-sm text-stone-700">
-                  <span className="font-medium">{s.label}</span>
-                  {s.detail && (
-                    <span className="block text-xs text-stone-500">
-                      {s.detail}
-                    </span>
-                  )}
-                </li>
-              ))}
+              {result.sources.map((s, i) =>
+                s.href ? (
+                  <li key={i}>
+                    <Link
+                      href={s.href}
+                      onClick={() => setOpen(false)}
+                      className="group flex items-center justify-between gap-2 rounded-md border border-stone-200 bg-stone-50 p-2 text-sm text-stone-700 transition-colors hover:border-brand-deep hover:bg-blue-50"
+                    >
+                      <span>
+                        <span className="font-medium">{s.label}</span>
+                        {s.detail && (
+                          <span className="block text-xs text-stone-500">
+                            {s.detail}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-brand-deep">
+                        לצפייה בפירוט
+                        <ArrowLeftIcon className="size-3.5 transition-transform group-hover:translate-x-[-2px]" />
+                      </span>
+                    </Link>
+                  </li>
+                ) : (
+                  <li key={i} className="text-sm text-stone-700">
+                    <span className="font-medium">{s.label}</span>
+                    {s.detail && (
+                      <span className="block text-xs text-stone-500">
+                        {s.detail}
+                      </span>
+                    )}
+                  </li>
+                ),
+              )}
             </ul>
           </div>
 
