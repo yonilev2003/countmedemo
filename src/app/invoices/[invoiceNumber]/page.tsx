@@ -11,6 +11,7 @@ import {
   allocationNumberThreshold,
 } from "@/lib/invoice-generator/index";
 import { ils } from "@/lib/utils";
+import { getSiteOrigin } from "@/lib/site";
 import { LogoMark } from "@/components/brand/logo";
 import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
@@ -360,9 +361,7 @@ export default function InvoicePrintPage() {
           <p>חתימה דיגיטלית: {persona.business.tradeName} · {new Date().toISOString().split("T")[0]}</p>
           <p className="text-[10px]">
             הופק באמצעות countme
-            {process.env.NEXT_PUBLIC_APP_URL
-              ? ` · ${new URL(process.env.NEXT_PUBLIC_APP_URL).hostname}`
-              : ""}
+            {` · ${new URL(getSiteOrigin()).hostname}`}
           </p>
         </div>
       </div>

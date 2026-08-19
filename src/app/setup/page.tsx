@@ -10,7 +10,7 @@ import {
   CONTINUE_INTENT_QUERY_PARAM,
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
-import { persistPersona, getCurrentUserId } from "@/lib/data/persona-store";
+import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
 import { DocumentUpload } from "@/components/upload/document-upload";
@@ -450,9 +450,17 @@ function DoneScreen({
 
   async function handleRetrySave() {
     setPending(true);
-    const outcome = await persistPersona(persona);
+    // Re-attempt the SAME failed upload via the shared retryPersonaSave()
+    // (persona-store.ts) instead of calling persistPersona() again here.
+    // persistPersona() re-runs decidePersonaOwnership from scratch, including
+    // consumeExplicitContinueIntent() — a ONE-SHOT read already spent by the
+    // failed call this button is retrying. retryPersonaSave() just re-tries
+    // the stored retryTarget's upload directly, with no reclassification and
+    // no risk of the intent flag being gone on retry (the same path the
+    // dashboard's retry already uses — see use-required-persona.ts).
+    const ok = await retryPersonaSave();
     setPending(false);
-    if (outcome === "error") {
+    if (!ok) {
       setSaveState("error");
       return;
     }
@@ -509,7 +517,19 @@ function DoneScreen({
     <div className="min-h-screen bg-cream flex flex-col">
       <header className="bg-paper border-b border-line">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
-          <Link href="/dashboard" className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            // Same residual gap as the removed bare-Link CTA and the same fix
+            // as the firstSteps shortcut cards below: this header logo is
+            // still a second exit from DoneScreen, so it must mark the
+            // one-shot adoption signal too — otherwise a visitor who leaves
+            // this way and later signs in via a plain /login (not this
+            // screen's own handleContinue CTA) has no continue-intent for
+            // decidePersonaOwnership to consume, and useRequiredPersona
+            // bounces them back to /setup with their data orphaned.
+            onClick={() => markPersonaContinueIntent()}
+            className="flex items-center gap-3"
+          >
             <Logo size={32} />
           </Link>
           {isSignedIn && <SignOutButton variant="ghost" size="sm" />}

@@ -13,6 +13,7 @@ import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
   ArrowLeftIcon,
@@ -60,6 +61,9 @@ export default function BusinessExpensesPage() {
               <SettingsIcon className="size-3.5" />
               עדכן נתונים
             </Link>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
           </div>
         </div>
       </header>

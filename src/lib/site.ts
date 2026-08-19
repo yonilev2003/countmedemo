@@ -32,17 +32,17 @@
  *
  * ── Compatibility note: NEXT_PUBLIC_APP_URL ─────────────────────────
  * `NEXT_PUBLIC_APP_URL` is an OLDER env var already set in Vercel
- * Production+Preview (docs/launch/beta-go-live-runbook.md) and still read
- * directly by src/app/invoices/[invoiceNumber]/page.tsx for the printed-
- * document footer. `NEXT_PUBLIC_SITE_URL` (this function) is the new,
- * forward-looking name for the same "canonical public origin" concept, so
- * this function checks it first and falls back to `NEXT_PUBLIC_APP_URL` —
- * that way nothing breaks for callers that migrate to getSiteOrigin()
- * before Yoni renames the Vercel env var. These two vars should NOT stay
- * split long-term: the follow-up is to standardize every reader (including
- * the invoices page) on getSiteOrigin()/NEXT_PUBLIC_SITE_URL and retire
- * NEXT_PUBLIC_APP_URL in one move, documented at the same time as the real
- * domain purchase (step 2 above) so it's a single env-var edit in Vercel.
+ * Production+Preview (docs/launch/beta-go-live-runbook.md). `NEXT_PUBLIC_SITE_URL`
+ * (this function) is the new, forward-looking name for the same "canonical
+ * public origin" concept, so this function checks it first and falls back
+ * to `NEXT_PUBLIC_APP_URL` — that way nothing breaks for callers that
+ * migrate to getSiteOrigin() before Yoni renames the Vercel env var. Every
+ * reader, including src/app/invoices/[invoiceNumber]/page.tsx's printed-
+ * document footer, now goes through getSiteOrigin() (fixed 2026-08-19).
+ * These two vars should NOT stay split long-term: the follow-up is to
+ * retire NEXT_PUBLIC_APP_URL entirely in one move, documented at the same
+ * time as the real domain purchase (step 2 above) so it's a single
+ * env-var edit in Vercel.
  */
 export function getSiteOrigin(): string {
   const fromSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();

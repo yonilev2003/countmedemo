@@ -7,6 +7,7 @@ import { calculatePL } from "@/lib/p-and-l/index";
 import { buildIsraeliPLReport, formatNIS, IsraeliPLReport } from "@/lib/p-and-l/israeli-report";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ArrowLeftIcon, DownloadIcon } from "@/components/brand/icons";
 
 const OSEK_LABEL_HE: Record<"patur" | "morshe", string> = {
@@ -47,12 +48,17 @@ export default function PLReportPage() {
           <span className="flex items-center gap-2 font-bold text-brand-navy">
             <Logo size={22} showWordmark={false} /> דוח רווח והפסד · פורמט ישראלי תקני
           </span>
-          <button
-            onClick={() => window.print()}
-            className={btn("primary", "sm")}
-          >
-            <DownloadIcon className="size-4" /> הדפס / שמור כ-PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className={btn("primary", "sm")}
+            >
+              <DownloadIcon className="size-4" /> הדפס / שמור כ-PDF
+            </button>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
+          </div>
         </div>
       </header>
 

@@ -20,6 +20,7 @@ import { trackClient } from "@/lib/analytics/track-client";
 import { cn, numberInputWheelGuard } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn, Button } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import {
   ArrowRightIcon,
   MicIcon,
@@ -389,7 +390,10 @@ export default function NewInvoicePage() {
             <ArrowRightIcon className="size-4" />
             {stage === "details" ? "חזרה" : "לרשימת המסמכים"}
           </button>
-          <Logo size={26} />
+          <div className="flex items-center gap-2">
+            <Logo size={26} />
+            <SignOutButton />
+          </div>
         </div>
       </header>
 

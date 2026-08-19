@@ -28,6 +28,7 @@ import { fetchBoiRate } from "@/lib/expenses/boi-exchange-rate";
 import { cn, numberInputWheelGuard } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { LegalNote } from "@/components/brand/legal-note";
 import {
   ArrowRightIcon,
@@ -433,7 +434,10 @@ export default function NewExpensePage() {
             <ArrowRightIcon className="size-4" />
             {stage === "review" ? "חזרה" : "לוח הבקרה"}
           </button>
-          <Logo size={26} />
+          <div className="flex items-center gap-2">
+            <Logo size={26} />
+            <SignOutButton />
+          </div>
         </div>
       </header>
 

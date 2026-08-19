@@ -14,6 +14,7 @@ import {
 import type { ExpenseLine } from "@/lib/persona";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ArrowRightIcon, DownloadIcon, AlertTriangleIcon } from "@/components/brand/icons";
 
 /**
@@ -97,10 +98,15 @@ function ExpensesPrintContent() {
             <Logo size={22} showWordmark={false} />
             סיכום הוצאות להדפסה
           </span>
-          <button onClick={() => window.print()} className={btn("primary", "sm")}>
-            <DownloadIcon className="size-4" />
-            שמירה כ-PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.print()} className={btn("primary", "sm")}>
+              <DownloadIcon className="size-4" />
+              שמירה כ-PDF
+            </button>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
+          </div>
         </div>
       </header>
 

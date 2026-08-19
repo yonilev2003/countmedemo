@@ -15,6 +15,7 @@ import type {
 import { ASSET_CATEGORY_HE, LIABILITY_CATEGORY_HE } from "@/lib/calculators/capital";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ArrowRightIcon } from "@/components/brand/icons";
 import { ils as formatIls } from "@/lib/utils";
 
@@ -113,10 +114,15 @@ export default function AssetsCapturePage() {
           <Link href="/" className="flex items-center gap-3">
             <Logo size={36} />
           </Link>
-          <Link href="/file/1219" className={btn("ghost", "sm")}>
-            לטופס 1219
-            <ArrowRightIcon className="size-4" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/file/1219" className={btn("ghost", "sm")}>
+              לטופס 1219
+              <ArrowRightIcon className="size-4" />
+            </Link>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
+          </div>
         </div>
       </header>
 

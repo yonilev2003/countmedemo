@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/logo";
 import { btn } from "@/components/brand/button";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
 import {
   ArrowLeftIcon,
@@ -143,6 +144,9 @@ export default function DeadlinesPage() {
               דשבורד
               <ArrowLeftIcon className="size-4" />
             </Link>
+            <div className="border-s border-line ps-2">
+              <SignOutButton />
+            </div>
           </div>
         </div>
       </header>
