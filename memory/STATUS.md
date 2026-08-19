@@ -17,10 +17,13 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 **כל השלבים הקוד-יים של v2 בוצעו בלילה הזה** (ראה "סטטוס ביצוע" במסמך התוכנית): מכסי-עלות
 קשיחים + degradation אוטומטי + מיילי-סף · דייג'סט יומי (Cron) עם בדיקות-בריאות · /admin ·
 hbsgz-pending.sql מלא (1,107 שורות) · תוכנית פיצול persona · k6+smoke · rollout.ts ·
-getSiteOrigin. אומת: tsc · 321/321 · build · 24/24 e2e. **אבל הכול fail-open עד שיוני: (1) מדביק
-את hbsgz-pending.sql (כולל צ'קליסט ✅/❌ בסופו), (2) מגדיר env-ים ב-Vercel (CRON_SECRET,
-RESEND_API_KEY, ALERTS_EMAIL_TO, ADMIN_EMAILS), (3) שלב 0 (WAF, Redirect URLs), (4) קונה דומיין
-(שלב 1).** הדייג'סט הראשון יראה ❌ עד אז — מתוכנן.
+getSiteOrigin. אומת: tsc · 321/321 · build · 24/24 e2e. **סטטוס 18/08 לילה מאוחר:** (1) ✅ **יוני הדביק את hbsgz-pending.sql** — האימות (`ai_usage_row_count=0`
+וכו', כצפוי לפני שימוש) מראה שה-run הצליח מקצה-לקצה (Supabase SQL Editor עוצר בשגיאה ראשונה,
+אז תוצאה מהשאילתה האחרונה = כל מה שלפניה עבר). (2) עדיין צריך: env-ים ב-Vercel (ראה רשימה
+למטה). (3) עדיין צריך: WAF + Redirect URLs (שלב 0). **(4) דומיין — בהמתנה מפורשת: יוני אישר
+שממשיכים על `countmedemo-eight.vercel.app` בלי דומיין ישראלי, אלא אם יעדכן אחרת** — חומת ה-100
+של Google Testing mode בתוקף לכל הבטא; `docs/plans/2026-08-18-master-task-list-v2.md` שלב 1
+עודכן בהתאם.
 
 ## 🎯 18/08 — יום עבודה מלא: אבטחה קריטית, מסלול מורשה, תכנון מקדמות, מוח-ידע חינמי לשקל, ביצועים, מתג-שנים
 
