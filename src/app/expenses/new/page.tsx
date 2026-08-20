@@ -22,7 +22,7 @@ import {
   REQUIRED_EXPENSE_FIELDS,
   OCR_CONFIDENCE_THRESHOLD,
 } from "@/lib/expenses/types";
-import { addExpense, activeExpenses } from "@/lib/expenses/store";
+import { addExpense, activeExpenses, attachReceiptToExpense } from "@/lib/expenses/store";
 import { uploadReceiptImage } from "@/lib/expenses/receipt-storage";
 import { fetchBoiRate } from "@/lib/expenses/boi-exchange-rate";
 import { cn, numberInputWheelGuard } from "@/lib/utils";
@@ -388,21 +388,29 @@ export default function NewExpensePage() {
     }
     setShowDuplicateConfirm(false);
     setSaving(true);
-    try {
-      let receiptPath: string | undefined;
-      if (pendingFile) {
-        receiptPath = (await uploadReceiptImage(pendingFile, pendingFile.type || "image/jpeg")) ?? undefined;
-      }
-      const line = draftToExpenseLine(draft, {
-        vatRate,
-        deductionRule: "full",
-        receiptPath,
+    // Optimistic save (efficiency-audit finding, 2026-08-20): the receipt
+    // upload is a real Storage round-trip — every OTHER save path in this app
+    // (invoices/new, addExpense itself) writes and navigates without waiting
+    // on the network, so this flow (the flagship "צילום קבלה" capture path)
+    // shouldn't be the one exception that blocks on it. Save without a
+    // receiptPath right away, navigate immediately, then patch the path in
+    // once the upload resolves in the background — uploadReceiptImage's own
+    // contract already says callers must save either way on failure, this
+    // just stops blocking on success too.
+    const line = draftToExpenseLine(draft, {
+      vatRate,
+      deductionRule: "full",
+      receiptPath: undefined,
+    });
+    const next = addExpense(persona, line);
+    setPersona(next);
+    router.push("/expenses");
+    if (pendingFile) {
+      const fileToUpload = pendingFile;
+      const newIndex = (next.income.expenses ?? []).length - 1;
+      void uploadReceiptImage(fileToUpload, fileToUpload.type || "image/jpeg").then((receiptPath) => {
+        if (receiptPath) attachReceiptToExpense(next, newIndex, receiptPath);
       });
-      const next = addExpense(persona, line);
-      setPersona(next);
-      router.push("/expenses");
-    } finally {
-      setSaving(false);
     }
   }
 

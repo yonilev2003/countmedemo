@@ -20,7 +20,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBudgetState, type BudgetState } from "@/lib/ai/usage";
+import { getBudgetState, type BudgetState, AI_USAGE_SAMPLE_LIMIT } from "@/lib/ai/usage";
 import { isAuthGatingEnabled } from "@/lib/security/auth-gating";
 
 export const dynamic = "force-dynamic";
@@ -141,13 +141,17 @@ interface DayAiUsage {
 }
 
 /** Same "select + sum client-side" approach as usage.ts's getTodaySpendUsd —
- *  this table's volume is bounded by the very caps that table enforces. */
+ *  this table's volume is bounded by the very caps that table enforces, and
+ *  AI_USAGE_SAMPLE_LIMIT (same constant that file uses) is the same safety
+ *  cap so this dashboard metric degrades the same way instead of pulling an
+ *  unbounded result set. */
 async function aiUsageDay(gteIso: string, ltIso: string | null): Promise<DayAiUsage> {
   try {
     let query = untypedAdminClient()
       .from("ai_usage")
       .select("est_cost_usd")
-      .gte("created_at", gteIso);
+      .gte("created_at", gteIso)
+      .limit(AI_USAGE_SAMPLE_LIMIT);
     if (ltIso) query = query.lt("created_at", ltIso);
     const { data, error } = await query;
     if (error) return { count: null, costUsd: null };

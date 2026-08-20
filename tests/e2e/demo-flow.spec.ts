@@ -155,21 +155,33 @@ test.describe("/setup — wizard", () => {
   }
 
   // Onboarding-v5 osek model: two first-class radio tracks (פטור / מורשה)
-  // and עוסק זעיר as a checkbox toggle that only exists under פטור — the
-  // skills don't support a זעיר track above the פטור ceiling (see the FLAG
-  // comment at the OsekTypeChoice call site in setup/page.tsx).
-  test("עוסק זעיר is a toggle under פטור only; hidden under מורשה", async ({ page }) => {
+  // and עוסק זעיר as a checkbox toggle. MURSHE-ZEIR REFORM (תיקון 265,
+  // verified 2026-08-19): מסלול זעיר is a pure income-tax track, gated on
+  // turnover only — INDEPENDENT of VAT registration — so a מורשה under the
+  // ceiling can elect it too. The toggle is offered under both tracks, and
+  // (round-2 fix 1d) no longer resets when the user switches tracks — an
+  // earlier version of this test asserted the pre-reform "פטור only,
+  // resets on switch" behavior; that was wrong and has been corrected here.
+  test("עוסק זעיר toggle is offered under both פטור and מורשה, and survives a track switch", async ({ page }) => {
     await page.goto("/setup");
     await goToBusinessStep(page);
 
     // No track picked yet — the זעיר toggle isn't offered at all.
     await expect(page.getByText("עוסק זעיר")).toHaveCount(0);
 
-    // Picking פטור reveals the זעיר toggle; switching to מורשה hides it.
+    // Picking פטור reveals the זעיר toggle; checking it...
     await page.getByText("עוסק פטור", { exact: true }).click();
-    await expect(page.getByText("עוסק זעיר")).toBeVisible();
+    const zeirCheckbox = page
+      .getByText("עוסק זעיר", { exact: true })
+      .locator("xpath=ancestor::label[1]//input[@type='checkbox']");
+    await expect(zeirCheckbox).toBeVisible();
+    await zeirCheckbox.check();
+
+    // ...and switching to מורשה keeps the toggle visible AND still checked
+    // (murshe-zeir reform — VAT-track switch no longer clears the flag).
     await page.getByText("עוסק מורשה", { exact: true }).click();
-    await expect(page.getByText("עוסק זעיר")).toHaveCount(0);
+    await expect(zeirCheckbox).toBeVisible();
+    await expect(zeirCheckbox).toBeChecked();
   });
 
   test("חברה בע״מ is an explainer-only dead end, not an osek track", async ({ page }) => {

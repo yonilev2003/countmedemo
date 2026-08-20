@@ -32,6 +32,23 @@ export function addExpense(persona: Persona, line: ExpenseLine): Persona {
   return next;
 }
 
+/**
+ * Patches `receiptPath` onto the expense at `index` after the fact — used
+ * when the receipt-image upload (a real Storage round-trip) resolves in the
+ * background after addExpense() already saved+navigated optimistically
+ * (efficiency-audit finding, 2026-08-20: the photo-capture flow used to make
+ * the user wait on this upload before showing anything). No-ops if the index
+ * no longer exists (e.g. the expense was deleted in the meantime).
+ */
+export function attachReceiptToExpense(persona: Persona, index: number, receiptPath: string): Persona {
+  const existing = persona.income.expenses ?? [];
+  if (!existing[index]) return persona;
+  const expenses = existing.map((e, i) => (i === index ? { ...e, receiptPath } : e));
+  const next = withExpenses(persona, expenses);
+  persistPersona(next);
+  return next;
+}
+
 /** Soft-deletes the expense at `index` (position in the FULL array, deleted rows included). */
 export function softDeleteExpense(persona: Persona, index: number): Persona {
   const expenses = (persona.income.expenses ?? []).map((e, i) =>

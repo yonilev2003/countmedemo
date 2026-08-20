@@ -230,6 +230,16 @@ interface BudgetCache {
 const BUDGET_CACHE_TTL_MS = 60_000;
 let budgetCache: BudgetCache | null = null;
 
+/** Safety cap on rows pulled client-side for a same-day ai_usage sum (this
+ *  file's getTodaySpendUsd, and admin/stats' aiUsageDay which imports this) —
+ *  same convention as digest.ts's EVENTS_SAMPLE_LIMIT. Today's row count is
+ *  bounded by the per-user daily caps this module itself enforces (a handful
+ *  of routes × ~100 beta users, nowhere near this), so the cap never bites at
+ *  current scale — it only stops a single day's sum from ever pulling an
+ *  unbounded result set once that stops being true (efficiency-audit finding,
+ *  2026-08-20). A DB-side aggregate (RPC) is the natural upgrade past this. */
+export const AI_USAGE_SAMPLE_LIMIT = 20_000;
+
 function utcDateKey(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10); // "YYYY-MM-DD"
 }
@@ -269,7 +279,8 @@ async function getTodaySpendUsd(): Promise<number> {
     const { data, error } = await admin
       .from("ai_usage")
       .select("est_cost_usd")
-      .gte("created_at", utcDayStartIso());
+      .gte("created_at", utcDayStartIso())
+      .limit(AI_USAGE_SAMPLE_LIMIT);
     if (error) {
       noteIfSchemaMissing(error);
       budgetCache = { spendUsd: 0, day: today, computedAt: Date.now() };

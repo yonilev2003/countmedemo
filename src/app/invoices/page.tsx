@@ -199,7 +199,12 @@ export default function InvoicesPage() {
                   />
                 </div>
                 {filterCustomer && (
-                  <button onClick={() => setFilterCustomer("")} className="text-faint hover:text-muted">
+                  <button
+                    onClick={() => setFilterCustomer("")}
+                    aria-label="נקה סינון לפי לקוח"
+                    title="נקה סינון לפי לקוח"
+                    className="text-faint hover:text-muted"
+                  >
                     <XIcon className="size-4" />
                   </button>
                 )}
