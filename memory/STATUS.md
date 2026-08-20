@@ -7,6 +7,15 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 > עודכן: 2026-08-20 (Fable) · ענף פעיל: `main` · החלטות: [[decisions]]
 
+## 📍 מה נשאר עכשיו (סיכום סבב-2 + ביקורת-הטיפים, שני הסבבים למטה)
+
+**אצל יוני:** WAF עדיין לא חוסם בפועל (Active+Save בדשבורד Vercel) · Redeploy אם עוד לא בוצע אחרי
+הוספת CRON_SECRET+ADMIN_EMAILS · להריץ את 5 פרומפטי Chrome המעודכנים
+(`docs/feedback/2026-08-19-chrome-qa-5-parallel-agents.md`) + בדיקת-טלפון מקבילה על דיפלוי `f485dc4`.
+**פתוח מול רועי/מוצר (לא לפתור חד-צדדית):** סמנטיקת `persona.income.year` — הדשבורד הרגיל וה-pro
+נשארים בכוונה בחוזי-YearSwitch הפוכים (ראה [[decisions]] "סתירה פתוחה") · שאלות 044/קרן-זעיר/שדות-
+מתים לרועי · ענף privacy עדיין לא נסקר.
+
 ## ⭐ 20/08 — ביקורת "5 טיפים וויב-קודינג" — 3/5 לא רלוונטיים, 2 אמיתיים ותוקנו
 
 יוני הביא רשימה גנרית (label/tooltip · optimistic rendering · pagination · N+1 · async).
