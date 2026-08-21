@@ -5,6 +5,7 @@ import { PROXY_USER_ID_HEADER } from "@/lib/supabase/proxy";
 import { LogoMark } from "@/components/brand/logo";
 import {
   AlertTriangleIcon,
+  InfoIcon,
   ShieldIcon,
   SparklesIcon,
   FileTextIcon,
@@ -33,6 +34,11 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const hasError = typeof params.error !== "undefined";
+  // UX-review finding, 2026-08-20 (same day the "השאר אותי מחובר/ת" feature
+  // shipped): an automatic sign-out with zero explanation looks exactly like
+  // a broken app. Only ever set by performSignOut("auto") in
+  // persona-hydrator.tsx — never by a manual SignOutButton click.
+  const wasAutoSignedOut = params.signedOut === "auto";
 
   // Already signed in? Skip the login screen entirely — this was the "why do
   // I have to log in twice?" report (Yoni, 16/08): an authenticated user
@@ -138,6 +144,17 @@ export default async function LoginPage({
               <span>
                 ההתחברות לא הושלמה. נסו שוב, ואם הבעיה חוזרת ודאו שאתם מתחברים עם
                 חשבון Google תקין.
+              </span>
+            </div>
+          )}
+
+          {wasAutoSignedOut && (
+            <div className="mb-5 flex items-start gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-start text-sm text-white">
+              <InfoIcon className="mt-0.5 size-4 shrink-0 text-brand" />
+              <span>
+                התנתקת אוטומטית — לא סימנת &quot;השאר אותי מחובר/ת&quot; בפעם
+                הקודמת. הנתונים שלך שמורים, פשוט התחברו שוב; סמנו את התיבה כדי
+                להישאר מחוברים בפעם הבאה.
               </span>
             </div>
           )}

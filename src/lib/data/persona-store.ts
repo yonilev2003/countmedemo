@@ -11,7 +11,12 @@ import {
   setPersonaOwner,
   consumeExplicitContinueIntent,
 } from "@/lib/setup-storage";
-import { fetchPersona, upsertPersona, getCurrentUserId } from "./persona-repository";
+import {
+  fetchPersona,
+  upsertPersona,
+  getCurrentUserId,
+  checkRemotePersonaExists,
+} from "./persona-repository";
 
 export { getCurrentUserId } from "./persona-repository";
 
@@ -129,11 +134,27 @@ export type PersonaSaveStatus = "idle" | "saving" | "saved" | "error";
 
 let saveStatus: PersonaSaveStatus = "idle";
 let retryTarget: Persona | null = null;
+/**
+ * What a retry should actually DO with `retryTarget` — added 2026-08-20
+ * alongside the adopt-unclaimed existence-check guard. "upsert" (the only
+ * mode before today) means the ownership decision was already made and only
+ * the network write itself failed — safe to blindly re-upsert. "adopt" means
+ * the existence check that gates a first-time adoption itself failed (e.g. a
+ * network blip) — retry must re-run THAT check, never skip straight to an
+ * upsert, or it would reopen the exact overwrite gap the check exists to
+ * close.
+ */
+let retryMode: "upsert" | "adopt" | null = null;
 const saveStatusListeners = new Set<(status: PersonaSaveStatus) => void>();
 
-function setSaveStatusState(next: PersonaSaveStatus, retry: Persona | null) {
+function setSaveStatusState(
+  next: PersonaSaveStatus,
+  retry: Persona | null,
+  mode: "upsert" | "adopt" | null = "upsert",
+) {
   saveStatus = next;
   retryTarget = retry;
+  retryMode = retry ? mode : null;
   saveStatusListeners.forEach((listener) => listener(next));
 }
 
@@ -153,13 +174,25 @@ export function subscribePersonaSaveStatus(
 }
 
 /**
- * Re-attempt the most recently failed cloud save. No-op (returns false) when
- * there's nothing to retry — e.g. nothing has failed, or a later save
+ * Re-attempt the most recently failed cloud save. Returns "not-uploaded"
+ * (falsy-equivalent for existing boolean-style callers via `!== "saved"`)
+ * when there's nothing to retry — e.g. nothing has failed, or a later save
  * already succeeded/superseded it.
+ *
+ * Branches on `retryMode` (2026-08-20): a plain upsert failure retries the
+ * write directly (ownership was already decided); an adopt-unclaimed
+ * existence-check failure re-runs `checkAndAdoptUnclaimed` — retrying a
+ * blind upsert here would skip the very check that failed and reopen the
+ * overwrite gap it exists to close.
  */
-export async function retryPersonaSave(): Promise<boolean> {
-  if (!retryTarget) return false;
-  return attemptCloudUpsert(retryTarget);
+export async function retryPersonaSave(): Promise<PersonaSaveOutcome> {
+  if (!retryTarget) return "not-uploaded";
+  if (retryMode === "adopt") {
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId) return "not-uploaded";
+    return checkAndAdoptUnclaimed(retryTarget, currentUserId);
+  }
+  return (await attemptCloudUpsert(retryTarget)) ? "saved" : "error";
 }
 
 async function attemptCloudUpsert(persona: Persona): Promise<boolean> {
@@ -167,6 +200,50 @@ async function attemptCloudUpsert(persona: Persona): Promise<boolean> {
   const ok = await upsertPersona(persona);
   setSaveStatusState(ok ? "saved" : "error", ok ? null : persona);
   return ok;
+}
+
+/**
+ * The one-shot "adopt an unstamped local cache" path — SECURITY GUARD
+ * (2026-08-20, Yoni's finding, hardened same day after an adversarial review
+ * caught the first version failing open on a check error): decidePersonaOwnership
+ * is deliberately called with hasRemotePersona ALWAYS false from persistPersona
+ * (see its own doc comment — a real check would cost a round-trip on every
+ * save, AND would break "keep-own" for anyone who already has remote data,
+ * since decidePersonaOwnership checks hasRemotePersona before localOwner).
+ * That means "adopt-unclaimed" firing in persistPersona is based SOLELY on
+ * "local is unstamped + the one-shot intent flag is set" — it does NOT know
+ * whether `currentUserId` already has real data in the DB. In the common case
+ * that's fine (PersonaHydrator's background syncPersonaFromDb, running since
+ * /setup mounted, has almost always already stamped a returning user's cache
+ * long before they reach this screen). But it's a RACE, not a guarantee, and
+ * upsertPersona() is a blind onConflict:user_id upsert with no existence
+ * check of its own — so this function checks first, and treats a FAILED
+ * check ("unknown") the same as "exists": refuse to write. Proceeding on an
+ * unresolved check would be exactly as unsafe as never checking at all.
+ */
+async function checkAndAdoptUnclaimed(
+  persona: Persona,
+  currentUserId: string,
+): Promise<PersonaSaveOutcome> {
+  const existsCheck = await checkRemotePersonaExists(currentUserId);
+  if (existsCheck === "exists") {
+    // A genuine conflict — the account already has real data. No retry
+    // offered (a retry would just re-confirm the same conflict); the user
+    // must sign out and try the right account instead.
+    setSaveStatusState("idle", null);
+    return "conflict";
+  }
+  if (existsCheck === "unknown") {
+    // The check itself failed (network/RLS blip, not a real conflict) — fail
+    // CLOSED rather than assume it's safe to write. Retryable via retryMode
+    // "adopt", which re-runs THIS check, never a blind upsert straight
+    // through — that would reopen the exact gap this function exists to close.
+    setSaveStatusState("error", persona, "adopt");
+    return "error";
+  }
+  setPersonaOwner(currentUserId);
+  const ok = await attemptCloudUpsert(persona);
+  return ok ? "saved" : "error";
 }
 
 /** What actually happened when `persistPersona` ran, for callers (like
@@ -205,37 +282,13 @@ export async function persistPersona(persona: Persona): Promise<PersonaSaveOutco
     });
 
     switch (action) {
-      case "adopt-unclaimed": {
-        // SECURITY GUARD (2026-08-20, Yoni's finding): decidePersonaOwnership
-        // is deliberately called with hasRemotePersona ALWAYS false here (see
-        // its own doc comment — a real check would cost a round-trip on every
-        // save, AND would break "keep-own" for anyone who already has remote
-        // data, since decidePersonaOwnership checks hasRemotePersona before
-        // localOwner). That means "adopt-unclaimed" firing here is based
-        // SOLELY on "local is unstamped + the one-shot intent flag is set" —
-        // it does NOT know whether `currentUserId` already has real data in
-        // the DB. In the common case that's fine (PersonaHydrator's
-        // background syncPersonaFromDb, running since /setup mounted, has
-        // almost always already stamped a returning user's cache long before
-        // they reach this screen — see decidePersonaOwnership's "keep-own"
-        // branch, which IS safe to blindly upsert, it's the user's own row).
-        // But it's a RACE, not a guarantee: a fast fill, a slow/failed
-        // background sync, or a device that was already signed in when
-        // /setup was opened, could all reach here with local still unstamped
-        // even though `currentUserId` genuinely already has a persona in the
-        // DB — and upsertPersona() is a blind onConflict:user_id upsert with
-        // no existence check of its own. Without this guard, that combination
-        // would silently overwrite a real existing account's data with
-        // whatever was just typed. One extra read, ONLY on this one-shot
-        // adoption path (not the hot edit-save path), closes that gap
-        // deterministically instead of depending on hydrator timing luck.
-        const existingRemote = await fetchPersona(currentUserId!);
-        if (existingRemote) {
-          return "conflict";
-        }
-        setPersonaOwner(currentUserId);
-        return (await attemptCloudUpsert(persona)) ? "saved" : "error";
-      }
+      case "adopt-unclaimed":
+        // decidePersonaOwnership is deliberately called with hasRemotePersona
+        // ALWAYS false above (see its own doc comment) — "adopt-unclaimed"
+        // firing here does NOT by itself know whether currentUserId already
+        // has real data in the DB. checkAndAdoptUnclaimed's own doc comment
+        // has the full guard rationale.
+        return checkAndAdoptUnclaimed(persona, currentUserId!);
       case "keep-own":
         return (await attemptCloudUpsert(persona)) ? "saved" : "error";
       case "discard-foreign":

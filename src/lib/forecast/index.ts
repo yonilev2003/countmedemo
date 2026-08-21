@@ -280,9 +280,14 @@ export function buildForecast(persona: Persona, today: Date = new Date()): Forec
 
   // Projected ceiling-crossing month (patur/zeir, in-progress year only):
   // at the average run-rate, which month within income.year would
-  // cumulative revenue first exceed the threshold?
+  // cumulative revenue first exceed the threshold? Also covers מורשה-זעיר
+  // (Amendment 265, adversarial-review finding 2026-08-20) — this gate used
+  // to be patur-only, so a מורשה-זעיר never got a projection at all even
+  // though computeCeilingAlert has fully supported them since the reform.
+  const isMursheZeirForecast =
+    persona.business.osekType === "morshe" && persona.business.isOsekZeir;
   let projectedCeilingCrossingMonth: number | null = null;
-  if (!yearIsComplete && persona.business.osekType === "patur") {
+  if (!yearIsComplete && (persona.business.osekType === "patur" || isMursheZeirForecast)) {
     const ceiling = computeCeilingAlert(persona);
     if (ceiling && ceiling.level !== "exceeded" && aRate > 0) {
       const monthsToStillEarn = Math.ceil(ceiling.remaining / aRate);

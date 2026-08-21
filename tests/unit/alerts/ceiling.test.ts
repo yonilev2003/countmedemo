@@ -93,6 +93,33 @@ describe("computeCeilingAlert — MURSHE-ZEIR (Amendment 265, verified 2026-08-1
     expect(warning.detailHe).not.toContain("התחל/י תהליך העברה לעוסק מורשה");
     expect(critical.detailHe).not.toContain("הוסף/י מע\"מ מיידית");
   });
+
+  // adversarial-review finding, 2026-08-20: consumers (the /guides/morshe
+  // CTA on both /dashboard and /alerts, and the guide page itself) MUST be
+  // able to tell a murshe-zeir alert apart from a plain patur/zeir one
+  // WITHOUT re-deriving persona.business.osekType+isOsekZeir themselves —
+  // that CTA's own guide assumes a פטור→מורשה transition and is wrong for
+  // someone already מורשה. isMursheZeir on the returned object is that
+  // single source of truth; this locks its value in for every case above.
+  it("isMursheZeir field: true only for an עוסק מורשה marked isOsekZeir, false for plain patur/zeir", () => {
+    expect(computeCeilingAlert(murshezeir(108_000))!.isMursheZeir).toBe(true);
+    expect(
+      computeCeilingAlert(
+        makePersona({
+          business: { osekType: "patur", isOsekZeir: true },
+          income: { year: 2025, totalRevenue: 108_000 },
+        }),
+      )!.isMursheZeir,
+    ).toBe(false);
+    expect(
+      computeCeilingAlert(
+        makePersona({
+          business: { osekType: "patur", isOsekZeir: false },
+          income: { year: 2025, totalRevenue: 108_000 },
+        }),
+      )!.isMursheZeir,
+    ).toBe(false);
+  });
 });
 
 describe("computeCeilingAlert — FP-07 year param (2026-08-19)", () => {

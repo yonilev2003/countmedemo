@@ -128,7 +128,7 @@ export default function MorsheGuidePage() {
               </h1>
               <p className="mt-1.5 text-sm leading-relaxed text-muted">
                 {isMorsheAlready
-                  ? "העסק שלך כבר רשום כעוסק מורשה — המדריך הזה שימושי כרקע, או אם אתם מלווים מישהו שעדיין לא עבר."
+                  ? "העסק שלך כבר רשום כעוסק מורשה — הרישום והמע״מ לא רלוונטיים לכם, ראו למטה מה כן חשוב לדעת."
                   : `כשמחזור העסק שלך חוצה את תקרת ${category}, המעבר לעוסק מורשה הופך לחובה — לא לבחירה. הנה מה זה אומר בפועל, ומה משתנה אצלנו ב-countme.`}
               </p>
             </div>
@@ -153,6 +153,17 @@ export default function MorsheGuidePage() {
           )}
         </div>
 
+        {/* Sections A-D below all describe a פטור→מורשה transition (new VAT
+            registration, new invoice type, losing the VAT exemption) — every
+            claim in them is WRONG for someone who's already עוסק מורשה
+            (adversarial-review finding, 2026-08-20: this page used to be
+            unreachable for any osekType==="morshe" persona before the
+            murshe-zeir reform made the ceiling alert — and its CTA here —
+            reachable for a מורשה-זעיר too). Gated on !isMorsheAlready; an
+            already-מורשה reader (zeir or not) gets the short, factually
+            -safe block right after this instead. */}
+        {!isMorsheAlready && (
+          <>
         {/* A. What crossing the ceiling means */}
         <section className="mb-6 rounded-2xl border border-line bg-paper shadow-brand-sm p-6">
           <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-brand-navy">
@@ -254,6 +265,34 @@ export default function MorsheGuidePage() {
           </p>
           <LegalNote variant="line" className="mt-4" />
         </section>
+          </>
+        )}
+
+        {isMorsheAlready && (
+          <section className="mb-6 rounded-2xl border border-line bg-paper shadow-brand-sm p-6">
+            <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-bold text-brand-navy">
+              <ShieldIcon className="size-5 text-brand-deep" />
+              מה כן רלוונטי לכם
+            </h2>
+            <p className="text-sm leading-relaxed text-ink">
+              הרישום כעוסק מורשה וגביית המע&quot;מ כבר קיימים אצלכם — אין כאן
+              שום שינוי. {persona.business.isOsekZeir ? (
+                <>
+                  מה שכן משתנה בחציית התקרה: מסלול{" "}
+                  <strong className="text-brand-navy">עוסק זעיר</strong> —
+                  הניכוי האוטומטי של 30% מההוצאות בלי קבלות ודיווח מס-הכנסה
+                  פשוט יותר — מפסיק להיות זמין. זה
+                  לא נוגע לרישום שלכם כמורשה או לגביית המע&quot;מ, רק לאיך
+                  שמדווחים הכנסה במס הכנסה. שווה להתייעץ עם רואה חשבון לגבי
+                  המעבר לדיווח לפי הוצאות בפועל.
+                </>
+              ) : (
+                "אין פעולה נדרשת מבחינת מע\"מ או רישום."
+              )}
+            </p>
+            <LegalNote variant="line" className="mt-4" />
+          </section>
+        )}
 
         <div className="flex flex-wrap gap-3">
           <Link href="/dashboard" className={btn("primary", "md")}>

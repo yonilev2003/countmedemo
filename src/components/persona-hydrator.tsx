@@ -76,9 +76,11 @@ export function PersonaHydrator() {
       if (cancelled) return;
       if (userId) {
         const { shouldForceSignOut } = await import("@/lib/auth/session-preference");
-        if (shouldForceSignOut()) {
+        const forceSignOut = await shouldForceSignOut();
+        if (cancelled) return;
+        if (forceSignOut) {
           const { performSignOut } = await import("@/lib/auth/perform-sign-out");
-          void performSignOut();
+          void performSignOut("auto");
           return;
         }
       }

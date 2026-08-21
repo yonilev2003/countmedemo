@@ -11,8 +11,12 @@ import { clearFollowUpNotes } from "@/lib/crm/notes";
  * local state BEFORE the session ends, so the next person on a shared device
  * can never see the previous user's cached data; `signOut()` itself clears
  * the Supabase cookies and redirects to /login.
+ *
+ * `reason: "auto"` forwards to signOut() so /login shows an explanation —
+ * pass it ONLY from the automatic (not-remembered) sign-out path, never from
+ * a manual button click.
  */
-export async function performSignOut(): Promise<void> {
+export async function performSignOut(reason?: "auto"): Promise<void> {
   clearLocalPersona();
   clearFollowUpNotes();
   if (typeof caches !== "undefined") {
@@ -21,5 +25,5 @@ export async function performSignOut(): Promise<void> {
       .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
       .catch(() => {});
   }
-  await signOut();
+  await signOut(reason);
 }

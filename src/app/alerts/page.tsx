@@ -107,11 +107,15 @@ function AlertCard({ alert }: { alert: Alert }) {
       )}
 
       {/* Ceiling-specific guide CTA — warning/critical/exceeded (severity
-          warn/alert on this alert only) all mean the same thing: crossing
-          the ceiling forces עוסק מורשה registration. Kept separate from
-          alert.cta above (which only fires at critical/exceeded and points
-          to /dashboard) so warning-level users see it too (task #22). */}
+          warn/alert on this alert only) means crossing the ceiling forces
+          עוסק מורשה registration, for a plain עוסק פטור/זעיר. Kept separate
+          from alert.cta above (which only fires at critical/exceeded and
+          points to /dashboard) so warning-level users see it too (task #22).
+          Excludes isMursheZeir (adversarial-review finding, 2026-08-20) —
+          that CTA/guide assumes a פטור→מורשה transition and is actively
+          wrong for someone already מורשה/VAT-registered. */}
       {alert.id === "ceiling-osek-patur" &&
+        !alert.isMursheZeir &&
         (alert.severity === "warn" || alert.severity === "alert") && (
           <div className="px-5 pb-4 pt-0">
             <Link href="/guides/morshe" className={btn("secondary", "sm")}>

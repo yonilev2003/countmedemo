@@ -42,6 +42,17 @@ export interface CeilingAlert {
   detailHe: string;
   /** "ok" | "info" | "warn" | "alert" — drives card colour. */
   tone: "ok" | "info" | "warn" | "alert";
+  /**
+   * True for an עוסק מורשה marked isOsekZeir (MURSHE-ZEIR, Amendment 265).
+   * Callers MUST check this before offering the "/guides/morshe" transition
+   * CTA — that guide assumes a פטור→מורשה transition (new VAT registration,
+   * exemption ending) and is actively wrong for someone who's already
+   * מורשה/VAT-registered (adversarial-review finding, 2026-08-20: crossing
+   * the ceiling used to be reachable ONLY for עוסק פטור, so this distinction
+   * never had to exist before the murshe-zeir reform made it reachable for
+   * an already-מורשה persona too).
+   */
+  isMursheZeir: boolean;
 }
 
 /** True when an ISO date's year matches `year` — local copy of the same
@@ -146,5 +157,5 @@ export function computeCeilingAlert(
     exceeded: "alert",
   }[level] as CeilingAlert["tone"];
 
-  return { turnover, threshold, percent, remaining, level, headlineHe, detailHe, tone };
+  return { turnover, threshold, percent, remaining, level, headlineHe, detailHe, tone, isMursheZeir };
 }

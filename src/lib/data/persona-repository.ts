@@ -47,6 +47,32 @@ export async function fetchPersona(knownUserId?: string): Promise<Persona | null
 }
 
 /**
+ * Three-state existence check (2026-08-20, adversarial-review finding on the
+ * same-day "conflict" guard in persona-store.ts): `fetchPersona` collapses
+ * "no row" and "the query itself failed" into the same `null` — fine for a
+ * display read, but a security-critical existence check needs to tell those
+ * apart. A transient network/RLS error here must never be read as "safe to
+ * adopt" — that's the exact fail-open gap the guard using `fetchPersona`
+ * directly had.
+ */
+export async function checkRemotePersonaExists(
+  userId: string,
+): Promise<"exists" | "absent" | "unknown"> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("persona")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) return "unknown";
+    return data?.persona ? "exists" : "absent";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
  * Persist the Persona for the current user into profiles.persona and keep the
  * flat identity columns (first_name/last_name/email/user_type) in sync.
  * Returns false (no-op) when signed out or on error — never throws.

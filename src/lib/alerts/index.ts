@@ -28,6 +28,15 @@ export interface Alert {
   detailHe: string;
   /** Optional call-to-action link. */
   cta?: AlertCTA;
+  /**
+   * True for a ceiling alert on an עוסק מורשה marked isOsekZeir
+   * (MURSHE-ZEIR, Amendment 265). Consumers MUST check this before offering
+   * a "transition to מורשה" CTA — that CTA/guide assumes a פטור→מורשה
+   * transition (new VAT registration) and is actively wrong for someone
+   * who's already מורשה/VAT-registered (adversarial-review finding,
+   * 2026-08-20 — see CeilingAlert.isMursheZeir in lib/alerts/ceiling.ts).
+   */
+  isMursheZeir?: boolean;
 }
 
 // ─── 1. Ceiling alert (עוסק פטור מחזור) ────────────────────────────────────
@@ -49,6 +58,7 @@ export function generateCeilingAlert(persona: Persona): Alert | null {
       raw.level === "exceeded" || raw.level === "critical"
         ? { labelHe: "מעבר לדשבורד", href: "/dashboard" }
         : undefined,
+    isMursheZeir: raw.isMursheZeir,
   };
 }
 

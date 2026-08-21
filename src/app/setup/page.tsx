@@ -452,18 +452,25 @@ function DoneScreen({
 
   async function handleRetrySave() {
     setPending(true);
-    // Re-attempt the SAME failed upload via the shared retryPersonaSave()
+    // Re-attempt the SAME failed save via the shared retryPersonaSave()
     // (persona-store.ts) instead of calling persistPersona() again here.
     // persistPersona() re-runs decidePersonaOwnership from scratch, including
     // consumeExplicitContinueIntent() — a ONE-SHOT read already spent by the
-    // failed call this button is retrying. retryPersonaSave() just re-tries
-    // the stored retryTarget's upload directly, with no reclassification and
-    // no risk of the intent flag being gone on retry (the same path the
-    // dashboard's retry already uses — see use-required-persona.ts).
-    const ok = await retryPersonaSave();
+    // failed call this button is retrying. retryPersonaSave() re-runs
+    // exactly what failed — a blind upload retry, or (2026-08-20) a
+    // re-check-then-adopt when the first attempt's existence check itself
+    // failed — with no reclassification and no risk of the intent flag
+    // being gone on retry (the same path the dashboard's retry already
+    // uses — see use-required-persona.ts).
+    const outcome = await retryPersonaSave();
     setPending(false);
-    if (!ok) {
-      setSaveState("error");
+    if (outcome === "error" || outcome === "conflict") {
+      setSaveState(outcome);
+      return;
+    }
+    if (outcome !== "saved") {
+      // "not-uploaded" — nothing was queued to retry (already superseded or
+      // never failed). Nothing to show; leave the current state as-is.
       return;
     }
     setSaveState("saved");

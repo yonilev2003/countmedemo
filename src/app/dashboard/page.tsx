@@ -408,10 +408,15 @@ export default function DashboardPage() {
 
         {/* ── ceiling strip — warning/critical/exceeded only ("approaching"
             already speaks through the שקל line above; this is the
-            unmissable version for when action is genuinely needed). Crossing
-            the ceiling forces עוסק מורשה registration regardless — losing
-            the פטור/זעיר benefits — so this must not be buried on /alerts
-            alone (Yoni, 18/08). ── */}
+            unmissable version for when action is genuinely needed). For a
+            עוסק פטור/זעיר, crossing the ceiling forces עוסק מורשה
+            registration — losing the פטור/זעיר benefits — so this must not
+            be buried on /alerts alone (Yoni, 18/08). A מורשה-זעיר (Amendment
+            265) crossing the SAME ceiling does NOT need to register as
+            מורשה — they already are — so their headline/detail already
+            reflect that (ceiling.ts's isMursheZeir branch); only the
+            "/guides/morshe" CTA below (adversarial-review finding,
+            2026-08-20) still assumed the old patur-only case. ── */}
         {ceiling && (ceiling.level === "warning" || ceiling.level === "critical" || ceiling.level === "exceeded") && (
           <Reveal className="mt-4">
             <div
@@ -437,13 +442,18 @@ export default function DashboardPage() {
                   <div className="mt-0.5 text-xs text-muted">{ceiling.detailHe}</div>
                 </div>
               </Link>
-              {/* CTA to the transition guide — crossing the ceiling forces
-                  עוסק מורשה registration regardless of level here, so this
-                  belongs alongside the strip, not buried inside /alerts
-                  alone (Yoni, 18/08, task #22). */}
-              <Link href="/guides/morshe" className={`${btn("secondary", "sm")} mt-3`}>
-                למדריך המעבר למורשה
-              </Link>
+              {/* CTA to the פטור→מורשה transition guide — only relevant when
+                  crossing the ceiling actually forces new מורשה registration.
+                  A מורשה-זעיר is already registered/VAT-charging — the guide's
+                  content (register as מורשה, start charging VAT) would be
+                  actively wrong for them (adversarial-review finding, 2026-08-20).
+                  belongs alongside the strip, not buried inside /alerts alone
+                  (Yoni, 18/08, task #22). */}
+              {!ceiling.isMursheZeir && (
+                <Link href="/guides/morshe" className={`${btn("secondary", "sm")} mt-3`}>
+                  למדריך המעבר למורשה
+                </Link>
+              )}
             </div>
           </Reveal>
         )}

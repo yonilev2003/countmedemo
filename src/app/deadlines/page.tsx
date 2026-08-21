@@ -96,8 +96,14 @@ function deadlineStatus(days: number): Status {
  */
 function deadlinesSubtitle(persona: Persona): string {
   const followUpHint = "ניתן להוסיף הערה / פולו-אפ לכל מועד.";
+  // MURSHE-ZEIR (Amendment 265, adversarial-review finding 2026-08-20): the
+  // early `osekType !== "patur"` return used to skip computeCeilingAlert
+  // entirely for a מורשה, so a מורשה-זעיר who exceeded the ceiling (and thus
+  // lost the זעיר income-tax track — see lib/alerts/ceiling.ts) got the
+  // generic morshe subtitle with no mention of the breach.
+  const isMursheZeir = persona.business.osekType === "morshe" && persona.business.isOsekZeir;
 
-  if (persona.business.osekType !== "patur") {
+  if (persona.business.osekType !== "patur" && !isMursheZeir) {
     return `מועדים קרובים עבור עוסק מורשה · ${followUpHint}`;
   }
 
@@ -105,7 +111,9 @@ function deadlinesSubtitle(persona: Persona): string {
   const ceiling = computeCeilingAlert(persona);
 
   if (ceiling?.level === "exceeded") {
-    return `חרגת מתקרת ${category} — נדרש מעבר לעוסק מורשה מול רשות המסים. עד השלמת הרישום, המועדים שלהלן עדיין מוצגים לפי הרישום הנוכחי כ${category}.`;
+    return isMursheZeir
+      ? `חרגת מתקרת מסלול ${category} — מסלול ${category} כבר לא זמין במס הכנסה. הרישום כעוסק מורשה והמע"מ שאת/ה כבר גובה/ת אינם משתנים.`
+      : `חרגת מתקרת ${category} — נדרש מעבר לעוסק מורשה מול רשות המסים. עד השלמת הרישום, המועדים שלהלן עדיין מוצגים לפי הרישום הנוכחי כ${category}.`;
   }
 
   return `מועדים קרובים עבור ${category} · ${followUpHint}`;
