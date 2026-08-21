@@ -57,11 +57,19 @@ export function AppHeader({
               {actions}
             </nav>
           )}
-          <Link href="/setup" className={btn("ghost", "sm")}>
-            <SettingsIcon className="size-3.5" />
-            עדכן נתונים
-          </Link>
-          <div className="border-s border-line ps-2">
+          {/* Grouped as one unit (2026-08-20, Yoni's mobile-adaptation
+              request) — a leading border-s divider only reads correctly when
+              this sits inline right after `actions`; on a narrow phone the
+              whole row wraps to its own line under the logo (flex-wrap
+              above), where a lone divider bar in front of "עדכן נתונים" looks
+              like a stray leftover instead of an intentional group. gap-2
+              alone keeps the two related actions visually together in
+              either layout. */}
+          <div className="flex items-center gap-2">
+            <Link href="/setup" className={btn("ghost", "sm")}>
+              <SettingsIcon className="size-3.5" />
+              עדכן נתונים
+            </Link>
             <SignOutButton />
           </div>
         </div>

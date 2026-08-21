@@ -397,7 +397,7 @@ function DoneScreen({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "error" | "conflict">("idle");
 
   /**
    * The ONE finish path (Yoni's locked decision, 18/08 beta-feedback fix):
@@ -427,9 +427,9 @@ function DoneScreen({
       // retryable error) before leaving, instead of hoping a later reconcile
       // silently picks it up.
       const outcome = await persistPersona(persona);
-      if (outcome === "error") {
+      if (outcome === "error" || outcome === "conflict") {
         setPending(false);
-        setSaveState("error");
+        setSaveState(outcome);
         return;
       }
       setSaveState("saved");
@@ -706,6 +706,37 @@ function DoneScreen({
                       >
                         נסה/י שוב
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setSaveState("idle")}
+                        className="text-xs text-muted hover:underline"
+                      >
+                        סגירה
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {saveState === "conflict" && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-xl border border-due/30 bg-due-bg/40 px-3.5 py-2.5 text-start text-xs text-ink"
+                >
+                  <AlertTriangleIcon className="size-4 mt-0.5 shrink-0 text-due-ink" />
+                  <div className="flex-1">
+                    <p className="font-medium text-due-ink">
+                      כבר קיים חשבון עם נתונים שמורים בחיבור הזה
+                    </p>
+                    <p className="mt-0.5 text-muted leading-relaxed">
+                      כדי לא לדרוס נתונים קיימים, לא שמרנו את מה שמילאת כרגע.
+                      אם זה לא החשבון שלך — התנתק/י ונסה/י שוב עם החשבון
+                      הנכון. אם זה כן החשבון שלך ואת/ה מתכוון/ת לעדכן את
+                      הנתונים הקיימים, זה נעשה מהדשבורד עצמו (״עדכן נתונים״),
+                      לא כאן.
+                    </p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <SignOutButton variant="secondary" size="sm" />
                       <button
                         type="button"
                         onClick={() => setSaveState("idle")}

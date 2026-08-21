@@ -296,7 +296,7 @@ export default function DashboardPage() {
           <StaggerItem>
             <Link
               href="/invoices"
-              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+              className="group block rounded-2xl border border-line bg-paper p-3 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2 sm:p-4"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
@@ -305,7 +305,10 @@ export default function DashboardPage() {
                 </div>
                 <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
-              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-deep sm:text-2xl" dir="ltr">
+              <div
+                className="mt-1.5 truncate font-display text-sm font-extrabold tabular-nums text-brand-deep sm:text-2xl"
+                dir="ltr"
+              >
                 ₪{yearSummary.revenueYtd.toLocaleString("he-IL")}
               </div>
               <div className="mt-0.5 text-[11px] text-faint">
@@ -316,7 +319,7 @@ export default function DashboardPage() {
           <StaggerItem>
             <Link
               href="/expenses"
-              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+              className="group block rounded-2xl border border-line bg-paper p-3 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2 sm:p-4"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
@@ -325,7 +328,10 @@ export default function DashboardPage() {
                 </div>
                 <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
-              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-ink sm:text-2xl" dir="ltr">
+              <div
+                className="mt-1.5 truncate font-display text-sm font-extrabold tabular-nums text-ink sm:text-2xl"
+                dir="ltr"
+              >
                 ₪{yearSummary.expensesYtd.toLocaleString("he-IL")}
               </div>
               <div className="mt-0.5 text-[11px] text-faint">
@@ -340,7 +346,7 @@ export default function DashboardPage() {
           <StaggerItem>
             <Link
               href="/dashboard/pro"
-              className="group block rounded-2xl border border-line bg-paper p-4 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2"
+              className="group block rounded-2xl border border-line bg-paper p-3 shadow-brand transition-all hover:-translate-y-0.5 hover:border-brand-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-2 sm:p-4"
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
@@ -349,7 +355,7 @@ export default function DashboardPage() {
                 </div>
                 <ArrowLeftIcon className="size-3.5 shrink-0 text-faint transition-colors group-hover:text-brand-deep" />
               </div>
-              <div className="mt-1.5 font-display text-xl font-extrabold tabular-nums text-brand-navy sm:text-2xl">
+              <div className="mt-1.5 truncate font-display text-sm font-extrabold tabular-nums text-brand-navy sm:text-2xl">
                 {yearSummary.ratioYtd === null
                   ? "—"
                   : `${Math.round(yearSummary.ratioYtd * 100)}%`}

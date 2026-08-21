@@ -8,6 +8,22 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## סשן 20/08/2026 (המשך, Fable) — "השאר מחובר/ת" נעול; עובדה טכנית קבועה על @supabase/ssr
+
+**נעול (יוני, מפורש):** ברירת-המחדל היא **התנתקות אחרי כל שימוש** — לא נשאר מחובר בין ביקורים
+אלא אם המשתמש מסמן במפורש "השאר אותי מחובר/ת" ב-`/login`. מומש ב-`src/lib/auth/session-preference.ts`.
+
+**עובדה טכנית לתעד לכל סשן עתידי שיגע ב-auth/cookies — לא לנסות שוב:** `@supabase/ssr` בגרסה
+המותקנת (0.12.0) **קושח את ה-Max-Age של cookie-האימות ל-400 יום תמיד** —
+`applyServerStorage`/`applyBrowserStorage` ב-`cookies.js` בונים את אפשרויות-ה-cookie כ-
+`{...DEFAULT_COOKIE_OPTIONS, ...cookieOptions, maxAge: DEFAULT_COOKIE_OPTIONS.maxAge}` — כלומר
+**דורסים כל `cookieOptions.maxAge` שמעבירים אחרי הפריסה**, בכוונה. אין דרך נתמכת (נכון ל-0.12.0)
+לגרום ל-cookie האימות עצמו להיות session-only (נעלם בסגירת דפדפן) דרך ה-API הרשמי. **פתרון
+שנבחר:** מדיניות ברמת-אפליקציה מעל ה-cookie (sessionStorage לזיהוי "עדיין אותו סשן" +
+localStorage ל"זכור אותי" מפורש) — לא לנסות לפצח את ה-cookie עצמו שוב. אם גרסה עתידית של
+`@supabase/ssr` תשנה את ההתנהגות הזו, שווה לבדוק אם אפשר לפשט, אבל **לא להניח** — לאמת מול קוד-
+המקור כמו שנעשה כאן (`node_modules/@supabase/ssr/dist/main/cookies.js`), לא מול תיעוד ישן.
+
 ## סשן 18/08/2026 לילה (Fable) — פיבוט: הרשמה פתוחה לכולם + מוכנות לסקייל
 
 מקור מלא + רשימת המשימות המחודשת: `docs/plans/2026-08-18-master-task-list-v2.md`.

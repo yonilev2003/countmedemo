@@ -8,6 +8,7 @@ import {
   CONTINUE_INTENT_QUERY_PARAM,
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
+import { markSessionStart } from "@/lib/auth/session-preference";
 
 /**
  * The interactive part of the login screen: a single "sign in with Google"
@@ -23,6 +24,11 @@ import {
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Default UNCHECKED (Yoni, 20/08): sign out after each use unless the
+  // user opts in — a shared/public device must not stay logged in silently.
+  // See lib/auth/session-preference.ts for why this can't be done via the
+  // Supabase cookie's own Max-Age (the library hardcodes it).
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Shared-device safety: anyone reaching /login is (re)authenticating, so a
   // persona cache stamped to a PREVIOUS user must not survive into the next
@@ -36,6 +42,10 @@ export function LoginForm() {
   async function handleGoogleSignIn() {
     setFailed(false);
     setLoading(true);
+    // Written BEFORE the redirect to Google — same-origin storage, still
+    // there when the browser lands back on /auth/callback after the OAuth
+    // round-trip (navigating through google.com doesn't touch our storage).
+    markSessionStart(rememberMe);
     const supabase = createClient();
     // Preserve the destination the gate (or DoneScreen's finish CTA)
     // redirected from (?next=/invoices …), so the OAuth callback can send the
@@ -94,6 +104,19 @@ export function LoginForm() {
         )}
         {loading ? "מעביר ל-Google…" : "התחברות עם Google"}
       </button>
+
+      {/* Default unchecked — sign-out-after-each-use is the safe default for
+          a shared/public device; opting in to persistence is a deliberate
+          choice, not the fallback. */}
+      <label className="flex items-center justify-center gap-2 text-sm text-white/80">
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          className="size-4 rounded accent-brand"
+        />
+        השאר אותי מחובר/ת במכשיר הזה
+      </label>
 
       {failed && (
         <p className="text-center text-sm text-alert" role="alert">

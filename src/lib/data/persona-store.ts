@@ -174,7 +174,7 @@ async function attemptCloudUpsert(persona: Persona): Promise<boolean> {
  * fire-and-forget. "not-uploaded" covers every decidePersonaOwnership branch
  * that never touches the DB (signed-out, discard-foreign, empty, use-remote)
  * — not a failure, just nothing to report as "saved to the cloud". */
-export type PersonaSaveOutcome = "saved" | "error" | "not-uploaded";
+export type PersonaSaveOutcome = "saved" | "error" | "not-uploaded" | "conflict";
 
 /**
  * Save locally now (sync cache) and persist to the DB — but ONLY when the
@@ -205,9 +205,37 @@ export async function persistPersona(persona: Persona): Promise<PersonaSaveOutco
     });
 
     switch (action) {
-      case "adopt-unclaimed":
+      case "adopt-unclaimed": {
+        // SECURITY GUARD (2026-08-20, Yoni's finding): decidePersonaOwnership
+        // is deliberately called with hasRemotePersona ALWAYS false here (see
+        // its own doc comment — a real check would cost a round-trip on every
+        // save, AND would break "keep-own" for anyone who already has remote
+        // data, since decidePersonaOwnership checks hasRemotePersona before
+        // localOwner). That means "adopt-unclaimed" firing here is based
+        // SOLELY on "local is unstamped + the one-shot intent flag is set" —
+        // it does NOT know whether `currentUserId` already has real data in
+        // the DB. In the common case that's fine (PersonaHydrator's
+        // background syncPersonaFromDb, running since /setup mounted, has
+        // almost always already stamped a returning user's cache long before
+        // they reach this screen — see decidePersonaOwnership's "keep-own"
+        // branch, which IS safe to blindly upsert, it's the user's own row).
+        // But it's a RACE, not a guarantee: a fast fill, a slow/failed
+        // background sync, or a device that was already signed in when
+        // /setup was opened, could all reach here with local still unstamped
+        // even though `currentUserId` genuinely already has a persona in the
+        // DB — and upsertPersona() is a blind onConflict:user_id upsert with
+        // no existence check of its own. Without this guard, that combination
+        // would silently overwrite a real existing account's data with
+        // whatever was just typed. One extra read, ONLY on this one-shot
+        // adoption path (not the hot edit-save path), closes that gap
+        // deterministically instead of depending on hydrator timing luck.
+        const existingRemote = await fetchPersona(currentUserId!);
+        if (existingRemote) {
+          return "conflict";
+        }
         setPersonaOwner(currentUserId);
         return (await attemptCloudUpsert(persona)) ? "saved" : "error";
+      }
       case "keep-own":
         return (await attemptCloudUpsert(persona)) ? "saved" : "error";
       case "discard-foreign":

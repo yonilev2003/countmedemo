@@ -63,8 +63,26 @@ export function PersonaHydrator() {
   useEffect(() => {
     if (!usesPersonaData(pathname)) return;
     let cancelled = false;
-    void import("@/lib/data/persona-store").then(({ syncPersonaFromDb }) => {
-      if (!cancelled) void syncPersonaFromDb();
+    void import("@/lib/data/persona-store").then(async ({ syncPersonaFromDb, getCurrentUserId }) => {
+      if (cancelled) return;
+      // "Stay signed in" enforcement (2026-08-20, Yoni: sign out after each
+      // use unless remembered) — lives here, not a separate mount, so it
+      // shares this component's existing route allowlist and lazy Supabase
+      // import instead of adding a second global-mount component with its
+      // own bundle cost. Only ever ends a session that's ALREADY
+      // authenticated (getCurrentUserId truthy) — never touches a genuinely
+      // anonymous visitor's local draft.
+      const userId = await getCurrentUserId();
+      if (cancelled) return;
+      if (userId) {
+        const { shouldForceSignOut } = await import("@/lib/auth/session-preference");
+        if (shouldForceSignOut()) {
+          const { performSignOut } = await import("@/lib/auth/perform-sign-out");
+          void performSignOut();
+          return;
+        }
+      }
+      void syncPersonaFromDb();
     });
     return () => {
       cancelled = true;
