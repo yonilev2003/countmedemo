@@ -22,6 +22,10 @@ import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
+import { SearchCombobox } from "@/components/setup/search-combobox";
+import { findBanksByQuery } from "@/lib/data/israeli-banks";
+import { searchCities } from "@/lib/data/israeli-cities";
+import { classifyOsek, OsekClassificationResult } from "@/lib/onboarding/osek-classifier";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -34,6 +38,12 @@ import {
   ChevronDownIcon,
   AlertTriangleIcon,
 } from "@/components/brand/icons";
+
+/** Israeli mobile format: 05X followed by 7 digits, optional dash after the
+ *  3-digit prefix (e.g. "0501234567" or "050-1234567"). */
+function validateIsraeliMobile(v: string): boolean {
+  return /^05\d-?\d{7}$/.test(v.trim());
+}
 
 function validateTeudatZehut(id: string): boolean {
   if (!/^\d{9}$/.test(id)) return false;
@@ -340,10 +350,10 @@ function FastTrackCard({
           <SparklesIcon className="size-4 shrink-0 text-brand-deep" />
           <span>
             <span className="block text-sm font-bold text-brand-navy">
-              מסלול מהיר — יש לך מסמכים?
+              עוסקים מנוסים? תחסכו לעצמכם זמן
             </span>
             <span className="block text-xs text-muted">
-              העלי ונמלא בשבילך
+              יש לך מסמכים? העלי אותם ונמלא בשבילך
             </span>
           </span>
         </span>
@@ -863,6 +873,14 @@ export default function SetupPage() {
   // UI state, never written to the persona (see osekTrackPicked above).
   const [otherOsekCase, setOtherOsekCase] = useState<"" | "company" | "not-yet">("");
 
+  // "לא בטוח/ה מה מתאים לך?" classifier quiz (Tomi's onboarding notes,
+  // 2026-08-22, item 3) — ephemeral wizard-local inputs, never written to the
+  // persona directly; only its RESULT (applied via OsekClassifierQuiz's
+  // onApply) writes real s3 fields, same as every other osek-type entry point.
+  const [showOsekQuiz, setShowOsekQuiz] = useState(false);
+  const [osekQuizTurnover, setOsekQuizTurnover] = useState("");
+  const [osekQuizExpensePercent, setOsekQuizExpensePercent] = useState("");
+
   // Holds the just-submitted persona so DoneScreen can read it directly —
   // avoids a second localStorage read racing persistPersona's write.
   const [doneData, setDoneData] = useState<Persona | null>(null);
@@ -994,6 +1012,11 @@ export default function SetupPage() {
     }
     if (!s1.birthDate) e.birthDate = "שדה חובה";
     if (!s1.gender) e.gender = "שדה חובה";
+    if (!phoneMobile.trim()) {
+      e.phoneMobile = "שדה חובה";
+    } else if (!validateIsraeliMobile(phoneMobile)) {
+      e.phoneMobile = "מספר נייד לא תקין (לדוגמה: 050-1234567)";
+    }
     if (!termsAccepted) {
       e.termsAccepted = "יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להמשיך";
     }
@@ -1076,10 +1099,19 @@ export default function SetupPage() {
     return e;
   }
 
-  /** Screen-split gate for העסק (screen 4): the business-identity fields. */
+  /** Screen-split gate for העסק (screen 4): the business-identity fields.
+   *  Business address is required (Tomi's onboarding notes, 2026-08-22,
+   *  item 5 — "כתובת עסק צריך להיות חשוב, חובה ולא אופציונלי"). This wizard
+   *  never collects a residence address to fall back to (contact.mailingAddress
+   *  is always written empty in buildPersona below), so there's no
+   *  "same as residence" shortcut to preserve — every business needs a real
+   *  address on the documents it issues anyway. */
   function validateStep3Identity(): Errors {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    if (!s3.addressCity.trim()) e.addressCity = "שדה חובה";
+    if (!s3.addressStreet.trim()) e.addressStreet = "שדה חובה";
+    if (!s3.addressHouseNumber.trim()) e.addressHouseNumber = "שדה חובה";
     return e;
   }
 
@@ -1098,8 +1130,14 @@ export default function SetupPage() {
 
   function validateStep5(): Errors {
     const e: Errors = {};
-    const ex = validateNumber(s5.totalDeductibleExpenses, "הוצאות");
-    if (ex) e.totalDeductibleExpenses = ex;
+    // עוסק זעיר: expenses are auto-computed as 30% of turnover (see the
+    // read-only card on screen 6 + buildPersona below) — Tomi's onboarding
+    // notes, 2026-08-22, item 6: "אם אתה עוסק זעיר אז לא צריך לאסוף חשבוניות".
+    // No manual figure to validate.
+    if (!s3.isOsekZeir) {
+      const ex = validateNumber(s5.totalDeductibleExpenses, "הוצאות");
+      if (ex) e.totalDeductibleExpenses = ex;
+    }
     if (s5.bituachLeumiAnnualPaid) {
       const v = Number(s5.bituachLeumiAnnualPaid);
       if (isNaN(v) || v < 0) e.bituachLeumiAnnualPaid = "מספר לא תקין";
@@ -1201,7 +1239,12 @@ export default function SetupPage() {
 
   function buildPersona(): Persona {
     const totalRevenue = Number(s4.totalRevenue);
-    const totalDeductibleExpenses = Number(s5.totalDeductibleExpenses);
+    // עוסק זעיר: auto-computed as the year's זעיר recognition rate × turnover,
+    // never the manual s5 input (which is hidden on screen 6 for this case —
+    // see validateStep5 above and the screen-6 render block).
+    const totalDeductibleExpenses = s3.isOsekZeir
+      ? Math.round(totalRevenue * getTaxYearConstants(selectedYear).osekZeirExpenseRate)
+      : Number(s5.totalDeductibleExpenses);
     const netIncome = totalRevenue - totalDeductibleExpenses;
     const bituach = Number(s5.bituachLeumiAnnualPaid) || 0;
 
@@ -1432,23 +1475,21 @@ export default function SetupPage() {
   })();
 
   /*
-   * Step-5 expense-ratio facts (NO advice — facts only, product decision).
+   * Step-5 expense-ratio fact (NO advice — facts only, product decision).
    * The 30% threshold is the עוסק-זעיר normative-expense rate, read from the
-   * year constants (never hardcoded). Two mirror cases:
-   *   • זעיר  + expenses ABOVE 30% → only 30% is recognised in the זעיר track.
-   *   • פטור  + expenses BELOW 30% → states the זעיר track would auto-recognise
-   *     30% (more than reported). Both are neutral statements of fact.
+   * year constants (never hardcoded): פטור (not זעיר) + expenses BELOW 30%
+   * → states the זעיר track would auto-recognise 30% (more than reported),
+   * a neutral statement of fact. (The mirror case — זעיר + expenses ABOVE
+   * 30% — no longer has a UI to attach to: זעיר users get a read-only
+   * auto-computed expenses card on screen 6, item 6 of Tomi's onboarding
+   * notes 2026-08-22, so there's no manually-entered figure left to compare
+   * against the cap.)
    */
   const zeirExpenseRate =
     getTaxYearConstants(selectedYear).osekZeirExpenseRate;
   const step5Revenue = Number(s4.totalRevenue) || 0;
   const step5Expenses = Number(s5.totalDeductibleExpenses) || 0;
   const step5Ratio = step5Revenue > 0 ? step5Expenses / step5Revenue : 0;
-  const showZeirOverNote =
-    s3.isOsekZeir &&
-    step5Revenue > 0 &&
-    step5Expenses > 0 &&
-    step5Ratio > zeirExpenseRate;
   const showPaturUnderNote =
     s3.osekType === "patur" &&
     !s3.isOsekZeir &&
@@ -1679,16 +1720,17 @@ export default function SetupPage() {
                 </div>
 
                 <div>
-                  <FieldLabel htmlFor="phoneMobile">נייד (אופציונלי)</FieldLabel>
+                  <FieldLabel htmlFor="phoneMobile" required>נייד</FieldLabel>
                   <input
                     id="phoneMobile"
                     type="tel"
                     value={phoneMobile}
                     onChange={(e) => setPhoneMobile(e.target.value)}
-                    className={inputCls(false)}
+                    className={inputCls(!!errors.phoneMobile)}
                     dir="ltr"
                     placeholder="050-1234567"
                   />
+                  <ErrorMsg msg={errors.phoneMobile} />
                   <p className="mt-1 text-xs text-muted">
                     יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
                     למספר הזה.
@@ -1983,9 +2025,28 @@ export default function SetupPage() {
                   ]}
                 />
 
+                {/* Occupation is asked BEFORE osek type (moved up from the
+                    bottom of this screen, Tomi's onboarding notes 2026-08-22
+                    item 3) — the "לא בטוח/ה מה מתאים לי" quiz below needs it
+                    to check whether the profession forces עוסק מורשה. */}
+                <div>
+                  <FieldLabel htmlFor="primaryOccupation" required>
+                    תחום עיסוק
+                  </FieldLabel>
+                  <OccupationPicker
+                    inputId="primaryOccupation"
+                    value={s3.primaryOccupation}
+                    onChange={(next) =>
+                      setS3({ ...s3, primaryOccupation: next })
+                    }
+                    error={errors.primaryOccupation}
+                  />
+                  <ErrorMsg msg={errors.primaryOccupation} />
+                </div>
+
                 {/* ── Osek type (incl. explainer cards) ────────────────────── */}
                 <div>
-                  <FieldLabel>סוג עוסק</FieldLabel>
+                  <FieldLabel>איזה סוג עוסק את/ה היום, או רוצה להיות?</FieldLabel>
                   {/*
                     Two first-class radio options — פטור / מורשה — plus a
                     separate עוסק-זעיר toggle, shown once either track is
@@ -2049,6 +2110,38 @@ export default function SetupPage() {
                       value={otherOsekCase}
                       onChange={setOtherOsekCase}
                     />
+                  </div>
+
+                  <div className="mt-3">
+                    {!showOsekQuiz ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowOsekQuiz(true)}
+                        className="text-xs font-medium text-brand-deep underline hover:text-brand-navy"
+                      >
+                        לא בטוח/ה מה מתאים לך? בוא/י נבדוק יחד
+                      </button>
+                    ) : (
+                      <OsekClassifierQuiz
+                        occupationText={s3.primaryOccupation}
+                        year={selectedYear}
+                        turnover={osekQuizTurnover}
+                        onTurnoverChange={setOsekQuizTurnover}
+                        expensePercent={osekQuizExpensePercent}
+                        onExpensePercentChange={setOsekQuizExpensePercent}
+                        onApply={(result) => {
+                          setOtherOsekCase("");
+                          setS3({
+                            ...s3,
+                            osekType: result.osekType,
+                            isOsekZeir: result.isOsekZeirSuggested,
+                            osekTrackPicked: true,
+                          });
+                          setShowOsekQuiz(false);
+                        }}
+                        onDismiss={() => setShowOsekQuiz(false)}
+                      />
+                    )}
                   </div>
 
                   <ErrorMsg msg={errors.osekType} />
@@ -2150,21 +2243,6 @@ export default function SetupPage() {
                     יש לי אתר מכירות — איקומרס
                   </span>
                 </label>
-
-                <div>
-                  <FieldLabel htmlFor="primaryOccupation" required>
-                    תחום עיסוק
-                  </FieldLabel>
-                  <OccupationPicker
-                    inputId="primaryOccupation"
-                    value={s3.primaryOccupation}
-                    onChange={(next) =>
-                      setS3({ ...s3, primaryOccupation: next })
-                    }
-                    error={errors.primaryOccupation}
-                  />
-                  <ErrorMsg msg={errors.primaryOccupation} />
-                </div>
               </div>
               </div>
             )}
@@ -2233,41 +2311,55 @@ export default function SetupPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <FieldLabel>כתובת העסק (אופציונלי)</FieldLabel>
-                  <input
-                    id="addressCity"
-                    type="text"
-                    aria-label="יישוב"
-                    value={s3.addressCity}
-                    onChange={(e) =>
-                      setS3({ ...s3, addressCity: e.target.value })
-                    }
-                    className={inputCls(false)}
-                    placeholder="יישוב"
-                  />
+                  <FieldLabel htmlFor="addressCity" required>כתובת העסק</FieldLabel>
+                  <div>
+                    <SearchCombobox
+                      inputId="addressCity"
+                      value={s3.addressCity}
+                      onInputChange={(next) =>
+                        setS3({ ...s3, addressCity: next })
+                      }
+                      onSelect={(opt) =>
+                        setS3({ ...s3, addressCity: opt.label })
+                      }
+                      options={searchCities(s3.addressCity).map((c) => ({
+                        key: c,
+                        label: c,
+                      }))}
+                      error={!!errors.addressCity}
+                      placeholder="יישוב"
+                    />
+                    <ErrorMsg msg={errors.addressCity} />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      id="addressStreet"
-                      type="text"
-                      aria-label="רחוב"
-                      value={s3.addressStreet}
-                      onChange={(e) =>
-                        setS3({ ...s3, addressStreet: e.target.value })
-                      }
-                      className={inputCls(false)}
-                      placeholder="רחוב"
-                    />
-                    <input
-                      id="addressHouseNumber"
-                      type="text"
-                      aria-label="מספר בית"
-                      value={s3.addressHouseNumber}
-                      onChange={(e) =>
-                        setS3({ ...s3, addressHouseNumber: e.target.value })
-                      }
-                      className={inputCls(false)}
-                      placeholder="מספר בית"
-                    />
+                    <div>
+                      <input
+                        id="addressStreet"
+                        type="text"
+                        aria-label="רחוב"
+                        value={s3.addressStreet}
+                        onChange={(e) =>
+                          setS3({ ...s3, addressStreet: e.target.value })
+                        }
+                        className={inputCls(!!errors.addressStreet)}
+                        placeholder="רחוב"
+                      />
+                      <ErrorMsg msg={errors.addressStreet} />
+                    </div>
+                    <div>
+                      <input
+                        id="addressHouseNumber"
+                        type="text"
+                        aria-label="מספר בית"
+                        value={s3.addressHouseNumber}
+                        onChange={(e) =>
+                          setS3({ ...s3, addressHouseNumber: e.target.value })
+                        }
+                        className={inputCls(!!errors.addressHouseNumber)}
+                        placeholder="מספר בית"
+                      />
+                      <ErrorMsg msg={errors.addressHouseNumber} />
+                    </div>
                   </div>
                 </div>
 
@@ -2381,70 +2473,74 @@ export default function SetupPage() {
                     המסכם בשדה זה חייב להיות שקלי.
                   </span>
                 </div>
-                <div>
-                  <FieldLabel htmlFor="expenses" required>
-                    {s3.osekType === "morshe"
-                      ? "סך הוצאות מוכרות (ללא מע״מ)"
-                      : "סך הוצאות מוכרות (כולל מע״מ)"}
-                  </FieldLabel>
-                  <input
-                    id="expenses"
-                    type="number"
-                    onWheel={numberInputWheelGuard}
-                    min={0}
-                    value={s5.totalDeductibleExpenses}
-                    onChange={(e) =>
-                      setS5({
-                        ...s5,
-                        totalDeductibleExpenses: e.target.value,
-                      })
-                    }
-                    className={inputCls(!!errors.totalDeductibleExpenses)}
-                    dir="ltr"
-                    placeholder="47800"
-                  />
-                  <ErrorMsg msg={errors.totalDeductibleExpenses} />
-                  {step5Expenses > 0 && (
-                    <p className="mt-1 text-xs font-semibold text-brand-navy">
-                      {ils(step5Expenses)}
+                {s3.isOsekZeir ? (
+                  <div>
+                    <FieldLabel>הוצאות מוכרות</FieldLabel>
+                    <div className="countme-frame px-4 py-3">
+                      <div className="text-xs text-muted mb-1">
+                        מחושב אוטומטית — {zeirRatePct}% מהמחזור (מסלול עוסק זעיר)
+                      </div>
+                      <div className="text-2xl font-bold font-display text-brand-navy">
+                        {zeirCapAmount.toLocaleString("he-IL")} ₪
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted leading-relaxed">
+                      כעוסק/ת זעיר, ההוצאות שלך מוכרות אוטומטית לפי המחזור —
+                      אין צורך לאסוף קבלות או להזין סכום.
                     </p>
-                  )}
-                  <p className="mt-1 text-xs text-muted">
-                    {s3.osekType === "morshe"
-                      ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
-                      : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
-                  </p>
+                  </div>
+                ) : (
+                  <div>
+                    <FieldLabel htmlFor="expenses" required>
+                      {s3.osekType === "morshe"
+                        ? "סך הוצאות מוכרות (ללא מע״מ)"
+                        : "סך הוצאות מוכרות (כולל מע״מ)"}
+                    </FieldLabel>
+                    <input
+                      id="expenses"
+                      type="number"
+                      onWheel={numberInputWheelGuard}
+                      min={0}
+                      value={s5.totalDeductibleExpenses}
+                      onChange={(e) =>
+                        setS5({
+                          ...s5,
+                          totalDeductibleExpenses: e.target.value,
+                        })
+                      }
+                      className={inputCls(!!errors.totalDeductibleExpenses)}
+                      dir="ltr"
+                      placeholder="47800"
+                    />
+                    <ErrorMsg msg={errors.totalDeductibleExpenses} />
+                    {step5Expenses > 0 && (
+                      <p className="mt-1 text-xs font-semibold text-brand-navy">
+                        {ils(step5Expenses)}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-muted">
+                      {s3.osekType === "morshe"
+                        ? "עוסק/ת מורשה — מע״מ תשומות חוזר דרך דוח המע״מ, לא נחשב הוצאה למס הכנסה"
+                        : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
+                    </p>
 
-                  {/* Factual 30% note — osek ZEIR with expenses ABOVE 30% (facts, no advice) */}
-                  {showZeirOverNote && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
-                      <InfoIcon className="size-4 mt-0.5 shrink-0 text-due" />
-                      <span>
-                        <span className="font-semibold text-due">שים/י לב: </span>
-                        במסלול עוסק זעיר מוכרים רק {zeirRatePct}% מההוצאות
-                        ({zeirCapAmount.toLocaleString("he-IL")} ₪). המספרים שהזנת
-                        ({step5Expenses.toLocaleString("he-IL")} ₪) גבוהים יותר —{" "}
-                        {Math.round(step5Ratio * 100)}% מהמחזור.
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Mirror factual note — osek PATUR (not zeir) with expenses BELOW 30% */}
-                  {showPaturUnderNote && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-brand-deep/25 bg-info/30 px-3 py-2.5 text-xs leading-relaxed text-ink">
-                      <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
-                      <span>
-                        <span className="font-semibold text-brand-deep">
-                          לידיעתך:{" "}
+                    {/* osek PATUR (not zeir) with expenses BELOW 30% — factual note */}
+                    {showPaturUnderNote && (
+                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-brand-deep/25 bg-info/30 px-3 py-2.5 text-xs leading-relaxed text-ink">
+                        <InfoIcon className="size-4 mt-0.5 shrink-0 text-brand-deep" />
+                        <span>
+                          <span className="font-semibold text-brand-deep">
+                            לידיעתך:{" "}
+                          </span>
+                          ההוצאות שהזנת ({step5Expenses.toLocaleString("he-IL")} ₪)
+                          הן {Math.round(step5Ratio * 100)}% מהמחזור — נמוכות מסף
+                          ה-{zeirRatePct}% של מסלול עוסק זעיר, שבו מוכרים אוטומטית{" "}
+                          {zeirCapAmount.toLocaleString("he-IL")} ₪.
                         </span>
-                        ההוצאות שהזנת ({step5Expenses.toLocaleString("he-IL")} ₪)
-                        הן {Math.round(step5Ratio * 100)}% מהמחזור — נמוכות מסף
-                        ה-{zeirRatePct}% של מסלול עוסק זעיר, שבו מוכרים אוטומטית{" "}
-                        {zeirCapAmount.toLocaleString("he-IL")} ₪.
-                      </span>
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="border-t border-line pt-4 mt-2">
                   <h3 className="text-sm font-semibold text-ink mb-3">
@@ -2583,16 +2679,25 @@ export default function SetupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FieldLabel htmlFor="bankName">שם הבנק</FieldLabel>
-                    <input
-                      id="bankName"
-                      type="text"
+                    <SearchCombobox
+                      inputId="bankName"
                       value={s6.bankName}
-                      onChange={(e) =>
-                        setS6({ ...s6, bankName: e.target.value })
+                      onInputChange={(next) =>
+                        setS6({ ...s6, bankName: next })
                       }
-                      className={inputCls(false)}
+                      onSelect={(opt) =>
+                        setS6({ ...s6, bankName: opt.label, bankCode: opt.key })
+                      }
+                      options={findBanksByQuery(s6.bankName).map((b) => ({
+                        key: b.code,
+                        label: b.nameHe,
+                        sublabel: `קוד ${b.code}`,
+                      }))}
                       placeholder="בנק הפועלים"
                     />
+                    <p className="mt-1 text-xs text-muted">
+                      בחירה מהרשימה תמלא את קוד הבנק אוטומטית.
+                    </p>
                   </div>
                   <div>
                     <FieldLabel htmlFor="bankCode">קוד בנק</FieldLabel>
@@ -2961,6 +3066,161 @@ const OSEK_LABEL: Record<"patur" | "morshe", string> = {
   patur: "עוסק פטור",
   morshe: "עוסק מורשה",
 };
+
+/**
+ * "מה אתה היום, או רוצה להיות?" mini-questionnaire (Tomi's onboarding notes,
+ * 2026-08-22, item 3) — for a user who isn't sure which osek type applies.
+ * Reuses the occupation already entered above this screen (moved ahead of
+ * the osek-type section for exactly this reason) plus two short numeric
+ * answers, then shows a RESULT via lib/onboarding/osek-classifier —
+ * explicitly not framed as a recommendation (product instruction: "שים לב
+ * שזה לא המלצה בכלל אלא תוצאה"). `onApply` is the only thing that writes
+ * real s3 fields; the quiz's own turnover/expense inputs never touch the
+ * persona directly.
+ */
+function OsekClassifierQuiz({
+  occupationText,
+  year,
+  turnover,
+  onTurnoverChange,
+  expensePercent,
+  onExpensePercentChange,
+  onApply,
+  onDismiss,
+}: {
+  occupationText: string;
+  year: number;
+  turnover: string;
+  onTurnoverChange: (v: string) => void;
+  expensePercent: string;
+  onExpensePercentChange: (v: string) => void;
+  onApply: (result: OsekClassificationResult) => void;
+  onDismiss: () => void;
+}) {
+  const turnoverNum = Number(turnover);
+  const hasTurnover = turnover.trim() !== "" && !isNaN(turnoverNum) && turnoverNum >= 0;
+  const expenseNum = Number(expensePercent);
+  const hasExpense =
+    expensePercent.trim() !== "" && !isNaN(expenseNum) && expenseNum >= 0 && expenseNum <= 100;
+
+  const result = hasTurnover
+    ? classifyOsek({
+        occupationText,
+        projectedTurnover: turnoverNum,
+        expensePercent: hasExpense ? expenseNum : 0,
+        year,
+      })
+    : null;
+
+  return (
+    <div className="rounded-xl border border-brand-deep/25 bg-info/20 p-4 space-y-3.5">
+      <p className="text-xs text-muted leading-relaxed">
+        כמה שאלות קצרות — נציג תוצאה על סמך התשובות, לא המלצה.
+      </p>
+
+      {!occupationText.trim() && (
+        <p className="text-xs text-due">
+          מלא/י קודם את &quot;תחום עיסוק&quot; למעלה כדי שנוכל לבדוק אם המקצוע
+          מחייב עוסק מורשה.
+        </p>
+      )}
+
+      <div>
+        <FieldLabel htmlFor="osekQuizTurnover">
+          כמה את/ה מכניס/ה השנה, או צופה להכניס? (בש&quot;ח, ללא מע&quot;מ)
+        </FieldLabel>
+        <input
+          id="osekQuizTurnover"
+          type="number"
+          onWheel={numberInputWheelGuard}
+          min={0}
+          value={turnover}
+          onChange={(e) => onTurnoverChange(e.target.value)}
+          className={inputCls(false)}
+          dir="ltr"
+          placeholder="150000"
+        />
+      </div>
+
+      <div>
+        <FieldLabel htmlFor="osekQuizExpense">
+          בערך איזה אחוז מהמחזור הן ההוצאות שלך? (אופציונלי)
+        </FieldLabel>
+        <input
+          id="osekQuizExpense"
+          type="number"
+          onWheel={numberInputWheelGuard}
+          min={0}
+          max={100}
+          value={expensePercent}
+          onChange={(e) => onExpensePercentChange(e.target.value)}
+          className={inputCls(false)}
+          dir="ltr"
+          placeholder="20"
+        />
+      </div>
+
+      {result && (
+        <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-brand-deep/70">
+            התוצאה שלך
+          </p>
+          <p className="text-lg font-bold font-display text-brand-navy">
+            {OSEK_LABEL[result.osekType]}
+            {result.isOsekZeirSuggested ? " (זעיר)" : ""}
+          </p>
+          <p
+            className={cn(
+              "text-sm font-medium",
+              result.hasVatCollectionDuty ? "text-due" : "text-success",
+            )}
+          >
+            {result.hasVatCollectionDuty
+              ? "יש חובת גביית ודיווח מע״מ"
+              : "אין חובת גביית מע״מ"}
+          </p>
+          {result.isOsekZeirSuggested && result.osekType === "morshe" && (
+            <p className="text-xs text-muted leading-relaxed">
+              גביית ודיווח המע״מ ממשיכים כרגיל — מסלול זעיר הוא מס-הכנסה בלבד.
+            </p>
+          )}
+          <ul className="text-xs text-muted space-y-1 pt-1 border-t border-line">
+            {result.reasonsHe.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+          <LegalNote variant="line" />
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => onApply(result)}
+              className={btn("primary", "sm")}
+            >
+              החל את התוצאה
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="text-xs text-muted underline hover:text-ink"
+            >
+              אבחר/אבחן ידנית
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!result && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="text-xs text-muted underline hover:text-ink"
+        >
+          ביטול, אבחר/אבחן ידנית
+        </button>
+      )}
+    </div>
+  );
+}
 
 /**
  * Live preview of the document header (business name, owner, VAT/business

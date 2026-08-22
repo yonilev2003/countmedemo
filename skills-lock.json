@@ -149,7 +149,7 @@
       "source": "skills-il/government-services",
       "sourceType": "github",
       "skillPath": "israeli-address-autocomplete/SKILL.md",
-      "computedHash": "b4fbbece6a0f63fb22b732df5364fbc738264b805860998db6befa735f43d96c"
+      "computedHash": "d5dafdece01b47b0514cb5b6b1fa53530a33f33c9d7680d778137e02d661c921"
     },
     "israeli-ai-compliance-kit": {
       "source": "skills-il/security-compliance",
@@ -191,7 +191,7 @@
       "source": "skills-il/tax-and-finance",
       "sourceType": "github",
       "skillPath": "israeli-bank-connector/SKILL.md",
-      "computedHash": "ba45ebd02b44b0a5b0988b97167afcfbdcafa9af42dcdce0690d3b6f88389e3f"
+      "computedHash": "6801bae04bf7b875b0611610d8f309581c5f394a757b8b5173399469351da0da"
     },
     "israeli-bank-reconciliation": {
       "source": "skills-il/accounting",

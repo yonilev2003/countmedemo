@@ -58,7 +58,7 @@ const SLOTS: SlotConfig[] = [
 ];
 
 interface SlotState {
-  status: "idle" | "uploading" | "done" | "error";
+  status: "idle" | "uploading" | "done" | "error" | "deferred";
   fileName?: string;
   data?: ExtractedData;
   error?: string;
@@ -113,7 +113,7 @@ export function DocumentUpload({ onExtracted, onSkip }: Props) {
       <div className="rounded-xl border border-brand-deep/20 bg-teal-100/40 px-4 py-3 text-[13px] text-brand-navy leading-relaxed flex gap-2 items-start">
         <InfoIcon className="size-4 shrink-0 mt-0.5 text-brand-deep" />
         <div>
-          <p className="font-bold mb-1">מסלול מהיר — חסכי זמן</p>
+          <p className="font-bold mb-1">עוסקים מנוסים? תחסכו לעצמכם זמן</p>
           <p>
             העלי מסמכים שכבר יש לך (דו״ח הכנסות, אקסל הוצאות, טופס 106) ואני אחלץ
             את הנתונים אוטומטית. כל מה שלא תעלי — תוכלי למלא ידנית בהמשך.
@@ -130,6 +130,9 @@ export function DocumentUpload({ onExtracted, onSkip }: Props) {
             onFile={(f) => handleFile(cfg.kind, f)}
             onClear={() =>
               setSlots((s) => ({ ...s, [cfg.kind]: { status: "idle" } }))
+            }
+            onDefer={() =>
+              setSlots((s) => ({ ...s, [cfg.kind]: { status: "deferred" } }))
             }
           />
         ))}
@@ -160,11 +163,13 @@ function SlotCard({
   state,
   onFile,
   onClear,
+  onDefer,
 }: {
   config: SlotConfig;
   state: SlotState;
   onFile: (file: File) => void;
   onClear: () => void;
+  onDefer: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -227,7 +232,26 @@ function SlotCard({
             <UploadIcon className="size-3.5" />
             גררי קובץ או לחצי לבחירה
           </button>
+          <button
+            type="button"
+            onClick={onDefer}
+            className="mt-2 w-full text-center text-[11px] text-muted underline hover:text-ink"
+          >
+            אעלה בהמשך
+          </button>
         </>
+      )}
+
+      {state.status === "deferred" && (
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span className="flex items-center gap-1.5">
+            <InfoIcon className="size-3.5 shrink-0" />
+            יועלה בהמשך
+          </span>
+          <button type="button" onClick={onClear} className={btn("ghost", "sm")}>
+            בעצם, עכשיו
+          </button>
+        </div>
       )}
 
       {state.status === "uploading" && (
