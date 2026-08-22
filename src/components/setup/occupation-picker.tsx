@@ -35,6 +35,8 @@ export function OccupationPicker({
 
   const results = value.trim().length >= 2 ? searchProfessions(value, 8) : [];
   const matched = matchProfessionByFreeText(value);
+  const listboxId = `${inputId}-listbox`;
+  const listboxOpen = open && results.length > 0;
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -51,6 +53,11 @@ export function OccupationPicker({
       <input
         id={inputId}
         type="text"
+        role="combobox"
+        aria-expanded={listboxOpen}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-haspopup="listbox"
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -74,14 +81,21 @@ export function OccupationPicker({
         </p>
       )}
 
-      {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-line bg-paper shadow-brand">
+      {listboxOpen && (
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label="הצעות מקצוע"
+          className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-line bg-paper shadow-brand"
+        >
           {results.map((p) => {
             const vertical = getVerticalById(p.verticalId);
             return (
               <button
                 key={p.professionId}
                 type="button"
+                role="option"
+                aria-selected={value === p.nameHe}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   onChange(p.nameHe);

@@ -899,11 +899,18 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-[13px] font-semibold text-muted mb-1.5">
-        {label}
-        {required && <span className="text-alert-ink ms-1" aria-hidden="true">*</span>}
+      {/* Nested (implicit) label association — accessibility audit 2026-08-22
+          (IS 5568 1.3.1/4.1.2): the label text and its control must render
+          inside label...label> for a screen reader to expose a programmatic
+          name, no per-call-site id/htmlFor plumbing needed. Every Field call
+          site passes exactly one form control as children. */}
+      <label className="block text-[13px] font-semibold text-muted">
+        <span className="mb-1.5 block">
+          {label}
+          {required && <span className="text-alert-ink ms-1" aria-hidden="true">*</span>}
+        </span>
+        {children}
       </label>
-      {children}
       {error && <p className="mt-1 text-xs text-alert">שדה חובה</p>}
     </div>
   );

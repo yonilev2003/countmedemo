@@ -325,8 +325,14 @@ export function ChatPanel({ persona }: Props) {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gradient-to-b from-paper to-cream">
+      {/* Messages — role="log"/aria-live so a screen reader announces new
+          replies as they stream in, instead of the exchange being silent
+          unless the user manually re-navigates (accessibility audit 2026-08-22). */}
+      <div
+        role="log"
+        aria-live="polite"
+        className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gradient-to-b from-paper to-cream"
+      >
         {/* Day separator pill */}
         <div className="self-center rounded-full bg-line-soft px-3 py-1 text-[11.5px] font-bold text-faint">
           היום
@@ -392,6 +398,7 @@ export function ChatPanel({ persona }: Props) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
               placeholder="שאלי שאלה על הדו״ח..."
+              aria-label="שאלה על הדו״ח"
               disabled={isLoading}
               className="flex-1 bg-transparent border-none outline-none text-sm text-ink placeholder:text-faint text-end disabled:opacity-60 disabled:cursor-not-allowed"
             />

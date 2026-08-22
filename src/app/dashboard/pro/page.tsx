@@ -365,6 +365,7 @@ export default function DashboardPage() {
           <button
             key={g}
             onClick={() => setGranularityAndFilter(g)}
+            aria-pressed={granularity === g}
             className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               granularity === g
                 ? "bg-paper text-brand-navy shadow-sm"

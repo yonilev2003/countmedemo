@@ -2307,6 +2307,7 @@ export default function SetupPage() {
                           key={yr}
                           type="button"
                           onClick={() => setSelectedYear(yr)}
+                          aria-pressed={selectedYear === yr}
                           className={cn(
                             "rounded-full px-4 py-1 text-sm font-semibold transition-colors border",
                             selectedYear === yr
@@ -2778,6 +2779,7 @@ function TapChoiceGroup<T extends string>({
               key={opt.key}
               type="button"
               onClick={() => onChange(opt.key)}
+              aria-pressed={active}
               className={cn(
                 "rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
                 active
@@ -2932,6 +2934,7 @@ function OsekOtherCasesPicker({
               key={c.key}
               type="button"
               onClick={() => onChange(active ? "" : c.key)}
+              aria-pressed={active}
               className={cn(
                 "rounded-full border px-3.5 py-2 text-xs transition-colors",
                 active

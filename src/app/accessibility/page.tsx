@@ -18,8 +18,8 @@ export const metadata: Metadata = {
  * accessibility pass happens, and keep "known limitations" honest — a
  * statement that omits known gaps is itself a common audit failure.
  */
-const LAST_AUDIT = "16.08.2026";
-const LAST_UPDATED = "16.08.2026";
+const LAST_AUDIT = "22.08.2026";
+const LAST_UPDATED = "22.08.2026";
 const CONTACT_EMAIL = "yonilev2003@gmail.com"; // עדכן/י כשיוקם דוא"ל ייעודי לנגישות
 
 export default function AccessibilityStatementPage() {

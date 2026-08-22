@@ -523,8 +523,15 @@ export function CoachChat({ persona, activeThreadId, onActiveThreadChange }: Pro
         </button>
       </div>
 
-      {/* Messages list */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-gradient-to-b from-paper to-cream">
+      {/* Messages list — role="log"/aria-live so a screen reader announces new
+          replies as they stream in (accessibility audit 2026-08-22). The
+          loading skeleton below is aria-hidden, so it never fires a spurious
+          announcement. */}
+      <div
+        role="log"
+        aria-live="polite"
+        className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5 bg-gradient-to-b from-paper to-cream"
+      >
         {messagesLoading ? (
           // PERF (coach perceived-load): lightweight pulse-bubble skeleton so
           // first paint is instant instead of blank space while the mount

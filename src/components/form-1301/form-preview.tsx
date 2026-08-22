@@ -107,10 +107,12 @@ function GovNavBar({
   onSelect: (id: FormTab["id"]) => void;
 }) {
   return (
-    <div className="bg-[#2d5f9e] flex">
+    <div className="bg-[#2d5f9e] flex" role="tablist" aria-label="חלקי הטופס">
       {tabs.map((t) => (
         <button
           key={t.id}
+          role="tab"
+          aria-selected={activeId === t.id}
           onClick={() => onSelect(t.id)}
           className={cn(
             "flex-1 py-2 text-xs font-medium transition-colors border-b-2",
