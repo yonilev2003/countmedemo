@@ -220,7 +220,7 @@ export default function ReceivablesPage() {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
             <div className="text-xs font-semibold text-muted">כסף בחוץ</div>
-            <div className="mt-1 font-display text-2xl font-extrabold tabular-nums text-brand-navy" dir="ltr">
+            <div className="mt-1 truncate font-display text-lg font-extrabold tabular-nums text-brand-navy sm:text-2xl" dir="ltr">
               ₪{summary.outstandingTotal.toLocaleString("he-IL")}
             </div>
             <div className="mt-0.5 text-xs text-faint">
@@ -232,7 +232,7 @@ export default function ReceivablesPage() {
           <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
             <div className="text-xs font-semibold text-muted">מזה באיחור</div>
             <div
-              className={`mt-1 font-display text-2xl font-extrabold tabular-nums ${summary.overdueTotal > 0 ? "text-alert-ink" : "text-brand-navy"}`}
+              className={`mt-1 truncate font-display text-lg font-extrabold tabular-nums sm:text-2xl ${summary.overdueTotal > 0 ? "text-alert-ink" : "text-brand-navy"}`}
               dir="ltr"
             >
               ₪{summary.overdueTotal.toLocaleString("he-IL")}
@@ -243,7 +243,7 @@ export default function ReceivablesPage() {
           </div>
           <div className="rounded-2xl border border-line bg-paper p-4 shadow-brand">
             <div className="text-xs font-semibold text-muted">הצעות ממתינות</div>
-            <div className="mt-1 font-display text-2xl font-extrabold tabular-nums text-brand-navy" dir="ltr">
+            <div className="mt-1 truncate font-display text-lg font-extrabold tabular-nums text-brand-navy sm:text-2xl" dir="ltr">
               ₪{summary.openQuotesTotal.toLocaleString("he-IL")}
             </div>
             <div className="mt-0.5 text-xs text-faint">{summary.openQuotesCount} הצעות מחיר</div>

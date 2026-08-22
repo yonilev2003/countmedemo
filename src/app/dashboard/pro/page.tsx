@@ -118,7 +118,7 @@ function KPI({
         )}
       </div>
       <div
-        className={`font-display text-2xl font-extrabold tabular-nums tracking-tight ${color ?? "text-brand-navy"}`}
+        className={`truncate font-display text-lg font-extrabold tabular-nums tracking-tight sm:text-2xl ${color ?? "text-brand-navy"}`}
       >
         {value}
       </div>
@@ -515,6 +515,18 @@ export default function DashboardPage() {
             >
               <FileTextIcon className="size-4" /> דוח רו&quot;ה תקני
             </Link>
+            {/* עוסק פטור אינו מגיש דוח מע"מ תקופתי — רק הצהרת מחזור שנתית
+                (vat-osek-patur-annual). כולל murshe-זעיר: תיקון 265 הוא
+                מסלול מס-הכנסה בלבד, אינו משנה חובת מע"מ. */}
+            {persona.business.osekType === "morshe" && (
+              <Link
+                href="/dashboard/vat-report"
+                className={btn("secondary", "sm")}
+                title="דוח מע״מ תקופתי — מחושב מהחשבוניות וההוצאות שלך, לא מוגש אוטומטית"
+              >
+                <PercentIcon className="size-4" /> דוח מע&quot;מ
+              </Link>
+            )}
             <Link href="/file" className={btn("secondary", "sm")}>
               מילוי הדוח <ArrowLeftIcon className="size-4" />
             </Link>
