@@ -40,8 +40,10 @@ export const ISRAELI_BANKS: IsraeliBank[] = [
 
 /**
  * Substring match against name + aliases, Hebrew (no case-folding needed).
- * Empty/short query returns no suggestions — matches OccupationPicker's
- * 2-character threshold convention.
+ * Suggestions appear from the first keystroke (1-character threshold) —
+ * unlike OccupationPicker's 2-character threshold, which exists to avoid
+ * noise against a 113-profession dataset; this list has ~12 entries, so a
+ * single letter is still a small, useful result set.
  */
 export function findBanksByQuery(query: string, limit = 6): IsraeliBank[] {
   const q = query.trim();

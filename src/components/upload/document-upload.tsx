@@ -243,7 +243,11 @@ function SlotCard({
       )}
 
       {state.status === "deferred" && (
-        <div className="flex items-center justify-between text-xs text-muted">
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-center justify-between text-xs text-muted"
+        >
           <span className="flex items-center gap-1.5">
             <InfoIcon className="size-3.5 shrink-0" />
             יועלה בהמשך

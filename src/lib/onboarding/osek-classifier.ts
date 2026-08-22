@@ -28,16 +28,56 @@ import { OsekType } from "@/lib/persona";
 /**
  * The exact statusNoteHe tag the regulatory dataset uses for professions
  * that must register as עוסק מורשה regardless of turnover (8 professions
- * as of the 2026 dataset — עו"ד, רו"ח, יועצי מס, שמאי מקרקעין, רופאים,
- * רופאי שיניים, וטרינרים, פסיכיאטרים). NOT asserted as the complete
- * statutory second-schedule list — see the 2026-08-22 research note this
- * module was built from; flagged as a DRAFT — NEEDS LEGAL REVIEW gap in the
- * onboarding session's summary.
+ * as of the 2026 dataset). NOT asserted as the complete statutory
+ * second-schedule list — see the 2026-08-22 research note this module was
+ * built from; flagged as a DRAFT — NEEDS LEGAL REVIEW gap in the onboarding
+ * session's summary.
  */
 const MANDATORY_MORSHE_NOTE = "חייב עוסק מורשה ללא קשר למחזור";
 
+/**
+ * The 8 mandatory-morshe profession names, exported so the UI can show them
+ * to the user OUTRIGHT as a caveat — the free-text matcher below is a
+ * best-effort convenience, not a guarantee (see isMandatoryOsekMorsheProfession's
+ * doc comment), so the safest disclosure is naming the professions directly
+ * rather than relying entirely on string matching to catch every phrasing.
+ */
+export const MANDATORY_MORSHE_PROFESSIONS_HE = [
+  "עורך דין",
+  "רואה חשבון",
+  "יועץ מס",
+  "שמאי מקרקעין",
+  "רופא",
+  "רופא שיניים",
+  "וטרינר",
+  "פסיכיאטר",
+];
+
+/**
+ * Common formal-abbreviation aliases for the two mandatory-morshe
+ * professions most often self-described that way in free text ("עו״ד",
+ * "רו״ח") — matchProfessionByFreeText's substring match against the full
+ * "עורך דין"/"רואה חשבון" strings would otherwise miss these. Deliberately
+ * small and conservative: NOT an attempt at exhaustive Hebrew
+ * gender/plural-form coverage (a genuinely open-ended problem) — see the
+ * function's doc comment for why the UI-level caveat is the real safety net.
+ */
+const MANDATORY_MORSHE_ALIASES = [/עו["׳'״]?ד/, /רו["׳'״]?ח/];
+
+/**
+ * Best-effort check, NOT a guarantee: relies on matchProfessionByFreeText's
+ * substring matching (handles many but not all Hebrew gender/plural
+ * variants) plus a small alias list for the two most common formal
+ * abbreviations. A negative result here does NOT mean "definitely not
+ * mandatory-morshe" — callers must always show the full profession list
+ * (MANDATORY_MORSHE_PROFESSIONS_HE) as an explicit caveat alongside any
+ * result, not rely on this function catching every phrasing.
+ */
 export function isMandatoryOsekMorsheProfession(occupationText: string): boolean {
-  const match = matchProfessionByFreeText(occupationText);
+  const text = occupationText.trim();
+  if (!text) return false;
+  if (MANDATORY_MORSHE_ALIASES.some((re) => re.test(text))) return true;
+  const match = matchProfessionByFreeText(text);
   return match?.statusNoteHe === MANDATORY_MORSHE_NOTE;
 }
 
@@ -45,8 +85,14 @@ export interface OsekClassificationInput {
   occupationText: string;
   /** Declared or expected annual turnover, ₪, excl. VAT. */
   projectedTurnover: number;
-  /** Expected expenses as a % of turnover (0-100). */
-  expensePercent: number;
+  /**
+   * Expected expenses as a % of turnover (0-100). Omit (undefined) when the
+   * user didn't answer — this is NOT the same as "0%": leaving it blank
+   * must never silently bias the result toward the זעיר suggestion (an
+   * earlier version of this function defaulted a blank answer to 0%, which
+   * made every eligible user look zeir-favorable by construction).
+   */
+  expensePercent?: number;
   year: number;
 }
 
@@ -90,15 +136,25 @@ export function classifyOsek(input: OsekClassificationInput): OsekClassification
   // isOsekZeirSuggested — turnover-only eligibility gate (matches
   // lib/p-and-l/expense-ratio.ts's isZeirEligible exactly), THEN a
   // favorability check against the entered expense %: the זעיר track only
-  // helps when it recognises MORE than the user's real expenses.
+  // helps when it recognises MORE than the user's real expenses. Without an
+  // answer to the expense question there is nothing to compare — never
+  // suggest זעיר on an unanswered/assumed-0% basis.
   const isZeirEligible = turnover > 0 && turnover <= threshold;
   const zeirCapAmount = Math.round(turnover * TC.osekZeirExpenseRate);
-  const estimatedExpenses = Math.round(turnover * (Math.max(0, Math.min(100, input.expensePercent)) / 100));
-  const isOsekZeirSuggested = isZeirEligible && estimatedExpenses < zeirCapAmount;
+  const hasExpenseAnswer = input.expensePercent != null && !isNaN(input.expensePercent);
+  const estimatedExpenses = hasExpenseAnswer
+    ? Math.round(turnover * (Math.max(0, Math.min(100, input.expensePercent as number)) / 100))
+    : null;
+  const isOsekZeirSuggested =
+    isZeirEligible && estimatedExpenses !== null && estimatedExpenses < zeirCapAmount;
 
   if (isOsekZeirSuggested) {
     reasonsHe.push(
-      `ההוצאות שציינת (כ-${Math.round(input.expensePercent)}% מהמחזור) נמוכות מ-${Math.round(TC.osekZeirExpenseRate * 100)}% — מסלול עוסק זעיר מכיר אוטומטית ${zeirCapAmount.toLocaleString("he-IL")} ₪, יותר ממה שציינת.`,
+      `ההוצאות שציינת (כ-${Math.round(input.expensePercent as number)}% מהמחזור) נמוכות מ-${Math.round(TC.osekZeirExpenseRate * 100)}% — מסלול עוסק זעיר מכיר אוטומטית ${zeirCapAmount.toLocaleString("he-IL")} ₪, יותר ממה שציינת.`,
+    );
+  } else if (isZeirEligible && !hasExpenseAnswer) {
+    reasonsHe.push(
+      "המחזור שציינת מאפשר מסלול עוסק זעיר — לא ציינת אחוז הוצאות, כך שלא נבדק אם המסלול משתלם עבורך.",
     );
   }
 

@@ -25,7 +25,11 @@ import { OccupationPicker } from "@/components/setup/occupation-picker";
 import { SearchCombobox } from "@/components/setup/search-combobox";
 import { findBanksByQuery } from "@/lib/data/israeli-banks";
 import { searchCities } from "@/lib/data/israeli-cities";
-import { classifyOsek, OsekClassificationResult } from "@/lib/onboarding/osek-classifier";
+import {
+  classifyOsek,
+  OsekClassificationResult,
+  MANDATORY_MORSHE_PROFESSIONS_HE,
+} from "@/lib/onboarding/osek-classifier";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -999,6 +1003,30 @@ export default function SetupPage() {
     });
   }, []);
 
+  // Single source of truth for "does the עוסק-זעיר track actually apply
+  // right now" — the checkbox alone (s3.isOsekZeir) is user INTENT, but the
+  // track requires turnover under the year's ceiling (same gate buildPersona
+  // already applied to persona.business.isOsekZeir before this change; the
+  // fix here is reusing that SAME gated value everywhere else that needs to
+  // know whether expenses should be auto-computed — validateStep5, the
+  // screen-6 render, buildPersona's totalDeductibleExpenses, and the live
+  // previewNet/summary figures — instead of each reading the raw checkbox
+  // independently and silently disagreeing once turnover crosses the
+  // ceiling with the box still checked). Recomputed every render, same
+  // pattern as osekCeiling/ceilingAlert below.
+  const isEffectivelyOsekZeir =
+    s3.isOsekZeir &&
+    Number(s4.totalRevenue || 0) <= getTaxYearConstants(selectedYear).osekZeirThreshold;
+
+  // The one real figure for "total deductible expenses" this render — auto-
+  // computed under the effective זעיר track, otherwise the manual s5 input.
+  // buildPersona(), validateStep5(), previewNet, and the screen-6 render all
+  // read THIS, never s5.totalDeductibleExpenses directly, so they can never
+  // show a number inconsistent with what actually gets persisted.
+  const resolvedTotalExpenses = isEffectivelyOsekZeir
+    ? Math.round(Number(s4.totalRevenue || 0) * getTaxYearConstants(selectedYear).osekZeirExpenseRate)
+    : Number(s5.totalDeductibleExpenses) || 0;
+
   function validateStep1(): Errors {
     const e: Errors = {};
     if (!s1.firstName.trim()) e.firstName = "שדה חובה";
@@ -1133,8 +1161,11 @@ export default function SetupPage() {
     // עוסק זעיר: expenses are auto-computed as 30% of turnover (see the
     // read-only card on screen 6 + buildPersona below) — Tomi's onboarding
     // notes, 2026-08-22, item 6: "אם אתה עוסק זעיר אז לא צריך לאסוף חשבוניות".
-    // No manual figure to validate.
-    if (!s3.isOsekZeir) {
+    // No manual figure to validate. Gated on isEffectivelyOsekZeir (not the
+    // raw checkbox) — if turnover has since crossed the ceiling, the box may
+    // still read "checked" but the track no longer applies, and the manual
+    // input is back (see the matching screen-6 render gate).
+    if (!isEffectivelyOsekZeir) {
       const ex = validateNumber(s5.totalDeductibleExpenses, "הוצאות");
       if (ex) e.totalDeductibleExpenses = ex;
     }
@@ -1239,12 +1270,9 @@ export default function SetupPage() {
 
   function buildPersona(): Persona {
     const totalRevenue = Number(s4.totalRevenue);
-    // עוסק זעיר: auto-computed as the year's זעיר recognition rate × turnover,
-    // never the manual s5 input (which is hidden on screen 6 for this case —
-    // see validateStep5 above and the screen-6 render block).
-    const totalDeductibleExpenses = s3.isOsekZeir
-      ? Math.round(totalRevenue * getTaxYearConstants(selectedYear).osekZeirExpenseRate)
-      : Number(s5.totalDeductibleExpenses);
+    // resolvedTotalExpenses already applies the same effective-זעיר gate
+    // used for business.isOsekZeir below — never diverges from it.
+    const totalDeductibleExpenses = resolvedTotalExpenses;
     const netIncome = totalRevenue - totalDeductibleExpenses;
     const bituach = Number(s5.bituachLeumiAnnualPaid) || 0;
 
@@ -1336,9 +1364,7 @@ export default function SetupPage() {
         // (תיקון 265), turnover-gated only and independent of VAT status, so
         // it's valid under EITHER osekType as long as turnover stays under
         // the year-keyed ceiling (120,000 for 2024–2025, 122,833 from 2026).
-        isOsekZeir:
-          s3.isOsekZeir &&
-          totalRevenue <= getTaxYearConstants(selectedYear).osekZeirThreshold,
+        isOsekZeir: isEffectivelyOsekZeir,
         hasEmployees: false,
         employerNames: [],
         tradeNameEn: s3.tradeNameEn.trim() || undefined,
@@ -1443,9 +1469,15 @@ export default function SetupPage() {
     setS2({ ...s2, children: next });
   }
 
+  // Reads resolvedTotalExpenses (never the raw s5 field directly) so this
+  // preview — and the screen-7 summary card, which reuses previewNet — can
+  // never show a figure that diverges from what buildPersona() actually
+  // persists for an effectively-זעיר user (whose real expenses input is
+  // hidden, so s5.totalDeductibleExpenses alone would be "" for a new user
+  // or a stale number for a returning one).
   const previewNet =
-    s4.totalRevenue && s5.totalDeductibleExpenses
-      ? Number(s4.totalRevenue) - Number(s5.totalDeductibleExpenses)
+    s4.totalRevenue && (isEffectivelyOsekZeir || s5.totalDeductibleExpenses)
+      ? Number(s4.totalRevenue) - resolvedTotalExpenses
       : null;
 
   // FP-02: live ceiling warning on the revenue screen. Reuses the shared
@@ -1731,6 +1763,11 @@ export default function SetupPage() {
                     placeholder="050-1234567"
                   />
                   <ErrorMsg msg={errors.phoneMobile} />
+                  {isReturningUser && errors.phoneMobile && (
+                    <p className="mt-1 text-xs text-due">
+                      השדה הזה הפך לחובה מאז שמילאת את הפרטים בפעם הקודמת.
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-muted">
                     יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
                     למספר הזה.
@@ -2074,6 +2111,7 @@ export default function SetupPage() {
                     year={selectedYear}
                     onChange={(next) => {
                       setOtherOsekCase("");
+                      setShowOsekQuiz(false);
                       setS3({ ...s3, ...next });
                     }}
                   />
@@ -2113,15 +2151,19 @@ export default function SetupPage() {
                   </div>
 
                   <div className="mt-3">
-                    {!showOsekQuiz ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowOsekQuiz(true)}
-                        className="text-xs font-medium text-brand-deep underline hover:text-brand-navy"
-                      >
-                        לא בטוח/ה מה מתאים לך? בוא/י נבדוק יחד
-                      </button>
-                    ) : (
+                    <button
+                      type="button"
+                      aria-expanded={showOsekQuiz}
+                      aria-controls="osek-quiz-panel"
+                      onClick={() => setShowOsekQuiz((v) => !v)}
+                      className="text-xs font-medium text-brand-deep underline hover:text-brand-navy"
+                    >
+                      {showOsekQuiz
+                        ? "סגור/י את הבדיקה"
+                        : "לא בטוח/ה מה מתאים לך? בוא/י נבדוק יחד"}
+                    </button>
+                    {showOsekQuiz && (
+                      <div id="osek-quiz-panel" className="mt-2.5">
                       <OsekClassifierQuiz
                         occupationText={s3.primaryOccupation}
                         year={selectedYear}
@@ -2141,24 +2183,12 @@ export default function SetupPage() {
                         }}
                         onDismiss={() => setShowOsekQuiz(false)}
                       />
+                      </div>
                     )}
                   </div>
 
                   <ErrorMsg msg={errors.osekType} />
                 </div>
-
-                {s3.isOsekZeir && (
-                  <div className="rounded-xl border border-line bg-cream p-4">
-                    <OsekZeirNote
-                      checked={s3.isOsekZeir}
-                      totalRevenue={Number(s4.totalRevenue) || 0}
-                      totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
-                      expenseRate={
-                        getTaxYearConstants(selectedYear).osekZeirExpenseRate
-                      }
-                    />
-                  </div>
-                )}
 
                 <div>
                   <TapChoiceGroup
@@ -2312,9 +2342,16 @@ export default function SetupPage() {
 
                 <div className="space-y-3">
                   <FieldLabel htmlFor="addressCity" required>כתובת העסק</FieldLabel>
+                  {isReturningUser &&
+                    (errors.addressCity || errors.addressStreet || errors.addressHouseNumber) && (
+                      <p className="-mt-2 text-xs text-due">
+                        השדה הזה הפך לחובה מאז שמילאת את הפרטים בפעם הקודמת.
+                      </p>
+                    )}
                   <div>
                     <SearchCombobox
                       inputId="addressCity"
+                      ariaLabel="יישוב"
                       value={s3.addressCity}
                       onInputChange={(next) =>
                         setS3({ ...s3, addressCity: next })
@@ -2473,7 +2510,7 @@ export default function SetupPage() {
                     המסכם בשדה זה חייב להיות שקלי.
                   </span>
                 </div>
-                {s3.isOsekZeir ? (
+                {isEffectivelyOsekZeir ? (
                   <div>
                     <FieldLabel>הוצאות מוכרות</FieldLabel>
                     <div className="countme-frame px-4 py-3">
@@ -3107,7 +3144,7 @@ function OsekClassifierQuiz({
     ? classifyOsek({
         occupationText,
         projectedTurnover: turnoverNum,
-        expensePercent: hasExpense ? expenseNum : 0,
+        expensePercent: hasExpense ? expenseNum : undefined,
         year,
       })
     : null;
@@ -3124,6 +3161,15 @@ function OsekClassifierQuiz({
           מחייב עוסק מורשה.
         </p>
       )}
+
+      {/* Explicit disclosure, not just string-matching: the profession check
+          above is best-effort (Hebrew free text has many valid phrasings) —
+          the list itself is the reliable part, so always show it. */}
+      <p className="text-[11px] text-faint leading-relaxed">
+        הבדיקה כוללת רשימה חלקית של מקצועות שמחייבים עוסק מורשה ללא קשר
+        למחזור: {MANDATORY_MORSHE_PROFESSIONS_HE.join(", ")}. אם זה המקצוע
+        שלך, את/ה מחויב/ת בעוסק מורשה גם אם התוצאה למטה אומרת אחרת.
+      </p>
 
       <div>
         <FieldLabel htmlFor="osekQuizTurnover">
@@ -3161,7 +3207,11 @@ function OsekClassifierQuiz({
       </div>
 
       {result && (
-        <div className="rounded-xl border border-line bg-paper p-4 space-y-2">
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-line bg-paper p-4 space-y-2"
+        >
           <p className="text-[11px] font-bold uppercase tracking-wider text-brand-deep/70">
             התוצאה שלך
           </p>
@@ -3287,54 +3337,3 @@ function DocHeaderPreview({ s1, s3 }: { s1: Step1Data; s3: Step3Data }) {
   );
 }
 
-/**
- * FACTUAL note (no advice) shown when osek zeir is selected but real expenses
- * exceed the 30% auto-recognition. States the numbers only — does not tell the
- * user what to do. The advice framing was intentionally removed (product
- * decision: "facts, not advice"). The legal disclaimer lives elsewhere.
- *
- * Reference: מסלול עוסק זעיר (תיקון 265 לפקודת מס הכנסה) — ניכוי אוטומטי
- * של 30% מהמחזור כהוצאות במקום הוצאות בפועל. The 30% rate flows in via
- * `expenseRate` from the year constants (never hardcoded here).
- */
-function OsekZeirNote({
-  checked,
-  totalRevenue,
-  totalExpenses,
-  expenseRate,
-}: {
-  checked: boolean;
-  totalRevenue: number;
-  totalExpenses: number;
-  expenseRate: number;
-}) {
-  if (!checked) return null;
-  if (totalRevenue <= 0 || totalExpenses <= 0) return null;
-
-  const ratio = totalExpenses / totalRevenue;
-  if (ratio <= expenseRate) return null;
-  const recognized = Math.round(totalRevenue * expenseRate);
-  const notRecognized = Math.round(totalExpenses - recognized);
-
-  return (
-    <div className="mt-3 rounded-xl border border-due/40 bg-due-bg/60 p-3">
-      <div className="flex items-start gap-2">
-        <InfoIcon className="size-4 text-due shrink-0 mt-0.5" />
-        <div className="flex-1 text-xs leading-relaxed text-ink">
-          <p className="font-bold mb-1 text-due">
-            שים/י לב: במסלול עוסק זעיר מוכרים רק {Math.round(expenseRate * 100)}%
-            מההוצאות
-          </p>
-          <p>
-            במסלול זעיר מוכרים אוטומטית {recognized.toLocaleString("he-IL")} ₪
-            ({Math.round(expenseRate * 100)}% מהמחזור). ההוצאות שהזנת
-            ({totalExpenses.toLocaleString("he-IL")} ₪) גבוהות יותר — הן{" "}
-            <strong>{Math.round(ratio * 100)}%</strong> מהמחזור, כך
-            ש-<strong>{notRecognized.toLocaleString("he-IL")} ₪</strong> מעבר
-            לתקרת ה-{Math.round(expenseRate * 100)}% לא נכללים בחישוב המסלול.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}

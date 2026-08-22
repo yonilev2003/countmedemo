@@ -47,6 +47,42 @@ describe("classifyOsek — under ceiling, ordinary profession", () => {
   });
 });
 
+describe("classifyOsek — unanswered expense % must never bias toward zeir", () => {
+  it("does not suggest zeir when expensePercent is omitted (not the same as 0%)", () => {
+    const r = classifyOsek({
+      occupationText: "מעצבת גרפית",
+      projectedTurnover: 80_000,
+      // expensePercent omitted entirely
+      year: 2025,
+    });
+    expect(r.isOsekZeirSuggested).toBe(false);
+  });
+
+  it("omitted and explicit 0% must NOT produce the same suggestion", () => {
+    const omitted = classifyOsek({
+      occupationText: "מעצבת גרפית",
+      projectedTurnover: 80_000,
+      year: 2025,
+    });
+    const zero = classifyOsek({
+      occupationText: "מעצבת גרפית",
+      projectedTurnover: 80_000,
+      expensePercent: 0,
+      year: 2025,
+    });
+    expect(omitted.isOsekZeirSuggested).toBe(false);
+    expect(zero.isOsekZeirSuggested).toBe(true);
+  });
+});
+
+describe("isMandatoryOsekMorsheProfession — common formal abbreviations", () => {
+  it("recognizes עו״ד and רו״ח abbreviations, not just spelled-out names", () => {
+    expect(isMandatoryOsekMorsheProfession('עו"ד')).toBe(true);
+    expect(isMandatoryOsekMorsheProfession("עו״ד")).toBe(true);
+    expect(isMandatoryOsekMorsheProfession('רו"ח')).toBe(true);
+  });
+});
+
 describe("classifyOsek — over ceiling", () => {
   it("returns morshe with VAT duty, and never suggests zeir over the ceiling", () => {
     const r = classifyOsek({
