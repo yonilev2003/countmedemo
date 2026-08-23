@@ -232,6 +232,18 @@ export interface PersonaIncome {
   financialInstitutionsIncome?: number;   // for field 032
   taxWithheldAtSource?: number;           // for field 115
   monthlyBreakdown: { month: string; revenue: number; expenses: number }[];
+  /**
+   * True when the user explicitly deferred entering totalDeductibleExpenses
+   * during onboarding ("אעלה בהמשך" — Tomi's onboarding notes, 2026-08-22,
+   * item 6) rather than actually reporting 0. Distinguishes "genuinely no
+   * expenses yet" from "hasn't told us" — totalDeductibleExpenses itself
+   * stays 0 either way (the type has no null state), so any UI/calculation
+   * that treats a 0 as a real fact should check this flag first. Absent or
+   * false ⇒ the 0 (if any) is a real, user-entered figure. Never set for an
+   * effectively-זעיר persona — that 0-vs-30%-auto-computed case is a
+   * different mechanism (business.isOsekZeir), not a deferred answer.
+   */
+  expensesDataPending?: boolean;
 }
 
 /**

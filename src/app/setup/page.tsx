@@ -873,6 +873,18 @@ export default function SetupPage() {
   const [phoneMobile, setPhoneMobile] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+
+  // Residence/mailing address (Tomi's onboarding notes, 2026-08-22, item 8
+  // gap: contact.mailingAddress was never actually collected — buildPersona
+  // wrote it hardcoded empty). Optional (unlike business address) — this
+  // wasn't part of the original 7 asks, so it stays low-friction; its real
+  // value is feeding the "כתובת העסק זהה למגורים" shortcut on screen 4.
+  const [mailing, setMailing] = useState({ city: "", street: "", houseNumber: "" });
+
+  // Deferred-expenses escape hatch for non-effectively-זעיר users (item 6:
+  // "לכל אפשר לסמן אעלה בהמשך") — see isEffectivelyOsekZeir/resolvedTotalExpenses
+  // below and PersonaIncome.expensesDataPending's doc comment in persona.ts.
+  const [expensesDeferred, setExpensesDeferred] = useState(false);
   // "Neither of these" explainer-only taps in the osek-type section — wizard-local
   // UI state, never written to the persona (see osekTrackPicked above).
   const [otherOsekCase, setOtherOsekCase] = useState<"" | "company" | "not-yet">("");
@@ -976,12 +988,18 @@ export default function SetupPage() {
     });
     setPhoneMobile(saved.contact?.phoneMobile ?? "");
     setMarketingOptIn(saved.contact?.consentDigitalNotices ?? false);
+    setMailing({
+      city: saved.contact?.mailingAddress?.city ?? "",
+      street: saved.contact?.mailingAddress?.street ?? "",
+      houseNumber: saved.contact?.mailingAddress?.houseNumber ?? "",
+    });
     // Terms were already accepted on this persona's first save — re-running
     // the wizard to update data shouldn't force re-consent every time.
     setTermsAccepted(true);
     setS4({
       totalRevenue: String(saved.income.totalRevenue),
     });
+    setExpensesDeferred(!!saved.income.expensesDataPending);
     setS5({
       totalDeductibleExpenses: String(saved.income.totalDeductibleExpenses),
       bituachLeumiAnnualPaid: String(
@@ -1165,7 +1183,12 @@ export default function SetupPage() {
     // raw checkbox) — if turnover has since crossed the ceiling, the box may
     // still read "checked" but the track no longer applies, and the manual
     // input is back (see the matching screen-6 render gate).
-    if (!isEffectivelyOsekZeir) {
+    //
+    // expensesDeferred: "אעלה בהמשך" (item 6) — a non-זעיר user who doesn't
+    // have the figure yet can still finish onboarding; buildPersona persists
+    // 0 + expensesDataPending=true rather than blocking on a number they
+    // don't have.
+    if (!isEffectivelyOsekZeir && !expensesDeferred) {
       const ex = validateNumber(s5.totalDeductibleExpenses, "הוצאות");
       if (ex) e.totalDeductibleExpenses = ex;
     }
@@ -1326,9 +1349,9 @@ export default function SetupPage() {
       },
       contact: {
         mailingAddress: {
-          street: "",
-          houseNumber: "",
-          city: "",
+          street: mailing.street.trim(),
+          houseNumber: mailing.houseNumber.trim(),
+          city: mailing.city.trim(),
           zipCode: "",
         },
         residenceSameAsMailing: true,
@@ -1391,6 +1414,10 @@ export default function SetupPage() {
         invoiceCount: existing?.income?.invoices?.length ?? 0,
         expenseCount: existing?.income?.expenses?.length ?? 0,
         monthlyBreakdown: existing?.income?.monthlyBreakdown ?? [],
+        // See PersonaIncome.expensesDataPending's doc comment — never true
+        // for an effectively-זעיר persona (that 0 is a real auto-computed
+        // fact, not a deferred answer).
+        expensesDataPending: !isEffectivelyOsekZeir && expensesDeferred,
       },
       deductionsAndCredits: {
         kerenHishtalmut: {
@@ -1436,6 +1463,14 @@ export default function SetupPage() {
               ...existing.contact,
               phoneMobile: phoneMobile.trim(),
               consentDigitalNotices: marketingOptIn,
+              // The wizard now collects this too (item 8 gap fix) — same
+              // "wizard owns it, merge don't lose it" reasoning as phoneMobile.
+              mailingAddress: {
+                street: mailing.street.trim(),
+                houseNumber: mailing.houseNumber.trim(),
+                city: mailing.city.trim(),
+                zipCode: "",
+              },
             },
           }
         : {}),
@@ -1475,8 +1510,12 @@ export default function SetupPage() {
   // persists for an effectively-זעיר user (whose real expenses input is
   // hidden, so s5.totalDeductibleExpenses alone would be "" for a new user
   // or a stale number for a returning one).
+  // null when expenses are deferred too — showing a number here would imply
+  // "0 expenses, full profit" as a fact, which it isn't (item 6 defer flow).
   const previewNet =
-    s4.totalRevenue && (isEffectivelyOsekZeir || s5.totalDeductibleExpenses)
+    s4.totalRevenue &&
+    (isEffectivelyOsekZeir || s5.totalDeductibleExpenses) &&
+    !expensesDeferred
       ? Number(s4.totalRevenue) - resolvedTotalExpenses
       : null;
 
@@ -1771,6 +1810,42 @@ export default function SetupPage() {
                   <p className="mt-1 text-xs text-muted">
                     יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
                     למספר הזה.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <FieldLabel htmlFor="mailingCity">כתובת מגורים (אופציונלי)</FieldLabel>
+                  <SearchCombobox
+                    inputId="mailingCity"
+                    ariaLabel="יישוב"
+                    value={mailing.city}
+                    onInputChange={(next) => setMailing({ ...mailing, city: next })}
+                    onSelect={(opt) => setMailing({ ...mailing, city: opt.label })}
+                    options={searchCities(mailing.city).map((c) => ({ key: c, label: c }))}
+                    placeholder="יישוב"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      id="mailingStreet"
+                      type="text"
+                      aria-label="רחוב"
+                      value={mailing.street}
+                      onChange={(e) => setMailing({ ...mailing, street: e.target.value })}
+                      className={inputCls(false)}
+                      placeholder="רחוב"
+                    />
+                    <input
+                      id="mailingHouseNumber"
+                      type="text"
+                      aria-label="מספר בית"
+                      value={mailing.houseNumber}
+                      onChange={(e) => setMailing({ ...mailing, houseNumber: e.target.value })}
+                      className={inputCls(false)}
+                      placeholder="מספר בית"
+                    />
+                  </div>
+                  <p className="text-xs text-muted">
+                    אפשר להשתמש בה בהמשך כקיצור לכתובת העסק, אם היא זהה.
                   </p>
                 </div>
 
@@ -2348,6 +2423,22 @@ export default function SetupPage() {
                         השדה הזה הפך לחובה מאז שמילאת את הפרטים בפעם הקודמת.
                       </p>
                     )}
+                  {(mailing.city.trim() || mailing.street.trim() || mailing.houseNumber.trim()) && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setS3({
+                          ...s3,
+                          addressCity: mailing.city,
+                          addressStreet: mailing.street,
+                          addressHouseNumber: mailing.houseNumber,
+                        })
+                      }
+                      className="text-xs font-medium text-brand-deep underline hover:text-brand-navy"
+                    >
+                      זהה לכתובת המגורים שמילאת קודם — מלא/י אוטומטית
+                    </button>
+                  )}
                   <div>
                     <SearchCombobox
                       inputId="addressCity"
@@ -2526,6 +2617,20 @@ export default function SetupPage() {
                       אין צורך לאסוף קבלות או להזין סכום.
                     </p>
                   </div>
+                ) : expensesDeferred ? (
+                  <div>
+                    <FieldLabel>הוצאות מוכרות</FieldLabel>
+                    <div className="rounded-xl border border-due/40 bg-due-bg/40 px-4 py-3 text-sm text-ink">
+                      יוזן בהמשך — לא נכלל עדיין בחישוב ההכנסה החייבת.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpensesDeferred(false)}
+                      className="mt-2 text-xs font-medium text-brand-deep underline hover:text-brand-navy"
+                    >
+                      בעצם, יש לי את המספר עכשיו
+                    </button>
+                  </div>
                 ) : (
                   <div>
                     <FieldLabel htmlFor="expenses" required>
@@ -2576,6 +2681,13 @@ export default function SetupPage() {
                         </span>
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setExpensesDeferred(true)}
+                      className="mt-2 text-xs font-medium text-brand-deep underline hover:text-brand-navy"
+                    >
+                      לא יודע/ת כרגע? אעלה בהמשך
+                    </button>
                   </div>
                 )}
 
