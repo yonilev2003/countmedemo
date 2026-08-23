@@ -52,6 +52,33 @@ updated: 2026-06-19
    של שלב 1 (חייב להיות אותו פרויקט). ב-Google Cloud → Credentials → OAuth client →
    **Authorized redirect URI** = `https://hbsgzelipeawkvtcazdr.supabase.co/auth/v1/callback`.
 
+## ⚠️ פער חדש שנחשף 23/08 — Preview deployments לא עובדים ב-OAuth בכלל
+
+**מה קרה:** `/setup` הוגן מאחורי אימות (23/08 — ראו `memory/decisions.md`). QA (Claude in
+Chrome) שניסה להתחבר דרך Google **מתוך כתובת ה-preview** של branch
+(`countmedemo-git-claude-tomi-onboar-76de30-yonilev2003s-projects.vercel.app`) גילה: לחיצה על
+"התחברות עם Google" **לא חוזרת ל-preview** — הדפדפן נוחת בפועל על `countmedemo-eight.vercel.app`
+(ה-**production**), וגלישה חוזרת ל-`/setup` ב-preview עצמה, גם אחרי השלמת ה-OAuth, ממשיכה
+להפנות ל-`/login` — כלומר **אין דרך להתחבר ולהשתמש באשף על שום preview deployment היום**.
+
+**הסיבה (לא באג בקוד — הקוד תקין, ראו למעלה "למה זה לא בקוד"):** רשימת ה-Redirect URLs בשלב 2
+למעלה כוללת **רק** `countmedemo-eight.vercel.app` ו-`localhost:3000`. Supabase דוחה/מתעלם
+מ-`redirectTo` שלא ברשימה הזו ונופל בחזרה ל-Site URL (production) — בדיוק ההתנהגות שנצפתה.
+זה היה קיים תמיד, פשוט לא נחשף לפני 23/08 כי אף אחד לא ניסה Google מ-preview לפני ש-/setup
+דרש אימות.
+
+**התיקון (פעולה ידנית של יוני ב-Supabase Dashboard, לא בקוד):**
+
+באותו מסך "Authentication → URL Configuration → Redirect URLs" (שלב 2 למעלה), הוסף אחת מהשתיים:
+
+- **מינימלי, לענף הזה בלבד:**
+  `https://countmedemo-git-claude-tomi-onboar-76de30-yonilev2003s-projects.vercel.app/auth/callback`
+- **עמיד יותר, לכל preview עתידי בפרויקט (Supabase תומך ב-wildcard ב-Redirect URLs):**
+  `https://countmedemo-*-yonilev2003s-projects.vercel.app/auth/callback`
+
+מומלץ הפתרון השני — כל branch עתידי יעבוד בלי לחזור לכאן שוב. **עד שהשדה הזה מתעדכן, כל בדיקת
+OAuth חייבת לרוץ מול `countmedemo-eight.vercel.app` (production) בלבד**, לא מול preview.
+
 ## ⛔ שלב 3 — להעלים את ה-`supabase.co` הקטן (דחוי, לא חינמי)
 
 - מתחת ל-"להמשיך אל CountMe" עדיין יופיע בקטן `akfgudspliyymiysajoh.supabase.co`. כדי להסיר אותו
