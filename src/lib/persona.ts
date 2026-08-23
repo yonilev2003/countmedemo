@@ -178,6 +178,18 @@ export interface PersonaBusiness {
   /** "איך הפקת מסמכים עד עכשיו?" (onboarding v5 היכרות) — drives the
    *  numbering-continuity sub-flow when the answer implies prior documents. */
   priorDocumentMethod?: "none" | "manual-book" | "other-digital" | "accountant";
+  /** Storage object path (bucket "business-assets", see supabase/migrations)
+   *  for the business logo — shown on issued documents instead of the
+   *  trade-name monogram when present. Set via /invoices/settings. */
+  logoPath?: string;
+  /** Same storage/shape as logoPath — an optional signature image shown on
+   *  issued documents. Not a legal e-signature requirement in Israel, purely
+   *  a personal-touch option (Tomi's document-settings request, 2026-08-23). */
+  signaturePath?: string;
+  /** Fixed free-text note appended to every issued document (e.g. payment
+   *  terms, a thank-you line) — set once in /invoices/settings, not per
+   *  document. Absent/empty ⇒ no footer note shown. */
+  documentFooterNote?: string;
 }
 
 export interface PersonaBank {

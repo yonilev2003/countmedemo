@@ -11,7 +11,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
 import { EitanFab } from "@/components/agent/eitan-fab";
-import { SearchIcon, XIcon, PlusIcon, ReceiptIcon, ArrowLeftIcon } from "@/components/brand/icons";
+import { SearchIcon, XIcon, PlusIcon, ReceiptIcon, ArrowLeftIcon, SettingsIcon } from "@/components/brand/icons";
 
 const MONTH_LABELS = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
 
@@ -95,6 +95,10 @@ export default function InvoicesPage() {
         pageLabel="חשבוניות"
         actions={
           <>
+            <Link href="/invoices/settings" className={btn("ghost", "sm")}>
+              <SettingsIcon className="size-3.5" />
+              הגדרות מסמכים
+            </Link>
             <Link href="/receivables" className={btn("secondary", "sm")}>
               מי לא שילם לי
             </Link>

@@ -10,6 +10,7 @@ import {
   requiresAllocationNumber,
   allocationNumberThreshold,
 } from "@/lib/invoice-generator/index";
+import { getBusinessAssetSignedUrl } from "@/lib/documents/asset-storage";
 import { ils } from "@/lib/utils";
 import { getSiteOrigin } from "@/lib/site";
 import { LogoMark } from "@/components/brand/logo";
@@ -22,6 +23,8 @@ export default function InvoicePrintPage() {
   const router = useRouter();
   const { persona } = useRequiredPersona();
   const [invoice, setInvoice] = useState<InvoiceLine | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!persona) return;
@@ -31,6 +34,25 @@ export default function InvoicePrintPage() {
     if (!inv) { router.replace("/invoices"); return; }
     setInvoice(inv);
   }, [persona, params.invoiceNumber, router]);
+
+  // Signed URLs for the optional logo/signature (set in /invoices/settings) —
+  // fetched client-side same as the receipt-image pattern elsewhere; absent
+  // ⇒ null, falls back to the existing monogram / text-only footer.
+  useEffect(() => {
+    let cancelled = false;
+    const logoPath = persona?.business.logoPath;
+    if (!logoPath) { setLogoUrl(null); return; }
+    getBusinessAssetSignedUrl(logoPath).then((url) => { if (!cancelled) setLogoUrl(url); });
+    return () => { cancelled = true; };
+  }, [persona?.business.logoPath]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const signaturePath = persona?.business.signaturePath;
+    if (!signaturePath) { setSignatureUrl(null); return; }
+    getBusinessAssetSignedUrl(signaturePath).then((url) => { if (!cancelled) setSignatureUrl(url); });
+    return () => { cancelled = true; };
+  }, [persona?.business.signaturePath]);
 
   if (!persona || !invoice) return (
     <div className="min-h-screen bg-cream flex items-center justify-center">
@@ -167,9 +189,18 @@ export default function InvoicePrintPage() {
           <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.1fr]">
             {/* Issuer column */}
             <div className="px-8 py-10 flex flex-col items-center text-center">
-              <div className="size-24 rounded-full bg-brand-navy flex items-center justify-center mb-4">
-                <span className="font-display text-4xl font-extrabold text-brand leading-none">{monogram}</span>
-              </div>
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
+                <img
+                  src={logoUrl}
+                  alt={persona.business.tradeName}
+                  className="size-24 rounded-full border border-line object-contain bg-paper mb-4"
+                />
+              ) : (
+                <div className="size-24 rounded-full bg-brand-navy flex items-center justify-center mb-4">
+                  <span className="font-display text-4xl font-extrabold text-brand leading-none">{monogram}</span>
+                </div>
+              )}
               <p className="text-[17px] font-extrabold text-brand-navy leading-snug">{persona.business.tradeName}</p>
               <p className="text-[13px] text-muted mt-2.5 leading-[1.7]">
                 {isPatur ? "עוסק פטור" : "עוסק מורשה"} {persona.business.osekFileNumber}
@@ -318,14 +349,32 @@ export default function InvoicePrintPage() {
 
           </div>
 
+          {/* Fixed footer note (set in /invoices/settings) — part of the
+              printable document, not just an on-screen aside. */}
+          {persona.business.documentFooterNote && (
+            <div className="border-t border-line px-8 py-4 text-[13px] text-ink leading-relaxed whitespace-pre-wrap">
+              {persona.business.documentFooterNote}
+            </div>
+          )}
+
           {/* Footer */}
           <div className="border-t border-line px-8 py-[22px] flex items-center justify-between gap-4">
-            <div>
-              <p className="text-base font-extrabold text-brand-navy">חתימה דיגיטלית מאובטחת</p>
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-faint">
-                <span>מסמך ממוחשב הופק על ידי</span>
-                <LogoMark size={12} className="text-brand" />
-                <span className="font-extrabold text-teal-600">CountMe</span>
+            <div className="flex items-center gap-3">
+              {signatureUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- private signed URL, not an optimizable static asset
+                <img
+                  src={signatureUrl}
+                  alt="חתימה"
+                  className="h-10 w-auto object-contain"
+                />
+              )}
+              <div>
+                <p className="text-base font-extrabold text-brand-navy">חתימה דיגיטלית מאובטחת</p>
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-faint">
+                  <span>מסמך ממוחשב הופק על ידי</span>
+                  <LogoMark size={12} className="text-brand" />
+                  <span className="font-extrabold text-teal-600">CountMe</span>
+                </div>
               </div>
             </div>
             <p className="text-[11.5px] text-faint tabular-nums">
