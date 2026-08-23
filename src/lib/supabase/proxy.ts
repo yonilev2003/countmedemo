@@ -21,7 +21,11 @@ import { isAuthGatingEnabled } from "@/lib/security/auth-gating";
 const PROTECTED_PREFIXES = [
   "/home",
   "/demo",
-  "/setup/assets",
+  // Gates the whole /setup tree (was "/setup/assets" only — /setup itself was
+  // deliberately open so a visitor could try the wizard before committing to
+  // auth; Yoni reversed that 23/08 for user-management reasons — every real
+  // registration must go through Google/email first, not just every SAVE).
+  "/setup",
   "/onboarding",
   "/business-expenses",
   "/expenses",
