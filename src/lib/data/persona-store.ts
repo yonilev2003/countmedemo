@@ -12,7 +12,7 @@ import {
   consumeExplicitContinueIntent,
 } from "@/lib/setup-storage";
 import {
-  fetchPersona,
+  fetchPersonaSafe,
   upsertPersona,
   getCurrentUserId,
   checkRemotePersonaExists,
@@ -399,8 +399,22 @@ async function syncPersonaFromDbUncached(): Promise<Persona | null> {
   // Signed out (anonymous/demo): keep whatever local cache exists, untouched.
   if (!currentUserId) return local;
 
-  // Pass the resolved id through — skips fetchPersona's own auth round-trip.
-  const remote = await fetchPersona(currentUserId);
+  // SECURITY GUARD (2026-08-20 fixed this on the persistPersona/
+  // checkAndAdoptUnclaimed write path; 25/08 QA audit found this sibling
+  // read-reconcile path had never gotten the same fix — see fetchPersonaSafe's
+  // own doc comment). A failed existence check here must be handled exactly
+  // like checkAndAdoptUnclaimed treats it: NOT "safe to proceed as if absent".
+  // Bail out read-only (no ownership stamp change, no write) rather than let
+  // hasRemotePersona:false reach decidePersonaOwnership on an unknown result
+  // — that would let a transient network/RLS blip during THIS reconcile (which
+  // runs automatically on every persona-route navigation, including right
+  // after the OAuth redirect lands with a freshly-authenticated user, an
+  // unstamped local cache, and a pending continue-intent all at once) fall
+  // through to "adopt-unclaimed" or "keep-own" and blindly upsert. The next
+  // reconcile (next navigation) gets another chance to resolve this properly.
+  const remoteResult = await fetchPersonaSafe(currentUserId);
+  if (remoteResult.status === "unknown") return local;
+  const remote = remoteResult.status === "exists" ? remoteResult.persona : null;
 
   const action = decidePersonaOwnership({
     currentUserId,

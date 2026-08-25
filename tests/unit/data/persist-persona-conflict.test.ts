@@ -14,13 +14,18 @@
  *
  * checkAndAdoptUnclaimed() (persona-store.ts) closes that gap with an
  * existence check via checkRemotePersonaExists() — a THREE-state result
- * ("exists" | "absent" | "unknown"), not the two-state null-or-object shape
- * fetchPersona() uses elsewhere. The distinction matters: a transient
- * network/RLS error during the check ("unknown") must be treated the SAME
- * as "exists" (refuse to write) — treating it as "absent" would silently
- * reopen the exact overwrite gap this guard exists to close. This suite
- * covers all three states plus the retry path, which must re-run the check
- * rather than blindly upserting on a retry.
+ * ("exists" | "absent" | "unknown"), backed by fetchPersonaSafe()
+ * (persona-repository.ts). The distinction matters: a transient network/RLS
+ * error during the check ("unknown") must be treated the SAME as "exists"
+ * (refuse to write) — treating it as "absent" would silently reopen the
+ * exact overwrite gap this guard exists to close. This suite covers all
+ * three states plus the retry path, which must re-run the check rather than
+ * blindly upserting on a retry.
+ *
+ * This only covers the WRITE path (persistPersona). The sibling
+ * read-reconcile path (syncPersonaFromDb) has its own equivalent suite —
+ * see sync-persona-from-db-conflict.test.ts — added 25/08 after a QA audit
+ * found that path had never gotten this same fix.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -37,7 +42,6 @@ let existsCheckCalls = 0;
 
 vi.mock("@/lib/data/persona-repository", () => ({
   getCurrentUserId: async () => mockCurrentUserId,
-  fetchPersona: async (_userId?: string) => null,
   checkRemotePersonaExists: async (_userId: string) => {
     existsCheckCalls++;
     return mockExistsResult;

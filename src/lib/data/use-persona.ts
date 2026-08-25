@@ -20,9 +20,15 @@ export type PersonaSource = "loading" | "db" | "local" | "empty";
 export function usePersona() {
   const [persona, setPersona] = useState<Persona | null>(null);
   const [source, setSource] = useState<PersonaSource>("loading");
+  // QA audit 25/08, item 8 — see the matching flag in use-required-persona.ts
+  // for the full rationale: true only when the optimistic paint below turned
+  // out to disagree with the authoritative reconcile.
+  const [correctedFromOptimisticPaint, setCorrectedFromOptimisticPaint] =
+    useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let optimisticSnapshot: Persona | null = null;
     const local = loadLocal();
     const localOwner = getPersonaOwner();
     // Instant cache paint for an anonymous / not-yet-claimed cache (no owner
@@ -31,6 +37,7 @@ export function usePersona() {
     if (local && !localOwner) {
       setPersona(local);
       setSource("local");
+      optimisticSnapshot = local;
     } else if (
       local &&
       localOwner &&
@@ -47,6 +54,7 @@ export function usePersona() {
       // never flash on a shared device before reconcile confirms ownership.
       setPersona(local);
       setSource("local");
+      optimisticSnapshot = local;
     }
     (async () => {
       const resolved = await syncPersonaFromDb();
@@ -55,6 +63,13 @@ export function usePersona() {
       // syncPersonaFromDb may have just dropped as a foreign-owned cache.
       setPersona(resolved);
       setSource(resolved ? "db" : "empty");
+      if (
+        optimisticSnapshot &&
+        resolved &&
+        JSON.stringify(optimisticSnapshot) !== JSON.stringify(resolved)
+      ) {
+        setCorrectedFromOptimisticPaint(true);
+      }
     })();
     return () => {
       cancelled = true;
@@ -66,5 +81,11 @@ export function usePersona() {
     persistPersona(next);
   }, []);
 
-  return { persona, save, source, loading: source === "loading" };
+  return {
+    persona,
+    save,
+    source,
+    loading: source === "loading",
+    correctedFromOptimisticPaint,
+  };
 }

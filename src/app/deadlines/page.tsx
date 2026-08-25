@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { StatusBadge, statusStripe, type Status } from "@/components/brand/status";
 import {
@@ -139,13 +138,13 @@ export default function DeadlinesPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-white border-b border-line">
-        <div className="mx-auto flex max-w-screen-lg items-center justify-between px-6 py-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo size={24} />
-            <span className="text-base font-semibold text-muted">· לוח מועדים</span>
-          </Link>
-          <div className="flex items-center gap-2">
+      {/* QA audit 25/08, item 6 bonus finding: this hand-rolled header (no
+          flex-wrap, fixed px-6) pushed the sign-out button off-screen at
+          390px. Migrated to AppHeader, which already wraps on narrow phones. */}
+      <AppHeader
+        pageLabel="לוח מועדים"
+        actions={
+          <>
             <Link href="/alerts" className={btn("secondary", "sm")}>
               <BellIcon className="size-4" /> התראות
             </Link>
@@ -153,12 +152,9 @@ export default function DeadlinesPage() {
               דשבורד
               <ArrowLeftIcon className="size-4" />
             </Link>
-            <div className="border-s border-line ps-2">
-              <SignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
           (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since

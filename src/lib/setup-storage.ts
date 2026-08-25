@@ -65,6 +65,37 @@ export function consumePersonaContinueIntent(): boolean {
 }
 
 /**
+ * UI-only signal, deliberately SEPARATE from CONTINUE_INTENT_KEY above: "the
+ * user just finished /setup on the already-signed-in path — the next
+ * persona-consuming page should show an explicit save confirmation once
+ * saveStatus settles to 'saved'." Not read by decidePersonaOwnership or
+ * anything ownership-related; purely gates a toast (QA audit 25/08, item 3 —
+ * DoneScreen's own inline "נשמר בענן" never carried over to /dashboard, so a
+ * user landing there had no visible confirmation at all).
+ *
+ * Only needed for the already-signed-in branch of DoneScreen.handleContinue
+ * (a same-tab client-side router.push, so plain sessionStorage is enough —
+ * no OAuth hop, no query-param carrier needed). The not-yet-signed-in branch
+ * doesn't need this: hasPendingContinueIntent() already reliably signals
+ * "just came from onboarding" on the far side of that redirect.
+ */
+const SHOW_SAVE_CONFIRMATION_KEY = "countme_show_save_confirmation";
+
+/** Call right before persisting on DoneScreen's already-signed-in path. */
+export function markShowSaveConfirmation(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(SHOW_SAVE_CONFIRMATION_KEY, "1");
+}
+
+/** One-shot read: returns whether the flag was set, and clears it either way. */
+export function consumeShowSaveConfirmation(): boolean {
+  if (typeof window === "undefined") return false;
+  const had = sessionStorage.getItem(SHOW_SAVE_CONFIRMATION_KEY) === "1";
+  if (had) sessionStorage.removeItem(SHOW_SAVE_CONFIRMATION_KEY);
+  return had;
+}
+
+/**
  * Query-param carrier for the SAME one-shot "continue with this local
  * persona" signal, threaded through the OAuth redirect chain instead of
  * sessionStorage: DoneScreen's single finish CTA → /login?next=..&intent=..

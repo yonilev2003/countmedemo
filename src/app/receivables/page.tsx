@@ -23,16 +23,14 @@ import {
   ReminderTone,
 } from "@/lib/receivables/summary";
 import { trackClient } from "@/lib/analytics/track-client";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
 import { StatusBadge } from "@/components/brand/status";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { EitanFab } from "@/components/agent/eitan-fab";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
-  SettingsIcon,
   WalletIcon,
 } from "@/components/brand/icons";
 
@@ -140,33 +138,25 @@ export default function ReceivablesPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Logo size={24} />
-            <span className="hidden text-base font-semibold text-muted sm:inline">
-              · מי לא שילם לי
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
+      {/* QA audit 25/08, item 6 bonus finding: this hand-rolled header (no
+          flex-wrap, fixed px-4/sm:px-6 with 4 packed actions) pushed the
+          sign-out button off-screen at 390px (scrollWidth up to 576px vs a
+          385px viewport). Migrated to AppHeader, which already wraps on
+          narrow phones — same fix already applied to /invoices for the
+          identical bug (journey scan round 2). */}
+      <AppHeader
+        pageLabel="מי לא שילם לי"
+        actions={
+          <>
             <Link href="/invoices" className={btn("secondary", "sm")}>
               כל המסמכים
             </Link>
             <Link href="/invoices/new?type=business-account" className={btn("primary", "sm")}>
               חשבון עסקה חדש
             </Link>
-            {/* 2026-08-19 global-nav sweep (FP-22): this header is hand-rolled,
-                not AppHeader, so it needs its own "עדכן נתונים" link. */}
-            <Link href="/setup" className={btn("ghost", "sm")}>
-              <SettingsIcon className="size-3.5" />
-              עדכן נתונים
-            </Link>
-            <div className="border-s border-line ps-2">
-              <SignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
           (2026-08-19 global-nav sweep, FP-23); lg:pb-10 resets it back since

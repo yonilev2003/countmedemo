@@ -7,10 +7,16 @@ import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
 import {
   loadPersona,
   markPersonaContinueIntent,
+  markShowSaveConfirmation,
   CONTINUE_INTENT_QUERY_PARAM,
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
-import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
+import {
+  persistPersona,
+  retryPersonaSave,
+  getCurrentUserId,
+  syncPersonaFromDb,
+} from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
@@ -425,7 +431,12 @@ function DoneScreen({
       // Already signed in on this device (e.g. a returning session) —
       // persist right now, so the user gets an honest confirmation (or a
       // retryable error) before leaving, instead of hoping a later reconcile
-      // silently picks it up.
+      // silently picks it up. Also flag /dashboard to show its own
+      // confirmation once it lands there (QA audit 25/08, item 3): this
+      // screen's own "נשמר בענן" state below never carries over past the
+      // router.push, so without this the user has no visible confirmation
+      // at all once they reach the dashboard.
+      markShowSaveConfirmation();
       const outcome = await persistPersona(persona);
       if (outcome === "error" || outcome === "conflict") {
         setPending(false);
@@ -541,7 +552,9 @@ function DoneScreen({
           >
             <Logo size={32} />
           </Link>
-          {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
+          {isSignedIn && (
+              <SignOutButton variant="ghost" size="sm" className="min-h-11" />
+            )}
         </div>
       </header>
 
@@ -743,7 +756,11 @@ function DoneScreen({
                       לא כאן.
                     </p>
                     <div className="mt-2 flex items-center gap-3">
-                      <SignOutButton variant="secondary" size="sm" />
+                      <SignOutButton
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11"
+                      />
                       <button
                         type="button"
                         onClick={() => setSaveState("idle")}
@@ -894,8 +911,31 @@ export default function SetupPage() {
   const [showValidation, setShowValidation] = useState(false);
 
   useEffect(() => {
-    const saved = loadPersona();
-    if (!saved) return;
+    // QA audit 25/08, item 5 (root cause distinct from the reported repro —
+    // see plan): this used to be a synchronous, raw loadPersona() read
+    // (localStorage), unlike every other protected page, which is why /setup
+    // says in its own comments elsewhere it "has no reactive session hook."
+    // On a new device / cleared cache / just a slow first paint, that
+    // synchronous read can be empty or stale at the exact moment this
+    // one-shot effect runs — silently skipping the ENTIRE restore below, not
+    // just the year. syncPersonaFromDb() is the same DB-authoritative,
+    // already-hardened function every other protected page awaits via
+    // useRequiredPersona()/usePersona() (and the one PersonaHydrator itself
+    // already kicked off for this route, deduped via its own inFlight
+    // promise — so this rarely costs an extra round trip). For a signed-out
+    // visitor it returns the local cache untouched, same as before.
+    let cancelled = false;
+    (async () => {
+      const saved = await syncPersonaFromDb();
+      if (cancelled || !saved) return;
+      applyReturningUserData(saved);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function applyReturningUserData(saved: Persona) {
     // Returning user already has a persona — the fast-track card just stays
     // collapsed (no separate upload screen to skip anymore), and the beta
     // notice is suppressed.
@@ -979,7 +1019,7 @@ export default function SetupPage() {
       branchCode: saved.bank.branchCode,
       accountNumber: saved.bank.accountNumber,
     });
-  }, []);
+  }
 
   function validateStep1(): Errors {
     const e: Errors = {};
@@ -1483,7 +1523,9 @@ export default function SetupPage() {
                 wizard). A first-time visitor isn't signed in yet at this
                 point (that happens in DoneScreen's handleContinue), so
                 nothing renders here for them. */}
-            {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
+            {isSignedIn && (
+              <SignOutButton variant="ghost" size="sm" className="min-h-11" />
+            )}
           </div>
         </div>
       </header>
@@ -2710,12 +2752,17 @@ export default function SetupPage() {
 
             {/* Bottom nav — the fast-track card (screen 1) has its own
                 internal "skip"/"continue" button that only collapses it. */}
+            {/* min-h-11 (44px): QA audit 25/08, item 16 — measured 32px tall
+                (btn("*","sm")'s py-1.5), under the 44px WCAG touch-target
+                minimum, on the wizard's own primary action across all 7
+                steps. Scoped to just these two buttons rather than raising
+                every btn(...,"sm") site app-wide. */}
             <div className="mt-8 flex items-center justify-between gap-3">
               {screen > 1 ? (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className={btn("secondary", "sm")}
+                  className={btn("secondary", "sm", "min-h-11")}
                 >
                   <ArrowRightIcon className="size-4" />
                   חזרה
@@ -2728,7 +2775,7 @@ export default function SetupPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className={btn("primary", "sm")}
+                  className={btn("primary", "sm", "min-h-11")}
                 >
                   הבא
                   <ArrowLeftIcon className="size-4" />
@@ -2781,7 +2828,9 @@ function TapChoiceGroup<T extends string>({
               onClick={() => onChange(opt.key)}
               aria-pressed={active}
               className={cn(
-                "rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
+                // min-h-11 (44px): QA audit 25/08, item 16 — measured 34px
+                // tall (py-2 + text), under the WCAG touch-target minimum.
+                "min-h-11 rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
                 active
                   ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
                   : "border-line bg-paper hover:bg-cream text-ink",

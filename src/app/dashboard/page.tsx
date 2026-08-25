@@ -13,10 +13,14 @@
  * /dashboard/pro ("מצב מורחב").
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Persona } from "@/lib/persona";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
+import {
+  hasPendingContinueIntent,
+  consumeShowSaveConfirmation,
+} from "@/lib/setup-storage";
 import { YearSwitch } from "@/components/dashboard/year-switch";
 import { allowedDocTypesFor } from "@/lib/invoice-generator";
 import {
@@ -51,21 +55,34 @@ const MONTH_NAMES = [
 ];
 
 export default function DashboardPage() {
-  const { persona, saveStatus, retrySave } = useRequiredPersona();
+  const { persona, saveStatus, retrySave, correctedFromOptimisticPaint } =
+    useRequiredPersona();
 
-  // Transient "נשמר בענן" toast: fires on the transition INTO "saved" (the
-  // post-OAuth adoption lands here mid-mount), never on a status that was
-  // already "saved" when the page mounted, and clears itself after a beat.
+  // Transient "נשמר בענן" toast, gated by a one-shot "just finished
+  // onboarding" signal (QA audit 25/08, item 3 fix) rather than catching a
+  // live saveStatus transition — that edge-detection approach silently never
+  // fired for the already-signed-in DoneScreen branch, where persistPersona()
+  // is awaited BEFORE the router.push here, so saveStatus is already "saved"
+  // on this component's very first render (no transition left to observe).
+  // A level check ("saved" + the flag) covers that case; it still also
+  // covers the OAuth-redirect branch, where the adoption upsert is genuinely
+  // still in flight when this page mounts (hasPendingContinueIntent() is the
+  // non-consuming peek useRequiredPersona itself uses for the same reason —
+  // safe to read here too, before the async reconcile consumes it).
   const [showSaved, setShowSaved] = useState(false);
-  const prevSaveStatus = useRef(saveStatus);
+  const [awaitingSaveConfirmation, setAwaitingSaveConfirmation] =
+    useState(false);
   useEffect(() => {
-    if (prevSaveStatus.current === "saving" && saveStatus === "saved") {
-      setShowSaved(true);
-      const t = window.setTimeout(() => setShowSaved(false), 4000);
-      return () => window.clearTimeout(t);
-    }
-    prevSaveStatus.current = saveStatus;
-  }, [saveStatus]);
+    setAwaitingSaveConfirmation(
+      hasPendingContinueIntent() || consumeShowSaveConfirmation(),
+    );
+  }, []);
+  useEffect(() => {
+    if (!awaitingSaveConfirmation || saveStatus !== "saved") return;
+    setShowSaved(true);
+    const t = window.setTimeout(() => setShowSaved(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [awaitingSaveConfirmation, saveStatus]);
 
   useEffect(() => {
     trackClient("dashboard_viewed");
@@ -222,17 +239,33 @@ export default function DashboardPage() {
           QuickActionsBar bottom nav (FP-12), which otherwise cover the last
           action tile on phone heights (journey scan). */}
       <main className="mx-auto w-full max-w-screen-md px-4 pb-28 pt-6 sm:px-6">
-        {/* Cloud-save outcome of the post-OAuth persona adoption (beta-feedback
-            task #3, 18/08). DoneScreen shows its own inline confirmation for
-            the already-signed-in path; this covers the OAuth-redirect path,
-            which lands here without ever revisiting DoneScreen. Success is a
-            transient toast (transition-triggered, auto-dismissed) because the
-            shared status also flips on routine background saves (year switch,
-            document edits) — only errors stay pinned until resolved. */}
+        {/* Cloud-save outcome of the post-onboarding persona adoption
+            (beta-feedback task #3, 18/08; re-fixed 25/08 QA audit item 3).
+            DoneScreen shows its own inline confirmation too, but it doesn't
+            carry over the router.push — this is what the user actually sees
+            once they land here, for BOTH the already-signed-in branch (flag
+            set explicitly, see markShowSaveConfirmation) and the OAuth-
+            redirect branch (hasPendingContinueIntent()). Gated by that
+            one-shot signal, not just saveStatus==="saved", because the
+            shared status also flips on routine background saves (year
+            switch, document edits) — only errors stay pinned until
+            resolved; success is a transient, one-time toast. */}
         {showSaved && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-success/30 bg-success-light/60 px-3.5 py-2.5 text-xs font-medium text-success">
             <CheckCircleIcon className="size-4 shrink-0" />
             הנתונים שלך נשמרו בענן — אפשר להמשיך מכל מכשיר.
+          </div>
+        )}
+        {/* QA audit 25/08, item 8: the persona shown here can start from an
+            optimistic local guess (see useRequiredPersona) that turns out to
+            disagree with the account that just signed in — most often on a
+            shared device with leftover local data. It always self-corrects,
+            but silently before this fix, which read as "the numbers changed
+            for no reason." This makes the correction explicit instead. */}
+        {correctedFromOptimisticPaint && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-brand-deep/30 bg-teal-100/40 px-3.5 py-2.5 text-xs font-medium text-brand-deep">
+            <InfoIcon className="size-4 shrink-0" />
+            עדכנו את הנתונים המוצגים כך שיתאימו לחשבון המחובר.
           </div>
         )}
         {saveStatus === "error" && (

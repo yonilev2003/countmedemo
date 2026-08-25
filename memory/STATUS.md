@@ -5,7 +5,49 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-08-22 (Sonnet 5) · ענף פעיל: `main` · החלטות: [[decisions]]
+> עודכן: 2026-08-25 (Sonnet 5) · ענף פעיל: `claude/onboarding-performance-audit-fdt6qd` · החלטות: [[decisions]]
+
+## ⭐ 25/08 — ביקורת QA מלאה ל-onboarding (Claude-in-Chrome, 21 פריטים) + 6 תיקונים
+
+**הקשר:** מי שהיה אמור לבדוק את המשוב האחרון על ה-onboarding התעכב — יוני ביקש פרומפט
+ביקורת עצמאי ל-Claude in Chrome במקום זאת. הרצה חיה מול production (חשבונות גוגל אמיתיים,
+בדיקת network requests + localStorage בפועל, לא רק תצפית) החזירה 21/21 פריטים מתועדים:
+2 כשלים ודאיים (3, 5), ממצא קריטי-אך-מנומק (8 — לא data-loss בפועל, רק תצוגה חולפת), וממצא
+בונוס לא-מתוכנן (כפתור התנתקות מחוץ למסך ב-3 עמודים). דוח מלא: `countme_qa_audit_report.html`.
+
+**תכנון מוקדם (plan mode, לפני קבלת הדוח המלא):** 3 סוכני-מחקר מקבילים מיפו את הקוד הרלוונטי
+מראש (`persona-store.ts`, `persona-repository.ts`, `use-required-persona.ts`, `year-switch.tsx`)
+כדי שהתיקון יתחיל מיד כשהדוח ינחת — כשהוא הגיע, שתי מהשערות-השורש המקוריות התבררו כלא-מדויקות
+מול ה-repro בפועל (ראה [[decisions]] לפירוט), ותוקננו לפני מימוש.
+
+**6 תיקונים, כולם ממומשים ואומתו (tsc נקי · 406/406 unit · build ירוק):**
+1. **פריט 3 (חיווי שמירה):** `usePersonaSaveStatus()` היה בנוי ולא מחובר — הבאנר ב-DoneScreen
+   לא שרד את ה-`router.push` ל-/dashboard. תוקן בשני מסלולים (כבר-מחובר + OAuth-redirect) עם
+   דגל one-shot ייעודי (`markShowSaveConfirmation`) שלא תלוי בתזמון-מרוץ.
+2. **פריט 5 (שנת מס באפמרית):** `persist={false}` ב-/dashboard הוא **החלטת-מוצר נעולה** (FP-10)
+   — לא באג. יוני הכריע (AskUserQuestion): להבהיר בממשק ("צופה בשנת X — זמני"), לא לשנות חוזה.
+3. **פריט 8 (מכשיר משותף):** אומת ע"י הדוח שנתונים **אף פעם לא נדרסים בפועל** (רק GET, לא
+   POST/PATCH) — זו תקלת-תצוגה (optimistic-paint gap ב-`useRequiredPersona`/`usePersona`,
+   task #4 מ-18/08), לא כשל-אבטחה. נוסף באנר-תיקון מפורש כשהניחוש-האופטימי מתגלה כשגוי.
+   **בנוסף (הגנה-נוספת, לא מה שהדוח תפס בפועל):** `syncPersonaFromDbUncached` היה מסלול-כתיבה
+   שני, לא-מוגן, שמשחזר בדיוק את פרצת-הדריסה שתוקנה 20/08 בנתיב אחר — אוחד ל-`fetchPersonaSafe`
+   three-state יחיד, fail-closed על "unknown". 5 טסטים חדשים (`sync-persona-from-db-conflict.test.ts`).
+4. **בונוס (כפתור התנתקות מחוץ למסך):** `/receivables`, `/deadlines`, `/business-expenses` היו
+   headers מגולגלים-ידנית בלי flex-wrap — הועברו ל-`AppHeader` המשותף (אותו תיקון שכבר בוצע
+   ל-/invoices בסבב קודם לאותו באג בדיוק).
+5. **פריט 16 (touch targets):** `min-h-11` נקודתי על כפתורי הבא/חזרה/התנתקות/צ'יפים באשף —
+   לא שינוי גלובלי ל-`btn(...,"sm")` (היה משפיע על כל האפליקציה).
+6. **פריט 15 (ניווט מקלדת בעיסוק):** `OccupationPicker` — נוסף virtual-focus index מלא
+   (חץ-למעלה/למטה/Enter/Escape + `aria-activedescendant`) — מבנה ה-ARIA כבר היה תקין, רק
+   ה-JS שהיה אמור להזיז אותו היה חסר.
+
+**שאלה נוספת שנרשמה לתשומת-לב, לא תוקנה עדיין:** באג-שורש נפרד לגמרי מפריט 5 — Explore agent
+מצא ש-/setup's returning-user restore קורא `loadPersona()` סינכרוני במקום להמתין ל-DB (כמו כל
+דף מוגן אחר) — תוקן בנפרד (swap ל-`await syncPersonaFromDb()`), אבל **זה לא מה ש-QA שיחזר בפועל
+בפריט 5** — נשאר בקוד כתיקון תקף עצמאי.
+
+**פרומפט אימות-חי מוכן:** `docs/feedback/2026-08-25-post-fix-verification-prompt.md` — ל-6
+הפריטים שתוקנו, ממתין להרצה של יוני.
 
 ## 🔔 תזכורת פתוחה ליוני (נרשמה 25/08) — לבחון בסשן הבא
 לבחון את **21st.dev** (מרקטפלייס קומפוננטות) ו-**awwwards** (השראת עיצוב) ולשקול שילוב
