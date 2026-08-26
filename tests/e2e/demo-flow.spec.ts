@@ -87,7 +87,9 @@ test.describe("/demo — gov.il-faithful form preview", () => {
     await page.goto("/demo");
 
     // Default tab is personal which has no calculated fields — switch to income.
-    await page.getByRole("button", { name: "פירוט הכנסות" }).click();
+    // GovNavBar's tabs carry role="tab" (a11y fix, 22/08) — not the implicit
+    // "button" role a plain <button> would have.
+    await page.getByRole("tab", { name: "פירוט הכנסות" }).click();
 
     const firstCalc = page.locator("button.calculated-value").first();
     await expect(firstCalc).toBeVisible();
@@ -102,7 +104,7 @@ test.describe("/demo — gov.il-faithful form preview", () => {
     await page.goto("/demo");
 
     for (const tabName of ["פרטים אישיים", "פרטים כלליים", "פירוט הכנסות"]) {
-      await page.getByRole("button", { name: tabName }).click();
+      await page.getByRole("tab", { name: tabName }).click();
       await expect(page.getByText("למילוי ידני")).toHaveCount(0);
     }
   });

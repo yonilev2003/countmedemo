@@ -176,8 +176,10 @@ test("מובייל /demo: הטופס קריא, הצ'אט נפתח כ-bottom-shee
 
   // The gov-form replica renders on a phone viewport: the star-field 150 row
   // exists and its calculated value is visible (not clipped away).
-  await expect(page.getByRole("button", { name: "פירוט הכנסות" })).toBeVisible();
-  await page.getByRole("button", { name: "פירוט הכנסות" }).click();
+  // GovNavBar's tabs carry role="tab" (a11y fix, 22/08) — not the implicit
+  // "button" role a plain <button> would have.
+  await expect(page.getByRole("tab", { name: "פירוט הכנסות" })).toBeVisible();
+  await page.getByRole("tab", { name: "פירוט הכנסות" }).click();
   const code150 = page.getByText("150", { exact: true }).first();
   await expect(code150).toBeVisible();
 
