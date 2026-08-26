@@ -5,7 +5,26 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-08-25 (Sonnet 5) · ענף פעיל: `claude/onboarding-performance-audit-fdt6qd` · החלטות: [[decisions]]
+> עודכן: 2026-08-26 (Sonnet 5) · ענף פעיל: `claude/onboarding-performance-audit-fdt6qd` · החלטות: [[decisions]]
+
+## ⭐ 26/08 — PR #34 פתוח: התיקונים ישבו על preview, לא הגיעו ל-production
+
+**גילוי:** סבב-אימות שני (Claude-in-Chrome, 26/08) דיווח "כל 6 התיקונים נכשלו — אפס שינוי".
+נראה כמו רגרסיה, אבל זו הייתה בדיוק אותה מלכודת preview-vs-production שכבר תועדה פעם (23/08,
+`docs(memory): log QA-vs-production mixup`, ענף `claude/tomi-onboarding-notes-0xrh4w`): כל push
+לענף פיצ'ר מקבל preview URL אוטומטי משלו; `countmedemo-eight.vercel.app` (production) ממשיך
+להריץ את מה שהיה על `main` עד שממזגים בפועל. **אומת עצמאית מול Vercel MCP** (לא רק סמכתי על
+דוח ה-QA): `get_project`/`list_deployments` על `prj_3IlHVinVBsD8s16lXEEdGYUWMujj` מראה
+שה-deployment האחרון של הענף (`2c111b0`, פריט התיקון) הוא `target: null` (preview), בעוד
+production עדיין על `3522ce0` (22/08, לפני התיקון). הדוח גם אימת ישירות מול ה-preview URL
+עצמו (פריט 16: 44px שם, לעומת 32px ב-production) — **הקוד תקין, רק לא מוזג**.
+
+**פעולה:** יוני אישר (AskUserQuestion) לפתוח PR — **PR #34** נפתח ל-`main`, מנוי-מעקב פעיל
+(`subscribe_pr_activity`). אחרי מיזוג+דיפלוי-לפרודקשן: להריץ שוב את
+`docs/feedback/2026-08-25-post-fix-verification-prompt.md` מול ה-URL הציבורי לקבלת אות אמיתי.
+
+**לקח לכל סשן עתידי שמריץ QA:** לבדוק target/branch של ה-deployment האחרון דרך Vercel MCP
+**לפני** שסומכים על דוח-QA מול ה-alias של production — זו הפעם השנייה שהתקלה הזו קרתה.
 
 ## ⭐ 25/08 — ביקורת QA מלאה ל-onboarding (Claude-in-Chrome, 21 פריטים) + 6 תיקונים
 
