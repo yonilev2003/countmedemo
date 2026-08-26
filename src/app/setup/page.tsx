@@ -28,6 +28,9 @@ import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
+import { CityPicker } from "@/components/setup/city-picker";
+import { StreetPicker } from "@/components/setup/street-picker";
+import { BankNamePicker } from "@/components/setup/bank-name-picker";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -2276,28 +2279,22 @@ export default function SetupPage() {
 
                 <div className="space-y-3">
                   <FieldLabel>כתובת העסק (אופציונלי)</FieldLabel>
-                  <input
-                    id="addressCity"
-                    type="text"
-                    aria-label="יישוב"
+                  <CityPicker
                     value={s3.addressCity}
-                    onChange={(e) =>
-                      setS3({ ...s3, addressCity: e.target.value })
+                    onChange={(next) =>
+                      setS3({ ...s3, addressCity: next })
                     }
-                    className={inputCls(false)}
-                    placeholder="יישוב"
+                    onSelect={(city) =>
+                      setS3((prev) => ({ ...prev, addressCity: city, addressStreet: "" }))
+                    }
                   />
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      id="addressStreet"
-                      type="text"
-                      aria-label="רחוב"
+                    <StreetPicker
                       value={s3.addressStreet}
-                      onChange={(e) =>
-                        setS3({ ...s3, addressStreet: e.target.value })
+                      onChange={(next) =>
+                        setS3({ ...s3, addressStreet: next })
                       }
-                      className={inputCls(false)}
-                      placeholder="רחוב"
+                      city={s3.addressCity}
                     />
                     <input
                       id="addressHouseNumber"
@@ -2625,15 +2622,18 @@ export default function SetupPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FieldLabel htmlFor="bankName">שם הבנק</FieldLabel>
-                    <input
-                      id="bankName"
-                      type="text"
+                    <BankNamePicker
                       value={s6.bankName}
-                      onChange={(e) =>
-                        setS6({ ...s6, bankName: e.target.value })
+                      onChange={(next) =>
+                        setS6({ ...s6, bankName: next })
                       }
-                      className={inputCls(false)}
-                      placeholder="בנק הפועלים"
+                      onSelect={(bank) =>
+                        setS6((prev) => ({
+                          ...prev,
+                          bankName: bank.bankName,
+                          bankCode: String(bank.bankCode),
+                        }))
+                      }
                     />
                   </div>
                   <div>
