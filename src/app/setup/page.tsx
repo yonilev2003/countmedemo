@@ -18,6 +18,7 @@ import {
   syncPersonaFromDb,
 } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { computeBusinessIncome } from "@/lib/calculators";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
@@ -1079,6 +1080,8 @@ export default function SetupPage() {
   function validateStep3(): Errors {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    if (!s3.addressCity.trim()) e.addressCity = "שדה חובה";
+    if (!s3.addressStreet.trim()) e.addressStreet = "שדה חובה";
     if (!s3.primaryOccupation.trim()) e.primaryOccupation = "שדה חובה";
     if (s3.priorInvoicing) {
       const n = Number(s3.priorInvoiceNumber);
@@ -1123,6 +1126,11 @@ export default function SetupPage() {
   function validateStep3Identity(): Errors {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    // Address is required (product decision, Yoni 27/08): city/street are
+    // picker-driven (CityPicker/StreetPicker still accept free text), only
+    // the house number stays optional free entry.
+    if (!s3.addressCity.trim()) e.addressCity = "שדה חובה";
+    if (!s3.addressStreet.trim()) e.addressStreet = "שדה חובה";
     return e;
   }
 
@@ -1443,9 +1451,15 @@ export default function SetupPage() {
     setS2({ ...s2, children: next });
   }
 
+  // Must match field 150's real formula, not a naive revenue-minus-expenses
+  // guess — for עוסק זעיר the automatic 30%-of-turnover deduction applies
+  // regardless of the expenses the user typed (Yoni, 27/08 QA: the preview
+  // showed revenue-minus-expenses even under the זעיר track, contradicting
+  // its own "חישוב לשדה 150" label). computeBusinessIncome is the same
+  // function the real field-150 calculator and the dashboard use.
   const previewNet =
     s4.totalRevenue && s5.totalDeductibleExpenses
-      ? Number(s4.totalRevenue) - Number(s5.totalDeductibleExpenses)
+      ? computeBusinessIncome(buildPersona())
       : null;
 
   // FP-02: live ceiling warning on the revenue screen. Reuses the shared
@@ -1931,7 +1945,8 @@ export default function SetupPage() {
                     </div>
                   )}
                   <p className="mt-1 text-xs text-muted">
-                    זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
+                    תואר ראשון/תעודה מקצועית: עד 3 שנים מהסיום (בוגרי 2023
+                    ואילך) או שנת הסיום בלבד (בוגרי 2014–2022)
                   </p>
                 </div>
 
@@ -2099,18 +2114,20 @@ export default function SetupPage() {
                   <ErrorMsg msg={errors.osekType} />
                 </div>
 
-                {s3.isOsekZeir && (
-                  <div className="rounded-xl border border-line bg-cream p-4">
-                    <OsekZeirNote
-                      checked={s3.isOsekZeir}
-                      totalRevenue={Number(s4.totalRevenue) || 0}
-                      totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
-                      expenseRate={
-                        getTaxYearConstants(selectedYear).osekZeirExpenseRate
-                      }
-                    />
-                  </div>
-                )}
+                {/* OsekZeirNote owns its own container and returns null until
+                    there's actually something to say (checked + real revenue/
+                    expenses entered, which only happens on later screens) —
+                    wrapping it in an always-rendered bordered div here left an
+                    empty cream rectangle right after checking "עוסק זעיר"
+                    (Yoni, 27/08 QA). */}
+                <OsekZeirNote
+                  checked={s3.isOsekZeir}
+                  totalRevenue={Number(s4.totalRevenue) || 0}
+                  totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
+                  expenseRate={
+                    getTaxYearConstants(selectedYear).osekZeirExpenseRate
+                  }
+                />
 
                 <div>
                   <TapChoiceGroup
@@ -2278,24 +2295,32 @@ export default function SetupPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <FieldLabel>כתובת העסק (אופציונלי)</FieldLabel>
-                  <CityPicker
-                    value={s3.addressCity}
-                    onChange={(next) =>
-                      setS3({ ...s3, addressCity: next })
-                    }
-                    onSelect={(city) =>
-                      setS3((prev) => ({ ...prev, addressCity: city, addressStreet: "" }))
-                    }
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <StreetPicker
-                      value={s3.addressStreet}
+                  <FieldLabel required>כתובת העסק</FieldLabel>
+                  <div>
+                    <CityPicker
+                      value={s3.addressCity}
                       onChange={(next) =>
-                        setS3({ ...s3, addressStreet: next })
+                        setS3({ ...s3, addressCity: next })
                       }
-                      city={s3.addressCity}
+                      onSelect={(city) =>
+                        setS3((prev) => ({ ...prev, addressCity: city, addressStreet: "" }))
+                      }
+                      error={errors.addressCity}
                     />
+                    <ErrorMsg msg={errors.addressCity} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <StreetPicker
+                        value={s3.addressStreet}
+                        onChange={(next) =>
+                          setS3({ ...s3, addressStreet: next })
+                        }
+                        city={s3.addressCity}
+                        error={errors.addressStreet}
+                      />
+                      <ErrorMsg msg={errors.addressStreet} />
+                    </div>
                     <input
                       id="addressHouseNumber"
                       type="text"
@@ -2617,7 +2642,7 @@ export default function SetupPage() {
               <div className="cm-route-enter">
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-ink">
-                  פרטי בנק להחזר
+                  פרטי בנק
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -2638,20 +2663,19 @@ export default function SetupPage() {
                   </div>
                   <div>
                     <FieldLabel htmlFor="bankCode">קוד בנק</FieldLabel>
+                    {/* Read-only — driven entirely by the bank-name picker so
+                        the two fields can never disagree (Yoni, 27/08: "קוד
+                        בנק... צריך להיות בסליידרים" — the picker IS the
+                        selection mechanism here, typing a code by hand would
+                        just re-open the two-source-of-truth bug this avoids). */}
                     <input
                       id="bankCode"
                       type="text"
-                      maxLength={3}
+                      readOnly
                       value={s6.bankCode}
-                      onChange={(e) =>
-                        setS6({
-                          ...s6,
-                          bankCode: e.target.value.replace(/\D/g, ""),
-                        })
-                      }
-                      className={inputCls(false)}
+                      className={cn(inputCls(false), "bg-cream text-muted cursor-not-allowed")}
                       dir="ltr"
-                      placeholder="12"
+                      placeholder="נבחר אוטומטית לפי שם הבנק"
                     />
                   </div>
                 </div>
@@ -2673,6 +2697,10 @@ export default function SetupPage() {
                       dir="ltr"
                       placeholder="538"
                     />
+                    <p className="mt-1 text-[11px] text-faint">
+                      עדיין ללא בורר סניפים — אין לנו מאגר סניפים מאומת
+                      (בקרוב).
+                    </p>
                   </div>
                   <div>
                     <FieldLabel htmlFor="account">מספר חשבון</FieldLabel>

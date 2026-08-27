@@ -125,6 +125,12 @@ async function runWizard(page: Page, p: Profile) {
   // ── Screen 4: business identity ──
   await expect(page.getByRole("heading", { name: "פרטי העסק" })).toBeVisible();
   await page.locator("#tradeName").fill(p.tradeName);
+  // Address (city/street) is required (Yoni, 27/08) — pickers still accept
+  // free text, so no need to select a dropdown suggestion here.
+  await page.locator("#addressCity").fill("תל אביב - יפו");
+  await page.getByRole("heading", { name: "פרטי העסק" }).click();
+  await page.locator("#addressStreet").fill("הרצל");
+  await page.getByRole("heading", { name: "פרטי העסק" }).click();
   await page.getByRole("button", { name: /הבא/ }).click();
 
   // ── Screen 5: revenue ──
