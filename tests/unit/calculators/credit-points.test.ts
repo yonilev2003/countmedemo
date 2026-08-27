@@ -88,6 +88,28 @@ describe("discharged-soldier proration", () => {
     const p = makePersona({ personal: { isSoldierDischarged: true } });
     expect(totalCreditPoints(p)).toBe(2.25 + 2.0);
   });
+
+  it("below the 12-month minimum → no credit at all, not the reduced rate (27/08 QA fix)", () => {
+    const p = makePersona({
+      personal: {
+        isSoldierDischarged: true,
+        soldierDischargeDate: "2024-06-15",
+        soldierServiceMonths: 6,
+      },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25);
+  });
+
+  it("exactly 12 months (the floor itself) → still qualifies for the reduced rate", () => {
+    const p = makePersona({
+      personal: {
+        isSoldierDischarged: true,
+        soldierDischargeDate: "2024-06-15",
+        soldierServiceMonths: 12,
+      },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25 + 1.0);
+  });
 });
 
 describe("miluim ladder (תיקון 283) — verified 2026-07-02", () => {

@@ -57,8 +57,9 @@ function residentCreditPoints(p: Persona): number {
  *
  * Rule (israeli-tax-returns / kolzchut, סעיף 67/39א): 1/6 point per eligible
  * month for full service (men 23+, women 22+ months) or 1/12 for partial
- * qualifying service (12–22 months), for the 36 months starting the month AFTER
- * discharge. The discharge year and the year the window closes are partial.
+ * qualifying service (12–22 months — BELOW 12 months earns no credit at all),
+ * for the 36 months starting the month AFTER discharge. The discharge year
+ * and the year the window closes are partial.
  *
  * Needs the discharge date to locate the eligibility window. When the date is
  * missing we fall back to a full tax year of eligibility (12 months) so the
@@ -71,6 +72,10 @@ function soldierCreditPoints(p: Persona): number {
 
   // Per-month fraction depends on service length. Absent → assume full service.
   const months = p.personal.soldierServiceMonths;
+  // Below the minimum qualifying service, there is no credit at all — not
+  // even the reduced rate (only the fullThreshold UPPER bound was enforced
+  // before this fix, so e.g. 3-6 months silently earned the partial rate).
+  if (months != null && months < TC.soldierMinimumServiceMonths) return 0;
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -428,6 +433,17 @@ export const field068Soldier: Calculator = (p) => {
   }
   const TC = getTaxYearConstants(p.income.year);
   const months = p.personal.soldierServiceMonths;
+  const points = soldierCreditPoints(p);
+
+  if (months != null && months < TC.soldierMinimumServiceMonths) {
+    return {
+      value: false,
+      formula: `${months} חודשי שירות — מתחת לסף המינימלי (${TC.soldierMinimumServiceMonths} חודשים) לזיכוי חייל משוחרר`,
+      sources: [{ label: "personal.soldierServiceMonths", detail: `${months} חודשים` }],
+      confidence: "high",
+    };
+  }
+
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -439,7 +455,6 @@ export const field068Soldier: Calculator = (p) => {
     p.income.year,
     TC.soldierMonthsCredit,
   );
-  const points = soldierCreditPoints(p);
   const dateKnown = !!p.personal.soldierDischargeDate;
 
   const notes: string[] = [];

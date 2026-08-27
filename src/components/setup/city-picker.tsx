@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * City autocomplete for /setup step 3's business-address field, built on
- * SearchPicker + the bundled city list (israeli-geo-dataset.ts — research
- * 26/08). Free text that matches nothing is still accepted (the address is
- * optional and not validated against the dataset), same convention as
- * OccupationPicker.
+ * City autocomplete for /setup step 3's business-address field (required as
+ * of 27/08 — validated non-empty, but still NOT checked against the
+ * dataset), built on SearchPicker + the bundled city list
+ * (israeli-geo-dataset.ts — research 26/08). Free text that matches nothing
+ * is still accepted — validating against a real-but-possibly-incomplete
+ * ~1,300-city list would false-negative a legitimate typed city, same
+ * convention as OccupationPicker.
  */
 
 import { SearchPicker } from "./search-picker";
