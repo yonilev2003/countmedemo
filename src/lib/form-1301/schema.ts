@@ -659,7 +659,7 @@ const tabIncome: FormTab = {
           kind: "currency",
           status: "calculated",
           calculator: "field-181-academic-degree",
-          hint: "נקודת זיכוי אחת לבעלי תואר אקדמי.",
+          hint: "תואר ראשון/תעודה מקצועית: עד 3 שנים מסיום (בוגרי 2023+) או שנת הסיום בלבד (בוגרי 2014–2022).",
         },
       ],
     },

@@ -11,6 +11,11 @@
  *  • Miluim (תיקון 283, from tax year 2026, based on PRIOR-year combat days):
  *    30–39→0.5 · 40–49→0.75 · 50→1.0 · +0.25 per full 5 days above 50 · cap 4.0.
  *    Verified 2026-07-02 vs gov.il (pa181225-1) + kolzchut.
+ *  • Academic degree (field 181, WINDOWED — fixed 27/08 QA, was perpetual and
+ *    excluded from this total entirely): graduates 2023+ get 3 years from
+ *    graduation; graduates 2014–2022 get the graduation year only; pre-2014
+ *    is never eligible for the tax years this app supports. Assumes BA/
+ *    vocational (1 point) — degree type isn't collected yet.
  */
 
 import { describe, expect, it } from "vitest";
@@ -83,6 +88,28 @@ describe("discharged-soldier proration", () => {
     const p = makePersona({ personal: { isSoldierDischarged: true } });
     expect(totalCreditPoints(p)).toBe(2.25 + 2.0);
   });
+
+  it("below the 12-month minimum → no credit at all, not the reduced rate (27/08 QA fix)", () => {
+    const p = makePersona({
+      personal: {
+        isSoldierDischarged: true,
+        soldierDischargeDate: "2024-06-15",
+        soldierServiceMonths: 6,
+      },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25);
+  });
+
+  it("exactly 12 months (the floor itself) → still qualifies for the reduced rate", () => {
+    const p = makePersona({
+      personal: {
+        isSoldierDischarged: true,
+        soldierDischargeDate: "2024-06-15",
+        soldierServiceMonths: 12,
+      },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25 + 1.0);
+  });
 });
 
 describe("miluim ladder (תיקון 283) — verified 2026-07-02", () => {
@@ -123,6 +150,60 @@ describe("miluim ladder (תיקון 283) — verified 2026-07-02", () => {
       personal: { reserveDaysByYear: {}, combatReserveDays: 50 },
     });
     expect(totalCreditPoints(p)).toBe(2.25 + 1.0);
+  });
+});
+
+describe("academic degree credit (field 181) — windowed, not perpetual", () => {
+  it("no graduation year → no credit", () => {
+    expect(totalCreditPoints(makePersona())).toBe(2.25);
+  });
+
+  it("2023+ grad: eligible for the graduation year and the next 2 (3-year window)", () => {
+    const p = (filingYear: number) =>
+      makePersona({
+        income: { year: filingYear },
+        personal: { academicDegreeYear: 2023 },
+      });
+    expect(totalCreditPoints(p(2023))).toBe(2.25 + 1);
+    expect(totalCreditPoints(p(2024))).toBe(2.25 + 1);
+    expect(totalCreditPoints(p(2025))).toBe(2.25 + 1);
+  });
+
+  it("2023+ grad: window closed by the 4th year", () => {
+    const p = makePersona({
+      income: { year: 2026 },
+      personal: { academicDegreeYear: 2023 },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25);
+  });
+
+  it("2014–2022 grad: only the graduation year itself counts (1-year window)", () => {
+    const gradYearOnly = makePersona({
+      income: { year: 2022 },
+      personal: { academicDegreeYear: 2022 },
+    });
+    const yearAfter = makePersona({
+      income: { year: 2023 },
+      personal: { academicDegreeYear: 2022 },
+    });
+    expect(totalCreditPoints(gradYearOnly)).toBe(2.25 + 1);
+    expect(totalCreditPoints(yearAfter)).toBe(2.25);
+  });
+
+  it("pre-2014 grad: never eligible on the tax years this app supports", () => {
+    const p = makePersona({
+      income: { year: 2024 },
+      personal: { academicDegreeYear: 2013 },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25);
+  });
+
+  it("degree year in the future (not yet awarded) → no credit", () => {
+    const p = makePersona({
+      income: { year: 2024 },
+      personal: { academicDegreeYear: 2026 },
+    });
+    expect(totalCreditPoints(p)).toBe(2.25);
   });
 });
 

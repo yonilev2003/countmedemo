@@ -31,7 +31,7 @@ countme is an AI-native financial-ops product for Israeli self-employed people (
 
 ## What we're building right now
 
-A demo to show senior people at EY through the **Momentum** student accelerator. The demo shows:
+A live product demo of the Form 1301 companion flow. (Originally scoped to show senior people at EY through the **Momentum** student accelerator — that engagement ended 2026-08-28 and EY is no longer a target audience; treat this as general demo/beta context going forward, not EY-specific.) The demo shows:
 
 - The user opens Form 1301 on the real Israeli tax authority site (`secapp.taxes.gov.il`) on one screen
 - countme runs alongside, showing the same form with **all values pre-calculated** from the user's data
@@ -90,7 +90,7 @@ First use costs ~3–5s + network; then it's local for the session. **Do not** r
 
 **Pending:** [`mksglu/context-mode`](https://github.com/mksglu/context-mode) — MCP server for context/token saving. Install Day 2 (requires hook config).
 
-**Planned (post-EY-demo, not yet installed):** [`openai/skills`](https://github.com/openai/skills) — Codex-side skills catalog for second-opinion code review. Plan: hook in `.claude/settings.json` runs Codex audit on `npm test` / `npm run build` events. Requires Codex CLI install + separate `OPENAI_API_KEY`. Don't install before demo (cost + iteration friction). Document the hook here when wired.
+**Planned (post-demo, not yet installed):** [`openai/skills`](https://github.com/openai/skills) — Codex-side skills catalog for second-opinion code review. Plan: hook in `.claude/settings.json` runs Codex audit on `npm test` / `npm run build` events. Requires Codex CLI install + separate `OPENAI_API_KEY`. Don't install before demo (cost + iteration friction). Document the hook here when wired.
 
 ### When to consult which skill
 
@@ -240,7 +240,7 @@ When other team members start contributing code:
 6. **Hebrew + English fine:** code in English, content in Hebrew. Comments in either.
 7. **Don't introduce a new framework, library, or DB without writing it here first**
 
-## Pre-launch checklist (before EY demo)
+## Pre-launch checklist (before beta launch)
 
 Mapped from a generic launch-readiness checklist to **what's actually relevant for this demo**. Each row is do/skip with a reason — don't add work that doesn't apply to the current scope.
 
@@ -254,7 +254,7 @@ Mapped from a generic launch-readiness checklist to **what's actually relevant f
 | Frontend error boundaries | Yes | TODO: add a top-level `<ErrorBoundary>` in `app/layout.tsx` |
 | DB indexing | No DB yet | N/A until Supabase |
 | Logging | Vercel built-in is enough for demo | OK |
-| **Alerts** | **Yes — before EY** | TODO: Vercel error alerts + Anthropic usage budget alert |
+| **Alerts** | **Yes — before launch** | TODO: Vercel error alerts + Anthropic usage budget alert |
 | Rollback strategy | Vercel "Promote previous deployment" | Already covered |
 
 ## Security: Supabase (live since 2026-06-10 — verify these still hold, not a pre-launch to-do)
@@ -361,6 +361,8 @@ Actually open (corrected 2026-08-12 — item 1 was stale, see memory/STATUS.md w
 5. `FLAG(Roy)` burn-down in `lib/calculators/types.ts`: 2025/2026 pension caps, 2026 donations floor, §45א life-insurance ceiling
 6. Durable rate limiting (Vercel WAF now, Supabase counter later) + CSP enforce after report-only monitoring
 7. Install `context-mode` for token savings during long sessions (see the Skills section above for the same pending item — don't duplicate further edits, update there)
+8. **Customer-data monetization pilot** (added 2026-08-28, adopted from the "Deeper Than the State" data-depth report — see `memory/decisions.md`'s 2026-08-28 entry for the full reasoning). Toward the next PR, in order: (a) close the 7-year no-delete receipt-retention gap — same underlying issue as item 3 above; (b) build one new, specific opt-in "data insights" consent flow, uncoupled from core product access; (c) build an internal aggregation/anonymization pipeline + run one DPIA against it; (d) produce one internal pilot artifact (an "Israeli Freelancer Q1 index"); (e) take that artifact to one Big4 firm to open a B2B2B benchmarking-embed conversation. Every item here is gated on real opt-in consent volume existing first — none of it touches real user data before (b) ships.
+9. **Open Banking, dual-track (concrete intention, no detailed plan yet — added 2026-08-28, locked in `memory/decisions.md`).** Early-stage: pursue access via an external licensed aggregator (Finanda or Open-Finance.ai — both already ISA-licensed under the 2021 Financial Information Service Law, so this is a vendor integration, not a regulatory project for us) **and in parallel** start building our own in-house capability. Neither track has a scope, timeline, owner, or budget yet — first real step is a scoping/pricing conversation with both vendors (pricing isn't public). Still needs, regardless of track: our own dedicated, purpose-specific consent flow for bank-linking (separate from the core service-delivery consent).
 
 ## Source of truth for the form structure
 

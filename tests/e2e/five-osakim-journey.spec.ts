@@ -89,6 +89,8 @@ async function runWizard(page: Page, p: Profile) {
   await page
     .getByText(p.gender === "female" ? "נקבה (2.75 נקודות)" : "זכר (2.25 נקודות)")
     .click();
+  // Mobile phone is required (Yoni, 28/08).
+  await page.getByLabel("נייד").fill("050-1234567");
   await page.getByRole("checkbox").first().check(); // terms+privacy
   await page.getByRole("button", { name: /הבא/ }).click();
 
@@ -125,6 +127,12 @@ async function runWizard(page: Page, p: Profile) {
   // ── Screen 4: business identity ──
   await expect(page.getByRole("heading", { name: "פרטי העסק" })).toBeVisible();
   await page.locator("#tradeName").fill(p.tradeName);
+  // Address (city/street) is required (Yoni, 27/08) — pickers still accept
+  // free text, so no need to select a dropdown suggestion here.
+  await page.locator("#addressCity").fill("תל אביב - יפו");
+  await page.getByRole("heading", { name: "פרטי העסק" }).click();
+  await page.locator("#addressStreet").fill("הרצל");
+  await page.getByRole("heading", { name: "פרטי העסק" }).click();
   await page.getByRole("button", { name: /הבא/ }).click();
 
   // ── Screen 5: revenue ──
@@ -176,8 +184,10 @@ test("מובייל /demo: הטופס קריא, הצ'אט נפתח כ-bottom-shee
 
   // The gov-form replica renders on a phone viewport: the star-field 150 row
   // exists and its calculated value is visible (not clipped away).
-  await expect(page.getByRole("button", { name: "פירוט הכנסות" })).toBeVisible();
-  await page.getByRole("button", { name: "פירוט הכנסות" }).click();
+  // GovNavBar's tabs carry role="tab" (a11y fix, 22/08) — not the implicit
+  // "button" role a plain <button> would have.
+  await expect(page.getByRole("tab", { name: "פירוט הכנסות" })).toBeVisible();
+  await page.getByRole("tab", { name: "פירוט הכנסות" }).click();
   const code150 = page.getByText("150", { exact: true }).first();
   await expect(code150).toBeVisible();
 

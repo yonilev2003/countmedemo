@@ -11,14 +11,12 @@ import { PL_IMPACT_LABEL } from "@/lib/regulatory/deductions";
 import { cn } from "@/lib/utils";
 import { ExpenseRatioCard } from "@/components/dashboard/expense-ratio-card";
 import { computeExpenseRatio } from "@/lib/p-and-l/expense-ratio";
-import { Logo } from "@/components/brand/logo";
+import { AppHeader } from "@/components/brand/app-header";
 import { btn } from "@/components/brand/button";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { LegalNote } from "@/components/brand/legal-note";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import {
   ArrowLeftIcon,
-  SettingsIcon,
   InfoIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
@@ -42,32 +40,18 @@ export default function BusinessExpensesPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-paper border-b border-line">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="flex items-center">
-              <Logo size={28} />
-            </Link>
-            <span className="text-[11px] text-muted leading-tight">
-              מדריך הוצאות עסקיות
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className={btn("secondary", "sm")}>
-              <ArrowLeftIcon className="size-3.5" />
-              חזור ללוח הבית
-            </Link>
-            <Link href="/setup" className={btn("ghost", "sm")}>
-              <SettingsIcon className="size-3.5" />
-              עדכן נתונים
-            </Link>
-            <div className="border-s border-line ps-2">
-              <SignOutButton />
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* QA audit 25/08, item 6 bonus finding: this hand-rolled header (no
+          flex-wrap, fixed px-6) pushed the sign-out button off-screen at
+          390px. Migrated to AppHeader, which already wraps on narrow phones. */}
+      <AppHeader
+        pageLabel="מדריך הוצאות עסקיות"
+        actions={
+          <Link href="/dashboard" className={btn("secondary", "sm")}>
+            <ArrowLeftIcon className="size-3.5" />
+            חזור ללוח הבית
+          </Link>
+        }
+      />
 
       {/* pb-28: clearance for QuickActionsBar's fixed mobile bottom bar
           (2026-08-19 global-nav sweep, FP-23); lg:pb-8 resets it back since

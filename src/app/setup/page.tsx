@@ -7,11 +7,18 @@ import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
 import {
   loadPersona,
   markPersonaContinueIntent,
+  markShowSaveConfirmation,
   CONTINUE_INTENT_QUERY_PARAM,
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
-import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
+import {
+  persistPersona,
+  retryPersonaSave,
+  getCurrentUserId,
+  syncPersonaFromDb,
+} from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { computeBusinessIncome } from "@/lib/calculators";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
@@ -22,6 +29,9 @@ import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
+import { CityPicker } from "@/components/setup/city-picker";
+import { StreetPicker } from "@/components/setup/street-picker";
+import { BankNamePicker } from "@/components/setup/bank-name-picker";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -425,7 +435,12 @@ function DoneScreen({
       // Already signed in on this device (e.g. a returning session) —
       // persist right now, so the user gets an honest confirmation (or a
       // retryable error) before leaving, instead of hoping a later reconcile
-      // silently picks it up.
+      // silently picks it up. Also flag /dashboard to show its own
+      // confirmation once it lands there (QA audit 25/08, item 3): this
+      // screen's own "נשמר בענן" state below never carries over past the
+      // router.push, so without this the user has no visible confirmation
+      // at all once they reach the dashboard.
+      markShowSaveConfirmation();
       const outcome = await persistPersona(persona);
       if (outcome === "error" || outcome === "conflict") {
         setPending(false);
@@ -541,7 +556,9 @@ function DoneScreen({
           >
             <Logo size={32} />
           </Link>
-          {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
+          {isSignedIn && (
+              <SignOutButton variant="ghost" size="sm" className="min-h-11" />
+            )}
         </div>
       </header>
 
@@ -743,7 +760,11 @@ function DoneScreen({
                       לא כאן.
                     </p>
                     <div className="mt-2 flex items-center gap-3">
-                      <SignOutButton variant="secondary" size="sm" />
+                      <SignOutButton
+                        variant="secondary"
+                        size="sm"
+                        className="min-h-11"
+                      />
                       <button
                         type="button"
                         onClick={() => setSaveState("idle")}
@@ -894,8 +915,31 @@ export default function SetupPage() {
   const [showValidation, setShowValidation] = useState(false);
 
   useEffect(() => {
-    const saved = loadPersona();
-    if (!saved) return;
+    // QA audit 25/08, item 5 (root cause distinct from the reported repro —
+    // see plan): this used to be a synchronous, raw loadPersona() read
+    // (localStorage), unlike every other protected page, which is why /setup
+    // says in its own comments elsewhere it "has no reactive session hook."
+    // On a new device / cleared cache / just a slow first paint, that
+    // synchronous read can be empty or stale at the exact moment this
+    // one-shot effect runs — silently skipping the ENTIRE restore below, not
+    // just the year. syncPersonaFromDb() is the same DB-authoritative,
+    // already-hardened function every other protected page awaits via
+    // useRequiredPersona()/usePersona() (and the one PersonaHydrator itself
+    // already kicked off for this route, deduped via its own inFlight
+    // promise — so this rarely costs an extra round trip). For a signed-out
+    // visitor it returns the local cache untouched, same as before.
+    let cancelled = false;
+    (async () => {
+      const saved = await syncPersonaFromDb();
+      if (cancelled || !saved) return;
+      applyReturningUserData(saved);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function applyReturningUserData(saved: Persona) {
     // Returning user already has a persona — the fast-track card just stays
     // collapsed (no separate upload screen to skip anymore), and the beta
     // notice is suppressed.
@@ -979,7 +1023,7 @@ export default function SetupPage() {
       branchCode: saved.bank.branchCode,
       accountNumber: saved.bank.accountNumber,
     });
-  }, []);
+  }
 
   function validateStep1(): Errors {
     const e: Errors = {};
@@ -994,6 +1038,11 @@ export default function SetupPage() {
     }
     if (!s1.birthDate) e.birthDate = "שדה חובה";
     if (!s1.gender) e.gender = "שדה חובה";
+    // Required, not optional (Yoni, 28/08) — the number appears on generated
+    // documents (invoices/receipts), so it needs to actually be there. Lives
+    // on THIS screen (not validateStep2) because that's where the field
+    // itself is rendered.
+    if (!phoneMobile.trim()) e.phoneMobile = "שדה חובה";
     if (!termsAccepted) {
       e.termsAccepted = "יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להמשיך";
     }
@@ -1036,6 +1085,8 @@ export default function SetupPage() {
   function validateStep3(): Errors {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    if (!s3.addressCity.trim()) e.addressCity = "שדה חובה";
+    if (!s3.addressStreet.trim()) e.addressStreet = "שדה חובה";
     if (!s3.primaryOccupation.trim()) e.primaryOccupation = "שדה חובה";
     if (s3.priorInvoicing) {
       const n = Number(s3.priorInvoiceNumber);
@@ -1080,6 +1131,11 @@ export default function SetupPage() {
   function validateStep3Identity(): Errors {
     const e: Errors = {};
     if (!s3.tradeName.trim()) e.tradeName = "שדה חובה";
+    // Address is required (product decision, Yoni 27/08): city/street are
+    // picker-driven (CityPicker/StreetPicker still accept free text), only
+    // the house number stays optional free entry.
+    if (!s3.addressCity.trim()) e.addressCity = "שדה חובה";
+    if (!s3.addressStreet.trim()) e.addressStreet = "שדה חובה";
     return e;
   }
 
@@ -1400,9 +1456,15 @@ export default function SetupPage() {
     setS2({ ...s2, children: next });
   }
 
+  // Must match field 150's real formula, not a naive revenue-minus-expenses
+  // guess — for עוסק זעיר the automatic 30%-of-turnover deduction applies
+  // regardless of the expenses the user typed (Yoni, 27/08 QA: the preview
+  // showed revenue-minus-expenses even under the זעיר track, contradicting
+  // its own "חישוב לשדה 150" label). computeBusinessIncome is the same
+  // function the real field-150 calculator and the dashboard use.
   const previewNet =
     s4.totalRevenue && s5.totalDeductibleExpenses
-      ? Number(s4.totalRevenue) - Number(s5.totalDeductibleExpenses)
+      ? computeBusinessIncome(buildPersona())
       : null;
 
   // FP-02: live ceiling warning on the revenue screen. Reuses the shared
@@ -1483,7 +1545,9 @@ export default function SetupPage() {
                 wizard). A first-time visitor isn't signed in yet at this
                 point (that happens in DoneScreen's handleContinue), so
                 nothing renders here for them. */}
-            {isSignedIn && <SignOutButton variant="ghost" size="sm" />}
+            {isSignedIn && (
+              <SignOutButton variant="ghost" size="sm" className="min-h-11" />
+            )}
           </div>
         </div>
       </header>
@@ -1679,16 +1743,17 @@ export default function SetupPage() {
                 </div>
 
                 <div>
-                  <FieldLabel htmlFor="phoneMobile">נייד (אופציונלי)</FieldLabel>
+                  <FieldLabel htmlFor="phoneMobile" required>נייד</FieldLabel>
                   <input
                     id="phoneMobile"
                     type="tel"
                     value={phoneMobile}
                     onChange={(e) => setPhoneMobile(e.target.value)}
-                    className={inputCls(false)}
+                    className={inputCls(!!errors.phoneMobile)}
                     dir="ltr"
                     placeholder="050-1234567"
                   />
+                  <ErrorMsg msg={errors.phoneMobile} />
                   <p className="mt-1 text-xs text-muted">
                     יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
                     למספר הזה.
@@ -1810,7 +1875,9 @@ export default function SetupPage() {
                         />
                         <p className="mt-1 text-xs text-muted">
                           שירות מלא (גברים 23+ ח׳, נשים 22+ ח׳) → 2 נק׳ זיכוי לשנה;
-                          שירות חלקי → 1 נק׳ לשנה. יחסי למספר החודשים בחלון 36 ח׳ מהשחרור.
+                          שירות חלקי (12–22 ח׳) → 1 נק׳ לשנה; פחות מ-12 חודשי
+                          שירות אינו מזכה בנקודה. יחסי למספר החודשים בחלון 36
+                          ח׳ מהשחרור.
                         </p>
                       </div>
                     </div>
@@ -1886,7 +1953,8 @@ export default function SetupPage() {
                     </div>
                   )}
                   <p className="mt-1 text-xs text-muted">
-                    זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
+                    תואר ראשון/תעודה מקצועית: עד 3 שנים מהסיום (בוגרי 2023
+                    ואילך) או שנת הסיום בלבד (בוגרי 2014–2022)
                   </p>
                 </div>
 
@@ -2054,18 +2122,20 @@ export default function SetupPage() {
                   <ErrorMsg msg={errors.osekType} />
                 </div>
 
-                {s3.isOsekZeir && (
-                  <div className="rounded-xl border border-line bg-cream p-4">
-                    <OsekZeirNote
-                      checked={s3.isOsekZeir}
-                      totalRevenue={Number(s4.totalRevenue) || 0}
-                      totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
-                      expenseRate={
-                        getTaxYearConstants(selectedYear).osekZeirExpenseRate
-                      }
-                    />
-                  </div>
-                )}
+                {/* OsekZeirNote owns its own container and returns null until
+                    there's actually something to say (checked + real revenue/
+                    expenses entered, which only happens on later screens) —
+                    wrapping it in an always-rendered bordered div here left an
+                    empty cream rectangle right after checking "עוסק זעיר"
+                    (Yoni, 27/08 QA). */}
+                <OsekZeirNote
+                  checked={s3.isOsekZeir}
+                  totalRevenue={Number(s4.totalRevenue) || 0}
+                  totalExpenses={Number(s5.totalDeductibleExpenses) || 0}
+                  expenseRate={
+                    getTaxYearConstants(selectedYear).osekZeirExpenseRate
+                  }
+                />
 
                 <div>
                   <TapChoiceGroup
@@ -2233,30 +2303,32 @@ export default function SetupPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <FieldLabel>כתובת העסק (אופציונלי)</FieldLabel>
-                  <input
-                    id="addressCity"
-                    type="text"
-                    aria-label="יישוב"
-                    value={s3.addressCity}
-                    onChange={(e) =>
-                      setS3({ ...s3, addressCity: e.target.value })
-                    }
-                    className={inputCls(false)}
-                    placeholder="יישוב"
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      id="addressStreet"
-                      type="text"
-                      aria-label="רחוב"
-                      value={s3.addressStreet}
-                      onChange={(e) =>
-                        setS3({ ...s3, addressStreet: e.target.value })
+                  <FieldLabel required>כתובת העסק</FieldLabel>
+                  <div>
+                    <CityPicker
+                      value={s3.addressCity}
+                      onChange={(next) =>
+                        setS3({ ...s3, addressCity: next })
                       }
-                      className={inputCls(false)}
-                      placeholder="רחוב"
+                      onSelect={(city) =>
+                        setS3((prev) => ({ ...prev, addressCity: city, addressStreet: "" }))
+                      }
+                      error={errors.addressCity}
                     />
+                    <ErrorMsg msg={errors.addressCity} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <StreetPicker
+                        value={s3.addressStreet}
+                        onChange={(next) =>
+                          setS3({ ...s3, addressStreet: next })
+                        }
+                        city={s3.addressCity}
+                        error={errors.addressStreet}
+                      />
+                      <ErrorMsg msg={errors.addressStreet} />
+                    </div>
                     <input
                       id="addressHouseNumber"
                       type="text"
@@ -2417,7 +2489,8 @@ export default function SetupPage() {
 
                   {/* Factual 30% note — osek ZEIR with expenses ABOVE 30% (facts, no advice) */}
                   {showZeirOverNote && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
+                    // No border, matching OsekZeirNote's same fix (Yoni, 28/08).
+                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
                       <InfoIcon className="size-4 mt-0.5 shrink-0 text-due" />
                       <span>
                         <span className="font-semibold text-due">שים/י לב: </span>
@@ -2578,38 +2651,40 @@ export default function SetupPage() {
               <div className="cm-route-enter">
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-ink">
-                  פרטי בנק להחזר
+                  פרטי בנק
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FieldLabel htmlFor="bankName">שם הבנק</FieldLabel>
-                    <input
-                      id="bankName"
-                      type="text"
+                    <BankNamePicker
                       value={s6.bankName}
-                      onChange={(e) =>
-                        setS6({ ...s6, bankName: e.target.value })
+                      onChange={(next) =>
+                        setS6({ ...s6, bankName: next })
                       }
-                      className={inputCls(false)}
-                      placeholder="בנק הפועלים"
+                      onSelect={(bank) =>
+                        setS6((prev) => ({
+                          ...prev,
+                          bankName: bank.bankName,
+                          bankCode: String(bank.bankCode),
+                        }))
+                      }
                     />
                   </div>
                   <div>
                     <FieldLabel htmlFor="bankCode">קוד בנק</FieldLabel>
+                    {/* Read-only — driven entirely by the bank-name picker so
+                        the two fields can never disagree (Yoni, 27/08: "קוד
+                        בנק... צריך להיות בסליידרים" — the picker IS the
+                        selection mechanism here, typing a code by hand would
+                        just re-open the two-source-of-truth bug this avoids). */}
                     <input
                       id="bankCode"
                       type="text"
-                      maxLength={3}
+                      readOnly
                       value={s6.bankCode}
-                      onChange={(e) =>
-                        setS6({
-                          ...s6,
-                          bankCode: e.target.value.replace(/\D/g, ""),
-                        })
-                      }
-                      className={inputCls(false)}
+                      className={cn(inputCls(false), "bg-cream text-muted cursor-not-allowed")}
                       dir="ltr"
-                      placeholder="12"
+                      placeholder="נבחר אוטומטית לפי שם הבנק"
                     />
                   </div>
                 </div>
@@ -2631,6 +2706,10 @@ export default function SetupPage() {
                       dir="ltr"
                       placeholder="538"
                     />
+                    <p className="mt-1 text-[11px] text-faint">
+                      עדיין ללא בורר סניפים — אין לנו מאגר סניפים מאומת
+                      (בקרוב).
+                    </p>
                   </div>
                   <div>
                     <FieldLabel htmlFor="account">מספר חשבון</FieldLabel>
@@ -2710,12 +2789,17 @@ export default function SetupPage() {
 
             {/* Bottom nav — the fast-track card (screen 1) has its own
                 internal "skip"/"continue" button that only collapses it. */}
+            {/* min-h-11 (44px): QA audit 25/08, item 16 — measured 32px tall
+                (btn("*","sm")'s py-1.5), under the 44px WCAG touch-target
+                minimum, on the wizard's own primary action across all 7
+                steps. Scoped to just these two buttons rather than raising
+                every btn(...,"sm") site app-wide. */}
             <div className="mt-8 flex items-center justify-between gap-3">
               {screen > 1 ? (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className={btn("secondary", "sm")}
+                  className={btn("secondary", "sm", "min-h-11")}
                 >
                   <ArrowRightIcon className="size-4" />
                   חזרה
@@ -2728,7 +2812,7 @@ export default function SetupPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className={btn("primary", "sm")}
+                  className={btn("primary", "sm", "min-h-11")}
                 >
                   הבא
                   <ArrowLeftIcon className="size-4" />
@@ -2781,7 +2865,9 @@ function TapChoiceGroup<T extends string>({
               onClick={() => onChange(opt.key)}
               aria-pressed={active}
               className={cn(
-                "rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
+                // min-h-11 (44px): QA audit 25/08, item 16 — measured 34px
+                // tall (py-2 + text), under the WCAG touch-target minimum.
+                "min-h-11 rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
                 active
                   ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
                   : "border-line bg-paper hover:bg-cream text-ink",
@@ -3057,7 +3143,9 @@ function OsekZeirNote({
   const notRecognized = Math.round(totalExpenses - recognized);
 
   return (
-    <div className="mt-3 rounded-xl border border-due/40 bg-due-bg/60 p-3">
+    // No border (Yoni, 28/08): the tint + bold gold header already read as
+    // "שים/י לב" — an outline around it looked like a box-within-a-box.
+    <div className="mt-3 rounded-xl bg-due-bg/60 p-3">
       <div className="flex items-start gap-2">
         <InfoIcon className="size-4 text-due shrink-0 mt-0.5" />
         <div className="flex-1 text-xs leading-relaxed text-ink">

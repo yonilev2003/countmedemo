@@ -107,7 +107,7 @@ export function YearSwitch({ persona, onPersonaChange, persist = true, className
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep focus-visible:ring-offset-1",
         )}
       >
-        <span>שנת מס {year}</span>
+        <span>{persist ? `שנת מס ${year}` : `צופה בשנת ${year}`}</span>
         <ChevronDownIcon
           className={cn(
             "size-3.5 shrink-0 text-muted transition-transform",
@@ -150,7 +150,16 @@ export function YearSwitch({ persona, onPersonaChange, persist = true, className
             </button>
           ))}
           <p className="mt-1.5 border-t border-line px-3 pt-1.5 text-[11px] leading-snug text-faint">
-            הנתונים הקיימים יוצגו ויחושבו לפי שנת המס שתיבחר.
+            {persist
+              ? "הנתונים הקיימים יוצגו ויחושבו לפי שנת המס שתיבחר."
+              : // QA audit 25/08, item 5: /dashboard's picker is a VIEW filter
+                // only (persist={false}, FP-10 — a locked, deliberate contract,
+                // see year-switch.tsx's own persist prop doc). It looked
+                // identical to /dashboard/pro's persisted picker, so a
+                // selection that silently didn't survive a refresh read as a
+                // bug. Decided 25/08: keep the ephemeral behavior, make it say
+                // so explicitly instead of changing the contract.
+                "זו צפייה זמנית בלבד — לא משנה את שנת המס המוצהרת שלך, ומתאפסת ברענון הדף."}
           </p>
         </div>
       )}

@@ -190,6 +190,11 @@ export const TAX_YEAR_2024 = {
   soldierReducedFractionPerMonth: 1 / 12, // partial service (12–22 months)
   soldierFullServiceMonthsMale: 23,
   soldierFullServiceMonthsFemale: 22,
+  // Below this floor, even the reduced 1/12/month rate doesn't apply — no
+  // credit at all (Yoni, 27/08 QA: only the 22/23-month upper bound was
+  // ever enforced, so 0-11 months of service silently earned the
+  // partial-service rate they don't qualify for).
+  soldierMinimumServiceMonths: 12,
 
   // Surtax (mas yesafim): 3% above 721,560 → effective top bracket = 50%
   surtaxThreshold: 721560,
@@ -357,6 +362,7 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   soldierReducedFractionPerMonth: 1 / 12,
   soldierFullServiceMonthsMale: 23,
   soldierFullServiceMonthsFemale: 22,
+  soldierMinimumServiceMonths: 12,
 
   // Surtax — FROZEN for 2025 (israeli-tax-returns: 721,560 frozen 2025–2027)
   surtaxThreshold: 721560,              // CONFIRMED 2025 (frozen through 2027)
@@ -486,6 +492,7 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   soldierReducedFractionPerMonth: 1 / 12,
   soldierFullServiceMonthsMale: 23,
   soldierFullServiceMonthsFemale: 22,
+  soldierMinimumServiceMonths: 12,
 
   // Surtax — frozen 2025–2027.
   surtaxThreshold: 721560,              // CONFIRMED (frozen through 2027)

@@ -57,8 +57,9 @@ function residentCreditPoints(p: Persona): number {
  *
  * Rule (israeli-tax-returns / kolzchut, סעיף 67/39א): 1/6 point per eligible
  * month for full service (men 23+, women 22+ months) or 1/12 for partial
- * qualifying service (12–22 months), for the 36 months starting the month AFTER
- * discharge. The discharge year and the year the window closes are partial.
+ * qualifying service (12–22 months — BELOW 12 months earns no credit at all),
+ * for the 36 months starting the month AFTER discharge. The discharge year
+ * and the year the window closes are partial.
  *
  * Needs the discharge date to locate the eligibility window. When the date is
  * missing we fall back to a full tax year of eligibility (12 months) so the
@@ -71,6 +72,10 @@ function soldierCreditPoints(p: Persona): number {
 
   // Per-month fraction depends on service length. Absent → assume full service.
   const months = p.personal.soldierServiceMonths;
+  // Below the minimum qualifying service, there is no credit at all — not
+  // even the reduced rate (only the fullThreshold UPPER bound was enforced
+  // before this fix, so e.g. 3-6 months silently earned the partial rate).
+  if (months != null && months < TC.soldierMinimumServiceMonths) return 0;
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -142,6 +147,32 @@ function newOlehCreditPoints(p: Persona): number {
   return TC.newOlehCreditYear1;
 }
 
+/**
+ * Academic-degree credit (field 181) — WINDOWED, not perpetual. Yoni's 27/08
+ * QA: the prior version gave 1 point forever once any graduation year was
+ * entered, with no expiry — and totalCreditPoints() excluded it entirely, so
+ * the credit never actually reduced the tax estimate anywhere, only showed
+ * as an informational line on the form preview.
+ *
+ * Rule (israeli-tax-returns skill, references/tax-brackets-credits.md):
+ *   • Graduates 2023+: up to 3 years from graduation (BA/vocational).
+ *   • Graduates 2014–2022: the graduation year only (1 year, no window).
+ *   • Pre-2014: any window under either rule has long expired by the tax
+ *     years this app supports (2024+), so never eligible here.
+ * Degree TYPE (BA vs MA vs vocational) isn't collected by the wizard yet —
+ * this assumes BA/vocational (1 point/year in-window). MA is 0.5 point for
+ * 2 years per the same reference — FLAG: add a degree-type field before
+ * trusting this for an MA graduate.
+ */
+function academicDegreeCreditPoints(p: Persona): number {
+  const gradYear = p.personal.academicDegreeYear;
+  if (!gradYear) return 0;
+  const windowYears = gradYear >= 2023 ? 3 : gradYear >= 2014 ? 1 : 0;
+  const windowEnd = gradYear + windowYears - 1;
+  const filingYear = p.income.year;
+  return filingYear >= gradYear && filingYear <= windowEnd ? 1 : 0;
+}
+
 /** Round to 2 decimals (credit points are quoted to 1/4 / 1/12 granularity). */
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -150,13 +181,13 @@ function round2(n: number): number {
 /**
  * Total nekudot zikui for the persona in its tax year — the SINGLE aggregation
  * used by the tax estimate. Resident + soldier (prorated) + children + oleh +
- * miluim (2026+). Academic-degree points are intentionally excluded here
- * (handled as a separate field with its own eligibility window).
+ * academic degree (windowed) + miluim (2026+).
  */
 export function totalCreditPoints(p: Persona): number {
   return round2(
     residentCreditPoints(p) +
       soldierCreditPoints(p) +
+      academicDegreeCreditPoints(p) +
       childCreditPoints(p) +
       newOlehCreditPoints(p) +
       miluimCreditPoints(p.income.year, combatReserveDaysForFiling(p)),
@@ -402,6 +433,17 @@ export const field068Soldier: Calculator = (p) => {
   }
   const TC = getTaxYearConstants(p.income.year);
   const months = p.personal.soldierServiceMonths;
+  const points = soldierCreditPoints(p);
+
+  if (months != null && months < TC.soldierMinimumServiceMonths) {
+    return {
+      value: false,
+      formula: `${months} חודשי שירות — מתחת לסף המינימלי (${TC.soldierMinimumServiceMonths} חודשים) לזיכוי חייל משוחרר`,
+      sources: [{ label: "personal.soldierServiceMonths", detail: `${months} חודשים` }],
+      confidence: "high",
+    };
+  }
+
   const fullThreshold =
     p.personal.gender === "female"
       ? TC.soldierFullServiceMonthsFemale
@@ -413,7 +455,6 @@ export const field068Soldier: Calculator = (p) => {
     p.income.year,
     TC.soldierMonthsCredit,
   );
-  const points = soldierCreditPoints(p);
   const dateKnown = !!p.personal.soldierDischargeDate;
 
   const notes: string[] = [];
@@ -663,18 +704,43 @@ export const field135KupatGemel: Calculator = (p) => {
  * ============================================================ */
 export const field181AcademicDegree: Calculator = (p) => {
   const TC = getTaxYearConstants(p.income.year);
-  const year = p.personal.academicDegreeYear;
+  const gradYear = p.personal.academicDegreeYear;
   const creditValue = TC.pointValueAnnual;
-  const value = year ? creditValue : 0;
+  const points = academicDegreeCreditPoints(p);
+  const notes = [
+    "בהנחת תואר ראשון/תעודה מקצועית (1 נק׳/שנה). לתואר שני (0.5 נק׳ לשנתיים) יש לאמת ידנית — סוג התואר עדיין לא נאסף באשף.",
+  ];
+
+  if (!gradYear) {
+    return {
+      value: 0,
+      formula: "אין תואר אקדמי",
+      sources: [{ label: "personal.academicDegreeYear = null" }],
+      confidence: "high",
+    };
+  }
+
+  if (points === 0) {
+    const windowYears = gradYear >= 2023 ? 3 : gradYear >= 2014 ? 1 : 0;
+    const windowEnd = gradYear + windowYears - 1;
+    return {
+      value: 0,
+      formula:
+        p.income.year > windowEnd
+          ? `תואר אקדמי מ-${gradYear} — חלון הזכאות (${windowYears <= 1 ? "שנת הסיום בלבד" : `${windowYears} שנים מסיום`}) הסתיים לפני דוח ${p.income.year}`
+          : `תואר אקדמי מ-${gradYear} — עדיין לא הוענק, אינו רלוונטי לדוח ${p.income.year}`,
+      sources: [{ label: "תואר אקדמי", detail: `סיום ${gradYear}` }],
+      confidence: "medium",
+      notes,
+    };
+  }
+
   return {
-    value,
-    formula: year
-      ? `תואר אקדמי (${year}) — נקודת זיכוי אחת = ${creditValue.toLocaleString("he-IL")} ₪`
-      : "אין תואר אקדמי",
-    sources: year
-      ? [{ label: `תואר אקדמי ${year}`, detail: `${ils(value)} זיכוי` }]
-      : [{ label: "personal.academicDegreeYear = null" }],
-    confidence: "high",
+    value: creditValue,
+    formula: `תואר אקדמי (סיום ${gradYear}) — נקודת זיכוי לדוח ${p.income.year} = ${creditValue.toLocaleString("he-IL")} ₪`,
+    sources: [{ label: `תואר אקדמי ${gradYear}`, detail: `${ils(creditValue)} זיכוי` }],
+    confidence: "medium",
+    notes,
   };
 };
 

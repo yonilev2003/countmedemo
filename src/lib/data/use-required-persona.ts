@@ -58,17 +58,28 @@ export function useRequiredPersona() {
   const [saveStatus, setSaveStatus] = useState<PersonaSaveStatus>(() =>
     getPersonaSaveStatus(),
   );
+  // QA audit 25/08, item 8: the optimistic paint below can guess wrong on a
+  // shared device (e.g. a stale/different anonymous cache present when a
+  // DIFFERENT account's real data is about to be confirmed) — it always
+  // self-corrects once syncPersonaFromDb() resolves, but silently, which
+  // read as "briefly showed the wrong data with no explanation." This flags
+  // exactly that: true only when the reconcile actually disagreed with what
+  // was already painted, never on an ordinary same-data reconcile.
+  const [correctedFromOptimisticPaint, setCorrectedFromOptimisticPaint] =
+    useState(false);
 
   useEffect(() => subscribePersonaSaveStatus(setSaveStatus), []);
 
   useEffect(() => {
     let cancelled = false;
+    let optimisticSnapshot: Persona | null = null;
 
     const local = loadPersona();
     const localOwner = getPersonaOwner();
     const localIsAnonymous = !!local && !localOwner;
     if (localIsAnonymous && hasPendingContinueIntent()) {
       setPersona(local);
+      optimisticSnapshot = local;
     } else if (
       local &&
       localOwner &&
@@ -79,6 +90,7 @@ export function useRequiredPersona() {
       // rationale. syncPersonaFromDb() below is still the authoritative
       // check and hard-swaps (or routes to /setup) the instant it disagrees.
       setPersona(local);
+      optimisticSnapshot = local;
     }
     // Every other case (anonymous cache with no pending intent, or a stamped
     // cache this tab can't yet vouch for) leaves `persona` at its neutral
@@ -102,8 +114,17 @@ export function useRequiredPersona() {
       // Trust the reconcile result verbatim — never fall back to a STAMPED
       // local cache, which syncPersonaFromDb may have just discarded as
       // belonging to a different account (QA #17).
-      if (remote) setPersona(remote);
-      else router.replace("/setup");
+      if (remote) {
+        setPersona(remote);
+        if (
+          optimisticSnapshot &&
+          JSON.stringify(optimisticSnapshot) !== JSON.stringify(remote)
+        ) {
+          setCorrectedFromOptimisticPaint(true);
+        }
+      } else {
+        router.replace("/setup");
+      }
     })();
 
     return () => {
@@ -116,7 +137,13 @@ export function useRequiredPersona() {
   // dashboard) to show a "נשמר בענן" / retryable-error state (task #3);
   // DoneScreen (which owns the immediate post-auth save) renders its own
   // inline confirmation instead of relying on this shared status.
-  return { persona, setPersona, saveStatus, retrySave: retryPersonaSave };
+  return {
+    persona,
+    setPersona,
+    saveStatus,
+    retrySave: retryPersonaSave,
+    correctedFromOptimisticPaint,
+  };
 }
 
 /**
