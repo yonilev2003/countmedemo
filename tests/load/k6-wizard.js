@@ -1,10 +1,17 @@
 // tests/load/k6-wizard.js
 //
 // Scenario 2 (v2 plan 5.2): 20 concurrent users completing the /setup
-// wizard. /setup is a client-side SPA (see src/lib/supabase/proxy.ts —
-// "/setup" itself is NOT in PROTECTED_PREFIXES, only "/setup/assets" is, so
-// the wizard is reachable anonymously by design), so there is no per-step
-// server round-trip to replay. What IS a real server round-trip per step is
+// wizard. /setup is a client-side SPA — as of 2026-08-28 it's also in
+// PROTECTED_PREFIXES (src/lib/supabase/proxy.ts), so on a target where
+// AUTH_GATING resolves to true an anonymous GET /setup redirects to /login
+// instead of loading the wizard; this script's initial page-load check
+// tolerates that redirect the same way k6-browse.js does for /coach (any
+// status < 400 counts as a pass — we're measuring responsiveness under
+// load, not asserting wizard content). Once redirected, the per-step
+// /api/track replay below no longer reflects a real anonymous session — this
+// scenario is most meaningful run with AUTH_GATING_ENABLED=false on the
+// target, or reworked to authenticate first. What IS a real server
+// round-trip per step is
 // the analytics event the real UI fires (src/app/api/track/route.ts,
 // ALLOWED set) — so this scenario is: one GET /setup page load (static
 // assets are implicit — Next.js serves them off _next/static, which this

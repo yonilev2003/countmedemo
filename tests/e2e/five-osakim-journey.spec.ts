@@ -89,6 +89,8 @@ async function runWizard(page: Page, p: Profile) {
   await page
     .getByText(p.gender === "female" ? "נקבה (2.75 נקודות)" : "זכר (2.25 נקודות)")
     .click();
+  // Mobile phone is required (Yoni, 28/08).
+  await page.getByLabel("נייד").fill("050-1234567");
   await page.getByRole("checkbox").first().check(); // terms+privacy
   await page.getByRole("button", { name: /הבא/ }).click();
 

@@ -76,12 +76,16 @@ export default async function Home({
               </Link>
             ) : (
               <>
-                <Link href="/login" className={btn("secondary", "sm")}>
+                {/* Sign-in is the primary action now — /setup requires Google
+                    auth first regardless of which button is clicked (Yoni,
+                    28/08), so "start now" no longer honestly describes a
+                    no-signup path. */}
+                <Link href="/login" className={btn("primary", "sm")}>
                   כניסה
-                </Link>
-                <Link href="/setup" className={btn("primary", "sm")}>
-                  התחילו עכשיו
                   <ArrowLeftIcon className="size-[17px]" />
+                </Link>
+                <Link href="/setup" className={btn("secondary", "sm")}>
+                  פעם ראשונה?
                 </Link>
               </>
             )}
@@ -132,7 +136,7 @@ export default async function Home({
               href="/setup"
               className={btn("gold", "md", "px-[30px] py-[15px] text-base")}
             >
-              התחל/י עכשיו
+              פעם ראשונה? התחילו כאן
               <ArrowLeftIcon className="size-[18px]" />
             </Link>
           </div>
@@ -257,7 +261,7 @@ export default async function Home({
 
           <div className="mt-12 flex flex-wrap justify-center gap-3">
             <Link href="/setup" className={btn("primary")}>
-              התחילו עכשיו
+              פעם ראשונה? התחילו כאן
               <ArrowLeftIcon className="size-[18px]" />
             </Link>
           </div>

@@ -8,6 +8,39 @@ related: "[[STATUS]] · [[progress]] · [[retro-2026-07-03]]"
 > החלטות שלא חוזרים עליהן בלי דיון מחדש. הטבלה המורחבת של החלטות-המוצר חיה ב-`CLAUDE.md`
 > ("Project decisions" + "Design decisions"); כאן ההחלטות הפעילות + ההנמקה התמציתית.
 
+## סשן 28/08/2026 (Sonnet 5) — /setup דורש הרשמה עם Google מראש; ביטול המסלול האנונימי
+
+**נעול (יוני, בהודעה מפורשת תוך כדי בדיקה חיה):** הארכיטקטורה הקודמת ("למלא נתונים באנונימיות,
+Google נדרש רק בשמירה הסופית ב-DoneScreen") **בוטלה**. `/setup` נוסף ל-`PROTECTED_PREFIXES`
+(`src/lib/supabase/proxy.ts`) — מבקר לא-מחובר ל-`/setup` (או כל תת-נתיב שלו) מקבל redirect ל-
+`/login?next=/setup`. זו **האופציה היחידה** שיוני מבקש לאפשר כרגע: הרשמה עם Google היא תמיד
+הצעד הראשון, לכל מבקר, בלי יוצא מן הכלל — לא רק דרך כפתורי דף הבית, אלא בכל כניסה ל-`/setup`
+(כתובת ישירה, סימניה וכו').
+
+**מה זה כן משאיר במקום, במכוון:** מנגנון ה-continue-intent (`markPersonaContinueIntent`,
+ה-branch המאוחר של DoneScreen שמפנה ל-`/login?intent=save-persona`) **לא הוסר** — הוא הפך
+לבלתי-נגיש הלכה למעשה (עד ש-DoneScreen נטען, המשתמש כבר מחובר, בזכות השער החדש), אבל השארתו
+כ-defense-in-depth זולה ובלתי-מזיקה. אם עולה שיקול לנקות קוד מת — זה המקום להתחיל.
+
+**מה השתנה בפועל:**
+- `src/lib/supabase/proxy.ts`: `/setup` נוסף ל-`PROTECTED_PREFIXES` (מחליף את `/setup/assets`
+  הספציפי-יותר, שהיה ממילא מכוסה על ידי `/setup` כפריפיקס).
+- `src/app/login/login-form.tsx`: הוסר ה-escape-hatch "פעם ראשונה? התחילו במילוי הנתונים →"
+  שהוביל ל-`/setup` בלי התחברות — הפך ל-loop סתמי (redirect בחזרה ל-login) ברגע שהשער עלה.
+- `src/app/page.tsx`: כל כפתורי "התחילו עכשיו"/"התחל/י עכשיו" שקישרו ל-`/setup` שונו ל-"פעם
+  ראשונה? התחילו כאן" (או "פעם ראשונה?" בגרסה הקומפקטית בסרגל הניווט) — הטקסט הקודם הבטיח
+  "התחלה" בלי לרמוז שנדרשת הרשמה, וזה כבר לא נכון. סרגל הניווט: "כניסה" הפך לכפתור הראשי
+  (primary), "פעם ראשונה?" למשני — כי עכשיו שני הכפתורים מובילים בפועל להתחברות Google.
+- **לא נגעתי ב-**`tests/e2e/five-osakim-journey.spec.ts`/`demo-flow.spec.ts`'s `page.goto("/setup")`
+  הישיר — verified: ב-CI/dev (`npm run dev`, `NODE_ENV !== production`) ו-`AUTH_GATING_ENABLED`
+  לא מוגדר, `isAuthGatingEnabled()` מחזיר `false` (ראו `src/lib/security/auth-gating.ts` +
+  ההערה המפורשת ב-`.github/workflows/ci.yml`: "with AUTH_GATING_ENABLED unset the app runs
+  signed-out, which is exactly the flow the suite covers") — כך שהסוויטה הקיימת ממשיכה לעבוד
+  בלי שינוי, והשער אוכף רק ב-production/preview אמיתיים.
+
+**אם בעתיד רוצים לחזור למסלול האנונימי** (או היברידי — auth-gate רק לכניסות מהדף הבית, לא
+ל-URL ישיר) — זו דיון-מחדש מפורש, לא ברירת מחדל.
+
 ## סשן 25/08/2026 (Sonnet 5) — /dashboard's YearSwitch נשאר אפמרי; QA-audit root-cause corrections
 
 **נעול (יוני, AskUserQuestion אחרי דוח-ביקורת מלא):** `/dashboard`'s YearSwitch (`persist={false}`,

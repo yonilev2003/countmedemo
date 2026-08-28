@@ -11,6 +11,14 @@
 // request to a protected prefix is redirected to /login. Persona-based routing
 // (e.g. /demo -> /setup when no persona exists) is intentionally NOT handled
 // here — that logic lives in the data/page layer, not in auth.
+//
+// /setup requires auth too (Yoni, 28/08 — reverses the earlier "fill data
+// anonymously, defer sign-in to the final save" design): Google sign-in is
+// now the ONLY supported entry path, for every visitor, before any data
+// entry starts. The old anonymous-first flow (markPersonaContinueIntent,
+// DoneScreen's late-auth branch in setup/page.tsx) is left in place as
+// harmless defense-in-depth rather than ripped out — it's simply
+// unreachable now that this gate runs first.
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
@@ -21,7 +29,7 @@ import { isAuthGatingEnabled } from "@/lib/security/auth-gating";
 const PROTECTED_PREFIXES = [
   "/home",
   "/demo",
-  "/setup/assets",
+  "/setup",
   "/onboarding",
   "/business-expenses",
   "/expenses",

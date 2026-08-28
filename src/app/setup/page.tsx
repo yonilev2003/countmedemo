@@ -1038,6 +1038,11 @@ export default function SetupPage() {
     }
     if (!s1.birthDate) e.birthDate = "שדה חובה";
     if (!s1.gender) e.gender = "שדה חובה";
+    // Required, not optional (Yoni, 28/08) — the number appears on generated
+    // documents (invoices/receipts), so it needs to actually be there. Lives
+    // on THIS screen (not validateStep2) because that's where the field
+    // itself is rendered.
+    if (!phoneMobile.trim()) e.phoneMobile = "שדה חובה";
     if (!termsAccepted) {
       e.termsAccepted = "יש לאשר את תנאי השימוש ומדיניות הפרטיות כדי להמשיך";
     }
@@ -1738,16 +1743,17 @@ export default function SetupPage() {
                 </div>
 
                 <div>
-                  <FieldLabel htmlFor="phoneMobile">נייד (אופציונלי)</FieldLabel>
+                  <FieldLabel htmlFor="phoneMobile" required>נייד</FieldLabel>
                   <input
                     id="phoneMobile"
                     type="tel"
                     value={phoneMobile}
                     onChange={(e) => setPhoneMobile(e.target.value)}
-                    className={inputCls(false)}
+                    className={inputCls(!!errors.phoneMobile)}
                     dir="ltr"
                     placeholder="050-1234567"
                   />
+                  <ErrorMsg msg={errors.phoneMobile} />
                   <p className="mt-1 text-xs text-muted">
                     יופיע כפרט קשר על גבי המסמכים שתפיק/י — לא נשלח קוד אימות
                     למספר הזה.
@@ -2483,7 +2489,8 @@ export default function SetupPage() {
 
                   {/* Factual 30% note — osek ZEIR with expenses ABOVE 30% (facts, no advice) */}
                   {showZeirOverNote && (
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
+                    // No border, matching OsekZeirNote's same fix (Yoni, 28/08).
+                    <div className="mt-3 flex items-start gap-2 rounded-xl bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
                       <InfoIcon className="size-4 mt-0.5 shrink-0 text-due" />
                       <span>
                         <span className="font-semibold text-due">שים/י לב: </span>
@@ -3136,7 +3143,9 @@ function OsekZeirNote({
   const notRecognized = Math.round(totalExpenses - recognized);
 
   return (
-    <div className="mt-3 rounded-xl border border-due/40 bg-due-bg/60 p-3">
+    // No border (Yoni, 28/08): the tint + bold gold header already read as
+    // "שים/י לב" — an outline around it looked like a box-within-a-box.
+    <div className="mt-3 rounded-xl bg-due-bg/60 p-3">
       <div className="flex items-start gap-2">
         <InfoIcon className="size-4 text-due shrink-0 mt-0.5" />
         <div className="flex-1 text-xs leading-relaxed text-ink">

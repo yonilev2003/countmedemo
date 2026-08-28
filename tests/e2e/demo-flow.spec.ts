@@ -145,6 +145,8 @@ test.describe("/setup — wizard", () => {
     // Click the visible label — the radio input itself is sr-only (1×1,
     // clipped), so a direct .check() on it can't receive the pointer.
     await page.getByText("נקבה (2.75 נקודות)").click();
+    // Mobile phone is required (Yoni, 28/08).
+    await page.getByLabel("נייד").fill("050-1234567");
     // Terms+privacy consent is also required on screen 1 now (a real
     // checkbox, not sr-only — .check() works directly).
     await page.getByRole("checkbox").first().check();
