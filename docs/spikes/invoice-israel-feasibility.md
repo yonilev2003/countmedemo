@@ -171,6 +171,67 @@ What countme already has that's relevant (so a future build extends, not rebuild
 
 ---
 
+## Update — 2026-08-29: production "בית תוכנה" authorization, re-scoped for the launch plan
+
+> **Context change:** the June-2026 spike above assumed a 3–5-user, 1-month EY pilot and correctly parked production issuance as OUT of scope. That framing is now stale on one axis: countme's plan is **internal beta now → ~1,000-user friends beta in ~2 months → official launch end 2026/early 2027**. This section does not re-litigate the Q1–Q5 verdict above (Option 0/advisory is still the right *product* scope today) — it drills into **when/whether to start the registration paperwork itself**, since ITA authorization has its own lead time independent of when countme starts issuing.
+
+**What's already known (recap, from the June spike):** countme registering to *call* the allocation-number API requires the org to sign up as an API-consumer "software house" in the ITA OpenAPI portal, sandbox is self-service, production needs ITA authorization via signed documents, and each end-user business separately needs its own personal-area registration + digital permission + OAuth2 token (renewed ~every 3 months). The exact signed-document list and signatories were left unconfirmed (flagged ⚠️) — this update pins most of that down from primary sources.
+
+### 1. Production authorization — the actual document set, signatories, fee, timeline
+
+**What:** Production access is gated behind a specific, named procedure — **"נוהל חיבור בית תוכנה" (software-house connection procedure)**, current version dated 11.1.24, published at `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_Software-house-connection-procedure.pdf`. Per that procedure's own document set (also listed as separate PDFs on the same `connect-to-shaam` service page), the software house submits:
+- a **כתב התחייבות (commitment/obligation letter) with appendices** — the general SHAAM obligation letter (`Service_Pages_shaam_obligation.pdf`, dated 30.10.2024) **plus** the dedicated **information-security declaration appendix** for software houses (`Service_Pages_shaam_appen-info-security-for-software-house.pdf`, dated 22/28.7.2025 — see item 3 below);
+- a signed **הרשאה (authorization)** for the registration, per **"הרשאה לרישום בית התוכנה מטעם בעל העסק/התאגיד"** (`Service_Pages_shaam_procedure_of_obtaining_fpermission_to_register_the_software_house.pdf`) — i.e. authorization "on behalf of the business owner **or** the corporation";
+- a **communication-infrastructure-provider connection form** (network/infra details for the API calls).
+
+**Who signs:** the authorization procedure names it as coming from **"בעל העסק/התאגיד"** — literally "the business owner **or** the corporation" — mirroring the general digital-operations-authorization rule elsewhere on gov.il that a **director of a company**, a **partner in a registered partnership**, or a **signatory of an association** can grant/hold this authorization (max duration specified per grant, up to a year, renewable). ⚠️ **This phrasing (בעל העסק **or** התאגיד, used as alternatives in the document's own title) is the clearest primary-source signal that a sole proprietorship (עוסק) can register as the software house itself — it is not phrased as חברה-only** — but I could not open the PDF body directly (gov.il is blocked by this environment's egress proxy; found via search-engine snippets/titles only), so treat this as **high-confidence-but-not-fully-verified**; have Yoni open the PDF directly before treating it as settled. No accountant sign-off requirement was found anywhere in these documents — signatory is a business officer/owner, not a CPA.
+
+**Cost:** ⚠️ Multiple secondary sources (not the gov.il PDFs themselves) cite a **one-time connection fee of ₪1,500** for the software-house SHAAM connection. This number was consistent across two independent secondary mentions but I could not confirm it by reading the primary PDF text directly (egress-blocked) — flag as **unconfirmed, needs primary-source check**.
+
+**Timeline:** ⚠️ Secondary sources describing the ITA's processing SLA state **up to 90 days (≈3 months) from submission** for requests needing in-depth review, "typically shorter when the request includes all required documents." A separate, more general ITA authorization-processing figure (for a related but different digital-authorization flow) cites **5 business days** for automated/low-risk checks vs **up to 3 months** for cases needing deeper review — consistent with the 90-day figure, but again **not read directly off a gov.il PDF in this session** (⚠️).
+
+**Primary source (titles/URLs found via search, gov.il fetch blocked here):**
+- `gov.il/he/service/connect-to-shaam` — "קישור לשע״ם – מייצגים, כספות, ובתי תוכנה" (the hub page — names three distinct connecting populations: representatives, "safes"/כספות, and software houses)
+- `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_Software-house-connection-procedure.pdf`
+- `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_obligation.pdf`
+- `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_procedure_of_obtaining_fpermission_to_register_the_software_house.pdf`
+- `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_connection-work-process-software-houses.pdf`
+- `gov.il/he/departments/targetaudience/taxes-adience-software` — "מידע לבתי תוכנה וליצרני מערכות מידע"
+
+### 2. "בית תוכנה" IS a broader/distinct designation than the invoice-allocation API — confirmed
+
+**What:** There is a **second, separate ITA registration track**, unrelated to SHAAM/allocation numbers: **"בקשה לרישום תוכנה המיועדת לניהול מערכת חשבונות ממוחשבת"** ("application to register software intended for managing a computerized accounting/bookkeeping system"), `gov.il/he/service/registration-software-designed-managing-computerized-accounting-system` (also `…itc-application-for-registration-software-computer-account-systems`). This sits under **הוראות מס הכנסה (ניהול פנקסי חשבונות), תשל״ג-1973** (the Income Tax bookkeeping-records regulations), specifically **Appendix ח / regulation 36**, which defines a "computerized accounting system" and requires anyone who wants to **sell** software for managing one to submit it to the ITA Commissioner for a registration certificate. Explicitly noted on the form's own description: **registration does not certify the software's correctness or that it complies with the bookkeeping regulations** — it's a registry entry, not a functional approval/audit.
+**So — clarifying what Roy likely means:** if "בית תוכנה" is used loosely, it could refer to **either** (a) the SHAAM/e-invoicing API-consumer registration (Q1 above — this is almost certainly what's relevant to countme, since it's the one gating allocation-number issuance) **or** (b) this separate bookkeeping-software registration (relevant only if countme itself becomes the system-of-record for a client's statutory ledgers, which it currently is not — countme reads/advises, it doesn't replace the client's ניהול ספרים software). **Recommend confirming with Roy which he means** — the two have different triggers, different regulations, and different document sets. Given countme's current architecture (companion app, not a bookkeeping system of record), (a) is the one that matters near-term.
+**Also confirmed (not really a third program, but adjacent):** the `connect-to-shaam` hub explicitly groups **מייצגים (tax representatives — accountants/lawyers)**, **כספות (secure file-drop "safes")**, and **בתי תוכנה (software houses)** as three separate connecting populations to the same SHAAM backend — so pulling things like טופס 106/מידע נישום programmatically would most likely route through **the מייצג (representative) channel's own API/credential set**, not the software-house/invoice-allocation one. I did not find a distinct "software-vendor" accreditation beyond the two above (bookkeeping-software registration, and SHAAM API-consumer registration) in this pass — no evidence of a broader general "software accreditation program."
+
+**Primary source:** `gov.il/he/service/registration-software-designed-managing-computerized-accounting-system`; legal basis `nevo.co.il/law_html/law01/255_179.htm` (הוראות מס הכנסה (ניהול פנקסי חשבונות), תשל״ג-1973, secondary mirror, not gov.il itself — flag ⚠️ for exact regulation-36/Appendix-ח text); `gov.il/he/service/connect-to-shaam`.
+
+### 3. Information-security requirements for registered software houses — the clearest primary-source find
+
+**What:** The ITA publishes a dedicated **information-security declaration appendix specifically for software houses** — **"הצהרה-נספח אבטחת מידע"**, `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_appen-info-security-for-software-house.pdf`, current version dated **22–28 July 2025**. Confirmed concrete, scaled requirements:
+- **Penetration testing, scaled by customer count**, both with hard first-test deadlines already in the past relative to today (2026-08-29) — meaning **any software house already connected has already been through at least one round**:
+  - Software houses serving **>10 customers** issuing invoices via SHAAM: annual-and-a-half (i.e. every 18 months) penetration testing, **first test no later than 2025-12-31**.
+  - Software houses serving **>100 customers**: same ongoing 18-month cadence but an **earlier first-test deadline, no later than September 2025**.
+  - The ITA reserves the right to **demand an ad-hoc penetration test at any time** if it suspects suspicious/improper activity that threatens the Authority from a cyber standpoint.
+- A **full data-security document set** that the software house must hand to its own IT/security staff.
+- **API traffic to SHAAM must originate from computers located in Israel** (a data-residency/network-origin constraint, not just a policy statement) — ⚠️ worth double-checking the exact wording/scope (all traffic, or just the registration/auth flow) directly against the PDF.
+- ⚠️ I could not open the PDF body directly in this environment (gov.il blocked by egress proxy) — the bullet points above come from a search-engine-generated summary of that specific document, not a line-by-line read. **Encryption-at-rest and specific access-control standards were referenced by the doc's existence/title but I could not confirm their exact wording** — get Yoni or an engineer with unblocked gov.il access to pull the PDF directly before this becomes a compliance checklist item.
+- Context from an unrelated finding: **Israel's State Comptroller has previously flagged security weaknesses in the חשבוניות ישראל system itself** (per a secondary Hebrew tech-press summary, `pc.co.il`), recommending the ITA build better anomaly-detection and work more closely with government/external infosec bodies — i.e. the ITA's own back end has been publicly criticized on this axis, which is a signal (not a countme obligation, but useful context for a security conversation with EY).
+
+**Primary source:** `gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_appen-info-security-for-software-house.pdf` (title/date confirmed via search; body summarized via search snippets, not directly read this session).
+
+### 4. When registration actually becomes necessary vs. when to *start* it, given the growth plan
+
+**Judgment call (not a primary-source fact) given the above:**
+- **Registration is not needed for internal beta or the ~1,000-user friends beta**, as long as countme stays in its current posture: pre-computing values, advisory-only on the allocation-number rule (Option 0 from the June spike), and the user still copies/issues invoices themselves through their own existing tooling. Nothing in the beta plan requires countme to call the `Approval` API on a user's behalf.
+- **Registration becomes necessary the moment countme itself calls the SHAAM `Approval` endpoint to obtain/embed an allocation number on an invoice it generates or issues on a user's behalf** — i.e., tied to the *product* decision to move from "advisory" to "issuer," not to user count. A friends-beta user manually getting their own allocation number (via their personal ITA area, unconnected to countme) never triggers countme's own software-house obligation.
+- **But the *lead time* argument favors starting the paperwork early, independent of the trigger above**, because: (a) production authorization has a **real-world processing SLA of up to ~90 days** (⚠️ secondary-sourced, see item 1) that is entirely outside countme's control once submitted; (b) it needs **signed documents from a business officer** (Yoni) plus **an infrastructure/network setup step**, which are calendar-cost, not engineering-cost, and can run in parallel with beta; (c) the **sandbox registration is self-service and free-ish to start today** (per the June spike, Option 1 — ~3–5 eng days) and de-risks the OAuth2/API integration *before* the 90-day production clock needs to start.
+- **Recommended sequencing against the stated timeline** (internal beta now → 1,000-user beta in ~2 months → official launch end 2026/early 2027): if issuance is a real goal for the official launch, **start the sandbox POC (Option 1) and the production paperwork (signed commitment letter + officer authorization + infra form) in parallel with the 1,000-user beta**, not after it — a 90-day ITA clock plus internal signature/legal routing easily eats 2–4 months, which does not fit *after* the 2-month beta if launch is end-2026. If issuance is **not** committed as an official-launch feature, there's no reason to start the production paperwork now — the advisory-only posture has no expiry and can carry all the way through launch.
+
+No primary source addresses "when should a company start this" — that's a scheduling inference from the confirmed 90-day-ish processing SLA (⚠️) plus the fixed launch date, not a stated ITA rule.
+
+---
+
 ## Sources
 
 Cross-checked; ⚠️ = could not load the primary gov.il page directly in this environment (fetch returned 403), corroborated via reputable Israeli CPA/vendor guides instead.
@@ -207,3 +268,21 @@ Cross-checked; ⚠️ = could not load the primary gov.il page directly in this 
 - Kol Zchut — osek patur (cannot issue tax invoice): https://www.kolzchut.org.il/he/עוסק_פטור
 
 **Domain authority:** `israeli-e-invoice` skill (`.claude/skills/israeli-e-invoice/` — `references/shaam-api-reference.md`, `references/compliance-timeline.md`, `references/invoice-types.md`).
+
+**Added 2026-08-29 (production-authorization update above) — official (ITA/gov.il), titles/URLs confirmed via search engine, PDF bodies NOT read directly (gov.il fetch blocked in this environment's egress proxy — ⚠️ have someone with unblocked access open these before treating any figure above as final):**
+- Hub: https://www.gov.il/he/service/connect-to-shaam
+- Software-house connection procedure (11.1.24): https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_Software-house-connection-procedure.pdf
+- SHAAM obligation/commitment letter (30.10.2024): https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_obligation.pdf
+- Authorization to register the software house, on behalf of business owner/corporation: https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_procedure_of_obtaining_fpermission_to_register_the_software_house.pdf
+- Software-house connection work process: https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_connection-work-process-software-houses.pdf
+- Information-security declaration/appendix for software houses (22–28.7.2025, pen-test cadence): https://www.gov.il/BlobFolder/service/connect-to-shaam/he/Service_Pages_shaam_appen-info-security-for-software-house.pdf
+- "מידע לבתי תוכנה וליצרני מערכות מידע" landing page: https://www.gov.il/he/departments/targetaudience/taxes-adience-software
+- "יצרני תוכנות – הוראות ופרסומים אחרים": https://www.gov.il/he/pages/hor-software-other
+- Separate bookkeeping-software registration (distinct designation, Q2 finding): https://www.gov.il/he/service/registration-software-designed-managing-computerized-accounting-system
+- General digital-operations authorization service (signatory rules): https://www.gov.il/he/service/authorize-certification-perform-digital-operations
+
+**Corroborating/secondary (fee figure, timeline figure, State Comptroller security criticism — ⚠️ not gov.il primary text read directly):**
+- BTOP connection presentation (fee, process outline): https://btop.co.il/wp-content/uploads/2023/11/מצגת-להתחברות-בתי-תוכנה-08-11-23.pdf
+- Rivhit — API modules for software houses: https://www.rivhit.co.il/מודולים-למפתחים-מול-רשות-המיסים/
+- pc.co.il — State Comptroller flags security weaknesses in the Israel Invoices system: https://www.pc.co.il/featured/453692/
+- Bookkeeping regulations text (secondary mirror, not gov.il): https://www.nevo.co.il/law_html/law01/255_179.htm
