@@ -11,6 +11,8 @@ This repo carries a portable "brain" in `memory/` (Obsidian-compatible). Skim it
 
 `CLAUDE.md` (this file) remains the canonical, detailed AI-context. `memory/` is the lightweight, frequently-updated layer on top.
 
+**Before making any regulatory, security, or status claim, read `docs/governance/evidence-policy.md` first.** It defines mandatory evidence-level tags (P/C/O/E/R/H), the source-of-truth hierarchy on conflicting claims, and a list of specific claims the team may not assert without fresh evidence (§17) — several of which were confirmed *wrong* only after being asserted confidently in earlier sessions. Do not duplicate its content elsewhere; update that one file and let this pointer stand.
+
 ## 🔚 Session wrap-up routine
 
 When the user says **"let's finish the session"**, **"let's wrap up the session"**, **"let's wrap up"**, **"בוא נסיים את הסשן"**, or anything clearly meaning end-of-session, run this routine before signing off (no need to ask permission — just do it, then summarize what changed):
