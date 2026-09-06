@@ -100,6 +100,20 @@ export function getDeductionsTable(year: number): DeductionDef[] {
       skill: "israeli-expense-categorizer",
     },
     {
+      id: "vehicle",
+      he: "רכב",
+      rule: "partial",
+      // Flat convention rate for a single business-use vehicle (skill:
+      // israeli-expense-categorizer — "car expenses at 45%"); a second
+      // vehicle is 0% unless proven business-essential, not modelled here.
+      // risk-gap.md §7.4 #2: this category previously had NO registry entry
+      // at all, so every vehicle expense was silently counted as 100%.
+      ratePercent: 45,
+      formFields: ["150"],
+      plImpact: "operating-expense",
+      skill: "israeli-expense-categorizer",
+    },
+    {
       id: "professional-services",
       he: "ייעוץ מקצועי",
       rule: "full",
@@ -134,7 +148,19 @@ const CATEGORY_DEDUCTION_ALIASES: { id: string; match: string[] }[] = [
   { id: "pension", match: ["פנסיה", "קופת גמל", "קופ״ג", "גמל"] },
   { id: "internet-phone", match: ["אינטרנט", "טלפון", "סלולר", "תקשורת"] },
   { id: "professional-services", match: ["ייעוץ", "רואה חשבון", "עורך דין", "יועץ מס", "רו״ח"] },
+  { id: "vehicle", match: ["רכב", "דלק", "תדלוק", "חניה", "ביטוח רכב", "טסט"] },
 ];
+
+/**
+ * KNOWN, DELIBERATELY UNMODELLED GAP (risk-gap.md §7.4 #2): home-office
+ * expenses ("משרד ביתי") are recognised at the ratio of the home area actually
+ * used for business — a per-user fraction, not a fixed percentage — and
+ * Persona has no square-footage/ratio field to compute it from today. Adding
+ * a flat rate here would repeat exactly the kind of fabricated-number bug
+ * this registry exists to prevent, so home-office is intentionally left OFF
+ * this alias list — it falls through to the generic operating-expense/100%
+ * default below, same as before this fix, until a ratio-input feature exists.
+ */
 
 /** Category nouns that mark a direct cost of revenue (capital / equipment). */
 const COST_OF_REVENUE_HINTS = ["ציוד ומחשוב", "ציוד", "מחשוב", "equipment"];

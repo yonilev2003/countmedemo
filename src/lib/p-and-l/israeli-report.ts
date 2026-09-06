@@ -82,10 +82,14 @@ export interface IsraeliPLReport {
  * items (ביטוח לאומי, קרן השתלמות, פנסיה) are NOT business expenses — they reduce
  * the taxable base below the operating result, so they get their own group.
  *
- * Cost and operating lines are recorded gross (conventional P&L presentation).
- * Personal deductions are netted to their statutorily recognised amount via
- * recognizedRate — ביטוח לאומי is only 52% deductible, so reducing the taxable
- * base by 100% of it would understate the tax.
+ * Cost-of-revenue lines are recorded gross (conventional P&L presentation).
+ * Operating-expense AND personal-deduction lines are both netted to their
+ * statutorily recognised amount via recognizedRate — ביטוח לאומי is only 52%
+ * deductible, and category-based partial items (e.g. vehicle 45%, phone/
+ * internet 80%) are likewise only partly recognised, so counting either at
+ * 100% would overstate the deduction (risk-gap.md §7.4 #2 — the operating-
+ * expense branch previously ignored recognizedRate entirely, contradicting
+ * this exact comment).
  */
 type ExpenseLine = { category: string; amount: number };
 type DeductionLine = { category: string; amount: number; recognizedRate: number };
@@ -112,8 +116,9 @@ function groupExpensesByImpact(expenseBreakdown: PLSummary["expenseBreakdown"]):
       personalDeductions += recognized;
       deductionLines.push({ category: e.category, amount: recognized, recognizedRate: e.recognizedRate });
     } else {
-      operatingExpenses += e.amount;
-      operatingLines.push(e);
+      const recognized = Math.round(e.amount * e.recognizedRate);
+      operatingExpenses += recognized;
+      operatingLines.push({ category: e.category, amount: recognized });
     }
   }
   return {

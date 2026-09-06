@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequiredPersona } from "@/lib/data/use-required-persona";
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { classifyExpensePLImpact } from "@/lib/regulatory/deductions";
 import { DATASET } from "@/lib/business-expenses/occupation-dataset";
 import type { Persona } from "@/lib/persona";
 import {
@@ -397,9 +398,15 @@ export default function NewExpensePage() {
     // once the upload resolves in the background — uploadReceiptImage's own
     // contract already says callers must save either way on failure, this
     // just stops blocking on success too.
+    // risk-gap.md §7.4 #2: this used to hardcode "full" for every category —
+    // now resolved from the same registry (lib/regulatory/deductions.ts) the
+    // P&L report uses, so a vehicle/phone-internet expense is tagged partial
+    // at capture time instead of silently counting 100% everywhere downstream.
+    const routing = classifyExpensePLImpact(draft.category, persona.income.year);
     const line = draftToExpenseLine(draft, {
       vatRate,
-      deductionRule: "full",
+      deductionRule: routing.recognizedRate >= 1 ? "full" : "partial",
+      partialPercent: routing.recognizedRate < 1 ? Math.round(routing.recognizedRate * 100) : undefined,
       receiptPath: undefined,
     });
     const next = addExpense(persona, line);

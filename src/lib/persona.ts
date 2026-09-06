@@ -248,7 +248,21 @@ export interface PersonaIncome {
 export function effectiveDeductibleExpenses(income: PersonaIncome): number {
   const added = (income.expenses ?? [])
     .filter((e) => !e.deletedAt)
-    .reduce((sum, e) => sum + (e.amount - (e.vat ?? 0)), 0);
+    .reduce((sum, e) => {
+      const net = e.amount - (e.vat ?? 0);
+      // risk-gap.md §7.4 #2: this used to count every line at its full net
+      // amount regardless of deductionRule — a category-based partial rule
+      // (e.g. vehicle 45%, phone/internet 80%, set at capture time by
+      // classifyExpensePLImpact) is now actually applied. "depreciation"
+      // lines still pass through at their full net amount, unchanged from
+      // before — multi-year depreciation scheduling is a separate,
+      // deliberately out-of-scope gap, not something to guess at here.
+      const recognized =
+        e.deductionRule === "partial" && e.partialPercent != null
+          ? net * (e.partialPercent / 100)
+          : net;
+      return sum + recognized;
+    }, 0);
   return Math.round((income.totalDeductibleExpenses + added) * 100) / 100;
 }
 

@@ -41,6 +41,23 @@ describe("effectiveDeductibleExpenses — the single YTD expenses derivation", (
     expect(effectiveDeductibleExpenses(p.income)).toBe(350);
   });
 
+  it("applies a partial deductionRule/partialPercent (risk-gap.md §7.4 #2 — was ignored entirely, every row counted at 100%)", () => {
+    const p = makePersona({ income: { totalDeductibleExpenses: 0 } });
+    p.income.expenses = [
+      expense({ amount: 1000, vat: 0, category: "רכב", deductionRule: "partial", partialPercent: 45 }),
+    ];
+    expect(effectiveDeductibleExpenses(p.income)).toBe(450);
+  });
+
+  it("nets VAT first, THEN applies the partial percent", () => {
+    const p = makePersona({ income: { totalDeductibleExpenses: 0 } });
+    p.income.expenses = [
+      // 1180 gross, 180 VAT → 1000 net; 80% recognised → 800
+      expense({ amount: 1180, vat: 180, category: "אינטרנט", deductionRule: "partial", partialPercent: 80 }),
+    ];
+    expect(effectiveDeductibleExpenses(p.income)).toBe(800);
+  });
+
   it("ignores soft-deleted rows", () => {
     const p = makePersona({ income: { totalDeductibleExpenses: 100 } });
     p.income.expenses = [
