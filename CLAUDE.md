@@ -358,7 +358,7 @@ Actually open (corrected 2026-08-12 — item 1 was stale, see memory/STATUS.md w
 2. Apply billing+events migrations on `hbsgz` + run the WS7 blocked-checks checklist (`docs/reviews/2026-07-02-ws7-*`)
 3. PII minimization before non-founder users (plan in the WS7 report); Tranzila webhook signature before `BILLING_ENABLED`
 4. External legal review of all `DRAFT — NEEDS LEGAL REVIEW` copy (`<LegalNote>`, scope statement in `docs/reviews/2026-07-02-ws8-*`) — no assigned reviewer since 2026-07-02; legal/financial gaps are surfaced as a structured list at the end of every AI-session output instead
-5. `FLAG(Roy)` burn-down in `lib/calculators/types.ts`: 2025/2026 pension caps, 2026 donations floor, §45א life-insurance ceiling
+5. `FLAG(Roy)` burn-down in `lib/calculators/types.ts` — **corrected 2026-09-06 (verification sweep, see `memory/risk-gap.md` §7): 2 of these 3 are already resolved in code** (2025/2026 pension caps — CONFIRMED; 2026 donations floor — CONFIRMED 207 ₪). Still genuinely open: §45א life-insurance ceiling (no cap constant exists at all). A bigger, un-tracked item belongs on this list instead: the child tax-credit-points table for both live tax years (2025/2026) is explicitly commented in code as an incomplete "PRE-2024 base schedule" (FLAG(Roy), below the 95% confidence bar) that under-counts several age bands by up to 2 full points — zero demo impact only because the shipped persona has no children.
 6. Durable rate limiting (Vercel WAF now, Supabase counter later) + CSP enforce after report-only monitoring
 7. Install `context-mode` for token savings during long sessions (see the Skills section above for the same pending item — don't duplicate further edits, update there)
 
