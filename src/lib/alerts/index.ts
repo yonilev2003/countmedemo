@@ -88,7 +88,11 @@ export function generateVatAdvancesAlert(
   // עוסק פטור is exempt from VAT filing
   if (persona.business.osekType === "patur") return null;
 
-  const annualTurnover = persona.vatAndTurnover.annualTurnoverWithoutVat;
+  // risk-gap.md §7.4 #3: read the LIVE turnover (income.totalRevenue), not the
+  // dedicated vatAndTurnover.annualTurnoverWithoutVat field, which is written
+  // once at /setup and never updated — see vat-report/index.ts's determineVatCadence
+  // for the same fix and the full rationale.
+  const annualTurnover = persona.income.totalRevenue;
   const isMonthly = annualTurnover >= 1_500_000;
 
   const month = now.getMonth(); // 0-indexed

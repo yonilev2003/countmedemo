@@ -18,8 +18,17 @@
  *
  * Reporting cadence (israeli-vat-reporting skill, §69A(g) of the VAT Law):
  * annual turnover > 1,500,000 ₪ → monthly; otherwise bi-monthly. Read from
- * persona.vatAndTurnover.annualTurnoverWithoutVat — the persona's own
- * dedicated field for this, not re-derived from income.totalRevenue.
+ * persona.income.totalRevenue (the LIVE, invoice-updated turnover figure).
+ *
+ * CORRECTED 2026-09-06 (risk-gap.md §7.4 #3): this used to read the dedicated
+ * persona.vatAndTurnover.annualTurnoverWithoutVat field instead, on the theory
+ * that a dedicated field is more explicit than reaching into income directly —
+ * but that field is written ONCE at /setup and never updated again anywhere,
+ * while income.totalRevenue is live-updated on every new invoice. A business
+ * crossing the 1.5M / 500K thresholds mid-year via new invoices kept getting
+ * the wrong cadence/reporting-obligation with no staleness warning. The two
+ * numbers are the same concept (annual ex-VAT turnover) by definition — only
+ * one of them was ever kept current, so that one is now the single source.
  *
  * NOT MODELED (flagged in notesHe, not silently zeroed-and-hidden): zero-rated
  * (export) sales and VAT-exempt sales — InvoiceLine has no field distinguishing
@@ -112,9 +121,7 @@ export function getVatPeriodsForYear(year: number, cadence: VatCadence): VatPeri
 
 /** Cadence per §69A(g): > 1.5M ₪/yr ex-VAT turnover → monthly, else bi-monthly. */
 export function determineVatCadence(persona: Persona): VatCadence {
-  return persona.vatAndTurnover.annualTurnoverWithoutVat > MONTHLY_CADENCE_THRESHOLD
-    ? "monthly"
-    : "bi-monthly";
+  return persona.income.totalRevenue > MONTHLY_CADENCE_THRESHOLD ? "monthly" : "bi-monthly";
 }
 
 /**
@@ -235,7 +242,7 @@ export function computeVatReport(
   const notesHe: string[] = [
     "שדות 2 ו-3 (מכירות בשיעור אפס ופטורות) אינם נתמכים עדיין במערכת — אם קיימות מכירות כאלה בתקופה, יש להוסיפן ידנית לפני ההגשה.",
   ];
-  if (persona.vatAndTurnover.annualTurnoverWithoutVat > DETAILED_874_THRESHOLD && year >= 2026) {
+  if (persona.income.totalRevenue > DETAILED_874_THRESHOLD && year >= 2026) {
     notesHe.push("מחזור שנתי מעל 500,000 ₪ מחייב מ-2026 הגשת דוח מע\"מ מפורט (874) הכולל פירוט חשבוניות — מעבר לסכומים המצרפיים כאן.");
   }
 

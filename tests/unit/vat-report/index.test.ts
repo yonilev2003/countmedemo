@@ -137,15 +137,40 @@ describe("computeVatReport — field mapping (Form 874)", () => {
     expect(computeVatReport(p, 2024, 0).vatRate).toBe(0.17);
     expect(computeVatReport(p, 2025, 0).vatRate).toBe(0.18);
   });
+
+  it("risk-gap.md §7.4 #3: the 500K detailed-874 note is driven by LIVE turnover, not a stale setup-time snapshot", () => {
+    const above = makePersona({
+      business: { osekType: "morshe" },
+      income: { totalRevenue: 600_000 },
+      vatAndTurnover: { annualTurnoverWithoutVat: 10_000 }, // stale — must NOT suppress the note
+    });
+    expect(computeVatReport(above, 2026, 0).notesHe.join(" ")).toContain("500,000");
+
+    const below = makePersona({
+      business: { osekType: "morshe" },
+      income: { totalRevenue: 400_000 },
+    });
+    expect(computeVatReport(below, 2026, 0).notesHe.join(" ")).not.toContain("500,000");
+  });
 });
 
 describe("determineVatCadence — §69A(g)", () => {
   it("bi-monthly at/under 1,500,000 ₪ annual turnover", () => {
-    const p = makePersona({ vatAndTurnover: { annualTurnoverWithoutVat: 1_500_000 } });
+    const p = makePersona({ income: { totalRevenue: 1_500_000 } });
     expect(determineVatCadence(p)).toBe("bi-monthly");
   });
   it("monthly strictly above 1,500,000 ₪", () => {
-    const p = makePersona({ vatAndTurnover: { annualTurnoverWithoutVat: 1_500_001 } });
+    const p = makePersona({ income: { totalRevenue: 1_500_001 } });
+    expect(determineVatCadence(p)).toBe("monthly");
+  });
+  it("risk-gap.md §7.4 #3: reads the LIVE income.totalRevenue, ignoring a stale/frozen vatAndTurnover.annualTurnoverWithoutVat snapshot", () => {
+    // Old bug: this used to read vatAndTurnover.annualTurnoverWithoutVat, which
+    // is written once at /setup and never updated as new invoices land — a
+    // business crossing 1.5M mid-year via invoices kept showing bi-monthly.
+    const p = makePersona({
+      income: { totalRevenue: 2_000_000 }, // live, invoice-driven — above threshold
+      vatAndTurnover: { annualTurnoverWithoutVat: 100_000 }, // stale setup-time snapshot — below threshold
+    });
     expect(determineVatCadence(p)).toBe("monthly");
   });
 });
