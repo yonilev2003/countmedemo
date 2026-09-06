@@ -143,10 +143,24 @@ export const TAX_YEAR_2024 = {
   pointValueAnnual: 2904, // ILS per nekuda, frozen 2024–2027
 
   // Child credit points by age within the tax year (israeli-tax-returns table).
+  // CORRECTED 2026-09-06 (risk-gap.md §7.4 #1 — was the stale PRE-2024 base
+  // schedule, silently under-counting several bands): applies the PERMANENT
+  // from-2024 addition — STRONGLY-SUPPORTED (~75-88%, below the 95% CONFIRMED
+  // bar per the 4-tier methodology in decisions.md) pending final Roy sign-off,
+  // but demonstrably closer to correct than the old flat pre-2024 table it
+  // replaces, which was known-incomplete rather than merely unconfirmed.
+  // age6to17 now splits by the FILER's own gender (p.personal.gender) — the
+  // only gender-like field on Persona — matching the existing pattern used by
+  // residentCreditPoints (male/female base). FLAG(Roy): confirm mother/father
+  // maps to filer-gender (vs. custodial-parent status) before relying on this
+  // beyond estimate/demo use.
   childCreditPointsByAge: {
-    bornDuringYear: 1.5, // year of birth only
-    age1to5: 2.5,
-    age6to17: 1.0,
+    bornDuringYear: 2.5, // year of birth only
+    age1to2: 4.5,
+    age3: 3.5,
+    age4to5: 2.5,
+    age6to17Mother: 2.0, // filer gender === "female"
+    age6to17Father: 1.0, // filer gender === "male"
     age18: 0.5, // last credited year
   },
 
@@ -315,16 +329,16 @@ export const TAX_YEAR_2025: TaxYearConstants = {
   femaleResidentBonusPoints: 0.5,       // statutory, stable
   pointValueAnnual: 2904,               // frozen 2024–2027
 
-  // Child credit points — PRE-2024 base schedule (mother's). FLAG(Roy) — web-verify
-  // 2026-07-03 (~75–88%, BELOW-95%): a PERMANENT from-2024 addition raises the
-  // effective values — born 2.5 / age 1–2: 4.5 / age 3: 3.5 / age 4–5: 2.5 / age
-  // 6–17: mother 2.0 (father 1.0) / age 18: 0.5. Same for 2025 AND 2026. NOT applied
-  // (persona has no children → zero demo impact); left as base pending Roy sign-off
-  // because the correct model needs age-band splitting + a mother/father distinction.
+  // Child credit points — CORRECTED 2026-09-06 (see the 2024 block above for the
+  // full rationale): from-2024 addition now applied, STRONGLY-SUPPORTED not yet
+  // CONFIRMED (risk-gap.md §7.4 #1). Same table for 2025 AND 2026.
   childCreditPointsByAge: {
-    bornDuringYear: 1.5,
-    age1to5: 2.5,
-    age6to17: 1.0,
+    bornDuringYear: 2.5,
+    age1to2: 4.5,
+    age3: 3.5,
+    age4to5: 2.5,
+    age6to17Mother: 2.0,
+    age6to17Father: 1.0,
     age18: 0.5,
   },
 
@@ -453,11 +467,15 @@ export const TAX_YEAR_2026: TaxYearConstants = {
   femaleResidentBonusPoints: 0.5,       // statutory, stable
   pointValueAnnual: 2904,               // frozen 2024–2027
 
-  // Child credit points — statutory table, stable.
+  // Child credit points — CORRECTED 2026-09-06, same table + rationale as the
+  // 2024/2025 blocks (from-2024 addition, STRONGLY-SUPPORTED not CONFIRMED).
   childCreditPointsByAge: {
-    bornDuringYear: 1.5,
-    age1to5: 2.5,
-    age6to17: 1.0,
+    bornDuringYear: 2.5,
+    age1to2: 4.5,
+    age3: 3.5,
+    age4to5: 2.5,
+    age6to17Mother: 2.0,
+    age6to17Father: 1.0,
     age18: 0.5,
   },
 

@@ -115,17 +115,27 @@ function soldierEligibleMonthsInYear(
   return Math.max(0, overlapEnd - overlapStart + 1);
 }
 
-/** Child credit points by age within the tax year (israeli-tax-returns). */
+/**
+ * Child credit points by age within the tax year (israeli-tax-returns).
+ * The age6-17 band is gender-differentiated (mother/father) — mapped to the
+ * FILER's own p.personal.gender, the only gender-like field on Persona (same
+ * pattern as residentCreditPoints' male/female base). See types.ts's
+ * childCreditPointsByAge comment for the STRONGLY-SUPPORTED/not-CONFIRMED
+ * provenance of this table.
+ */
 function childCreditPoints(p: Persona): number {
   const year = p.income.year;
   const bands = getTaxYearConstants(year).childCreditPointsByAge;
+  const age6to17 = p.personal.gender === "female" ? bands.age6to17Mother : bands.age6to17Father;
   let pts = 0;
   for (const c of p.personal.children ?? []) {
     const age = year - c.birthYear;
     if (age < 0) continue;
     if (age === 0) pts += bands.bornDuringYear;
-    else if (age >= 1 && age <= 5) pts += bands.age1to5;
-    else if (age >= 6 && age <= 17) pts += bands.age6to17;
+    else if (age >= 1 && age <= 2) pts += bands.age1to2;
+    else if (age === 3) pts += bands.age3;
+    else if (age >= 4 && age <= 5) pts += bands.age4to5;
+    else if (age >= 6 && age <= 17) pts += age6to17;
     else if (age === 18) pts += bands.age18;
   }
   return pts;

@@ -12,6 +12,7 @@ import {
 } from "@/lib/setup-storage";
 import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { totalCreditPoints } from "@/lib/calculators";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
 import { cn, ils, numberInputWheelGuard } from "@/lib/utils";
@@ -1420,16 +1421,11 @@ export default function SetupPage() {
     !isNaN(Number(s2.academicDegreeYear)) &&
     Number(s2.academicDegreeYear) > currentYear;
 
-  const creditPoints = (() => {
-    // No silent default for unselected gender (QA #12) — by the time this
-    // preview is visible (screen 7) validateStep1 already required a pick, but
-    // stay defensive rather than assume "male" for an empty value.
-    let pts = s1.gender === "female" ? 2.75 : s1.gender === "male" ? 2.25 : 0;
-    if (s2.isNewResident) pts += 3;
-    if (s2.isSoldierDischarged) pts += 1;
-    pts += s2.children.filter((c) => c.birthYear).length * 0.5;
-    return pts;
-  })();
+  // risk-gap.md #30: was a separate, hand-maintained formula (flat +3/+1/+0.5,
+  // no age-banding, no miluim) that diverged from the canonical engine — now
+  // reads straight from totalCreditPoints(buildPersona()), the single source
+  // every other credit-point number in the app already uses.
+  const creditPoints = totalCreditPoints(buildPersona());
 
   /*
    * Step-5 expense-ratio facts (NO advice — facts only, product decision).

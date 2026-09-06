@@ -3,7 +3,10 @@
  *
  * Point tables per israeli-tax-returns (verified 2026-07-02):
  *  • Resident base: male 2.25 / female 2.75. Point value 2,904 ₪ (frozen 2024–2027).
- *  • Children by age in the tax year: 0→1.5, 1–5→2.5, 6–17→1.0, 18→0.5.
+ *  • Children by age in the tax year — CORRECTED 2026-09-06 (risk-gap.md §7.4 #1,
+ *    STRONGLY-SUPPORTED not yet CONFIRMED — see types.ts childCreditPointsByAge):
+ *    0→2.5, 1-2→4.5, 3→3.5, 4-5→2.5, 6-17→2.0 (mother/filer female) or 1.0
+ *    (father/filer male), 18→0.5.
  *  • Oleh: 3.0 in year 1 (engine defaults to year-1 without an aliyah date).
  *  • Discharged soldier (סעיף 39א): 1/6 point per eligible month (full service:
  *    men 23+ / women 22+ months) or 1/12 (partial, 12–22 months), for 36 months
@@ -28,19 +31,33 @@ describe("resident base points", () => {
 });
 
 describe("children points by age band (tax year 2025)", () => {
-  it("one child per band: 1.5 + 2.5 + 1.0 + 0.5, age 20 → 0", () => {
+  it("one child per band (filer male → father rate): 2.5 + 3.5 + 1.0 + 0.5, age 20 → 0", () => {
     const p = makePersona({
       personal: {
         children: [
-          { birthYear: 2025 }, // age 0 → 1.5
-          { birthYear: 2022 }, // age 3 → 2.5
-          { birthYear: 2015 }, // age 10 → 1.0
+          { birthYear: 2025 }, // age 0 → 2.5 (bornDuringYear)
+          { birthYear: 2022 }, // age 3 → 3.5 (age3)
+          { birthYear: 2015 }, // age 10 → 1.0 (age6to17, father — default gender male)
           { birthYear: 2007 }, // age 18 → 0.5
           { birthYear: 2005 }, // age 20 → 0
         ],
       },
     });
-    expect(totalCreditPoints(p)).toBe(2.25 + 5.5);
+    expect(totalCreditPoints(p)).toBe(2.25 + 7.5);
+  });
+
+  it("age1-2 and age4-5 bands, filer female → mother rate for age6-17", () => {
+    const p = makePersona({
+      personal: {
+        gender: "female",
+        children: [
+          { birthYear: 2024 }, // age 1 → 4.5 (age1to2)
+          { birthYear: 2021 }, // age 4 → 2.5 (age4to5)
+          { birthYear: 2015 }, // age 10 → 2.0 (age6to17, mother)
+        ],
+      },
+    });
+    expect(totalCreditPoints(p)).toBe(2.75 + 9.0);
   });
 });
 
@@ -127,7 +144,7 @@ describe("miluim ladder (תיקון 283) — verified 2026-07-02", () => {
 });
 
 describe("combined scenario", () => {
-  it("female + oleh + children (2.5 + 1.0) + miluim 60 days on 2026 return", () => {
+  it("female + oleh + children (4.5 + 2.0) + miluim 60 days on 2026 return", () => {
     const p = makePersona({
       income: { year: 2026 },
       personal: {
@@ -137,7 +154,7 @@ describe("combined scenario", () => {
         reserveDaysByYear: { "2025": { combatDays: 60 } },
       },
     });
-    // 2.75 + 3.0 + (2.5 + 1.0) + 1.5 = 10.75
-    expect(totalCreditPoints(p)).toBe(10.75);
+    // 2.75 + 3.0 + (4.5 [age1to2] + 2.0 [age6to17 mother]) + 1.5 [miluim] = 13.75
+    expect(totalCreditPoints(p)).toBe(13.75);
   });
 });
