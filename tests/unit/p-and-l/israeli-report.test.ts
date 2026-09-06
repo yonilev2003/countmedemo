@@ -41,6 +41,16 @@ describe("buildIsraeliPLReport — operating-expense recognizedRate", () => {
     expect(report.totals.operatingExpenses).toBe(400);
   });
 
+  it("risk-gap.md §9: a courier's (שליח) vehicle expense is recognised at 25% (dataset), not the flat 45% fallback", () => {
+    const p = makePersona({
+      business: { primaryOccupation: "שליח" },
+      income: { year: 2026, totalRevenue: 100000, totalDeductibleExpenses: 0 },
+    });
+    p.income.expenses = [expense({ category: "רכב", amount: 1000, vat: 0 })];
+    const report = buildIsraeliPLReport(p, calculatePL(p));
+    expect(report.totals.operatingExpenses).toBe(250);
+  });
+
   it("an unmatched category still counts at 100% (no regression for the common case)", () => {
     const p = makePersona({
       income: { year: 2026, totalRevenue: 100000, totalDeductibleExpenses: 0 },

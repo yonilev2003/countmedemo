@@ -28,3 +28,30 @@ describe("vehicle deduction (45% flat convention rate)", () => {
     expect(routing.recognizedRate).toBe(1);
   });
 });
+
+describe("vehicle rate — profession-specific override (risk-gap.md §9)", () => {
+  it("a courier (שליח, 25% in the 113-profession dataset) gets 25%, not the flat 45%", () => {
+    const routing = classifyExpensePLImpact("רכב", 2026, "שליח");
+    expect(routing.recognizedRate).toBeCloseTo(0.25);
+  });
+
+  it("a moving company (מוביל / הובלות, 100% in the dataset) gets 100%, not 45%", () => {
+    const routing = classifyExpensePLImpact("דלק", 2026, "מוביל / הובלות");
+    expect(routing.recognizedRate).toBe(1);
+  });
+
+  it("a taxi driver (נהג מונית, 90%) gets 90%", () => {
+    const routing = classifyExpensePLImpact("ביטוח רכב", 2026, "נהג מונית");
+    expect(routing.recognizedRate).toBeCloseTo(0.9);
+  });
+
+  it("an occupation not in the dataset falls back to the flat 45% convention rate", () => {
+    const routing = classifyExpensePLImpact("רכב", 2026, "מקצוע שלא קיים במאגר");
+    expect(routing.recognizedRate).toBeCloseTo(0.45);
+  });
+
+  it("no primaryOccupation given at all falls back to the flat 45% rate (backward compatible)", () => {
+    const routing = classifyExpensePLImpact("רכב", 2026);
+    expect(routing.recognizedRate).toBeCloseTo(0.45);
+  });
+});

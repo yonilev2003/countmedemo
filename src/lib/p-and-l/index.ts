@@ -228,7 +228,7 @@ export function calculatePL(persona: Persona): PLSummary {
   // fraction — the registry is the authority for both.
   const year = persona.income.year ?? new Date().getFullYear() - 1;
   const expenseBreakdown = rawBreakdown.map((e) => {
-    const routing = classifyExpensePLImpact(e.category, year);
+    const routing = classifyExpensePLImpact(e.category, year, persona.business.primaryOccupation);
     return { ...e, plImpact: routing.plImpact, recognizedRate: routing.recognizedRate };
   });
 

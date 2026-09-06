@@ -18,6 +18,7 @@
  */
 
 import { getTaxYearConstants } from "@/lib/calculators/types";
+import { matchProfessionByFreeText } from "@/lib/business-expenses/occupation-dataset";
 
 /** How a recognised item is treated for income-tax purposes. */
 export type DeductionRule =
@@ -182,12 +183,33 @@ export interface ExpensePLRouting {
  * inherit their declared plImpact and deductible fraction; everything else uses
  * the service-business heuristic (equipment = direct cost, otherwise operating
  * overhead) at full recognition.
+ *
+ * `primaryOccupation` (optional, free text — persona.business.primaryOccupation)
+ * lets the "vehicle" category use the user's REAL profession-specific rate from
+ * the 113-profession dataset (already used by the /business-expenses advisory
+ * page — e.g. a courier is 25%, a moving company 100%, a lawyer 45%) instead of
+ * the flat 45% convention rate, which is only actually correct for the handful
+ * of professions whose real rate happens to equal it. Found by the risk-gap.md
+ * §9 recurring table-check (2026-09-06): without this, the advisory page and
+ * the actual expense-capture engine disagreed on the same number for the same
+ * user. Falls back to the flat rate when the occupation isn't in the dataset —
+ * same "don't force a match" contract matchProfessionByFreeText already uses.
  */
-export function classifyExpensePLImpact(category: string, year: number): ExpensePLRouting {
+export function classifyExpensePLImpact(
+  category: string,
+  year: number,
+  primaryOccupation?: string,
+): ExpensePLRouting {
   const alias = CATEGORY_DEDUCTION_ALIASES.find((a) =>
     a.match.some((m) => category.includes(m)),
   );
   if (alias) {
+    if (alias.id === "vehicle" && primaryOccupation) {
+      const profession = matchProfessionByFreeText(primaryOccupation);
+      if (profession && profession.pctVehicle > 0) {
+        return { plImpact: "operating-expense", recognizedRate: profession.pctVehicle };
+      }
+    }
     const def = getDeduction(alias.id, year);
     if (def) {
       const recognizedRate =

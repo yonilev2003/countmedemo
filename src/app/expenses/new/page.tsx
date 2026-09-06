@@ -402,7 +402,11 @@ export default function NewExpensePage() {
     // now resolved from the same registry (lib/regulatory/deductions.ts) the
     // P&L report uses, so a vehicle/phone-internet expense is tagged partial
     // at capture time instead of silently counting 100% everywhere downstream.
-    const routing = classifyExpensePLImpact(draft.category, persona.income.year);
+    const routing = classifyExpensePLImpact(
+      draft.category,
+      persona.income.year,
+      persona.business.primaryOccupation,
+    );
     const line = draftToExpenseLine(draft, {
       vatRate,
       deductionRule: routing.recognizedRate >= 1 ? "full" : "partial",
