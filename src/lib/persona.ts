@@ -266,6 +266,19 @@ export function effectiveDeductibleExpenses(income: PersonaIncome): number {
   return Math.round((income.totalDeductibleExpenses + added) * 100) / 100;
 }
 
+/**
+ * The ONE derivation of the B"L-ONLY base for the §47א 52% deduction (risk-gap
+ * §7.7 #3). Every calculator that deducts/credits against bituachLeumiSelfEmployed
+ * must read this, never `annualPaid` directly — otherwise a combined BL+health
+ * voucher figure silently overstates the deduction.
+ */
+export function bituachLeumiDeductibleBase(
+  bl: PersonaDeductions["bituachLeumiSelfEmployed"],
+): number {
+  if (bl.healthTaxAnnualPaid == null) return bl.annualPaid; // unchanged legacy behavior
+  return Math.max(0, bl.annualPaid - bl.healthTaxAnnualPaid);
+}
+
 export interface PersonaDeductions {
   kerenHishtalmut: { annualContribution: number };
   kupatGemel: { annualContribution: number };
@@ -275,12 +288,20 @@ export interface PersonaDeductions {
    * Self-employed National-Insurance paid (field 030). `annualPaid` is intended
    * to be the BITUACH-LEUMI COMPONENT ONLY — it is the base for the 52% סעיף-47א
    * deduction, which applies to B"L and NOT to health tax (מס בריאות).
-   * FLAG(Roy): if a real persona's figure bundles health tax into this number,
-   * the 52% deduction is overstated. Recommended fix when real data lands: split
-   * into `{ bituachLeumi: number; healthTax: number }` and deduct 52% of the
-   * B"L part only. Do not change the deduction base silently.
+   *
+   * FIXED 2026-09-06 (risk-gap.md §7.7 #3 — was "structurally unfixed": a UI
+   * caption told the user to type BL-only, but nothing enforced it, so a
+   * combined voucher figure silently overstated the deduction by up to 52%
+   * of the health-tax portion). `annualPaid` is kept as-is for backward
+   * compatibility with existing personas (additive change, no migration) —
+   * it still means "the figure the user typed", ambiguous exactly as before
+   * when `healthTaxAnnualPaid` is absent. When `healthTaxAnnualPaid` IS
+   * provided, `annualPaid` is treated as the COMBINED voucher total and the
+   * B"L-only base is derived as `annualPaid - healthTaxAnnualPaid` — see
+   * `bituachLeumiDeductibleBase()` below, the single place every calculator
+   * must read this through (never `annualPaid` directly).
    */
-  bituachLeumiSelfEmployed: { annualPaid: number };
+  bituachLeumiSelfEmployed: { annualPaid: number; healthTaxAnnualPaid?: number };
   bituachLifeOrCancerPolicy: number;
   /** Section 72 — life insurance premium */
   lifeInsurancePremium: number;

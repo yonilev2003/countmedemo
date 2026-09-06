@@ -6,7 +6,7 @@
  * the rules; tomorrow we'll cross-check against it before going live.
  */
 
-import { Persona, effectiveDeductibleExpenses } from "@/lib/persona";
+import { Persona, effectiveDeductibleExpenses, bituachLeumiDeductibleBase } from "@/lib/persona";
 import {
   Calculator,
   CalcResult,
@@ -303,11 +303,16 @@ export const field030BituachLeumi: Calculator = (p) => {
     };
   }
 
-  const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
+  const bl = p.deductionsAndCredits.bituachLeumiSelfEmployed;
+  const paid = bituachLeumiDeductibleBase(bl);
   const deductible = Math.round(paid * TC.bituachLeumiDeductibleRate);
+  const baseLabel =
+    bl.healthTaxAnnualPaid != null
+      ? `${ils(paid)} (רכיב ב"ל בלבד, אחרי הפרדת ${ils(bl.healthTaxAnnualPaid)} מס בריאות)`
+      : `${ils(paid)} (סה"כ ב"ל ששולם)`;
   return {
     value: deductible,
-    formula: `${ils(paid)} (סה"כ ב"ל ששולם) × 52% = ${ils(deductible)} (חלק מותר בניכוי)`,
+    formula: `${baseLabel} × 52% = ${ils(deductible)} (חלק מותר בניכוי)`,
     sources: [
       {
         label: 'תקבולים מהמוסד לביטוח לאומי',
@@ -547,14 +552,14 @@ export const field297Form6111: Calculator = (p) => {
  * מקורות: claltax (סעיף 47א), prisha, kolzchut — אומת 2026-06.
  * ============================================================ */
 export const field048BituachLeumiCredit: Calculator = (p) => {
-  const paid = p.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid;
+  const paid = bituachLeumiDeductibleBase(p.deductionsAndCredits.bituachLeumiSelfEmployed);
   return {
     value: 0,
     formula: 'אין זיכוי ממס בגין ביטוח לאומי. רק 52% ממנו מוכרים כניכוי מההכנסה (שדה 030); ה-48% הנותרים אינם מוכרים כלל.',
     sources: [
       {
         label: 'תקבולים מהמוסד לביטוח לאומי',
-        detail: `מתוך ${ils(paid)} ששולמו — 52% נוכו בשדה 030, ו-48% אינם מקנים הטבה.`,
+        detail: `מתוך ${ils(paid)} (רכיב ב"ל בלבד) ששולמו — 52% נוכו בשדה 030, ו-48% אינם מקנים הטבה.`,
       },
     ],
     confidence: "high",
@@ -842,7 +847,7 @@ export function computePersonalDeductions(persona: Persona): PersonalDeductions 
   const bituachLeumi = persona.business.isOsekZeir
     ? 0
     : Math.round(
-        persona.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid *
+        bituachLeumiDeductibleBase(persona.deductionsAndCredits.bituachLeumiSelfEmployed) *
           TC.bituachLeumiDeductibleRate,
       );
   const pension = Math.min(

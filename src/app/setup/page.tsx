@@ -167,6 +167,7 @@ interface Step4Data {
 interface Step5Data {
   totalDeductibleExpenses: string;
   bituachLeumiAnnualPaid: string;
+  healthTaxAnnualPaid: string;
   kerenHishtalmut: string;
   pensionContributions: string;
   donations: string;
@@ -875,6 +876,7 @@ export default function SetupPage() {
   const [s5, setS5] = useState<Step5Data>({
     totalDeductibleExpenses: "",
     bituachLeumiAnnualPaid: "",
+    healthTaxAnnualPaid: "",
     kerenHishtalmut: "",
     pensionContributions: "",
     donations: "",
@@ -966,6 +968,10 @@ export default function SetupPage() {
       bituachLeumiAnnualPaid: String(
         saved.deductionsAndCredits.bituachLeumiSelfEmployed.annualPaid,
       ),
+      healthTaxAnnualPaid:
+        saved.deductionsAndCredits.bituachLeumiSelfEmployed.healthTaxAnnualPaid != null
+          ? String(saved.deductionsAndCredits.bituachLeumiSelfEmployed.healthTaxAnnualPaid)
+          : "",
       kerenHishtalmut: String(
         saved.deductionsAndCredits.kerenHishtalmut.annualContribution,
       ),
@@ -1205,6 +1211,7 @@ export default function SetupPage() {
     const totalDeductibleExpenses = Number(s5.totalDeductibleExpenses);
     const netIncome = totalRevenue - totalDeductibleExpenses;
     const bituach = Number(s5.bituachLeumiAnnualPaid) || 0;
+    const healthTax = s5.healthTaxAnnualPaid ? Number(s5.healthTaxAnnualPaid) || 0 : undefined;
 
     // The wizard edits SETTINGS. It must never destroy transactional data:
     // a returning user re-running it (e.g. "עדכן נתונים") would otherwise lose
@@ -1336,6 +1343,7 @@ export default function SetupPage() {
           // Only what the user actually entered — never invent an estimate
           // (the old 12%-of-net fallback fabricated a "paid" amount; risk-gap #3).
           annualPaid: bituach,
+          healthTaxAnnualPaid: healthTax,
         },
         bituachLifeOrCancerPolicy: 0,
         lifeInsurancePremium: 0,
@@ -2469,13 +2477,36 @@ export default function SetupPage() {
                       />
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
                       <p className="mt-1 text-xs text-muted">
-                        {/* Pending Roy: real fix is splitting the persona field
-                            into ב"ל/בריאות (see FLAG(Roy) in lib/persona.ts) —
-                            until then, tell the user what to type so the 52%
-                            deduction isn't computed on an inflated base. */}
-                        הזינו רק את רכיב הביטוח הלאומי מהשובר השנתי — לא כולל
-                        דמי ביטוח בריאות. הניכוי (52%) חל רק על רכיב הביטוח
-                        הלאומי; אם יוזן הסכום הכולל, הניכוי יחושב ביתר.
+                        אם השובר שלך מציג רק את רכיב הביטוח הלאומי — הזינו
+                        אותו כאן. אם השובר מציג סכום כולל (ביטוח לאומי + מס
+                        בריאות ביחד), הזינו את הסכום הכולל כאן ואת רכיב מס
+                        הבריאות בשדה הבא — כך הניכוי (52%) יחושב על רכיב
+                        הביטוח הלאומי בלבד, לא ביתר.
+                      </p>
+                    </div>
+                    <div>
+                      <FieldLabel htmlFor="healthTaxAnnualPaid">
+                        מתוכם, מס בריאות ששולם (אם השובר כולל את שניהם יחד)
+                      </FieldLabel>
+                      <input
+                        id="healthTaxAnnualPaid"
+                        type="number"
+                        onWheel={numberInputWheelGuard}
+                        min={0}
+                        value={s5.healthTaxAnnualPaid}
+                        onChange={(e) =>
+                          setS5({
+                            ...s5,
+                            healthTaxAnnualPaid: e.target.value,
+                          })
+                        }
+                        className={inputCls(false)}
+                        dir="ltr"
+                        placeholder="לדוגמה 9430"
+                      />
+                      <p className="mt-1 text-xs text-muted">
+                        השאירו ריק אם הזנתם למעלה רק את רכיב הביטוח הלאומי —
+                        אז כל הסכום למעלה ייחשב כרכיב הביטוח הלאומי, כמו קודם.
                       </p>
                     </div>
 

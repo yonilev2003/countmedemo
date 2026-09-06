@@ -33,6 +33,28 @@ describe("field030BituachLeumi — direct golden tests", () => {
     expect(result.formula).toContain("52%");
   });
 
+  it("risk-gap.md §7.7 #3: with healthTaxAnnualPaid split out, 52% is computed on the B\"L-only base, not the combined voucher", () => {
+    const p = makePersona({
+      income: { totalRevenue: 300_000, totalDeductibleExpenses: 0 },
+      deductionsAndCredits: {
+        bituachLeumiSelfEmployed: { annualPaid: 22_340, healthTaxAnnualPaid: 9_430 },
+      },
+    });
+    const result = field030BituachLeumi(p);
+    // B"L-only base = 22,340 − 9,430 = 12,910; Math.round(12,910 × 0.52) = 6,713.
+    // Old bug: 52% of the full 22,340 → 11,617 (would overstate by 4,904 ₪).
+    expect(result.value).toBe(6_713);
+    expect(result.formula).toContain('רכיב ב"ל בלבד');
+  });
+
+  it("no healthTaxAnnualPaid provided → unchanged legacy behavior (52% of annualPaid as-is)", () => {
+    const p = makePersona({
+      income: { totalRevenue: 300_000, totalDeductibleExpenses: 0 },
+      deductionsAndCredits: { bituachLeumiSelfEmployed: { annualPaid: 22_340 } },
+    });
+    expect(field030BituachLeumi(p).value).toBe(11_617);
+  });
+
   it("עוסק זעיר branch: no deduction — value is false, formula cites the 30% bundling", () => {
     const p = makePersona({
       business: { isOsekZeir: true },

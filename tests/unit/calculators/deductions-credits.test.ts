@@ -59,6 +59,16 @@ describe("computePersonalDeductions (2025)", () => {
     });
     expect(computePersonalDeductions(p).bituachLeumi).toBe(10_400);
   });
+  it("bituach leumi: risk-gap.md §7.7 #3 — with healthTaxAnnualPaid split out, 52% applies to the B\"L-only base, flowing through computePersonalDeductions same as field030", () => {
+    const p = makePersona({
+      income: { totalRevenue: 300_000 },
+      deductionsAndCredits: {
+        bituachLeumiSelfEmployed: { annualPaid: 20_000, healthTaxAnnualPaid: 8_000 },
+      },
+    });
+    // (20,000 − 8,000) × 0.52 = 6,240 — not 10,400 (52% of the combined 20,000).
+    expect(computePersonalDeductions(p).bituachLeumi).toBe(6_240);
+  });
   it("bituach leumi: 0 for עוסק זעיר (bundled in the automatic 30%)", () => {
     const p = makePersona({
       business: { isOsekZeir: true },
