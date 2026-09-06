@@ -11,6 +11,7 @@ tags: [moc, meeting-records, countme]
 
 ## מסמכים
 - [[yoni-tasks-27032026]] — משימות יוני מהפ"ע · 27/03/2026 · `status: open`
+- [[cpa-bng-collab-06092026]] — פגישה עם CPA-BNG, שיתוף-פעולה אפשרי · 06/09/2026 · `status: open`
 
 ## שליפה אוטומטית (Obsidian + Dataview)
 ```dataview
