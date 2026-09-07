@@ -5,7 +5,43 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-09-06 (Sonnet 5) · ענף פעיל: `claude/cpa-bng-count-collab-h25ga3` · החלטות: [[decisions]]
+> עודכן: 2026-09-07 (Fable 5.1; סוכנים ב-Sonnet 5) · ענף פעיל: `claude/cpa-bng-count-collab-h25ga3`
+> (**לא ממוזג ל-main, לא נפתח PR**) · החלטות: [[decisions]]
+
+## 📍 HANDOFF 07/09/2026 — לקרוא קודם (סיום-סשן מסודר)
+
+**מה הענף מכיל (14 קומיטים מעל main, כולם ירוקים tsc·vitest·build):**
+1. **מנוע-מס — 5 תיקוני-עדיפות מ-`risk-gap.md` §7.7 + אחד שהלולאה תפסה:** נק'-זיכוי-ילדים
+   (טבלת-2024, STRONGLY-SUPPORTED), ניכוי-חלקי-לפי-קטגוריה מיושם בפועל (+ שיעור-רכב לפי מקצוע
+   מה-113-מקצועות), פיצול ב"ל/מס-בריאות (`healthTaxAnnualPaid`, תוספתי), דוח-מע"מ קורא מחזור-חי,
+   נוסחת-מילואים אומתה מול תיקון 283 (תקינה). פירוט: `risk-gap.md` §8-§9.
+2. **onboarding:** סבב "בן 18" (קישורי-gov.il, מסלול-מהיר, 5 תיקוני-גלילה, קופי) + **שמירת-טיוטה
+   ו-כפתור-חזרה** (`src/lib/setup-draft.ts`, מדיניות-פרטיות: ת.ז./בנק לעולם לא נשמרים, TTL 72h).
+3. **תיעוד:** `docs/meeting-records/cpa-bng-collab-06092026.md` (CPA-BNG = דמו, לא שותפות) ·
+   `docs/plans/2026-09-06-pre-cpa-bng-demo-sprint.md` (רשימת-המשימות הקנונית לדמו) ·
+   `docs/specs/rag-jurisdiction-packs.md` (ארכיטקטורת-RAG כפי-שהיא + רעיון-לפטנט + מיפוי ל-IRS —
+   **טיוטה, לא לפרסם לפני חיפוש-פריור-ארט**) · `decisions.md` מתודולוגיית-4-דרגות-ודאות.
+
+**הפעולה-הבאה-הטובה-ביותר (לפי סדר):**
+1. **יוני:** לעבור על הענף ולהחליט merge/PR (לא נפתח PR — לא התבקש). לפני merge: `npm run build && npm test`.
+2. **דמו ל-CPA-BNG:** לאצור מסלול-הצגה מהקיים (onboarding→דשבורד→התראת-תקרה→דוח-מע"מ) — סעיף 1
+   ברשימת-המשימות במסמך-הפגישה. אין קוד חסר לזה.
+3. **קונסולה (חוזר בפעם הרביעית):** לוודא ב-SQL Editor של hbsgz ש-`rate_limit_buckets` +
+   `check_rate_limit()` קיימים (הקוד נכשל-**פתוח**), WAF Active+Save, Redirect URL. + לחבר מחדש את
+   ה-Supabase-connector לחשבון הנכון (ה-MCP עדיין רואה `megamodel2000@gmail.com`).
+4. **החלטת-רועי ממתינה:** טבלת-נק'-זיכוי-ילדים (75-88%) ו-mapping אמא/אבא→gender-המגיש/ה — לאשר
+   או לתקן ב-`types.ts` (golden tests ב-`credit-points.test.ts` ינחו).
+5. **RAG:** להחיל את 2 מיגרציות-ה-knowledge על hbsgz + לחבר TOC ל-`/api/coach` (הפערים ב-spec §1).
+
+**מה נשאר פתוח בכוונה:** משרד-ביתי לא-ממודל (אין שדה-יחס-שטח) · 20 ממצאי-`risk-gap` ישנים ·
+טופס-1219 placeholders · מע"מ-תשומות שטוח · 6 פערי-artifact-first ב-onboarding (מונה-שדות,
+redesign-כפתורים, motion — "תשמור על ה-UI") · צרפתית (סקופ "בסיסי" נעול, מסכים לא נבחרו) ·
+DoneScreen בלי מספרים כספיים · אזהרת-2026 · ARIA-אחיד לקבוצות-בחירה.
+
+**⚠️ עובדות-סביבה שחוסכות זמן:** WebFetch ל-gov.il/btl/kolzchut/miluim.idf.il **חסום ברמת-מדיניות**
+(WebSearch עובד) — דרגה-1 דורשת בן-אדם. `node_modules` לא מותקן בקונטיינר חדש (`npm install` קודם).
+build דורש `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` דמה. ה-`/loop` לבדיקת-טבלאות **נעצר בסיום הסשן**
+— `/loop בדיקה חוזרת מול טבלאות` מפעיל מחדש.
 
 ## ⭐ 07/09 — סבב-onboarding ל"בן 18 לא-טכנולוגי": Workflow 10 סוכני Sonnet 5, UI נשמר, tsc·423/423·build
 

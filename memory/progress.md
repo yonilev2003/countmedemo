@@ -5,6 +5,26 @@ related: "[[STATUS]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # progress — יומן התקדמות לפי סבבים
 
+## 2026-09-07 (סיום-סשן) — שמירת-טיוטה + כפתור-חזרה · ספק-RAG/פטנט · handoff
+
+**שמירת-טיוטה + back (risk-gap §A #1, הסיכון-הגדול-ביותר בזרימה):** מודול חדש `src/lib/setup-draft.ts`
+— debounce 400ms ל-localStorage, **מדיניות-הפרטיות כפי שנעלה 06/09**: `teudatZehut` + `bankCode/
+branchCode/accountNumber` נמחקים בכתיבה **וגם** בקריאה (הגנה-כפולה), TTL 72h עם מחיקה-עצמית,
+טיוטה ריקה לא נכתבת, ניקוי ב-submit. טיוטה **מוצעת** בבאנר (לא מוחלת בשקט). כפתור-חזרה: `pushState`
+לפי מזהה-מסך + `popstate` שמזיז את האשף במקום לצאת מ-`/setup`; ה-state של Next נשמר ב-spread.
+11 golden tests (`tests/unit/setup/setup-draft.test.ts`) — כולל "הטיוטה-הגולמית לא מכילה ת.ז.".
+שער: tsc · 434/434 · build. **לא נבדק ידנית בדפדפן** (אין Playwright בסבב הזה) — כדאי מעבר-ידני
+קצר: מלא/י 2 מסכים → רענון → באנר → "המשך מהטיוטה"; וכפתור-חזרה של הדפדפן ממסך 3.
+
+**RAG:** מיפוי מאומת-בקוד (סוכן Explore) + מסמך `docs/specs/rag-jurisdiction-packs.md`: הארכיטקטורה
+כפי-שהיא, 3 פערים אמיתיים (מיגרציות-knowledge לא הוחלו; TOC רק ב-`/api/chat` לא ב-`/api/coach`;
+"אפס-מספרים" הוא נוהל ולא lint), הרעיון-לפטנט ("numberless retrieval + deterministic, provenance-
+tiered grounding + regulatory-diff loop"), ומיפוי מושג-מושג ל-IRS Schedule C. **הסתייגות כנה
+במסמך:** יש פריור-ארט; מה-שאולי-בר-הגנה הוא השילוב; חיפוש-חדשנות אצל עו"ד-פטנטים (Pearl Cohen
+הוזכרו בפגישה) לפני פרסום כלשהו.
+
+**Handoff:** STATUS.md קיבל בלוק "📍 HANDOFF" בראש; `/loop` נעצר.
+
 ## 2026-09-07 — onboarding ל"בן 18 לא-טכנולוגי" (Workflow: 4 תכנון ∥ → 4 מימוש סדרתי → שער+ביקורת)
 
 יוני עבר את הסשן ל-Fable 5.1 וביקש: סקירה-מחדש של ה-onboarding מנקודת-מבט של לקוח חדש בן 18
