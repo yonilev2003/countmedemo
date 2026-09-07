@@ -11,6 +11,14 @@ import {
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
 import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
+import {
+  saveSetupDraft,
+  loadSetupDraft,
+  clearSetupDraft,
+  isDraftMeaningful,
+  draftAgeLabelHe,
+  type SetupDraft,
+} from "@/lib/setup-draft";
 import { getTaxYearConstants, MILUIM_CREDIT_FIRST_YEAR } from "@/lib/calculators/types";
 import { totalCreditPoints } from "@/lib/calculators";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
@@ -1083,6 +1091,115 @@ export default function SetupPage() {
     if (hasAnySpecialStatus) setSpecialStatusOpen(true);
   }, [hasAnySpecialStatus]);
 
+  /* ── Draft persistence + browser back button (risk-gap.md §A #1, 2026-09-07)
+   *
+   * All seven screens used to live only in React state until the final click —
+   * a refresh, a backgrounded tab or the phone's back gesture wiped everything
+   * silently. Now:
+   *  • every change is debounce-saved to localStorage via lib/setup-draft.ts,
+   *    under the locked privacy policy (ID number + bank account fields are
+   *    NEVER written; 72h TTL; cleared on successful submit);
+   *  • on mount, a meaningful draft is OFFERED (banner), never applied
+   *    silently — the user picks "המשך/י מהטיוטה" or "התחל/י מחדש";
+   *  • each screen change pushes a history entry with {setupScreen}, and
+   *    popstate steps the wizard instead of leaving /setup. Keyed by screen
+   *    id, not the screen count, so inserting a screen later can't break it.
+   */
+  const asSection = (o: object) => o as Record<string, unknown>;
+  const [pendingDraft, setPendingDraft] = useState<SetupDraft | null>(null);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  useEffect(() => {
+    const d = loadSetupDraft();
+    if (d && isDraftMeaningful(d)) setPendingDraft(d);
+    setDraftHydrated(true);
+  }, []);
+
+  function applyDraft(d: SetupDraft) {
+    // Excluded fields (teudatZehut, bank*) are absent from the draft by
+    // construction — keep whatever the current state already holds for them.
+    setS1((s) => ({ ...s, ...(d.s1 as unknown as Partial<Step1Data>), teudatZehut: s.teudatZehut }));
+    setS2((s) => ({ ...s, ...(d.s2 as unknown as Partial<Step2Data>) }));
+    setS3((s) => ({ ...s, ...(d.s3 as unknown as Partial<Step3Data>) }));
+    setS4((s) => ({ ...s, ...(d.s4 as unknown as Partial<Step4Data>) }));
+    setS5((s) => ({ ...s, ...(d.s5 as unknown as Partial<Step5Data>) }));
+    setS6((s) => ({
+      ...s,
+      ...(d.s6 as unknown as Partial<Step6Data>),
+      bankCode: s.bankCode,
+      branchCode: s.branchCode,
+      accountNumber: s.accountNumber,
+    }));
+    if (AVAILABLE_TAX_YEARS.includes(d.selectedYear)) setSelectedYear(d.selectedYear);
+    setShowValidation(false);
+    setScreen(Math.min(Math.max(d.screen, 1), TOTAL_SCREENS));
+    setPendingDraft(null);
+    focusScreenHeading();
+  }
+  function discardDraft() {
+    clearSetupDraft();
+    setPendingDraft(null);
+  }
+
+  useEffect(() => {
+    // Don't overwrite an offered draft with the pristine initial state, and
+    // stop saving once the wizard has been submitted.
+    if (!draftHydrated || pendingDraft || doneData) return;
+    const t = setTimeout(() => {
+      saveSetupDraft({
+        screen,
+        selectedYear,
+        s1: asSection(s1),
+        s2: asSection(s2),
+        s3: asSection(s3),
+        s4: asSection(s4),
+        s5: asSection(s5),
+        s6: asSection(s6),
+      });
+    }, 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftHydrated, pendingDraft, doneData, screen, selectedYear, s1, s2, s3, s4, s5, s6]);
+
+  const historyReadyRef = useRef(false);
+  const fromPopstateRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      // Spread keeps Next.js's own history-state keys intact.
+      window.history.replaceState({ ...(window.history.state ?? {}), setupScreen: 1 }, "");
+    } catch {
+      /* ignore */
+    }
+    historyReadyRef.current = true;
+    const onPop = (e: PopStateEvent) => {
+      const s = (e.state as { setupScreen?: unknown } | null)?.setupScreen;
+      if (typeof s !== "number" || s < 1 || s > TOTAL_SCREENS) return;
+      fromPopstateRef.current = true;
+      setShowValidation(false);
+      setScreen(s);
+      focusScreenHeading();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const firstScreenEffectRef = useRef(true);
+  useEffect(() => {
+    if (firstScreenEffectRef.current) {
+      firstScreenEffectRef.current = false;
+      return;
+    }
+    if (!historyReadyRef.current) return;
+    if (fromPopstateRef.current) {
+      fromPopstateRef.current = false;
+      return;
+    }
+    try {
+      window.history.pushState({ ...(window.history.state ?? {}), setupScreen: screen }, "");
+    } catch {
+      /* ignore */
+    }
+  }, [screen]);
+
   function validateStep1(): Errors {
     const e: Errors = {};
     if (!s1.firstName.trim()) e.firstName = "שדה חובה";
@@ -1490,6 +1607,9 @@ export default function SetupPage() {
     }
     const persona = buildPersona();
     persistPersona(persona);
+    // The draft has served its purpose — never leave unfinished-input copies
+    // behind once the real persona exists (privacy policy, lib/setup-draft.ts).
+    clearSetupDraft();
     setDoneData(persona);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1613,6 +1733,33 @@ export default function SetupPage() {
             </div>
 
             <PhaseChipBar screen={screen} />
+
+            {pendingDraft && (
+              <div
+                role="status"
+                className="mb-5 rounded-xl border border-line bg-cream px-4 py-3"
+              >
+                <p className="text-sm font-medium text-ink">
+                  מצאנו טיוטה שנשמרה {draftAgeLabelHe(pendingDraft.savedAt)} — להמשיך ממנה?
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  מספר תעודת-הזהות ופרטי חשבון-הבנק לא נשמרים בטיוטה (למען
+                  הפרטיות) — נבקש אותם שוב.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={btn("primary", "sm")}
+                    onClick={() => applyDraft(pendingDraft)}
+                  >
+                    המשך/י מהטיוטה
+                  </button>
+                  <button type="button" className={btn("ghost", "sm")} onClick={discardDraft}>
+                    התחל/י מחדש
+                  </button>
+                </div>
+              </div>
+            )}
 
             {showValidation && Object.keys(errors).length > 0 && (
               <div
