@@ -113,10 +113,11 @@ export function DocumentUpload({ onExtracted, onSkip }: Props) {
       <div className="rounded-xl border border-brand-deep/20 bg-teal-100/40 px-4 py-3 text-[13px] text-brand-navy leading-relaxed flex gap-2 items-start">
         <InfoIcon className="size-4 shrink-0 mt-0.5 text-brand-deep" />
         <div>
-          <p className="font-bold mb-1">מסלול מהיר — חסכי זמן</p>
+          <p className="font-bold mb-1">מסלול מהיר — לחיסכון בזמן</p>
           <p>
-            העלי מסמכים שכבר יש לך (דו״ח הכנסות, אקסל הוצאות, טופס 106) ואני אחלץ
-            את הנתונים אוטומטית. כל מה שלא תעלי — תוכלי למלא ידנית בהמשך.
+            העלה/י מסמכים שכבר יש לך (דו״ח הכנסות, אקסל הוצאות, טופס 106) ואני
+            אחלץ את הנתונים אוטומטית. כל מה שלא תעלה/י — תוכל/י למלא ידנית
+            בהמשך.
           </p>
         </div>
       </div>
@@ -139,7 +140,7 @@ export function DocumentUpload({ onExtracted, onSkip }: Props) {
         <div className="flex items-center justify-between pt-2 border-t border-line">
           <p className="text-xs text-muted">
             {anyDone
-              ? "הנתונים יעברו לשלבים הבאים — תוכלי לערוך אותם שם."
+              ? "הנתונים יעברו לשלבים הבאים — תוכל/י לערוך אותם שם."
               : "אין לך מסמכים כרגע? אפשר לדלג ולמלא הכל ידנית."}
           </p>
           <button
@@ -225,7 +226,7 @@ function SlotCard({
             className={btn("secondary", "sm", "w-full")}
           >
             <UploadIcon className="size-3.5" />
-            גררי קובץ או לחצי לבחירה
+            גרור/גררי קובץ או לחץ/י לבחירה
           </button>
         </>
       )}
@@ -267,7 +268,7 @@ function SlotCard({
             onClick={onClear}
             className={btn("ghost", "sm")}
           >
-            נסי קובץ אחר
+            נסה/י קובץ אחר
           </button>
         </div>
       )}

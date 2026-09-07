@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Persona, MaritalStatus, OsekType } from "@/lib/persona";
@@ -11,7 +11,7 @@ import {
   CONTINUE_INTENT_QUERY_VALUE,
 } from "@/lib/setup-storage";
 import { persistPersona, retryPersonaSave, getCurrentUserId } from "@/lib/data/persona-store";
-import { getTaxYearConstants } from "@/lib/calculators/types";
+import { getTaxYearConstants, MILUIM_CREDIT_FIRST_YEAR } from "@/lib/calculators/types";
 import { totalCreditPoints } from "@/lib/calculators";
 import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { CeilingAlertCard } from "@/components/alerts/ceiling-alert";
@@ -23,6 +23,8 @@ import { btn } from "@/components/brand/button";
 import { LegalNote, LEGAL_NOTE_FULL } from "@/components/brand/legal-note";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
+import { HelpLink } from "@/components/setup/help-link";
+import { HELP_LINKS_BY_KEY } from "@/lib/onboarding/help-links";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -67,18 +69,6 @@ const PHASES = ["פרטים", "היכרות", "העסק", "כספים", "סיו�
 /** Which phase (0-indexed into PHASES) each screen (1-indexed) belongs to. */
 const SCREEN_PHASE: number[] = [0, 0, 1, 2, 3, 3, 3];
 
-/** [current, total] sub-step within the screen's phase — drives the header
- * badge and the "שלב X מתוך Y" line under the chip bar. */
-const SCREEN_SUBSTEP: [number, number][] = [
-  [1, 2],
-  [2, 2],
-  [1, 1],
-  [1, 1],
-  [1, 3],
-  [2, 3],
-  [3, 3],
-];
-
 const SCREEN_TITLES = [
   "פרטים אישיים",
   "מעמד ומשפחה",
@@ -91,7 +81,7 @@ const SCREEN_TITLES = [
 function getScreenSubtitles(year: number): string[] {
   return [
     "כמה פרטים בסיסיים כדי לזהות אותך",
-    "מעמדים מיוחדים שמשפיעים על נקודות זיכוי",
+    "מעמדים מיוחדים שמקטינים את המס שתשלמ/י (\"נקודות זיכוי\")",
     "כמה שאלות קצרות כדי להכיר את העסק שלך",
     "שם, מספר עוסק וכתובת — איך שיופיעו על המסמכים שלך",
     `נתוני הכנסות לשנת המס ${year}`,
@@ -182,6 +172,42 @@ interface Step6Data {
 
 type Errors = Record<string, string>;
 
+/** Human-readable labels for the all-errors-at-once banner (same pattern as
+ * FIELD_LABELS in src/app/expenses/new/page.tsx). Covers every static key
+ * validateStep1..validateStep5 can produce; the dynamic `child-N` keys from
+ * validateStep2 are formatted separately by errorFieldLabel below. */
+const FIELD_LABELS: Record<string, string> = {
+  firstName: "שם פרטי",
+  lastName: "שם משפחה",
+  teudatZehut: "תעודת זהות",
+  birthDate: "תאריך לידה",
+  gender: "מגדר",
+  termsAccepted: "אישור תנאי השימוש",
+  soldierDischargeDate: "תאריך שחרור משירות",
+  aliyahDate: "תאריך עלייה",
+  academicDegreeYear: "שנת סיום תואר",
+  osekType: "סוג עוסק (פטור/מורשה)",
+  priorInvoiceNumber: "מספר חשבונית להמשך המספור",
+  primaryOccupation: "תחום עיסוק",
+  tradeName: "שם העסק",
+  totalRevenue: "מחזור שנתי",
+  totalDeductibleExpenses: "סך הוצאות מוכרות",
+  bituachLeumiAnnualPaid: "ביטוח לאומי ששולם",
+  kerenHishtalmut: "הפקדות לקרן השתלמות",
+  pensionContributions: "הפקדות לפנסיה/גמל",
+  donations: "תרומות",
+};
+
+/** Formats one error key into its human label for the banner — handles the
+ * dynamic `child-N` keys (birth-year-per-child, validateStep2) which aren't
+ * static map entries. */
+function errorFieldLabel(key: string): string {
+  if (key.startsWith("child-")) {
+    return `שנת לידה — ילד/ה ${Number(key.split("-")[1]) + 1}`;
+  }
+  return FIELD_LABELS[key] ?? key;
+}
+
 function FieldLabel({
   htmlFor,
   children,
@@ -227,8 +253,6 @@ function inputCls(hasError: boolean) {
  */
 function PhaseChipBar({ screen }: { screen: number }) {
   const currentPhase = SCREEN_PHASE[screen - 1];
-  const [subStep, subTotal] = SCREEN_SUBSTEP[screen - 1];
-  const overallPct = ((screen - 1) / (TOTAL_SCREENS - 1)) * 100;
 
   return (
     <div className="mb-7">
@@ -263,19 +287,10 @@ function PhaseChipBar({ screen }: { screen: number }) {
           );
         })}
       </div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-xs text-faint">
-          שלב {subStep} מתוך {subTotal}
-        </span>
+      <div className="mb-1.5 flex items-center justify-end">
         <span className="text-xs text-faint">
           {screen}/{TOTAL_SCREENS}
         </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-sand">
-        <div
-          className="h-full rounded-full bg-gradient-to-l from-brand-deep to-brand-navy transition-all duration-500"
-          style={{ width: `${overallPct}%` }}
-        />
       </div>
     </div>
   );
@@ -345,7 +360,7 @@ function FastTrackCard({
               מסלול מהיר — יש לך מסמכים?
             </span>
             <span className="block text-xs text-muted">
-              העלי ונמלא בשבילך
+              העלה/י ונמלא בשבילך
             </span>
           </span>
         </span>
@@ -356,11 +371,9 @@ function FastTrackCard({
           )}
         />
       </button>
-      {expanded && (
-        <div className="border-t border-line px-4 pb-4 pt-3">
-          <DocumentUpload onExtracted={onExtracted} onSkip={onCollapse} />
-        </div>
-      )}
+      <div className="border-t border-line px-4 pb-4 pt-3" hidden={!expanded}>
+        <DocumentUpload onExtracted={onExtracted} onSkip={onCollapse} />
+      </div>
     </div>
   );
 }
@@ -774,6 +787,13 @@ export default function SetupPage() {
   // is NOT gated by this — it's collapsed by default for everyone.
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [uploadExpanded, setUploadExpanded] = useState(false);
+  // Fast-path 2026-09-07 (collapse-status-screen): the four status blocks on
+  // screen 2 (soldier/oleh/degree/miluim/children) are collapsed by default —
+  // none normally apply to a first-time 18-year-old filer, and every one of
+  // them is already optional per validateStep2. Opened automatically below
+  // once any of them actually has data (a returning user, or a fast-track
+  // upload that populated one).
+  const [specialStatusOpen, setSpecialStatusOpen] = useState(false);
   const currentYear = new Date().getFullYear();
 
   // /setup has no reactive session hook (unlike useRequiredPersona pages,
@@ -846,9 +866,20 @@ export default function SetupPage() {
     osekStartDate: "",
     priorInvoicing: false,
     priorInvoiceNumber: "",
+    // Fast-path 2026-09-07 (recommend-osek-patur-default): עוסק פטור carries a
+    // "מומלץ למי שרק מתחיל/ה" badge + one-line reason as a visible STEER, but
+    // the track is NOT pre-picked — osekType feeds field 150/030 and the VAT/
+    // ceiling logic, so (like gender) it stays forced-explicit: the user must
+    // tap פטור or מורשה before "הבא" unblocks (validateStep3Intro/validateStep3).
+    // A pre-picked default was tried and reverted after adversarial review:
+    // it let a first-timer finish onboarding with a silently-assumed tax
+    // classification.
     osekTrackPicked: false,
     businessAgeBucket: "",
-    priorDocumentMethod: "",
+    // Pre-selected modal answer for a first-time filer (fast-path
+    // 2026-09-07: default-prior-documents-none) — never read by any
+    // calculator, only gates the priorInvoicing sub-flow below.
+    priorDocumentMethod: "none",
     hasEcommerceSite: false,
     osekFileNumber: "",
     tradeNameEn: "",
@@ -895,6 +926,32 @@ export default function SetupPage() {
   // instead of waiting for the next step click (QA #5). Same live-recompute
   // pattern as /expenses/new's `missing`/`showValidation`.
   const [showValidation, setShowValidation] = useState(false);
+
+  // Focus targets for the scroll+focus behavior below: the error banner (on
+  // a failed "הבא"/"שלח") and the screen heading (on a successful screen
+  // change) — both tabIndex={-1} so they're programmatically focusable
+  // without being in the tab order.
+  const errorBannerRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  /** Deferred (rAF) so it runs after the re-render that mounts/updates the
+   * error banner — a synchronous call right after setShowValidation(true)
+   * would still see the pre-render DOM. */
+  function focusErrorBanner() {
+    requestAnimationFrame(() => {
+      errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      errorBannerRef.current?.focus();
+    });
+  }
+
+  /** Same deferral reasoning as focusErrorBanner — runs after the screen
+   * (and its heading) has actually changed. */
+  function focusScreenHeading() {
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      headingRef.current?.focus();
+    });
+  }
 
   useEffect(() => {
     const saved = loadPersona();
@@ -987,6 +1044,44 @@ export default function SetupPage() {
       accountNumber: saved.bank.accountNumber,
     });
   }, []);
+
+  /**
+   * Fast-path 2026-09-07 (defer-zeir-expense-inputs): a עוסק-זעיר filer's
+   * שדה 150/030 never read totalDeductibleExpenses or bituachLeumiAnnualPaid
+   * (see field150BusinessIncome / field030BituachLeumi in
+   * src/lib/calculators/index.ts, both branch on business.isOsekZeir before
+   * ever touching either value) — so a first-time זעיר filer with no expense
+   * records or annual ב״ל voucher yet can safely default both to "0" instead
+   * of being blocked by two required-looking numeric inputs they can't fill.
+   * Only prefills a field that's still untouched ("") — never overwrites a
+   * real value the user (or a loaded persona) already has, and only fires
+   * while isOsekZeir is actually on.
+   */
+  useEffect(() => {
+    if (!s3.isOsekZeir) return;
+    setS5((s) => ({
+      ...s,
+      totalDeductibleExpenses:
+        s.totalDeductibleExpenses === "" ? "0" : s.totalDeductibleExpenses,
+      bituachLeumiAnnualPaid:
+        s.bituachLeumiAnnualPaid === "" ? "0" : s.bituachLeumiAnnualPaid,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s3.isOsekZeir]);
+
+  // Fast-path 2026-09-07 (collapse-status-screen): auto-open the collapsed
+  // "special status" section the moment it actually holds data — a returning
+  // user's loaded persona, or a fast-track upload — so nothing already
+  // filled in is ever hidden by the new default-collapsed state.
+  const hasAnySpecialStatus =
+    s2.isSoldierDischarged ||
+    s2.isNewResident ||
+    !!s2.academicDegreeYear ||
+    !!s2.combatReserveDays ||
+    s2.children.length > 0;
+  useEffect(() => {
+    if (hasAnySpecialStatus) setSpecialStatusOpen(true);
+  }, [hasAnySpecialStatus]);
 
   function validateStep1(): Errors {
     const e: Errors = {};
@@ -1151,11 +1246,12 @@ export default function SetupPage() {
     const errs = validateCurrentScreen();
     if (Object.keys(errs).length > 0) {
       setShowValidation(true);
+      focusErrorBanner();
       return;
     }
     setShowValidation(false);
     setScreen((p) => p + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    focusScreenHeading();
   }
 
   function applyExtracted(kind: string, data: ExtractedData) {
@@ -1203,7 +1299,7 @@ export default function SetupPage() {
   function handleBack() {
     setShowValidation(false);
     setScreen((p) => p - 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    focusScreenHeading();
   }
 
   function buildPersona(): Persona {
@@ -1389,6 +1485,7 @@ export default function SetupPage() {
     const errs = validateStep6();
     if (Object.keys(errs).length > 0) {
       setShowValidation(true);
+      focusErrorBanner();
       return;
     }
     const persona = buildPersona();
@@ -1445,6 +1542,13 @@ export default function SetupPage() {
    */
   const zeirExpenseRate =
     getTaxYearConstants(selectedYear).osekZeirExpenseRate;
+  // Display-only percents for the helper copy — interpolated from the year's
+  // constants so a rate change never leaves a stale "30%"/"52%" literal in UI
+  // text (CLAUDE.md single-source rule; adversarial review 2026-09-07).
+  const zeirExpensePct = Math.round(zeirExpenseRate * 100);
+  const blDeductiblePct = Math.round(
+    getTaxYearConstants(selectedYear).bituachLeumiDeductibleRate * 100,
+  );
   const step5Revenue = Number(s4.totalRevenue) || 0;
   const step5Expenses = Number(s5.totalDeductibleExpenses) || 0;
   const step5Ratio = step5Revenue > 0 ? step5Expenses / step5Revenue : 0;
@@ -1495,21 +1599,36 @@ export default function SetupPage() {
       <main className="flex flex-1 items-start justify-center px-4 py-10">
         <div className="w-full max-w-2xl">
           <div className="rounded-2xl bg-paper border border-line shadow-brand p-7 md:p-8">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-navy text-white font-bold shadow-brand-sm text-sm shrink-0">
-                {SCREEN_SUBSTEP[screen - 1][0]}
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-brand-navy leading-tight">
-                  {SCREEN_TITLES[screen - 1]}
-                </h1>
-                <p className="text-xs text-muted mt-0.5">
-                  {SCREEN_SUBTITLES[screen - 1]}
-                </p>
-              </div>
+            <div className="mb-5">
+              <h1
+                ref={headingRef}
+                tabIndex={-1}
+                className="text-xl font-bold text-brand-navy leading-tight"
+              >
+                {SCREEN_TITLES[screen - 1]}
+              </h1>
+              <p className="text-xs text-muted mt-0.5">
+                {SCREEN_SUBTITLES[screen - 1]}
+              </p>
             </div>
 
             <PhaseChipBar screen={screen} />
+
+            {showValidation && Object.keys(errors).length > 0 && (
+              <div
+                ref={errorBannerRef}
+                tabIndex={-1}
+                role="alert"
+                aria-live="assertive"
+                className="mb-5 rounded-xl border border-alert/40 bg-overdue-bg px-4 py-3 flex items-start gap-2"
+              >
+                <AlertTriangleIcon className="size-4 text-alert shrink-0 mt-0.5" />
+                <div className="text-xs text-alert-ink leading-relaxed">
+                  <p className="font-bold mb-0.5">חסרים שדות חובה:</p>
+                  <p>{Object.keys(errors).map(errorFieldLabel).join(", ")}</p>
+                </div>
+              </div>
+            )}
 
             {/* Each wizard screen enters with the same CSS settle-in the
                 route boundary uses (globals.css .cm-route-enter) — each
@@ -1528,7 +1647,7 @@ export default function SetupPage() {
                 />
                 {!isReturningUser && <BetaNotice />}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <FieldLabel htmlFor="firstName" required>
                       שם פרטי
@@ -1748,6 +1867,65 @@ export default function SetupPage() {
             {screen === 2 && (
               <div className="cm-route-enter">
               <div className="space-y-5">
+                {/* Fast-path 2026-09-07 (collapse-status-screen): a top
+                    tap-choice that collapses the four status blocks below
+                    behind a closed expander by default — none of them apply
+                    to most first-time 18-year-old filers, and every field in
+                    them stays exactly as optional as before (validateStep2
+                    unchanged). */}
+                <div className="rounded-xl border border-line bg-paper p-4">
+                  <FieldLabel>האם אחד מהמצבים האלה נכון לגביך?</FieldLabel>
+                  <p className="text-xs text-muted mb-2.5 leading-relaxed">
+                    שירות צבאי, עלייה ארצה, תואר אקדמי, מילואים כלוחם/ת או
+                    ילדים — כל אחד מהם יכול להוסיף נקודות זיכוי. אם שום דבר
+                    מזה לא רלוונטי, אפשר לדלג הלאה.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSpecialStatusOpen(true)}
+                      aria-pressed={specialStatusOpen}
+                      className={cn(
+                        "rounded-full border px-3.5 py-2 text-xs sm:text-sm transition-colors",
+                        specialStatusOpen
+                          ? "border-brand-deep bg-teal-100/40 text-brand-navy font-medium"
+                          : "border-line bg-paper hover:bg-cream text-ink",
+                      )}
+                    >
+                      כן, יש לי אחד מהם
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSpecialStatusOpen(false)}
+                      aria-pressed={!specialStatusOpen}
+                      className={cn(
+                        "rounded-full border px-3.5 py-2 text-xs sm:text-sm font-medium transition-colors",
+                        !specialStatusOpen
+                          ? "border-brand-deep bg-teal-100/40 text-brand-navy"
+                          : "border-line bg-paper hover:bg-cream text-ink",
+                      )}
+                    >
+                      לא, אף אחד מהם
+                    </button>
+                  </div>
+                  <HelpLink link={HELP_LINKS_BY_KEY["credit-points-overview"]} />
+                </div>
+
+                {!specialStatusOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setSpecialStatusOpen(true)}
+                    aria-expanded={false}
+                    aria-controls="special-status-region"
+                    className="flex items-center gap-1.5 text-sm font-medium text-brand-deep hover:underline"
+                  >
+                    <ChevronDownIcon className="size-4 shrink-0" />
+                    יש לי מצב מיוחד — הראה/י לי
+                  </button>
+                )}
+
+                {specialStatusOpen && (
+                  <div id="special-status-region" className="contents">
                 <div className="rounded-xl border border-line bg-cream p-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
@@ -1817,6 +1995,7 @@ export default function SetupPage() {
                           שירות חלקי → 1 נק׳ לשנה. יחסי למספר החודשים בחלון 36 ח׳ מהשחרור.
                         </p>
                       </div>
+                      <HelpLink link={HELP_LINKS_BY_KEY["soldier-discharge-credit"]} />
                     </div>
                   )}
                 </div>
@@ -1858,6 +2037,7 @@ export default function SetupPage() {
                       <p className="mt-1 text-xs text-muted">
                         נדרש לחישוב מספר שנות הזכאות לנקודות עולה חדש/ה
                       </p>
+                      <HelpLink link={HELP_LINKS_BY_KEY["oleh-hadash-credit"]} />
                     </div>
                   )}
                 </div>
@@ -1892,6 +2072,7 @@ export default function SetupPage() {
                   <p className="mt-1 text-xs text-muted">
                     זכאות לנקודת זיכוי על תואר ראשון (שנה אחת) או תואר שני
                   </p>
+                  <HelpLink link={HELP_LINKS_BY_KEY["academic-degree-credit"]} />
                 </div>
 
                 <div>
@@ -1913,9 +2094,21 @@ export default function SetupPage() {
                     placeholder="לדוגמה: 45"
                   />
                   <p className="mt-1 text-xs text-muted">
-                    נקודות זיכוי למשרתי מילואים כלוחמים (תיקון 283). הזיכוי חל מדוח
-                    2026 בגין שירות 2025 — בדוח {selectedYear} יוצג כצפי בלבד.
+                    {selectedYear >= MILUIM_CREDIT_FIRST_YEAR ? (
+                      <>
+                        נקודות זיכוי למשרתי מילואים כלוחמים (תיקון 283) — הטבה
+                        במס על ימי מילואים כלוחם/ת ב-{selectedYear - 1}.
+                      </>
+                    ) : (
+                      <>
+                        נקודות זיכוי למשרתי מילואים כלוחמים (תיקון 283) — ההטבה
+                        נכנסת לתוקף רק מדוח {MILUIM_CREDIT_FIRST_YEAR}. הימים
+                        שתזין/י כאן ישמשו רק לצפי לקראת דוח {selectedYear + 1}.
+                      </>
+                    )}
                   </p>
+                  <HelpLink link={HELP_LINKS_BY_KEY["reserve-combat-credit"]} />
+                  <HelpLink link={HELP_LINKS_BY_KEY["reserve-combat-credit-source"]} />
                 </div>
 
                 <div>
@@ -1926,9 +2119,10 @@ export default function SetupPage() {
                       onClick={addChild}
                       className="text-xs text-brand-deep hover:underline font-medium"
                     >
-                      + הוסיפי ילד/ה
+                      + הוסף/הוסיפי ילד/ה
                     </button>
                   </div>
+                  <HelpLink link={HELP_LINKS_BY_KEY["children-credit"]} className="mb-2" />
                   {s2.children.length === 0 ? (
                     <p className="text-xs text-faint py-2">
                       אין ילדים. נקודות זיכוי לילדים תלויות בגיל
@@ -1966,6 +2160,8 @@ export default function SetupPage() {
                     </div>
                   )}
                 </div>
+                  </div>
+                )}
               </div>
               </div>
             )}
@@ -2020,6 +2216,7 @@ export default function SetupPage() {
                       setS3({ ...s3, ...next });
                     }}
                   />
+                  <HelpLink link={HELP_LINKS_BY_KEY["osek-type-explainer"]} />
 
                   {s3.osekTrackPicked && (
                     <label className="mt-2.5 flex items-start gap-3 rounded-xl border border-line bg-paper px-4 py-3 cursor-pointer transition-colors hover:bg-cream">
@@ -2036,9 +2233,10 @@ export default function SetupPage() {
                           עוסק זעיר
                         </span>
                         <p className="text-xs text-muted mt-0.5 leading-relaxed">
-                          30% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח
-                          לאומי), בלי צורך לתעד הוצאות בפועל ובלי חובת מקדמות.
-                          פתוח עד מחזור של {osekCeilingHe} ₪ (שנת מס{" "}
+                          {zeirExpensePct}% מהמחזור מוכרים אוטומטית כהוצאות (כולל ביטוח
+                          לאומי), בלי צורך לתעד הוצאות בפועל ובלי חובת מקדמות
+                          (תשלומי מס מקדימים על חשבון השנה). פתוח עד מחזור של{" "}
+                          {osekCeilingHe} ₪ (שנת מס{" "}
                           {selectedYear}) — אותה תקרה של עוסק פטור. יציאה
                           מהמסלול חוסמת חזרה אליו לשנתיים.
                           {s3.osekType === "morshe" &&
@@ -2249,7 +2447,7 @@ export default function SetupPage() {
                     className={inputCls(false)}
                     placeholder="יישוב"
                   />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input
                       id="addressStreet"
                       type="text"
@@ -2324,6 +2522,13 @@ export default function SetupPage() {
                       ))}
                     </div>
                   </div>
+                  {/* Fast-path 2026-09-07 (clarify-tax-year-choice): wording
+                      only — AVAILABLE_TAX_YEARS and the default-selection
+                      clamp above are unchanged. */}
+                  <p className="mt-2 text-xs text-muted leading-relaxed">
+                    זו הפעם הראשונה שאת/ה מגיש/ה דוח? בדרך כלל תבחר/י את השנה
+                    שבה כבר יש לך הכנסות בפועל — היא כבר מסומנת למטה.
+                  </p>
                   {selectedYear === 2025 && (
                     <p className="mt-2 text-xs text-muted leading-relaxed">
                       נתוני 2025 מאומתים (מדרגות מס, נקודות זיכוי, תקרות קרן
@@ -2366,7 +2571,10 @@ export default function SetupPage() {
                     actually approaching/over the year's ceiling ("safe"
                     stays quiet so an empty/low field isn't noisy). */}
                 {ceilingAlert && ceilingAlert.level !== "safe" && (
-                  <CeilingAlertCard alert={ceilingAlert} />
+                  <div>
+                    <CeilingAlertCard alert={ceilingAlert} />
+                    <HelpLink link={HELP_LINKS_BY_KEY["revenue-ceiling"]} />
+                  </div>
                 )}
 
               </div>
@@ -2419,6 +2627,18 @@ export default function SetupPage() {
                       : "עוסק/ת פטור/ה — מע״מ ששולם הוא חלק מהעלות, כלול בסכום"}
                   </p>
 
+                  {/* Fast-path 2026-09-07 (defer-zeir-expense-inputs): a זעיר
+                      filer's 30% auto-recognition makes this field a no-op for
+                      the computed שדה 150 — see the useEffect above the
+                      validators for the calculator citation. */}
+                  {s3.isOsekZeir && (
+                    <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                      במסלול עוסק זעיר {zeirExpensePct}% מהמחזור מוכרים אוטומטית (כולל ביטוח
+                      לאומי) — אין צורך למלא סכום אמיתי כאן, אלא אם תרצה/י
+                      לתעד בכל זאת.
+                    </p>
+                  )}
+
                   {/* Factual 30% note — osek ZEIR with expenses ABOVE 30% (facts, no advice) */}
                   {showZeirOverNote && (
                     <div className="mt-3 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/60 px-3 py-2.5 text-xs leading-relaxed text-ink">
@@ -2451,9 +2671,14 @@ export default function SetupPage() {
                 </div>
 
                 <div className="border-t border-line pt-4 mt-2">
-                  <h3 className="text-sm font-semibold text-ink mb-3">
+                  <h3 className="text-sm font-semibold text-ink mb-1">
                     ניכויים אישיים (אופציונלי)
                   </h3>
+                  {/* Fast-path 2026-09-07 (mark-optional-deductions) */}
+                  <p className="text-xs text-muted mb-3 leading-relaxed">
+                    אם אין לך עדיין הפקדות/תרומות, אפשר להשאיר הכל ריק
+                    ולהוסיף מאוחר יותר מלוח הבקרה — זה לא ישפיע על שאר הדוח.
+                  </p>
                   <div className="space-y-3">
                     <div>
                       <FieldLabel htmlFor="bituachLeumi">
@@ -2477,12 +2702,23 @@ export default function SetupPage() {
                       />
                       <ErrorMsg msg={errors.bituachLeumiAnnualPaid} />
                       <p className="mt-1 text-xs text-muted">
-                        אם השובר שלך מציג רק את רכיב הביטוח הלאומי — הזינו
-                        אותו כאן. אם השובר מציג סכום כולל (ביטוח לאומי + מס
-                        בריאות ביחד), הזינו את הסכום הכולל כאן ואת רכיב מס
-                        הבריאות בשדה הבא — כך הניכוי (52%) יחושב על רכיב
-                        הביטוח הלאומי בלבד, לא ביתר.
+                        ביטוח לאומי הוא תשלום חובה שכל עצמאי משלם בנוסף למס
+                        הכנסה — חלק ממנו ({blDeductiblePct}%) מוכר כניכוי בדוח. אם השובר שלך
+                        מציג רק את רכיב הביטוח הלאומי — הזינו אותו כאן. אם
+                        השובר מציג סכום כולל (ביטוח לאומי + מס בריאות ביחד),
+                        הזינו את הסכום הכולל כאן ואת רכיב מס הבריאות בשדה הבא
+                        — כך הניכוי ({blDeductiblePct}%) יחושב על רכיב הביטוח הלאומי בלבד, לא
+                        ביתר.
                       </p>
+                      {/* Fast-path 2026-09-07 (defer-zeir-expense-inputs) */}
+                      {s3.isOsekZeir && (
+                        <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                          במסלול עוסק זעיר {zeirExpensePct}% מהמחזור מוכרים אוטומטית (כולל
+                          ביטוח לאומי) — אין צורך למלא סכום אמיתי כאן, אלא אם
+                          תרצה/י לתעד בכל זאת.
+                        </p>
+                      )}
+                      <HelpLink link={HELP_LINKS_BY_KEY["bl-annual-statement"]} />
                     </div>
                     <div>
                       <FieldLabel htmlFor="healthTaxAnnualPaid">
@@ -2508,11 +2744,22 @@ export default function SetupPage() {
                         השאירו ריק אם הזנתם למעלה רק את רכיב הביטוח הלאומי —
                         אז כל הסכום למעלה ייחשב כרכיב הביטוח הלאומי, כמו קודם.
                       </p>
+                      {/* Fast-path 2026-09-07 (explain-health-tax-split):
+                          plain-language safety net for the ב״ל/מס-בריאות
+                          split — the split itself stays intact (see
+                          out_of_scope_notes), this only reassures a filer
+                          with no annual voucher yet that both fields are
+                          safe to leave empty for now. */}
+                      <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                        אם עדיין לא קיבלת שובר שנתי מביטוח לאומי, אפשר להשאיר
+                        את שני השדות ריקים ולהשלים בהמשך.
+                      </p>
+                      <HelpLink link={HELP_LINKS_BY_KEY["bl-health-tax-split"]} />
                     </div>
 
                     <div>
                       <FieldLabel htmlFor="kerenH">
-                        הפקדות לקרן השתלמות (שדה 137)
+                        הפקדות לקרן השתלמות (שדה 137) (אופציונלי)
                       </FieldLabel>
                       <input
                         id="kerenH"
@@ -2528,11 +2775,17 @@ export default function SetupPage() {
                         placeholder="18375"
                       />
                       <ErrorMsg msg={errors.kerenHishtalmut} />
+                      <p className="mt-1 text-xs text-muted">
+                        קרן חיסכון לטווח בינוני שעצמאים יכולים (לא חייבים)
+                        להפקיד אליה מרצון דרך חברת ביטוח או בית השקעות — יש לך
+                        הפקדה כזו רק אם פתחת אחת ביוזמתך.
+                      </p>
+                      <HelpLink link={HELP_LINKS_BY_KEY["keren-hishtalmut"]} />
                     </div>
 
                     <div>
                       <FieldLabel htmlFor="pension">
-                        הפקדות לקרן פנסיה / קופת גמל
+                        הפקדות לקרן פנסיה / קופת גמל (אופציונלי)
                       </FieldLabel>
                       <input
                         id="pension"
@@ -2551,11 +2804,12 @@ export default function SetupPage() {
                         placeholder="9000"
                       />
                       <ErrorMsg msg={errors.pensionContributions} />
+                      <HelpLink link={HELP_LINKS_BY_KEY["pension-contributions"]} />
                     </div>
 
                     <div>
                       <FieldLabel htmlFor="donations">
-                        תרומות למוסדות מוכרים השנה
+                        תרומות למוסדות מוכרים השנה (אופציונלי)
                       </FieldLabel>
                       <input
                         id="donations"
@@ -2571,6 +2825,7 @@ export default function SetupPage() {
                         placeholder="0"
                       />
                       <ErrorMsg msg={errors.donations} />
+                      <HelpLink link={HELP_LINKS_BY_KEY["donations-recognized"]} />
                     </div>
                   </div>
                 </div>
@@ -2605,11 +2860,11 @@ export default function SetupPage() {
               <div className="cm-route-enter">
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-ink">
-                  פרטי בנק להחזר
+                  פרטי בנק להחזר (אופציונלי — אפשר להשלים בהמשך מלוח הבקרה)
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <FieldLabel htmlFor="bankName">שם הבנק</FieldLabel>
+                    <FieldLabel htmlFor="bankName">שם הבנק (אופציונלי)</FieldLabel>
                     <input
                       id="bankName"
                       type="text"
@@ -2622,7 +2877,7 @@ export default function SetupPage() {
                     />
                   </div>
                   <div>
-                    <FieldLabel htmlFor="bankCode">קוד בנק</FieldLabel>
+                    <FieldLabel htmlFor="bankCode">קוד בנק (אופציונלי)</FieldLabel>
                     <input
                       id="bankCode"
                       type="text"
@@ -2640,9 +2895,9 @@ export default function SetupPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <FieldLabel htmlFor="branchCode">קוד סניף</FieldLabel>
+                    <FieldLabel htmlFor="branchCode">קוד סניף (אופציונלי)</FieldLabel>
                     <input
                       id="branchCode"
                       type="text"
@@ -2660,7 +2915,7 @@ export default function SetupPage() {
                     />
                   </div>
                   <div>
-                    <FieldLabel htmlFor="account">מספר חשבון</FieldLabel>
+                    <FieldLabel htmlFor="account">מספר חשבון (אופציונלי)</FieldLabel>
                     <input
                       id="account"
                       type="text"
@@ -2712,7 +2967,10 @@ export default function SetupPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted">
+                      <span
+                        className="text-xs text-muted"
+                        title="חובת הגשת דוח מפורט נוסף לעסקים עם מחזור גבוה"
+                      >
                         טופס 6111
                       </span>
                       <span className="text-sm font-semibold text-ink">
@@ -2766,7 +3024,7 @@ export default function SetupPage() {
                   onClick={handleSubmit}
                   className={btn("primary")}
                 >
-                  הציגי את הדוח שלי
+                  הצג/הציגי את הדוח שלי
                   <ArrowLeftIcon className="size-4" />
                 </button>
               )}
@@ -2864,17 +3122,25 @@ function OsekTypeChoice({
     title: string;
     desc: string;
     next: { osekType: OsekType };
+    // Fast-path 2026-09-07 (recommend-osek-patur-default): a visible,
+    // one-line steer for a first-timer choosing blind between two unfamiliar
+    // legal terms — never hides or removes the other option.
+    recommended?: boolean;
+    reason?: string;
   }[] = [
     {
       key: "patur",
       title: "עוסק פטור",
-      desc: `פטור מגביית מע״מ, מדווח הוצאות בפועל. מחזור עד ${ceilingHe} ₪ (שנת מס ${year}).`,
+      desc: `לא גובה/ת מע״מ מהלקוחות ולא מדווח/ת עליו לרשות המסים; מדווח/ת רק על הוצאות בפועל. מתאים למחזור שנתי עד ${ceilingHe} ₪ (שנת מס ${year}).`,
       next: { osekType: "patur" },
+      recommended: true,
+      reason:
+        "הכי פשוט: אין חובת גביית מע״מ ודיווח חודשי/דו-חודשי, כל עוד המחזור מתחת לתקרה.",
     },
     {
       key: "morshe",
       title: "עוסק מורשה",
-      desc: "גובה ומדווח מע״מ, מקזז מע״מ תשומות. ללא תקרת מחזור.",
+      desc: "גובה/ת מע״מ מהלקוחות ומעביר/ה אותו לרשות המסים, אבל מקבל/ת בחזרה את המע״מ ששילמת על הוצאות עסקיות. אין תקרת מחזור.",
       next: { osekType: "morshe" },
     },
   ];
@@ -2902,17 +3168,33 @@ function OsekTypeChoice({
               className="mt-0.5 h-4 w-4 accent-brand-navy"
             />
             <div className="flex-1">
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  active ? "text-brand-navy" : "text-ink",
+              <span className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    active ? "text-brand-navy" : "text-ink",
+                  )}
+                >
+                  {opt.title}
+                </span>
+                {opt.recommended && (
+                  <StatusBadge
+                    status="on-track"
+                    showDot={false}
+                    className="px-2 py-0.5 text-[10px]"
+                  >
+                    מומלץ למי שרק מתחיל/ה
+                  </StatusBadge>
                 )}
-              >
-                {opt.title}
               </span>
               <p className="text-xs text-muted mt-0.5 leading-relaxed">
                 {opt.desc}
               </p>
+              {opt.reason && (
+                <p className="text-xs text-brand-deep mt-1 leading-relaxed">
+                  {opt.reason}
+                </p>
+              )}
             </div>
           </label>
         );
@@ -2977,7 +3259,12 @@ function OsekOtherCasesPicker({
       {value && (
         <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-due/40 bg-due-bg/50 px-3.5 py-2.5 text-xs leading-relaxed text-ink">
           <InfoIcon className="size-3.5 mt-0.5 shrink-0 text-due" />
-          <span>{cards.find((c) => c.key === value)!.explainer}</span>
+          <div className="flex-1">
+            <span>{cards.find((c) => c.key === value)!.explainer}</span>
+            {value === "not-yet" && (
+              <HelpLink link={HELP_LINKS_BY_KEY["osek-open-file"]} />
+            )}
+          </div>
         </div>
       )}
     </div>
