@@ -94,6 +94,11 @@ async function runWizard(page: Page, p: Profile) {
 
   // ── Screen 2: statuses (oleh / soldier) ──
   await expect(page.getByRole("heading", { name: "מעמד ומשפחה" })).toBeVisible();
+  if (p.oleh || p.soldier) {
+    // Fast-path 2026-09-07: the four status blocks are collapsed behind a
+    // closed expander by default — open it before the checkboxes exist.
+    await page.getByRole("button", { name: "כן, יש לי אחד מהם" }).click();
+  }
   if (p.oleh) {
     await page.getByText("עולה חדש/ה").click();
     // aliyahDate is now REQUIRED when the status is checked (this round's
@@ -176,8 +181,8 @@ test("מובייל /demo: הטופס קריא, הצ'אט נפתח כ-bottom-shee
 
   // The gov-form replica renders on a phone viewport: the star-field 150 row
   // exists and its calculated value is visible (not clipped away).
-  await expect(page.getByRole("button", { name: "פירוט הכנסות" })).toBeVisible();
-  await page.getByRole("button", { name: "פירוט הכנסות" }).click();
+  await expect(page.getByRole("tab", { name: "פירוט הכנסות" })).toBeVisible();
+  await page.getByRole("tab", { name: "פירוט הכנסות" }).click();
   const code150 = page.getByText("150", { exact: true }).first();
   await expect(code150).toBeVisible();
 
