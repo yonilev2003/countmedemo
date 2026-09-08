@@ -9,6 +9,15 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 > (ff-merge של `claude/cpa-bng-count-collab-h25ga3`, **עדיין לא ממוזג ל-main, לא נפתח PR**) ·
 > החלטות: [[decisions]]
 
+## 📍 הפעולה-הבאה: `docs/plans/2026-09-09-yoni-day-tasklist.md`
+
+רשימת-משימות מוכנה ליום שבו יוני נוכח בפועל — חיבור Supabase MCP (חד-פעמי,
+לוודא שהוא רואה סופסוף את `hbsgzelipeawkvtcazdr` ולא חשבון-זר) כדי להחיל 3
+מיגרציות ממתינות + לבצע כל הבדיקות-שחוזרות (rate-limit/WAF/Redirect-URL/
+ADMIN_EMAILS), ו-Workflow שטחי-ובסיסי מוכן-להרצה לגבי הפטנט
+(`.claude/workflows/patent-basic-gutcheck.js`) — לא עוד מחקר, gut-check
+בלבד. שום דבר מהרשימה הזו לא בוצע עדיין.
+
 ## ⭐ 08/09 (המשך, אחה"צ) — מנגנון-סקירה "טינדר" v1 + 2 באגים אמיתיים + side-quest ראשון
 
 יוני ביקש להוריד לגמרי את התלות ב"אישור רועי" ולבנות מנגנון-סקירה שיטתי

@@ -47,6 +47,7 @@ yarn-error.log*
 # claude code: ignore local agent state/worktrees, but TRACK committed skills
 .claude/*
 !.claude/skills/
+!.claude/workflows/
 
 # typescript
 *.tsbuildinfo
