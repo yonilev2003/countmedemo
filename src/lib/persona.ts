@@ -371,6 +371,17 @@ export interface Persona {
   bank: PersonaBank;
   income: PersonaIncome;
   deductionsAndCredits: PersonaDeductions;
+  /**
+   * @deprecated Both fields are written once at /setup and never updated
+   * again — do NOT read either for cadence/threshold logic. The live,
+   * invoice-updated numbers are `income.totalRevenue` (turnover) and a
+   * fresh `form6111Threshold` comparison (see field297Form6111 in
+   * lib/calculators/index.ts). risk-gap.md §7.4 #3 fixed two real bugs
+   * caused by reading these stale fields instead — see vat-report/index.ts
+   * and alerts/index.ts's generateVatAdvancesAlert for the corrected reads.
+   * Kept only because the persona schema/tests still carry it; do not add
+   * new readers.
+   */
   vatAndTurnover: {
     annualTurnoverWithoutVat: number;
     isAbove6111Threshold: boolean;
