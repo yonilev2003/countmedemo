@@ -21,6 +21,16 @@ import { totalCreditPoints } from "@/lib/calculators";
 import { miluimCreditPoints } from "@/lib/calculators/types";
 import { makePersona } from "../helpers/persona-factory";
 
+describe("academic degree points (field 181)", () => {
+  it("regression (review-mechanism audit, 2026-09-08): a set academicDegreeYear must add 1.0 point to the total — field181AcademicDegree computed this but totalCreditPoints never summed it in", () => {
+    const p = makePersona({ personal: { academicDegreeYear: 2018 } });
+    expect(totalCreditPoints(p)).toBe(2.25 + 1.0);
+  });
+  it("no degree → no extra point", () => {
+    expect(totalCreditPoints(makePersona({ personal: { academicDegreeYear: null } }))).toBe(2.25);
+  });
+});
+
 describe("resident base points", () => {
   it("male → 2.25", () => {
     expect(totalCreditPoints(makePersona())).toBe(2.25);

@@ -675,6 +675,42 @@ export function miluimServiceYear(taxYear: number): number {
  * value) when an approved change lands.
  * ────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * The 4-tier evidence methodology locked in memory/decisions.md (06/09/2026
+ * session, "מתודולוגיית רמת-ודאות"). This is a DATA field now, not just prose
+ * in a comment — the review mechanism (docs: CPA-BNG collab, 08/09/2026 round)
+ * reads it directly instead of re-parsing free-text confidence claims.
+ *
+ *   confirmed           — direct read of a primary-source text (law/gov.il/
+ *                          btl.gov.il actually fetched), OR ≥2 independent
+ *                          QUALITY sources that converge, with a stated
+ *                          validity date and a contradiction check performed.
+ *   strongly_supported   — ≥3 independent secondary sources converging
+ *                          (accountant sites, kolzchut, etc.), but NO direct
+ *                          primary-source fetch was possible.
+ *   unverified            — single source, uncited, or a documented gap/FLAG(Roy).
+ *   refuted               — checked and found wrong (see risk-gap.md §4).
+ *
+ * HONEST FINDING (2026-09-08 review-mechanism build): this session's dev
+ * environment cannot fetch gov.il/btl.gov.il directly (egress policy — see
+ * docs/specs/rag-jurisdiction-packs.md §4), so under the strict tier-1 test
+ * NOT ONE of the constants below has ever had a genuine primary-source fetch.
+ * decisions.md §7.8 already declared this exact downgrade for the miluim/
+ * document findings ("כולם דרגה 2, לא דרגה 1") but the retag was only done in
+ * prose, never in code. Every entry below that used to read "CONFIRMED" in
+ * its inline comment is tagged `strongly_supported` here for that reason —
+ * this is not a new doubt, it's finishing a re-tagging decisions.md already
+ * made. Upgrade to `confirmed` only after an actual primary-source fetch
+ * (human-in-the-loop, per decisions.md) or a CPA sign-off, recorded via the
+ * review UI (which then becomes the source of the upgrade, not a code edit
+ * asserting it).
+ */
+export type ConfidenceTier =
+  | "confirmed"
+  | "strongly_supported"
+  | "unverified"
+  | "refuted";
+
 export interface TaxConstantMeta {
   /** Hebrew description of what the constant is — fed to the classifier. */
   description: string;
@@ -683,6 +719,8 @@ export interface TaxConstantMeta {
   effectiveTaxYears: number[];
   /** ISO timestamp of the last time a human/agent confirmed this value. */
   lastVerified: string;
+  /** Evidence tier — see ConfidenceTier doc comment. Independent of review/release status. */
+  confidenceTier: ConfidenceTier;
 }
 
 /** A constant plus its live value and provenance. */
@@ -695,7 +733,17 @@ export interface TaxConstantEntry {
 const ITA = "רשות המסים בישראל";
 const ITA_HOME = "https://www.gov.il/he/departments/israel_tax_authority";
 
-/** Provenance for every agent-watchable scalar in TAX_YEAR_2024. */
+/**
+ * Provenance for every agent-watchable scalar in TAX_YEAR_2024.
+ *
+ * COVERAGE EXPANDED 2026-09-08 (review-mechanism build): was 13/37 scalars;
+ * now covers all 37 (a code-sweep agent's inventory listed every uncovered
+ * field by name — see memory/progress.md, 08/09 entry).
+ * `confidenceTier` added to every entry that same round — see the
+ * ConfidenceTier doc comment above for why almost everything below reads
+ * `strongly_supported`, not `confirmed`, regardless of how the inline
+ * comment elsewhere in this file phrases it.
+ */
 export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
   kerenHishtalmutCap: {
     description: "תקרת ההפקדה השנתית המוכרת לקרן השתלמות לעצמאי (13,203 ₪)",
@@ -703,6 +751,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // confirmed unchanged 2024→2025 (audit 2026-06)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   kerenHishtalmutIncomeCeiling: {
     description: "תקרת ההכנסה לחישוב ההפקדה המוכרת לקרן השתלמות (293,397 ₪)",
@@ -710,6 +759,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // confirmed unchanged 2024→2025 (audit 2026-06)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   kerenHishtalmutRate: {
     description: "שיעור ההפקדה המוכר לקרן השתלמות לעצמאי (4.5%)",
@@ -717,6 +767,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // statutory rate — stable (ty2025-alignment)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   bituachLeumiDeductibleRate: {
     description: "שיעור דמי ביטוח לאומי לעצמאי המוכרים כהוצאה — רכיב הב״ל בלבד (52%)",
@@ -724,6 +775,47 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: "המוסד לביטוח לאומי",
     effectiveTaxYears: [2024, 2025], // סעיף 47א — stable; applies to B"L component only
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  bituachLeumiCreditRate: {
+    description: "@deprecated הרכיב שאינו-מנוכה (48%) — אין ניכוי ואין זיכוי עליו בפועל; נשמר לתאימות טיפוס/תצוגת-שדה-048 בלבד. הערך הוא המשלים החשבוני של bituachLeumiDeductibleRate (1−0.52), לא עובדה חיצונית עצמאית.",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "confirmed",
+  },
+  blMonthlyThreshold1: {
+    description: "סף חודשי מדרגה מופחתת בביטוח לאומי לעצמאי (60% מהשכר הממוצע)",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  blMonthlyMax: {
+    description: "תקרת הכנסה חודשית מבוטחת בביטוח לאומי לעצמאי",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  blRate1: {
+    description: "שיעור ביטוח לאומי+בריאות משולב לעצמאי, מדרגה מופחתת. DORMANT — לתצוגה/פרובננס בלבד, אף מחשבון לא צורך את הערך.",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  blRate2: {
+    description: "שיעור ביטוח לאומי+בריאות משולב לעצמאי, מדרגה מלאה. DORMANT — לתצוגה/פרובננס בלבד.",
+    sourceUrl: "https://www.btl.gov.il/",
+    publisher: "המוסד לביטוח לאומי",
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   form6111Threshold: {
     description: "מחזור שמעליו חלה חובת צירוף טופס 6111 (300,000 ₪ כולל מע״מ; ex-VAT: 256,410 ב-17%/2024, 254,237 ב-18%/2025+)",
@@ -731,6 +823,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024], // 256,410 = 17%-era; 2025+ uses 254,237 (see TAX_YEAR_2025/2026)
     lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   osekPaturThreshold: {
     description: "תקרת מחזור שנתי לעוסק פטור ממע״מ (120,000 ₪ ל-2024–2025; 122,833 ₪ מ-2026)",
@@ -738,6 +831,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // 120,000; 2026 = 122,833 (CPI-indexed) — see TAX_YEAR_2026
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   osekZeirExpenseRate: {
     description: "שיעור הוצאות מוכר אוטומטית במסלול עוסק זעיר (30%, תיקון 265)",
@@ -745,6 +839,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // statutory 30% — stable (ty2025-alignment)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   osekZeirThreshold: {
     description: "תקרת מחזור למסלול עוסק זעיר (= תקרת עוסק פטור, 120,000 ₪ ל-2024–2025)",
@@ -752,6 +847,15 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // 120,000 confirmed 2024–2025; 122,833 from 2026
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  vatRate: {
+    description: "שיעור מע״מ סטנדרטי (17% עד 2024, 18% מ-2025) — הנתון החזותי-ביותר במוצר; לא כוסה קודם",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   residentCreditPoints: {
     description: "נקודות זיכוי בסיס לתושב ישראל (גבר 2.25 / אישה 2.75)",
@@ -759,6 +863,15 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // frozen (ty2025-alignment)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  femaleResidentBonusPoints: {
+    description: "תוספת נקודות-זיכוי לאישה מעל בסיס-התושב (0.5 נק')",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+    confidenceTier: "unverified",
   },
   pointValueAnnual: {
     description: "שווי שנתי של נקודת זיכוי אחת (₪)",
@@ -766,6 +879,111 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025, 2026, 2027],
     lastVerified: "2024-01-01T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  donationsCreditPercent: {
+    description: "שיעור זיכוי תרומות מוכרות (סעיף 46)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-02T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  donationsCreditMinimum: {
+    description: "רצפת סכום לזיכוי תרומות (207 ₪) — תוקן מ-200 (נתון 2023 מיושן)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-02T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  donationsCreditIncomeCeilingRate: {
+    description: "תקרת זיכוי-תרומות כאחוז מההכנסה החייבת (30%)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-02T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  lifeInsuranceCreditRate: {
+    description: "שיעור זיכוי פרמיית ביטוח-חיים (סעיף 45א(א)(1), 25%) — תוקן מ-5% (שיעור בדוי). FLAG(Roy) פתוח: מנגנון-התקרה על הפרמיה המזכה עדיין לא ממודל בכלל.",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-02T00:00:00.000Z",
+    confidenceTier: "unverified",
+  },
+  kerenExemptDepositCap: {
+    description: "תקרת הפקדה פטורה-ממס-רווח-הון לקרן השתלמות (נפרד מתקרת-הניכוי) — 20,520 ₪ (2024–2025), 20,566 ₪ (2026)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "unverified",
+  },
+  newOlehCreditYear1: {
+    description: "נקודות זיכוי עולה חדש/ה, שנה 1 (3.0 נק')",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+    confidenceTier: "unverified",
+  },
+  newOlehCreditYear2: {
+    description: "נקודות זיכוי עולה חדש/ה, שנה 2 (2.0 נק')",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+    confidenceTier: "unverified",
+  },
+  newOlehCreditYear3: {
+    description: "נקודות זיכוי עולה חדש/ה, שנה 3 (1.0 נק')",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2024-01-01T00:00:00.000Z",
+    confidenceTier: "unverified",
+  },
+  soldierMonthsCredit: {
+    description: "חלון-הזכאות לזיכוי חייל/ת משוחרר/ת — 36 חודש מהחודש שאחרי השחרור",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  soldierFractionPerMonth: {
+    description: "שבר-נקודה חודשי לחייל/ת משוחרר/ת בשירות מלא (1/6, כלומר 2 נק' לשנה)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  soldierReducedFractionPerMonth: {
+    description: "שבר-נקודה חודשי לחייל/ת משוחרר/ת בשירות חלקי (1/12)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  soldierFullServiceMonthsMale: {
+    description: "סף-חודשי-שירות-מלא לגבר לצורך זיכוי חייל משוחרר (23 חודש)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  soldierFullServiceMonthsFemale: {
+    description: "סף-חודשי-שירות-מלא לאישה לצורך זיכוי חיילת משוחררת (22 חודש)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   surtaxThreshold: {
     description: "סף הכנסה שמעליו חל מס יסף (721,560 ₪, מוקפא 2025–2027)",
@@ -773,6 +991,7 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025, 2026, 2027], // frozen through 2027 (israeli-tax-returns)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   surtaxRate: {
     description: "שיעור מס יסף (3%)",
@@ -780,13 +999,55 @@ export const TAX_CONSTANT_META: Record<string, TaxConstantMeta> = {
     publisher: ITA,
     effectiveTaxYears: [2024, 2025], // stable (ty2025-alignment)
     lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  surtaxCapitalIncomeAdditionalRate: {
+    description: "תוספת מס-יסף על הכנסה מהונית/פסיבית בלבד (2% נוסף מעל 721,560 ₪, סעיף 121ב, מ-2025)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  pensionDeductionRate: {
+    description: "שיעור ניכוי הפקדות-פנסיה מוכר (11% מההכנסה המזכה)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
   pensionDeductionCap: {
     description: "תקרת ניכוי בגין הפקדות לפנסיה (סעיף 47) — 25,608 ₪ (11% × הכנסה מזכה 232,800, מוקפא 2024–2026)",
     sourceUrl: ITA_HOME,
     publisher: ITA,
-    effectiveTaxYears: [2024, 2025, 2026], // CONFIRMED web-verify 2026-07-03 (~96%): 232,800 frozen → cap unchanged
+    effectiveTaxYears: [2024, 2025, 2026], // web-verify 2026-07-03 (~96%): 232,800 frozen → cap unchanged
     lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  pensionCreditRate: {
+    description: "שיעור בסיס-הזיכוי מהפקדות-פנסיה (5.5% מההכנסה המזכה)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  pensionCreditCap: {
+    description: "תקרת בסיס-הזיכוי מהפקדות-פנסיה (12,804 ₪ = 5.5% × 232,800)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-07-03T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
+  },
+  pensionCreditPercent: {
+    description: "שיעור זיכוי סעיף 45א מבסיס-הזיכוי הפנסיוני (35%)",
+    sourceUrl: ITA_HOME,
+    publisher: ITA,
+    effectiveTaxYears: [2024, 2025, 2026],
+    lastVerified: "2026-06-10T00:00:00.000Z",
+    confidenceTier: "strongly_supported",
   },
 };
 

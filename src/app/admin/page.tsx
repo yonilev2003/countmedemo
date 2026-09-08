@@ -78,6 +78,9 @@ export default function AdminStatsPage() {
             <span className="hidden text-xs font-semibold text-muted sm:inline">
               סטטיסטיקות מערכת
             </span>
+            <Link href="/admin/review" className={btn("ghost", "sm")}>
+              סקירת כללים
+            </Link>
             <button
               type="button"
               onClick={() => void load(true)}

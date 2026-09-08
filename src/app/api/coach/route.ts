@@ -8,6 +8,7 @@ import {
   EITAN_TOOLS,
   runEitanTool,
   buildRichContext,
+  renderKnowledgeToc,
 } from "@/lib/agent/tools";
 import { requireUserIfGated } from "@/lib/security/api-guard";
 import {
@@ -380,7 +381,13 @@ export async function POST(request: Request) {
   const baseSystem =
     mode === "dashboard-insights"
       ? SYSTEM_DASHBOARD_INSIGHTS
-      : `${SYSTEM_EITAN}\n\n${renderEitanConstants(constantsYear)}\n\n${renderKnowledgeCatalog()}`;
+      : // RAG spec gap #2 (2026-09-07 audit): שקל had EITAN_TOOLS' search_knowledge/
+        // read_knowledge available (same array chat/route.ts uses) but was never told
+        // the knowledge vault exists — renderKnowledgeCatalog() alone only lists the
+        // 12 old static Q&As. renderKnowledgeToc() adds the live vault's table of
+        // contents + the explicit "search_knowledge then read_knowledge, never quote
+        // a number from it" instruction, matching chat/route.ts's system prompt.
+        `${SYSTEM_EITAN}\n\n${renderEitanConstants(constantsYear)}\n\n${renderKnowledgeCatalog()}\n\n${renderKnowledgeToc()}`;
 
   const systemBlocks: Anthropic.TextBlockParam[] = [
     {

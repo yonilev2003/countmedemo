@@ -152,6 +152,27 @@ function newOlehCreditPoints(p: Persona): number {
   return TC.newOlehCreditYear1;
 }
 
+/**
+ * Academic-degree credit points (שדה 181, סעיף 40(ג)/40(ד)). Extracted as a
+ * shared helper so field181AcademicDegree's display and totalCreditPoints'
+ * tax-estimate sum can never drift apart the way this bug just showed they
+ * had (review-mechanism audit, 2026-09-08): field181 computed a 1.0-point
+ * credit whenever `academicDegreeYear` was set, but `totalCreditPoints` never
+ * summed it in — so the ESTIMATE understated credits (overstated tax due) for
+ * every persona with a degree, even though the form field itself looked right.
+ *
+ * UNVERIFIED (flat 1.0 point for any degree, not degree-type/duration-aware):
+ * Israeli law's actual academic-degree credit varies by degree length/type
+ * (see israeli-tax-returns) — this flat figure was never checked against a
+ * primary or secondary source, unlike the other credit-point helpers above.
+ * Fix the STRUCTURAL bug now (it belongs in the estimate regardless of the
+ * exact point value); confirm the real figure via the review mechanism before
+ * treating it as more than a placeholder.
+ */
+function academicDegreeCreditPoints(p: Persona): number {
+  return p.personal.academicDegreeYear ? 1.0 : 0;
+}
+
 /** Round to 2 decimals (credit points are quoted to 1/4 / 1/12 granularity). */
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -169,6 +190,7 @@ export function totalCreditPoints(p: Persona): number {
       soldierCreditPoints(p) +
       childCreditPoints(p) +
       newOlehCreditPoints(p) +
+      academicDegreeCreditPoints(p) +
       miluimCreditPoints(p.income.year, combatReserveDaysForFiling(p)),
   );
 }
@@ -679,17 +701,17 @@ export const field135KupatGemel: Calculator = (p) => {
 export const field181AcademicDegree: Calculator = (p) => {
   const TC = getTaxYearConstants(p.income.year);
   const year = p.personal.academicDegreeYear;
-  const creditValue = TC.pointValueAnnual;
-  const value = year ? creditValue : 0;
+  const points = academicDegreeCreditPoints(p);
+  const value = Math.round(points * TC.pointValueAnnual);
   return {
     value,
     formula: year
-      ? `תואר אקדמי (${year}) — נקודת זיכוי אחת = ${creditValue.toLocaleString("he-IL")} ₪`
+      ? `תואר אקדמי (${year}) — ${points} נקודת זיכוי = ${value.toLocaleString("he-IL")} ₪`
       : "אין תואר אקדמי",
     sources: year
       ? [{ label: `תואר אקדמי ${year}`, detail: `${ils(value)} זיכוי` }]
       : [{ label: "personal.academicDegreeYear = null" }],
-    confidence: "high",
+    confidence: "low", // see academicDegreeCreditPoints doc: flat 1.0pt, unverified against degree-type/duration rules
   };
 };
 
