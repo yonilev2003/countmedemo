@@ -30,7 +30,16 @@ export type EventName =
   | "doc_marked_paid"
   | "reminder_sent"
   | "receivables_viewed"
-  | "dashboard_viewed";
+  | "dashboard_viewed"
+  // onboarding "side quests" (CPA-BNG round, 2026-09-08) — a contextual help
+  // offer during /setup that survives past this session (props.quest
+  // identifies which one; today only "osek_open_file" exists). Tracks 4
+  // distinct signals per docs/plans/2026-09-08 spec §10: clicking a link is
+  // NOT the same as completing the underlying real-world action.
+  | "side_quest_shown"
+  | "side_quest_help_requested"
+  | "side_quest_guide_opened"
+  | "side_quest_reported_done";
 
 export interface TrackOptions {
   userId?: string | null;

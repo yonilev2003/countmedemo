@@ -9,6 +9,7 @@
     "start": "next start",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "audit:knowledge-numbers": "node scripts/audit-knowledge-numbers.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

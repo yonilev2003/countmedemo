@@ -197,6 +197,29 @@ test.describe("/setup — wizard", () => {
     await page.getByRole("button", { name: "חברה בע״מ" }).click();
     await expect(page.getByText(/חברות מגישות טופס 1214/)).toBeVisible();
   });
+
+  // Side quest (CPA-BNG round, 2026-09-08, spec §10 case 1): "not-yet"
+  // reveals a tracked help offer without ever setting osekType/osekTrackPicked
+  // (that gate is asserted separately above — this only checks the new UI).
+  test("side quest: 'עדיין לא פתחתי עוסק' offers help + a self-report button, never a real osek track", async ({ page }) => {
+    await page.goto("/setup");
+    await goToBusinessStep(page);
+
+    const tracks = page.getByRole("radiogroup", { name: "סוג עוסק" }).getByRole("radio");
+    await page.getByRole("button", { name: "עדיין לא פתחתי עוסק" }).click();
+    await expect(page.getByText(/דורשת תיק עוסק רשום/)).toBeVisible();
+    // Still no track selected — matches the existing "not silent" contract.
+    for (const t of await tracks.all()) await expect(t).not.toBeChecked();
+
+    // The help toggle expands to the official gov.il link.
+    await page.getByRole("button", { name: "איפה פותחים תיק עוסק פטור?" }).click();
+    await expect(page.getByRole("link", { name: "למקור הרשמי" })).toBeVisible();
+
+    // Self-report replaces the offer with a confirmation, not a new osek pick.
+    await page.getByRole("button", { name: "כבר פתחתי את התיק ✓" }).click();
+    await expect(page.getByText(/רשמנו אצלנו/)).toBeVisible();
+    for (const t of await tracks.all()) await expect(t).not.toBeChecked();
+  });
 });
 
 test.describe("/business-expenses — expense coaching page", () => {

@@ -33,6 +33,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { OccupationPicker } from "@/components/setup/occupation-picker";
 import { HelpLink } from "@/components/setup/help-link";
 import { HELP_LINKS_BY_KEY } from "@/lib/onboarding/help-links";
+import { trackClient } from "@/lib/analytics/track-client";
 import { StatusBadge } from "@/components/brand/status";
 import { nextInvoiceNumber } from "@/lib/invoice-generator";
 import {
@@ -3357,6 +3358,59 @@ function OsekTypeChoice({
  * so validateStep3 still requires the user to pick פטור/מורשה to continue
  * (onboarding-v5 §5 — "not silent").
  */
+/**
+ * Side quest: "haven't opened a business yet" (CPA-BNG round, 2026-09-08,
+ * spec §10 case 1). Deliberately does NOT gate/replace the mandatory
+ * osekType choice above (locked decision — see the component doc comment)
+ * — this only adds a tracked help offer once the user has told us they're
+ * in this situation. 4 distinct signals, none of them "clicked a link":
+ *   shown            — the "not-yet" explainer became visible (this render)
+ *   help_requested   — expanded "איפה פותחים תיק עוסק?"
+ *   guide_opened     — actually followed the gov.il link
+ *   reported_done    — clicked "כבר פתחתי את התיק" below
+ * A link opening is NOT proof the file exists — reportedDone is a
+ * self-report, not a verification (no gov.il status check exists to do
+ * more than that today).
+ */
+function OsekOpenFileSideQuest() {
+  const [reportedDone, setReportedDone] = useState(false);
+  const shownTracked = useRef(false);
+
+  useEffect(() => {
+    if (shownTracked.current) return;
+    shownTracked.current = true;
+    trackClient("side_quest_shown", { quest: "osek_open_file" });
+  }, []);
+
+  if (reportedDone) {
+    return (
+      <p className="mt-2 text-xs font-medium text-success">
+        רשמנו אצלנו — בהצלחה עם התיק! אפשר להמשיך למלא את שאר הפרטים בינתיים.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-1">
+      <HelpLink
+        link={HELP_LINKS_BY_KEY["osek-open-file"]}
+        onToggle={() => trackClient("side_quest_help_requested", { quest: "osek_open_file" })}
+        onOpen={() => trackClient("side_quest_guide_opened", { quest: "osek_open_file" })}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          setReportedDone(true);
+          trackClient("side_quest_reported_done", { quest: "osek_open_file" });
+        }}
+        className="mt-1.5 text-xs font-medium text-brand-deep hover:underline"
+      >
+        כבר פתחתי את התיק ✓
+      </button>
+    </div>
+  );
+}
+
 function OsekOtherCasesPicker({
   value,
   onChange,
@@ -3408,9 +3462,7 @@ function OsekOtherCasesPicker({
           <InfoIcon className="size-3.5 mt-0.5 shrink-0 text-due" />
           <div className="flex-1">
             <span>{cards.find((c) => c.key === value)!.explainer}</span>
-            {value === "not-yet" && (
-              <HelpLink link={HELP_LINKS_BY_KEY["osek-open-file"]} />
-            )}
+            {value === "not-yet" && <OsekOpenFileSideQuest />}
           </div>
         </div>
       )}

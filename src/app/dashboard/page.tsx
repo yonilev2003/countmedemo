@@ -29,6 +29,7 @@ import { computeCeilingAlert } from "@/lib/alerts/ceiling";
 import { isAnnualFilingDeadlinePassed } from "@/lib/deadlines/calendar";
 import { trackClient } from "@/lib/analytics/track-client";
 import { AppHeader } from "@/components/brand/app-header";
+import { SideQuestNudge } from "@/components/dashboard/side-quest-nudge";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { btn } from "@/components/brand/button";
 import { Reveal, Stagger, StaggerItem } from "@/components/brand/motion";
@@ -222,6 +223,7 @@ export default function DashboardPage() {
           QuickActionsBar bottom nav (FP-12), which otherwise cover the last
           action tile on phone heights (journey scan). */}
       <main className="mx-auto w-full max-w-screen-md px-4 pb-28 pt-6 sm:px-6">
+        <SideQuestNudge />
         {/* Cloud-save outcome of the post-OAuth persona adoption (beta-feedback
             task #3, 18/08). DoneScreen shows its own inline confirmation for
             the already-signed-in path; this covers the OAuth-redirect path,

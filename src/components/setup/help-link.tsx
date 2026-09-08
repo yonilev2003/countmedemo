@@ -17,9 +17,19 @@ import { cn } from "@/lib/utils";
 export function HelpLink({
   link,
   className,
+  onToggle,
+  onOpen,
 }: {
   link: HelpLinkEntry;
   className?: string;
+  /** Fired when the collapsed toggle expands (never on collapse). Optional —
+   *  used by side quests (see setup/page.tsx's OsekOtherCasesPicker) to
+   *  distinguish "asked for help" from "shown the offer" from "opened the
+   *  actual source". Every other of the ~15 call sites simply omits it. */
+  onToggle?: () => void;
+  /** Fired when the "למקור הרשמי" link is actually clicked (does not
+   *  prevent navigation — purely an analytics hook). */
+  onOpen?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -29,7 +39,11 @@ export function HelpLink({
     <div className={cn("mt-1.5", className)}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next) onToggle?.();
+        }}
         aria-expanded={open}
         className="flex items-center gap-1 text-xs text-brand-deep hover:underline"
       >
@@ -45,6 +59,7 @@ export function HelpLink({
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => onOpen?.()}
             className="font-medium text-brand-deep underline hover:text-brand-navy"
           >
             למקור הרשמי

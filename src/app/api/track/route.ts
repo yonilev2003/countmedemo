@@ -42,6 +42,10 @@ const ALLOWED: ReadonlySet<string> = new Set<EventName>([
   "reminder_sent",
   "receivables_viewed",
   "dashboard_viewed",
+  "side_quest_shown",
+  "side_quest_help_requested",
+  "side_quest_guide_opened",
+  "side_quest_reported_done",
 ]);
 
 export async function POST(request: NextRequest) {
