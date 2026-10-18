@@ -5,6 +5,15 @@ related: "[[STATUS]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # progress — יומן התקדמות לפי סבבים
 
+## 2026-10-18 — דף נחיתה countme.co.il (Vercel נפרד) + תיקוני e2e
+
+**הקשר:** יוני רכש countme.co.il (LiveDNS) וביקש לחבר אותו לדף נחיתה מ-Claude Design artifact של שותף.
+**מה נעשה:** פריקת ה-artifact (bundler manifest) לאתר סטטי `landing-site/`; פרויקט Vercel חדש `countme-landing-page`;
+DNS (A + CNAME www) נוהל ע"י יוני/Chrome-agent; דפלוי ראשון נכשל (Next.js בשורש) → `landing-site/vercel.json` סטטי תיקן.
+תיקוני תוכן/הסכמה/מטא, הסרת באדג' (Roy), תיקון e2e (button→tab) ומיזוג PR #36 ואז #35.
+**לקחים:** (1) Vercel root-dir + קבצים מחוץ ל-root — לבדוק לוגים לפני טענות; (2) לא לעשות redeploy ל-deployments ישנים בלי vercel.json;
+(3) פעולות מיזוג/קידום רק באישור מפורש. **לא עבד:** אימות חי של הדומיין מהסנדבוקס; request_promote (422).
+
 ## 2026-08-22 — דוח מע"מ תקופתי + סבב-נגישות ממוקד
 
 **הקשר:** אחרי תכנית-שבוע-הבאה קצרה (חברה בע"מ, בית-תוכנה, UX), יוני ביקש לעבור ישירות לביצוע על

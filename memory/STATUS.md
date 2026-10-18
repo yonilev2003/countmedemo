@@ -5,7 +5,26 @@ related: "[[progress]] · [[decisions]] · [[retro-2026-07-03]]"
 
 # status — איפה אנחנו עכשיו
 
-> עודכן: 2026-08-22 (Sonnet 5) · ענף פעיל: `main` · החלטות: [[decisions]]
+> עודכן: 2026-10-18 (Sonnet 5.5) · ענף פעיל: `main` (עבודה על `claude/serene-dirac-aud41g`) · החלטות: [[decisions]]
+
+## ⭐ 18/10 — דף נחיתה countme.co.il עלה (פרויקט Vercel נפרד `countme-landing-page`)
+
+**✅ בוצע:** דף הנחיתה מה-Claude Design artifact של השותף הוצא לאתר סטטי תחת `landing-site/` (18 קבצים, ב-`main`),
+פרויקט Vercel חדש "countme landing page" (root `landing-site`, `vercel.json` סטטי: framework null, ללא build).
+דומיין: A `@`→76.76.21.21, CNAME `www`→cname.vercel-dns.com, האפקס מפנה 308 ל-`www`; Vercel מדווח `misconfigured:false`.
+תיקוני תוכן: הסכמת דיוור שיווקי (SMS/דוא״ל + ביטול בכל עת), כותרת/רשימת-המתנה, ניסוח FAQ, מטא-דאטה (title/og/canonical/favicon),
+הוסר באדג' "Made with Claude Design" (Roy). e2e תוקן (`getByRole("tab")`) — PR #36, ו-#35 מוזגו ל-`main`.
+
+**⏳ פתוח (בצד יוני):**
+- Vercel → `countme-landing-page` → Settings → Git: **Production Branch = `main`**.
+- לוודא שה-deployment האחרון ב-Production במצב Ready ושהבאדג' נעלם (רענון קשיח); הסנדבוקס לא מגיע לדומיין ולא אימתתי חזותית.
+- לאשר/להסיר את הטענה "נבנה על כל הידע של רואי החשבון שלנו" (לא אומתה).
+- בדיקת שליחת ליד בטופס (Brevo, `OPT_IN=1`).
+- מדיניות פרטיות: **נדחתה ע"י יוני** (חשוב משפטית — תיקון 13; לחזור לזה לפני איסוף לידים משמעותי).
+- אופציונלי: Ignored Build Step (`git diff --quiet HEAD^ HEAD -- landing-site`) כדי שלא ייבנה על שינויי אפליקציה.
+
+**חסמים:** Vercel MCP — פעולות כתיבה (create project/add domain) 403, אז הוגדר ידנית; request_promote מחזיר 422 (נעשה redeploy עם target production).
+
 
 ## ⭐ 22/08 — דוח מע"מ תקופתי (בלי API רשמי) + סבב-נגישות ממוקד (6 ממצאים אמיתיים)
 
