@@ -15,6 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / 'landing-site' / 'index.html'
 SRC = ROOT / 'countme-site-src' / 'CountMe Waitlist.dc.html'
+EMAIL_SRC = ROOT / 'countme-site-src' / 'email' / 'CountMe Confirmation Email.html'
+EMAIL_DST = ROOT / 'landing-site' / 'api' / '_templates' / 'confirmation.html'
 
 # design-source asset name -> hashed file already in landing-site/assets
 ASSETS = {
@@ -51,9 +53,24 @@ A11Y_STATEMENT_NEW = (
     '        ' + A11Y_STATEMENT_OLD
 )
 
+SUBMIT_OLD = re.compile(r"        const ACTION = '.*?\.then\(done, fail\)\);\n", re.S)
+SUBMIT_NEW = """        const done = () => this.setState({ submitted: true, sending: false });
+        const fail = () => this.setState({ sending: false, error: 'משהו השתבש בשליחה. נסו שוב בעוד רגע.' });
+        // Our own endpoint (landing-site/api/waitlist.js): stores the signup in Supabase and sends the confirmation email.
+        // A non-2xx answer is a real failure — no fallback that pretends success.
+        fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.state.email.trim(), phone: this.state.phone, consent: true, website: '' })
+        })
+          .then(r => (r.ok ? done() : fail()))
+          .catch(fail);
+"""
+
 PAUSE_BUTTON_OLD = re.compile(r'<button type="button" sc-camel-on-click="\{\{ toggleMotion \}\}".*?</button>\n?', re.S)
 
 PATCHES = [
+    ('form: submit to our own /api/waitlist (Supabase + Resend) instead of the Brevo form', SUBMIT_OLD, SUBMIT_NEW, 1),
     ('form: consent error message names terms + privacy', "כדי שנוכל לחזור אליך, צריך לאשר קבלת עדכונים",
      "כדי להירשם צריך לאשר קבלת עדכונים ואת תנאי השימוש ומדיניות הפרטיות", 1),
     # --- accessibility coordinator + statement ---
@@ -130,6 +147,9 @@ def main():
             html, found = old.subn(lambda m: new, html)
             assert found == expected, f'patch "{what}": expected {expected} match(es), found {found}'
     OUT.write_text(html, encoding='utf-8')
+    # single source for the confirmation email: the function reads this copy at send time
+    EMAIL_DST.parent.mkdir(parents=True, exist_ok=True)
+    EMAIL_DST.write_text(EMAIL_SRC.read_text(encoding='utf-8'), encoding='utf-8')
     print(f'wrote {OUT.relative_to(ROOT)} ({len(html)} bytes)')
 
 

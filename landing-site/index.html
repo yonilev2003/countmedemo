@@ -742,24 +742,17 @@ class Component extends DCLogic {
         }
         if (this.state.sending) return;
         this.setState({ sending: true, error: '' });
-        const ACTION = 'https://5f2857e4.sibforms.com/serve/MUIFAOdf40KX5XpgpupKbvQZsIfW0Dz6b6qHfT-ijrtP8-s6Lo875WuzBKeBQpydq82uSGlmKxlRrS3kITH95o3MY25bRkj9U5WFPeMjfH8Zkb9P36o6X1YMI49_SBFM2elXklRH2bLq4_6ohvujMtNfk2hSVLVIrow6u-Cbt0J8NA1q4Wf7k499MAfcP-2P-LKsuTwQSYETaQcr_g==';
-        let digits = this.state.phone.replace(/\D/g, '');
-        if (digits.startsWith('972')) digits = digits.slice(3);
-        digits = digits.replace(/^0+/, '');
-        const fd = new FormData();
-        fd.append('EMAIL', this.state.email.trim());
-        fd.append('SMS__COUNTRY_CODE', '+972');
-        fd.append('SMS', digits);
-        fd.append('OPT_IN', '1');
-        fd.append('email_address_check', '');
-        fd.append('locale', 'en');
-        fd.append('html_type', 'simple');
         const done = () => this.setState({ submitted: true, sending: false });
         const fail = () => this.setState({ sending: false, error: 'משהו השתבש בשליחה. נסו שוב בעוד רגע.' });
-        fetch(ACTION + '?isAjax=1', { method: 'POST', body: fd })
-          .then(r => r.json().catch(() => ({ success: r.ok })))
-          .then(j => (j && j.success === false ? fail() : done()))
-          .catch(() => fetch(ACTION, { method: 'POST', body: fd, mode: 'no-cors' }).then(done, fail));
+        // Our own endpoint (landing-site/api/waitlist.js): stores the signup in Supabase and sends the confirmation email.
+        // A non-2xx answer is a real failure — no fallback that pretends success.
+        fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.state.email.trim(), phone: this.state.phone, consent: true, website: '' })
+        })
+          .then(r => (r.ok ? done() : fail()))
+          .catch(fail);
       }
     };
   }
