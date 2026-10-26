@@ -10,7 +10,8 @@
 ## איך זה מגיע לאתר
 `python3 scripts/build-landing.py` בונה מהמקור הזה את `landing-site/index.html`, שמוגש ע"י פרויקט ה-Vercel `countme-landing-page`. פרטים ב-`landing-site/README.md`.
 
-## הגדרת Brevo (בלי זה אין מייל אישור)
+## ~~הגדרת Brevo~~ (בוטל: Brevo חסם את החשבון. המייל נשלח עכשיו דרך Resend, ראו `landing-site/README.md`)
+התמונות והתבנית עדיין תקפות. השלבים למטה נשמרו לעיון בלבד.
 התמונות והתבנית מוכנות. התמונות מוגשות מהאתר עצמו (`landing-site/email/`, בכתובת `https://www.countme.co.il/email/...`), אז **אין צורך להעלות אותן ל-Brevo**.
 1. **תבנית:** Brevo, Campaigns/Templates, תבנית חדשה, "Paste your code", להדביק את `email/CountMe Confirmation Email.html` כמו שהוא (כולל `{{ unsubscribe }}`).
 2. **שולח ונושא:** נושא מוצע: "שמרנו לך מקום ב-CountMe". המייל כותב "פשוט עונים למייל הזה", לכן כתובת השולח או ה-Reply-To חייבת להיות תיבה שמישהו קורא.

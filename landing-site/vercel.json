@@ -2,5 +2,10 @@
   "framework": null,
   "installCommand": "echo static site, no install",
   "buildCommand": "echo static site, no build",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "api/_templates/**"
+    }
+  }
 }
