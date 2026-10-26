@@ -10,11 +10,20 @@
 ## איך זה מגיע לאתר
 `python3 scripts/build-landing.py` בונה מהמקור הזה את `landing-site/index.html`, שמוגש ע"י פרויקט ה-Vercel `countme-landing-page`. פרטים ב-`landing-site/README.md`.
 
-## צ'קליסט בדיקה (בלפטופ, על ה-preview של Vercel)
-1. פותחים `/legal/terms-of-use.html` ו-`/legal/privacy-policy.html` ומוודאים שהם נפתחים (לא 404).
-2. DevTools → Network, הרשמה אחת: האם הבקשה ל-`sibforms.com/serve/...?isAjax=1` חוזרת עם JSON `success`, או נכשלת ב-CORS ואז יוצאת בקשה שנייה (`no-cors`)?
+## הגדרת Brevo (בלי זה אין מייל אישור)
+התמונות והתבנית מוכנות. התמונות מוגשות מהאתר עצמו (`landing-site/email/`, בכתובת `https://www.countme.co.il/email/...`), אז **אין צורך להעלות אותן ל-Brevo**.
+1. **תבנית:** Brevo, Campaigns/Templates, תבנית חדשה, "Paste your code", להדביק את `email/CountMe Confirmation Email.html` כמו שהוא (כולל `{{ unsubscribe }}`).
+2. **שולח ונושא:** נושא מוצע: "שמרנו לך מקום ב-CountMe". המייל כותב "פשוט עונים למייל הזה", לכן כתובת השולח או ה-Reply-To חייבת להיות תיבה שמישהו קורא.
+3. **אוטומציה:** Automations, טריגר "Contact added to list" = `waiting list`, פעולה "Send an email" עם התבנית.
+4. **אימות הדומיין (בשביל שהמייל לא ייפול לספאם):** Senders, Domains & IPs, Domains, להוסיף `countme.co.il`. Brevo מציג רשומות (TXT לאימות, DKIM, DMARC). להוסיף אותן ב-**LiveDNS** באותו מקום שבו נוספו רשומות ה-A וה-CNAME של האתר. **לא צריך להעביר שרתי שמות**: Vercel מזהה את הרשומות הקיימות ב-LiveDNS (`www` CNAME ל-Vercel, apex A) כתקינות.
+5. **הודעת ההצלחה בדף** ("שלחתי לך מייל אישור") נכונה רק אחרי שלבים 1 עד 3.
+
+## צ'קליסט בדיקה (בלפטופ)
+1. נרשמים בדף החי עם yonilev2003@gmail.com ועם הטלפון.
+2. DevTools, Network: האם הבקשה ל-`sibforms.com/serve/...?isAjax=1` חוזרת עם JSON `success`, או נכשלת ב-CORS ואז יוצאת בקשה שנייה (`no-cors`)?
 3. ב-Brevo: איש הקשר הופיע ברשימה `waiting list`, עם EMAIL, SMS ו-OPT_IN.
-4. מייל האישור הגיע (ובדיקה בתיקיית קידומים), עם תמונות, RTL וקישורים.
+4. מייל האישור הגיע (ובדיקה בתיקיית קידומים וספאם), עם תמונות, RTL וקישורים.
+5. `/legal/terms-of-use.html` ו-`/legal/privacy-policy.html` נפתחים.
 
 ## ידוע ופתוח (מהמסמך)
 - `fetch` ל-Brevo נופל ל-`mode: 'no-cors'` כשהבקשה הראשונה נכשלת ברמת הרשת. אז המשתמש רואה הצלחה גם אם ההרשמה לא נקלטה, ויכולה להישלח כפילות. מחליטים איך לתקן אחרי צעד 2 לעיל.
