@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&amp;family=Frank+Ruhl+Libre:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;background:#EEF4F7;}
+*{box-sizing:border-box;}
+a{color:#5B3FD9;text-decoration:none;}
+a:hover{color:#0F1626;}
+input::placeholder{color:#8A93A3;}
+@keyframes cmIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes cmDot{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-3px);opacity:1}}
+:focus-visible{outline:2px solid #5B3FD9;outline-offset:3px;}
+.cm-paused *,.cm-paused{animation-play-state:paused !important;}
+@keyframes cmFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cmTape{from{transform:translateX(0)}to{transform:translateX(50%)}}
+@keyframes cmDrift1{0%{transform:translate(0,0) scale(1)}100%{transform:translate(120px,80px) scale(1.12)}}
+@keyframes cmDrift2{0%{transform:translate(0,0) scale(1.05)}100%{transform:translate(-140px,60px) scale(0.92)}}
+@keyframes cmDrift3{0%{transform:translate(0,0)}100%{transform:translate(60px,-90px)}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;}}
+</style>
+</helmet>
+<div dir="rtl" lang="he" class="{{ rootClass }}" style="position:relative;min-height:100vh;overflow:hidden;background:linear-gradient(180deg,#F1F6F9 0%,#DCEBF1 30%,#C6DEE9 55%,#DCEAF0 78%,#F1F5F8 100%);font-family:'Rubik',sans-serif;color:#0F1626;-webkit-font-smoothing:antialiased;">
+  <div aria-hidden="true" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
+    <div style="position:absolute;top:380px;left:50%;margin-left:-620px;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(157,196,213,0.85) 0%,rgba(157,196,213,0) 68%);animation:cmDrift1 32s ease-in-out infinite alternate;"></div>
+    <div style="position:absolute;top:240px;left:50%;margin-left:-60px;width:680px;height:680px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(140,127,240,0.30) 0%,rgba(140,127,240,0) 66%);animation:cmDrift2 38s ease-in-out infinite alternate;"></div>
+    <div style="position:absolute;top:820px;left:50%;margin-left:-300px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,0.75) 0%,rgba(255,255,255,0) 65%);animation:cmDrift3 44s ease-in-out infinite alternate;"></div>
+  </div>
+
+  <a href="#cm-signup" style="position:absolute;top:-60px;right:16px;z-index:50;padding:10px 16px;border-radius:999px;background:#0F1626;color:#FFFFFF;font-size:14px;" style-focus="top:12px;color:#FFFFFF;">דילוג לטופס ההרשמה</a>
+  <button type="button" onClick="{{ toggleMotion }}" aria-pressed="{{ paused }}" style="position:fixed;bottom:16px;left:16px;z-index:40;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.9);background:rgba(255,255,255,0.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:'Rubik',sans-serif;font-size:12px;color:#0F1626;cursor:pointer;">{{ motionLabel }}</button>
+  <main id="main" style="position:relative;max-width:560px;margin:0 auto;padding:28px 22px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+    <img src="assets/countme-logo.png" alt="CountMe" style="width:96px;height:auto;display:block;">
+
+    <h1 style="margin:14px 0 0;font-family:{{ headingFont }};font-weight:600;font-size:clamp(30px,7.4vw,44px);line-height:1.15;letter-spacing:-0.01em;text-wrap:balance;">כמו רואה החשבון שלך.<br>זמין 24/7, בצ'אט.</h1>
+    <p style="margin:12px 0 0;max-width:420px;font-size:15px;line-height:1.6;color:#5A6273;text-wrap:pretty;">CountMe היא מערכת פיננסית מלאה לעצמאים - הפקת חשבוניות, מעקב הוצאות, שמירה על התקרה השנתית, התראות על מועדי דיווח ומילוי טפסים לרשות המסים. שקל, העוזר ה-AI שבתוכה, מפעיל את כל זה בשבילך בשיחה אחת, בעברית פשוטה.</p>
+
+    <div style="margin-top:20px;display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(91,63,217,0.07);font-size:13px;color:#3A2A9A;">
+      הפלטפורמה עוד בבנייה. השאירו פרטים ונחזור אליכם ברגע שהיא מוכנה.
+    </div>
+    <div id="cm-signup" style="width:0;height:0;"></div>
+    <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}">
+      <form onSubmit="{{ onSubmit }}" novalidate="" style="margin-top:12px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px;">
+        <input type="email" dir="rtl" value="{{ email }}" onChange="{{ onEmail }}" placeholder="המייל שלך" aria-label="כתובת מייל" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;outline:none;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);" style-focus="border-color:#5B3FD9;">
+        <input type="tel" dir="rtl" value="{{ phone }}" onChange="{{ onPhone }}" placeholder="מספר טלפון" aria-label="מספר טלפון" inputmode="tel" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;outline:none;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);text-align:right;" style-focus="border-color:#5B3FD9;">
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 4px;cursor:pointer;text-align:right;">
+          <input type="checkbox" checked="{{ consent }}" onChange="{{ onConsent }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
+          <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe, ומסכים/ה ל<a href="legal/terms-of-use.pdf" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.pdf" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a>. נשבעים שלא ספאם.</span>
+        </label>
+        <button type="submit" disabled="{{ sending }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:0;border-radius:999px;background:#0F1626;color:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;font-weight:500;cursor:pointer;" style-hover="background:#1E2A44;">
+          תחזרו אליי כשזה מוכן
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+      </form>
+      <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+        <div role="alert" style="margin-top:10px;font-size:13px;color:#B44A17;">{{ error }}</div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:16px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;padding:20px;background:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.95);border-radius:28px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 14px 36px rgba(63,143,178,0.16);text-align:right;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div role="img" aria-label="שקל" style="flex:none;width:44px;height:44px;border-radius:50%;background:#FBEFD2 url(assets/shekel.png) no-repeat;background-size:150%;background-position:50% 4%;border:1px solid #F0E2BE;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:6px 18px 18px 18px;background:#F4F5F7;">
+            <span style="font-size:15px;font-weight:600;">היייי אני שקל</span>
+            <span style="font-size:14px;line-height:1.6;color:#4A5466;text-wrap:pretty;">שמרתי לך מקום ברשימה. ברגע שנפתח, אתה מהראשונים לדעת, עם מחיר ההשקה.</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:16px;border:1px dashed #C9D6DE;">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex:none;"><rect x="2.5" y="4.5" width="15" height="11" rx="2.5" stroke="#5B3FD9" stroke-width="1.5"></rect><path d="M3.5 6l6.5 5 6.5-5" stroke="#5B3FD9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <span style="font-size:13px;line-height:1.5;color:#4A5466;">שלחתי לך מייל אישור. לא רואה אותו? כדאי להציץ בתיקיית הקידומים.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;">
+        <div style="width:30px;height:30px;border-radius:50%;border:2px solid #FFFFFF;background:#C9D9E2;color:#0F1626;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;">נ</div>
+        <div style="width:30px;height:30px;border-radius:50%;border:2px solid #FFFFFF;background:#E7D3C6;color:#0F1626;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-inline-start:-9px;">ע</div>
+        <div style="width:30px;height:30px;border-radius:50%;border:2px solid #FFFFFF;background:#D6D1EE;color:#0F1626;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-inline-start:-9px;">מ</div>
+      </div>
+      <span style="font-size:13px;color:#5A6273;">הצטרפו לעצמאים שכבר בתור</span>
+    </div>
+
+    
+
+    <div style="position:relative;margin-top:36px;width:290px;height:600px;">
+      <div style="position:absolute;inset:0;-webkit-mask-image:linear-gradient(to bottom,#000 90%,transparent 100%);mask-image:linear-gradient(to bottom,#000 90%,transparent 100%);">
+        <div style="width:290px;height:600px;border-radius:50px;background:#14161B;padding:10px;box-shadow:0 30px 60px rgba(15,22,38,0.18);">
+          <div style="position:relative;width:100%;height:100%;border-radius:41px;background:#FFFFFF;overflow:hidden;display:flex;flex-direction:column;">
+            <div dir="ltr" style="height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:13px;font-weight:600;">
+              <span>9:41</span>
+              <div style="position:absolute;left:50%;top:11px;transform:translateX(-50%);width:92px;height:27px;border-radius:20px;background:#14161B;"></div>
+              <div style="display:flex;align-items:center;gap:5px;">
+                <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#0F1626"></rect><rect x="4.3" y="5" width="3" height="6" rx="1" fill="#0F1626"></rect><rect x="8.6" y="2.5" width="3" height="8.5" rx="1" fill="#0F1626"></rect><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#0F1626"></rect></svg>
+                <svg width="24" height="11" viewBox="0 0 24 11"><rect x="0.5" y="0.5" width="20" height="10" rx="3" stroke="#0F1626" fill="none" opacity="0.4"></rect><rect x="2" y="2" width="15" height="7" rx="1.6" fill="#0F1626"></rect><rect x="21.5" y="3.5" width="1.6" height="4" rx="0.8" fill="#0F1626" opacity="0.4"></rect></svg>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px 18px 12px;border-bottom:1px solid #F0F1F4;text-align:right;">
+              <div role="img" aria-label="שקל" style="flex:none;width:36px;height:36px;border-radius:50%;background:#FBEFD2 url(assets/shekel.png) no-repeat;background-size:150%;background-position:50% 4%;border:1px solid #F0E2BE;"></div>
+              <div style="display:flex;flex-direction:column;gap:1px;">
+                <span style="font-size:14px;font-weight:600;">שקל</span>
+                <span style="font-size:11px;color:#7A8291;white-space:nowrap;">{{ statusText }}</span>
+              </div>
+            </div>
+            <div ref="{{ listRef }}" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;display:flex;flex-direction:column;gap:10px;padding:14px 14px 10px;background:#F7F8FA;text-align:right;">
+              <span style="align-self:center;font-size:10px;color:#9AA1AD;">היום</span>
+              <sc-for list="{{ msgs }}" as="m" hint-placeholder-count="2">
+                <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+                  <div style="align-self:flex-end;max-width:80%;padding:9px 13px;border-radius:18px 18px 18px 6px;background:#0F1626;color:#FFFFFF;font-size:13px;line-height:1.5;animation:cmIn 320ms ease both;">{{ m.text }}</div>
+                </sc-if>
+                <sc-if value="{{ m.isBot }}" hint-placeholder-val="{{ false }}">
+                  <div style="align-self:flex-start;max-width:86%;display:flex;flex-direction:column;gap:8px;padding:9px 12px;border-radius:18px 18px 6px 18px;background:#FFFFFF;border:1px solid #ECEEF1;font-size:13px;line-height:1.5;animation:cmIn 360ms ease both;">
+                    <sc-if value="{{ m.invoice }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:#F4F5F7;">
+                        <div style="display:flex;flex-direction:column;gap:1px;">
+                          <span style="font-size:11px;font-weight:600;">חשבונית מס׳ {{ m.invoice.no }}</span>
+                          <span style="font-size:10px;color:#7A8291;">נשלחה ללקוח</span>
+                        </div>
+                        <span style="font-size:12px;font-weight:600;">{{ m.invoice.sum }}</span>
+                      </div>
+                    </sc-if>
+                    <span>{{ m.text }}</span>
+                  </div>
+                </sc-if>
+              </sc-for>
+              <sc-if value="{{ typing }}" hint-placeholder-val="{{ false }}">
+                <div aria-label="שקל מקליד" style="align-self:flex-start;display:flex;align-items:center;gap:4px;padding:11px 14px;border-radius:18px 18px 6px 18px;background:#FFFFFF;border:1px solid #ECEEF1;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:#5A6273;animation:cmDot 1.1s ease-in-out infinite;"></span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:#5A6273;animation:cmDot 1.1s ease-in-out 0.15s infinite;"></span>
+                  <span style="width:6px;height:6px;border-radius:50%;background:#5A6273;animation:cmDot 1.1s ease-in-out 0.3s infinite;"></span>
+                </div>
+              </sc-if>
+              <sc-if value="{{ showChips }}" hint-placeholder-val="{{ true }}">
+                <div style="align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px;max-width:100%;">
+                  <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
+                    <button type="button" onClick="{{ c.onClick }}" style="padding:6px 11px;border-radius:999px;border:1px solid {{ c.border }};color:{{ c.color }};font-family:'Rubik',sans-serif;font-size:11px;background:#FFFFFF;cursor:pointer;" style-hover="background:#F1EEFD;">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <form onSubmit="{{ onAsk }}" style="flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px 34px;background:#FFFFFF;border-top:1px solid #F0F1F4;">
+              <input type="text" dir="rtl" value="{{ draft }}" onChange="{{ onDraft }}" placeholder="שאלו את שקל משהו..." aria-label="שאלה לשקל" style="flex:1;min-width:0;height:36px;padding:0 14px;border:1px solid #E3E6EB;border-radius:999px;background:#F7F8FA;outline:none;font-family:'Rubik',sans-serif;font-size:12px;color:#0F1626;" style-focus="border-color:#5B3FD9;">
+              <button type="submit" aria-label="שליחה" style="flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#0F1626;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;left:-58px;top:62px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.85);box-shadow:0 12px 30px rgba(15,22,38,0.10);text-align:right;display:flex;flex-direction:column;gap:3px;">
+        <span style="font-size:11px;color:#5A6273;">הכנסות החודש</span>
+        <span style="font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;">₪12,400</span>
+      </div>
+
+      <div style="position:absolute;z-index:3;right:-64px;top:120px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,0.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.85);box-shadow:0 12px 30px rgba(15,22,38,0.10);display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <svg width="78" height="44" viewBox="0 0 78 44" fill="none">
+          <path d="M7 39A32 32 0 0 1 71 39" stroke="rgba(15,22,38,0.10)" stroke-width="7" stroke-linecap="round"></path>
+          <path d="M7 39A32 32 0 0 1 71 39" stroke="#F2793C" stroke-width="7" stroke-linecap="round" pathLength="100" stroke-dasharray="82 100"></path>
+        </svg>
+        <span style="font-size:12px;font-weight:600;margin-top:-4px;">82% מהתקרה</span>
+      </div>
+    </div>
+
+    <div aria-hidden="true" style="position:relative;z-index:2;width:100vw;height:64px;margin-top:-44px;">
+      <div style="position:absolute;top:50%;left:50%;width:170vw;min-width:1400px;height:46px;transform:translate(-50%,-50%) rotate(-5deg);background:#F2793C;box-shadow:0 10px 30px rgba(242,121,60,0.28);overflow:hidden;display:flex;align-items:center;">
+        <div dir="rtl" style="display:flex;flex:none;width:max-content;animation:cmTape 70s linear infinite;">
+          <sc-for list="{{ tapeItems }}" as="t" hint-placeholder-count="24">
+            <span style="flex:none;display:flex;align-items:center;gap:22px;padding-inline-start:22px;font-size:17px;font-weight:600;color:#0F1626;white-space:nowrap;">{{ t }}<span style="width:6px;height:6px;border-radius:50%;background:#0F1626;"></span></span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <section style="margin-top:56px;width:100%;max-width:520px;">
+      <h2 style="margin:0;font-family:{{ headingFont }};font-weight:600;font-size:clamp(26px,6vw,34px);letter-spacing:-0.01em;">שאלות נפוצות</h2>
+      <div style="margin-top:26px;display:flex;flex-direction:column;gap:10px;">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="4">
+          <div style="border-radius:20px;background:#EBEDF0;text-align:right;overflow:hidden;">
+            <button type="button" onClick="{{ f.toggle }}" aria-expanded="{{ f.open }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 16px 14px;border:0;background:transparent;cursor:pointer;font-family:'Rubik',sans-serif;font-size:15px;font-weight:500;color:#0F1626;text-align:right;">
+              <span>{{ f.q }}</span>
+              <span style="flex:none;width:30px;height:30px;border-radius:50%;background:#0F1626;display:flex;align-items:center;justify-content:center;">
+                <svg width="12" height="12" viewBox="0 0 12 12" style="transition:transform 220ms ease;transform:rotate({{ f.rot }}deg);"><path d="M6 1v10M1 6h10" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round"></path></svg>
+              </span>
+            </button>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ f.a }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0;padding:0 18px 18px 60px;font-size:14px;line-height:1.65;color:#5A6273;text-wrap:pretty;">{{ f.a }}</p>
+              </sc-if>
+              <sc-if value="{{ f.team }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:10px;padding:0 12px 14px;">
+                  <p style="margin:0;padding:0 6px 4px;font-size:14px;line-height:1.65;color:#5A6273;text-wrap:pretty;">שלושה מייסדים מאוניברסיטת רייכמן ומשרד רואי חשבון מוביל, עם מטרה אחת: להפוך את ניהול הכספים והמסים של עצמאים בישראל לפשוט, מדויק ושקוף.</p>
+                  <sc-for list="{{ team }}" as="t" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:16px;background:#FFFFFF;">
+                      <div style="display:flex;align-items:center;gap:12px;">
+                        <div role="img" aria-label="{{ t.name }}" style="flex:none;width:52px;height:52px;border-radius:50%;background:{{ t.bg }};border:1px solid #ECEEF1;"></div>
+                        <div style="display:flex;flex-direction:column;gap:1px;">
+                          <span style="font-size:15px;font-weight:600;color:#0F1626;">{{ t.name }}</span>
+                          <span style="font-size:12px;color:#5B3FD9;">{{ t.role }}</span>
+                        </div>
+                      </div>
+                      <p style="margin:0;font-size:13px;line-height:1.65;color:#5A6273;text-wrap:pretty;">{{ t.bio }}</p>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <sc-if value="{{ a11yOpen }}" hint-placeholder-val="{{ false }}">
+      <section id="a11y" aria-labelledby="a11y-title" style="margin-top:56px;width:100%;max-width:520px;padding:22px 20px;border-radius:20px;background:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.9);text-align:right;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.7;color:#4A5466;">
+        <h2 id="a11y-title" style="margin:0;font-size:18px;font-weight:600;color:#0F1626;">הצהרת נגישות</h2>
+        <p style="margin:0;">ב-CountMe אנחנו רוצים שכל אחד ואחת יוכלו להשתמש באתר. האתר נבנה בהתאם לתקן הישראלי 5568 ולהנחיות WCAG 2.0 ברמה AA, ככל שהדבר אפשרי.</p>
+        <p style="margin:0;">מה עשינו: האתר בעברית ובכיוון ימין-לשמאל, ניתן לניווט מלא במקלדת עם סימון פוקוס ברור, כל השדות והכפתורים מתויגים לקוראי מסך, הודעות שגיאה מוקראות אוטומטית, ניגודיות הטקסט תקינה, וניתן לעצור את כל האנימציות בכפתור "עצירת אנימציות" או דרך הגדרות המכשיר.</p>
+        <p style="margin:0;">נתקלתם בבעיה? נשמח לשמוע ולתקן. רכז/ת הנגישות: {{ a11yName }}, מייל <a href="mailto:{{ a11yEmail }}" dir="ltr">{{ a11yEmail }}</a>.</p>
+        <p style="margin:0;font-size:12px;color:#7A8291;">ההצהרה עודכנה לאחרונה: {{ a11yDate }}</p>
+      </section>
+    </sc-if>
+
+    <p style="margin:72px 0 0;max-width:420px;font-size:11px;line-height:1.5;color:#5A6273;text-wrap:pretty;">שקל הוא עוזר מבוסס AI ואינו מחליף ייעוץ אישי של רואה חשבון.</p>
+    <footer style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 14px;font-size:12px;color:#5A6273;">
+      <span dir="ltr">CountMe LTD 2026</span>
+      <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
+      <a href="legal/terms-of-use.pdf" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">תנאי שימוש</a>
+      <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
+      <a href="legal/privacy-policy.pdf" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">מדיניות פרטיות</a>
+      <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
+      <button type="button" onClick="{{ toggleA11y }}" aria-expanded="{{ a11yOpen }}" aria-controls="a11y" style="border:0;background:transparent;padding:4px 2px;font-family:'Rubik',sans-serif;font-size:12px;color:#5A6273;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">הצהרת נגישות</button>
+    </footer>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;headingFont&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Rubik&quot;,&quot;Frank Ruhl Libre&quot;],&quot;default&quot;:&quot;Rubik&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;טיפוגרפיה&quot;},&quot;a11yName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;תום לב שורץ&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;},&quot;a11yEmail&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;countme5555@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;}}">
+const SEED = [
+  { from: 'user', text: 'סגרתי עבודה של 4,500 ש״ח, תוציא חשבונית?' },
+  { from: 'bot', text: 'הוצאתי. אגב, את על 82% מהתקרה השנתית. רוצה שנעבור על זה?', invoice: { no: '0142', sum: '₪4,500' } }
+];
+const TEAM = [
+  { name: 'תום לב שורץ', initial: 'ת', photo: 'assets/team-tom.png', role: 'שותפה מייסדת, CEO', tint: '#D6D1EE',
+    bio: 'סטודנטית למנהל עסקים ויזמות עם התמחות בשיווק באוניברסיטת רייכמן, ובעלת עסק עצמאי כמאפרת בהפקות אופנה וכלות כבר 8 שנים. ב-CountMe היא מובילה את החזון, המוצר והאסטרטגיה העסקית. תחת הובלתה CountMe לקחה חלק באקסלרטור Momentum בשיתוף EY ו-Pearl Cohen.' },
+  { name: 'יוני לוי', initial: 'י', photo: 'assets/team-yoni.png', role: 'שותף מייסד, מוביל הפיתוח הטכנולוגי', tint: '#C9D9E2',
+    bio: 'סטודנט לכלכלה ויזמות עם התמחות בדאטה סיינס באוניברסיטת רייכמן, בתכנית המצטיינים בכלכלה. בעל ניסיון בעולמות הדאטה וה-AI, כולל תפקידי LLM Evaluation בחברות ה-Labeling המובילות בעולם, ובהן Mercor, Micro1 ו-Invisible Technologies. שירת בתפקיד פיקודי ועשה יותר מ-400 ימי מילואים.' },
+  { name: 'רוי קורצמן', initial: 'ר', photo: 'assets/team-roy.png', role: 'שותף מייסד, מוביל האסטרטגיה הפיננסית', tint: '#E7D3C6',
+    bio: 'סטודנט ליזמות ומנהל עסקים עם התמחות במימון באוניברסיטת רייכמן. צבר ניסיון רב במחלקת הכספים של חברת B2B מובילה בתחום הפרזול, בניתוח תקציבים ודוחות ובעבודה עם נתוני גבייה. מכאן ההיכרות שלו מקרוב עם האתגרים התזרימיים והמנהלתיים שעצמאים ועסקים קטנים מתמודדים איתם כל יום.' },
+  { name: 'BNG & CO', initial: 'B', photo: 'assets/team-bng.png', role: 'משרד רואי החשבון שמאחורי שקל', tint: '#FFFFFF',
+    bio: 'משרד רואי חשבון בתל אביב שמלווה עסקים בביקורת וייעוץ, הנהלת חשבונות ושכר ומיסוי, כולל התמחות במיסוי צרפת-ישראל, תחת הסיסמה "כשמספרים הופכים לאסטרטגיה". המשרד הוא הבסיס המקצועי של CountMe: רואי החשבון שלו מלווים את בניית הידע של שקל ואת המוצר עצמו.' }
+];
+const CHIP_LABELS = {
+  ceiling: 'כן, בוא נעבור', later: 'אחר כך', expenses: 'מה אפשר לקזז?',
+  deadlines: 'מתי מגישים דוח שנתי?', types: 'מה ההבדל בין פטור למורשה?', invoice: 'תוציא עוד חשבונית', join: 'שמור לי מקום'
+};
+const ANSWERS = {
+  ceiling: { text: 'נשארו לך 18% עד התקרה. בקצב של החודשים האחרונים תגיעי אליה בעוד כ-3 חודשים. כדאי להתכונן למעבר לעוסק מורשה, ואני אסביר לך בדיוק מה זה אומר.', next: ['types', 'expenses'] },
+  later: { text: 'אין בעיה. אזכיר לך כשתגיעי ל-90% מהתקרה.', next: ['expenses', 'invoice'] },
+  expenses: { text: 'הוצאות שקשורות ישירות לעבודה: ציוד, תוכנות, חלק מהטלפון והאינטרנט, ולפעמים גם חלק מהשכירות אם עובדים מהבית. מצלמים לי קבלה ואני מסווג אותה.', next: ['deadlines', 'invoice'] },
+  deadlines: { text: 'אני עוקב אחרי כל המועדים שלך ושולח תזכורת מראש, כדי שלא תגיעי לזה ברגע האחרון.', next: ['types', 'join'] },
+  types: { text: 'בקצרה: עוסק פטור לא גובה מע״מ ויש לו תקרת הכנסות שנתית. עוסק מורשה גובה מע״מ ומדווח עליו. אגיד לך מתי נכון לעבור.', next: ['expenses', 'join'] },
+  invoice: { text: 'הוצאתי חשבונית על 1,200 ש״ח לאותו לקוח. שלחתי לו במייל.', invoice: '₪1,200', next: ['deadlines', 'join'] },
+  fallback: { text: 'שאלה טובה. על זה אענה בהשקה, עם הנתונים של העסק שלך. רוצה לשמור מקום?', next: ['join', 'expenses'] }
+};
+function matchTopic(q) {
+  if (/חשבונ/.test(q)) return 'invoice';
+  if (/קיזוז|לקזז|הוצא|קבל/.test(q)) return 'expenses';
+  if (/דוח|מועד|מתי|הגש/.test(q)) return 'deadlines';
+  if (/פטור|מורשה|מע"?מ|מע״מ/.test(q)) return 'types';
+  if (/תקר/.test(q)) return 'ceiling';
+  return 'fallback';
+}
+
+class Component extends DCLogic {
+  state = { email: '', phone: '', consent: false, submitted: false, error: '', open: 0, msgs: SEED, typing: false, draft: '', chips: ['ceiling', 'later'], inv: 143 };
+  listRef = React.createRef();
+  componentDidUpdate(_, prev) {
+    if (prev.msgs !== this.state.msgs || prev.typing !== this.state.typing) {
+      const el = this.listRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    }
+  }
+  componentWillUnmount() { clearTimeout(this.tt); }
+  ask(question, key) {
+    if (this.state.typing) return;
+    const k = key || matchTopic(question);
+    const a = ANSWERS[k];
+    this.setState(s => ({ msgs: [...s.msgs, { from: 'user', text: question }], typing: true, chips: [], draft: '' }));
+    this.tt = setTimeout(() => this.setState(s => {
+      const m = { from: 'bot', text: a.text };
+      let inv = s.inv;
+      if (a.invoice) { m.invoice = { no: '0' + inv, sum: a.invoice }; inv++; }
+      return { msgs: [...s.msgs, m], typing: false, chips: a.next, inv };
+    }), 1100 + Math.min(900, a.text.length * 8));
+  }
+  renderVals() {
+    const p = this.props;
+    const data = [
+      ['מה זה CountMe?', 'CountMe היא פלטפורמה שמנהלת איתך את הצד הפיננסי של העסק, והכל בשיחה. במקום אקסלים, אפליקציות נפרדות ותחושה שמשהו נופל בין הכיסאות, מדברים עם שקל, יועץ ה-AI שלנו, בעברית פשוטה. הוא מוציא חשבוניות, מסווג הוצאות מצילום של קבלה, עוקב אחרי התקרה השנתית ומתריע לפני שמגיעים אליה, ומזכיר מועדי דיווח והגשה לפני שהם מגיעים. הוא לא מחכה שתשאלו: הוא מלווה את העסק ומעדכן כשמשהו ברגולציה נוגע אליכם.'],
+      ['למי זה מתאים?', 'CountMe בנויה לעצמאים, בכל שלב של העסק. עוסק פטור מקבל מעקב אחרי התקרה השנתית, התראה לפני שמגיעים אליה, והסבר מתי ואיך נכון לעבור לעוסק מורשה. עוסק מורשה מנהל במקום אחד חשבוניות, הוצאות ומע״מ, עם תזכורות למועדי דיווח. לעסק זעיר יש כללים משלו, ושקל מכיר אותם ומתאים את ההכוונה. ומי שרק פותח עסק מקבל ליווי מהצעד הראשון: איזה סוג עוסק מתאים לו ומה צריך לדווח. זה מתאים במיוחד למי שעובד לבד, בלי הנהלת חשבונות צמודה, ורוצה לדעת שהוא לא מפספס כלום.'],
+      ['מי עומד מאחורי הידע של שקל?', 'שקל לא מנחש. הידע שלו נבנה על ידי רואי החשבון של CountMe, שהזינו לו את הכללים, ההבחנות והניסיון מהשטח, כך שהתשובות מגיעות ממי שעובד עם עצמאים מדי יום. מאחורי כל תשובה עומד ידע מקצועי ולא מידע גנרי מהאינטרנט.'],
+      ['מה מקבלים הנרשמים הראשונים?', 'גישה מוקדמת לפני כולם, מחיר השקה שלא יחזור, והודעה אישית ברגע שהפלטפורמה נפתחת. השארת פרטים לא מחייבת כלום, רק שומרת לכם מקום בתור.'],
+      ['מי אנחנו?', null]
+    ];
+    const faqs = data.map(([q, a], i) => {
+      const open = this.state.open === i;
+      return { q, a, team: a === null, open, rot: open ? 45 : 0, toggle: () => this.setState({ open: open ? -1 : i }) };
+    });
+    const serif = p.headingFont === 'Frank Ruhl Libre';
+    return {
+      headingFont: serif ? "'Frank Ruhl Libre', serif" : "'Rubik', sans-serif",
+      faqs,
+      team: TEAM.map(t => ({ ...t, bg: t.tint + ' url(' + t.photo + ') center/cover no-repeat' })),
+      paused: !!this.state.paused,
+      rootClass: this.state.paused ? 'cm-paused' : '',
+      motionLabel: this.state.paused ? 'הפעלת אנימציות' : 'עצירת אנימציות',
+      toggleMotion: () => this.setState(s => ({ paused: !s.paused })),
+      a11yOpen: !!this.state.a11yOpen,
+      toggleA11y: () => this.setState(s => ({ a11yOpen: !s.a11yOpen })),
+      a11yName: p.a11yName ?? 'תום לב שורץ',
+      a11yEmail: p.a11yEmail ?? 'countme5555@gmail.com',
+      a11yDate: 'אוקטובר 2026',
+      listRef: this.listRef,
+      msgs: this.state.msgs.map(m => ({ ...m, isUser: m.from === 'user', isBot: m.from === 'bot', invoice: m.invoice || null })),
+      typing: this.state.typing,
+      statusText: this.state.typing ? 'מקליד...' : 'יועץ AI',
+      showChips: !this.state.typing && this.state.chips.length > 0,
+      chips: this.state.chips.map(k => ({
+        label: CHIP_LABELS[k],
+        border: k === 'join' ? '#0F1626' : '#DCDDF5',
+        color: k === 'join' ? '#0F1626' : '#5B3FD9',
+        onClick: () => {
+          if (k === 'join') {
+            const f = document.querySelector('input[type=email]');
+            if (f) { window.scrollTo({ top: f.getBoundingClientRect().top + window.scrollY - 140, behavior: 'smooth' }); setTimeout(() => f.focus({ preventScroll: true }), 500); }
+            return;
+          }
+          this.ask(CHIP_LABELS[k], k);
+        }
+      })),
+      draft: this.state.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onAsk: e => { e.preventDefault(); const q = this.state.draft.trim(); if (q) this.ask(q); },
+      tapeItems: Array.from({ length: 40 }, (_, i) => (i % 2 ? 'גישה מוקדמת לנרשמים הראשונים' : 'בקרוב')),
+      phone: this.state.phone,
+      sending: !!this.state.sending,
+      consent: this.state.consent,
+      onPhone: e => this.setState({ phone: e.target.value, error: '' }),
+      onConsent: e => this.setState({ consent: e.target.checked }),
+      email: this.state.email,
+      error: this.state.error,
+      submitted: this.state.submitted,
+      notSubmitted: !this.state.submitted,
+      onEmail: e => this.setState({ email: e.target.value, error: '' }),
+      onSubmit: e => {
+        e.preventDefault();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.state.email.trim())) {
+          this.setState({ error: 'נראה שחסר משהו בכתובת המייל' });
+          return;
+        }
+        if (this.state.phone.replace(/\D/g, '').length < 9) {
+          this.setState({ error: 'נראה שחסר משהו במספר הטלפון' });
+          return;
+        }
+        if (!this.state.consent) {
+          this.setState({ error: 'כדי שנוכל לחזור אליך, צריך לאשר קבלת עדכונים' });
+          return;
+        }
+        if (this.state.sending) return;
+        this.setState({ sending: true, error: '' });
+        const ACTION = 'https://5f2857e4.sibforms.com/serve/MUIFAOdf40KX5XpgpupKbvQZsIfW0Dz6b6qHfT-ijrtP8-s6Lo875WuzBKeBQpydq82uSGlmKxlRrS3kITH95o3MY25bRkj9U5WFPeMjfH8Zkb9P36o6X1YMI49_SBFM2elXklRH2bLq4_6ohvujMtNfk2hSVLVIrow6u-Cbt0J8NA1q4Wf7k499MAfcP-2P-LKsuTwQSYETaQcr_g==';
+        let digits = this.state.phone.replace(/\D/g, '');
+        if (digits.startsWith('972')) digits = digits.slice(3);
+        digits = digits.replace(/^0+/, '');
+        const fd = new FormData();
+        fd.append('EMAIL', this.state.email.trim());
+        fd.append('SMS__COUNTRY_CODE', '+972');
+        fd.append('SMS', digits);
+        fd.append('OPT_IN', '1');
+        fd.append('email_address_check', '');
+        fd.append('locale', 'en');
+        fd.append('html_type', 'simple');
+        const done = () => this.setState({ submitted: true, sending: false });
+        const fail = () => this.setState({ sending: false, error: 'משהו השתבש בשליחה. נסו שוב בעוד רגע.' });
+        fetch(ACTION + '?isAjax=1', { method: 'POST', body: fd })
+          .then(r => r.json().catch(() => ({ success: r.ok })))
+          .then(j => (j && j.success === false ? fail() : done()))
+          .catch(() => fetch(ACTION, { method: 'POST', body: fd, mode: 'no-cors' }).then(done, fail));
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
+
