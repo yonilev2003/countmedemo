@@ -410,17 +410,10 @@ input::placeholder{color:#8A93A3;}
       <form sc-camel-on-submit="{{ onSubmit }}" novalidate="" style="margin-top:12px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px;">
         <input type="email" dir="rtl" value="{{ email }}" sc-camel-on-change="{{ onEmail }}" placeholder="המייל שלך" aria-label="כתובת מייל" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);" style-focus="border-color:#5B3FD9;">
         <input type="tel" dir="rtl" value="{{ phone }}" sc-camel-on-change="{{ onPhone }}" placeholder="מספר טלפון" aria-label="מספר טלפון" inputmode="tel" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);text-align:right;" style-focus="border-color:#5B3FD9;">
-        <div role="group" aria-label="הסכמות להרשמה" style="display:flex;flex-direction:column;gap:4px;">
-          <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 2px;cursor:pointer;text-align:right;">
-            <input type="checkbox" checked="{{ consent }}" sc-camel-on-change="{{ onConsent }}" aria-required="true" aria-describedby="cm-consent-note" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
-            <span style="font-size:13px;line-height:1.55;color:#5A6273;">קראתי ואני מסכים/ה ל<a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a> של רשימת ההמתנה (חובה).</span>
-          </label>
-          <p id="cm-consent-note" style="margin:0;padding-inline-start:36px;padding-inline-end:8px;font-size:12px;line-height:1.5;color:#5A6273;text-align:right;">ההסכמה נוגעת לרשימת ההמתנה בלבד, ואינה הסכמה לתנאי השימוש ולמדיניות הפרטיות של האתר או של המוצר עצמו, שיחולו בנפרד. אין חובה להירשם לרשימה כדי להשתמש במוצר, ואין חובה להשתמש במוצר כדי להירשם.</p>
-          <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 2px;cursor:pointer;text-align:right;">
-            <input type="checkbox" checked="{{ marketing }}" sc-camel-on-change="{{ onMarketing }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
-            <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe בדוא״ל ובהודעות SMS (רשות). אפשר לבטל בכל עת. נשבעים שלא ספאם.</span>
-          </label>
-        </div>
+        <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 4px;cursor:pointer;text-align:right;">
+          <input type="checkbox" checked="{{ consent }}" sc-camel-on-change="{{ onConsent }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
+          <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe, ומסכים/ה ל<a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a>. נשבעים שלא ספאם.</span>
+        </label>
         <button type="submit" disabled="{{ sending }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:0;border-radius:999px;background:#0F1626;color:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;font-weight:500;cursor:pointer;" style-hover="background:#1E2A44;">
           תחזרו אליי כשזה מוכן
           <svg width="16" height="16" sc-camel-view-box="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
@@ -647,7 +640,7 @@ function matchTopic(q) {
 }
 
 class Component extends DCLogic {
-  state = { email: '', phone: '', consent: false, marketing: false, submitted: false, error: '', open: 0, msgs: SEED, typing: false, draft: '', chips: ['ceiling', 'later'], inv: 143 };
+  state = { email: '', phone: '', consent: false, submitted: false, error: '', open: 0, msgs: SEED, typing: false, draft: '', chips: ['ceiling', 'later'], inv: 143 };
   listRef = React.createRef();
   // The bundled runtime calls componentDidUpdate(prevProps) with no prevState, so track the previous values ourselves.
   componentDidUpdate() {
@@ -725,7 +718,7 @@ class Component extends DCLogic {
       tapeItems: Array.from({ length: 40 }, (_, i) => (i % 2 ? 'גישה מוקדמת לנרשמים הראשונים' : 'בקרוב')),
       phone: this.state.phone,
       sending: !!this.state.sending,
-      consent: this.state.consent, marketing: this.state.marketing, onMarketing: e => this.setState({ marketing: e.target.checked }),
+      consent: this.state.consent,
       onPhone: e => this.setState({ phone: e.target.value, error: '' }),
       onConsent: e => this.setState({ consent: e.target.checked }),
       email: this.state.email,
@@ -744,7 +737,7 @@ class Component extends DCLogic {
           return;
         }
         if (!this.state.consent) {
-          this.setState({ error: 'כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות של רשימת ההמתנה' });
+          this.setState({ error: 'כדי להירשם צריך לאשר קבלת עדכונים ואת תנאי השימוש ומדיניות הפרטיות' });
           return;
         }
         if (this.state.sending) return;
@@ -757,7 +750,7 @@ class Component extends DCLogic {
         fd.append('EMAIL', this.state.email.trim());
         fd.append('SMS__COUNTRY_CODE', '+972');
         fd.append('SMS', digits);
-        if (this.state.marketing) fd.append('OPT_IN', '1');
+        fd.append('OPT_IN', '1');
         fd.append('email_address_check', '');
         fd.append('locale', 'en');
         fd.append('html_type', 'simple');

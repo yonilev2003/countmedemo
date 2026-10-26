@@ -25,7 +25,6 @@ Last check: axe-core (0 violations on `/` incl. panel open + all preferences on,
 
 ## Data and consent
 The form posts straight from the browser to a Brevo form (`CountMe waiting list` -> list `waiting list`). Nothing is stored in Supabase or on our servers.
-Two checkboxes: (1) terms + privacy of the waiting list — required; (2) marketing (email/SMS) — optional. Phone is required. `OPT_IN` is sent **only** when the marketing box is checked.
-**Brevo setup needed:** make the `OPT_IN` field *not required* in the form, otherwise a registration without marketing consent is rejected by Brevo (the visitor sees "משהו השתבש"). Marketing campaigns must be sent only to contacts with `OPT_IN` = true; the welcome automation (operational message) can go to everyone on the list.
+One required checkbox (as in the design): marketing updates (email/SMS) + agreement to the waiting-list terms and privacy policy, with links to `legal/*.html`. Phone is required. `OPT_IN` is always `1` (Brevo keeps it required, so no change is needed there). The legal pages say registration involves this single box; keep them in sync if the form changes.
 
 When the real app goes live on countme.co.il, move the domain to the `countmedemo` project.
