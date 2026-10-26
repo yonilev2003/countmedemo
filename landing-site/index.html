@@ -407,11 +407,11 @@ input::placeholder{color:#8A93A3;}
     <div id="cm-signup" style="width:0;height:0;"></div>
     <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}">
       <form sc-camel-on-submit="{{ onSubmit }}" novalidate="" style="margin-top:12px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px;">
-        <input type="email" dir="rtl" value="{{ email }}" sc-camel-on-change="{{ onEmail }}" placeholder="המייל שלך" aria-label="כתובת מייל" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;outline:none;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);" style-focus="border-color:#5B3FD9;">
-        <input type="tel" dir="rtl" value="{{ phone }}" sc-camel-on-change="{{ onPhone }}" placeholder="מספר טלפון" aria-label="מספר טלפון" inputmode="tel" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;outline:none;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);text-align:right;" style-focus="border-color:#5B3FD9;">
+        <input type="email" dir="rtl" value="{{ email }}" sc-camel-on-change="{{ onEmail }}" placeholder="המייל שלך" aria-label="כתובת מייל" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);" style-focus="border-color:#5B3FD9;">
+        <input type="tel" dir="rtl" value="{{ phone }}" sc-camel-on-change="{{ onPhone }}" placeholder="מספר טלפון" aria-label="מספר טלפון" inputmode="tel" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);text-align:right;" style-focus="border-color:#5B3FD9;">
         <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 4px;cursor:pointer;text-align:right;">
           <input type="checkbox" checked="{{ consent }}" sc-camel-on-change="{{ onConsent }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
-          <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe, ומסכים/ה ל<a href="legal/terms-of-use.pdf" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.pdf" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a>. נשבעים שלא ספאם.</span>
+          <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe, ומסכים/ה ל<a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a>. נשבעים שלא ספאם.</span>
         </label>
         <button type="submit" disabled="{{ sending }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:0;border-radius:999px;background:#0F1626;color:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;font-weight:500;cursor:pointer;" style-hover="background:#1E2A44;">
           תחזרו אליי כשזה מוכן
@@ -423,7 +423,7 @@ input::placeholder{color:#8A93A3;}
       </sc-if>
     </sc-if>
     <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
-      <div style="margin-top:16px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;padding:20px;background:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.95);border-radius:28px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 14px 36px rgba(63,143,178,0.16);text-align:right;">
+      <div role="alert" style="margin-top:16px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:14px;padding:20px;background:rgba(255,255,255,0.78);border:1px solid rgba(255,255,255,0.95);border-radius:28px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 14px 36px rgba(63,143,178,0.16);text-align:right;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
           <div role="img" aria-label="שקל" style="flex:none;width:44px;height:44px;border-radius:50%;background:#FBEFD2 url(assets/8f2203f1-73fd-4d41-a31e-0b86b8c3b796.png) no-repeat;background-size:150%;background-position:50% 4%;border:1px solid #F0E2BE;"></div>
           <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:6px 18px 18px 18px;background:#F4F5F7;">
@@ -465,11 +465,11 @@ input::placeholder{color:#8A93A3;}
               <div role="img" aria-label="שקל" style="flex:none;width:36px;height:36px;border-radius:50%;background:#FBEFD2 url(assets/8f2203f1-73fd-4d41-a31e-0b86b8c3b796.png) no-repeat;background-size:150%;background-position:50% 4%;border:1px solid #F0E2BE;"></div>
               <div style="display:flex;flex-direction:column;gap:1px;">
                 <span style="font-size:14px;font-weight:600;">שקל</span>
-                <span style="font-size:11px;color:#7A8291;white-space:nowrap;">{{ statusText }}</span>
+                <span style="font-size:11px;color:#5A6273;white-space:nowrap;">{{ statusText }}</span>
               </div>
             </div>
-            <div ref="{{ listRef }}" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;display:flex;flex-direction:column;gap:10px;padding:14px 14px 10px;background:#F7F8FA;text-align:right;">
-              <span style="align-self:center;font-size:10px;color:#9AA1AD;">היום</span>
+            <div ref="{{ listRef }}" role="log" aria-live="polite" aria-label="השיחה עם שקל" style="flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;display:flex;flex-direction:column;gap:10px;padding:14px 14px 10px;background:#F7F8FA;text-align:right;">
+              <span style="align-self:center;font-size:10px;color:#5A6273;">היום</span>
               <sc-for list="{{ msgs }}" as="m" hint-placeholder-count="2">
                 <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
                   <div style="align-self:flex-end;max-width:80%;padding:9px 13px;border-radius:18px 18px 18px 6px;background:#0F1626;color:#FFFFFF;font-size:13px;line-height:1.5;animation:cmIn 320ms ease both;">{{ m.text }}</div>
@@ -480,7 +480,7 @@ input::placeholder{color:#8A93A3;}
                       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:#F4F5F7;">
                         <div style="display:flex;flex-direction:column;gap:1px;">
                           <span style="font-size:11px;font-weight:600;">חשבונית מס׳ {{ m.invoice.no }}</span>
-                          <span style="font-size:10px;color:#7A8291;">נשלחה ללקוח</span>
+                          <span style="font-size:10px;color:#5A6273;">נשלחה ללקוח</span>
                         </div>
                         <span style="font-size:12px;font-weight:600;">{{ m.invoice.sum }}</span>
                       </div>
@@ -505,7 +505,7 @@ input::placeholder{color:#8A93A3;}
               </sc-if>
             </div>
             <form sc-camel-on-submit="{{ onAsk }}" style="flex:none;display:flex;align-items:center;gap:6px;padding:8px 10px 34px;background:#FFFFFF;border-top:1px solid #F0F1F4;">
-              <input type="text" dir="rtl" value="{{ draft }}" sc-camel-on-change="{{ onDraft }}" placeholder="שאלו את שקל משהו..." aria-label="שאלה לשקל" style="flex:1;min-width:0;height:36px;padding:0 14px;border:1px solid #E3E6EB;border-radius:999px;background:#F7F8FA;outline:none;font-family:'Rubik',sans-serif;font-size:12px;color:#0F1626;" style-focus="border-color:#5B3FD9;">
+              <input type="text" dir="rtl" value="{{ draft }}" sc-camel-on-change="{{ onDraft }}" placeholder="שאלו את שקל משהו..." aria-label="שאלה לשקל" style="flex:1;min-width:0;height:36px;padding:0 14px;border:1px solid #E3E6EB;border-radius:999px;background:#F7F8FA;font-family:'Rubik',sans-serif;font-size:12px;color:#0F1626;" style-focus="border-color:#5B3FD9;">
               <button type="submit" aria-label="שליחה" style="flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#0F1626;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                 <svg width="14" height="14" sc-camel-view-box="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
               </button>
@@ -582,7 +582,9 @@ input::placeholder{color:#8A93A3;}
         <p style="margin:0;">ב-CountMe אנחנו רוצים שכל אחד ואחת יוכלו להשתמש באתר. האתר נבנה בהתאם לתקן הישראלי 5568 ולהנחיות WCAG 2.0 ברמה AA, ככל שהדבר אפשרי.</p>
         <p style="margin:0;">מה עשינו: האתר בעברית ובכיוון ימין-לשמאל, ניתן לניווט מלא במקלדת עם סימון פוקוס ברור, כל השדות והכפתורים מתויגים לקוראי מסך, הודעות שגיאה מוקראות אוטומטית, ניגודיות הטקסט תקינה, וניתן לעצור את כל האנימציות בכפתור "עצירת אנימציות" או דרך הגדרות המכשיר.</p>
         <p style="margin:0;">נתקלתם בבעיה? נשמח לשמוע ולתקן. רכז/ת הנגישות: {{ a11yName }}, מייל <a href="mailto:{{ a11yEmail }}" dir="ltr">{{ a11yEmail }}</a>.</p>
-        <p style="margin:0;font-size:12px;color:#7A8291;">ההצהרה עודכנה לאחרונה: {{ a11yDate }}</p>
+        <p style="margin:0;">מגבלות ידועות: טרם נערכה בדיקה ידנית של האתר עם קוראי מסך (NVDA, JAWS, VoiceOver), וטרם התקבלה חוות דעת של מומחה נגישות מוסמך.</p>
+        <p style="margin:0;">מועד בדיקת הנגישות האחרונה: 26 באוקטובר 2026, בדיקה אוטומטית (axe-core) ובדיקת ניווט במקלדת.</p>
+        <p style="margin:0;font-size:12px;color:#5A6273;">ההצהרה עודכנה לאחרונה: {{ a11yDate }}</p>
       </section>
     </sc-if>
 
@@ -590,9 +592,9 @@ input::placeholder{color:#8A93A3;}
     <footer style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px 14px;font-size:12px;color:#5A6273;">
       <span dir="ltr">CountMe LTD 2026</span>
       <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
-      <a href="legal/terms-of-use.pdf" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">תנאי שימוש</a>
+      <a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">תנאי שימוש</a>
       <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
-      <a href="legal/privacy-policy.pdf" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">מדיניות פרטיות</a>
+      <a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="padding:4px 2px;font-size:12px;color:#5A6273;text-decoration:underline;text-underline-offset:3px;" style-hover="color:#0F1626;">מדיניות פרטיות</a>
       <span aria-hidden="true" style="width:3px;height:3px;border-radius:50%;background:#8A93A3;"></span>
       <button type="button" sc-camel-on-click="{{ toggleA11y }}" aria-expanded="{{ a11yOpen }}" aria-controls="a11y" style="border:0;background:transparent;padding:4px 2px;font-family:'Rubik',sans-serif;font-size:12px;color:#5A6273;cursor:pointer;text-decoration:underline;text-underline-offset:3px;">הצהרת נגישות</button>
     </footer>

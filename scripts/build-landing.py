@@ -41,6 +41,28 @@ NEW_DID_UPDATE = """  // The bundled runtime calls componentDidUpdate(prevProps)
   }"""
 
 
+# Accessibility / IS 5568 fixes applied after conversion, so they survive a re-export of the design.
+# Each entry: (description, old, new, expected occurrences). The build fails loudly if the design changed under us.
+A11Y_STATEMENT_OLD = '<p style="margin:0;font-size:12px;color:#7A8291;">ההצהרה עודכנה לאחרונה: {{ a11yDate }}</p>'
+A11Y_STATEMENT_NEW = (
+    '<p style="margin:0;">מגבלות ידועות: טרם נערכה בדיקה ידנית של האתר עם קוראי מסך (NVDA, JAWS, VoiceOver), '
+    'וטרם התקבלה חוות דעת של מומחה נגישות מוסמך.</p>\n'
+    '        <p style="margin:0;">מועד בדיקת הנגישות האחרונה: 26 באוקטובר 2026, בדיקה אוטומטית (axe-core) ובדיקת ניווט במקלדת.</p>\n'
+    '        ' + A11Y_STATEMENT_OLD
+)
+PATCHES = [
+    ('statement: known limitations + audit date', A11Y_STATEMENT_OLD, A11Y_STATEMENT_NEW, 1),
+    ('contrast: #7A8291 -> #5A6273', '#7A8291', '#5A6273', 3),
+    ('contrast: #9AA1AD -> #5A6273', '#9AA1AD', '#5A6273', 1),
+    ('focus: keep the global :focus-visible ring on text inputs', 'outline:none;', '', 3),
+    ('chat: announce new messages', '<div ref="{{ listRef }}"', '<div ref="{{ listRef }}" role="log" aria-live="polite" aria-label="השיחה עם שקל"', 1),
+    ('success message: announce on submit', '<sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">\n      <div style=',
+     '<sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">\n      <div role="alert" style=', 1),
+    ('legal links: accessible HTML pages instead of untagged PDFs', 'legal/terms-of-use.pdf', 'legal/terms-of-use.html', 2),
+    ('legal links: accessible HTML pages instead of untagged PDFs', 'legal/privacy-policy.pdf', 'legal/privacy-policy.html', 2),
+]
+
+
 def block(lines, start_pred, end_pred):
     s = next(i for i, l in enumerate(lines) if start_pred(l))
     e = next(i for i in range(s, len(lines)) if end_pred(lines[i]))
@@ -76,6 +98,10 @@ def main():
         html = html.replace(a, b)
     assert OLD_DID_UPDATE in html, 'componentDidUpdate block not found in source'
     html = html.replace(OLD_DID_UPDATE, NEW_DID_UPDATE)
+    for what, old, new, expected in PATCHES:
+        found = html.count(old)
+        assert found == expected, f'patch "{what}": expected {expected} match(es), found {found}'
+        html = html.replace(old, new)
     OUT.write_text(html, encoding='utf-8')
     print(f'wrote {OUT.relative_to(ROOT)} ({len(html)} bytes)')
 
