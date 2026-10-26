@@ -1,5 +1,0 @@
-# Netlify config for the countme.co.il waitlist page (static, no build).
-# The Next.js app is deployed separately on Vercel and is NOT built here.
-[build]
-  publish = "countme-site"
-  command = ""

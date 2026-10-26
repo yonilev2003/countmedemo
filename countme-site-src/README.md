@@ -7,21 +7,11 @@
 | `CountMe Waitlist.dc.html` | קוד המקור. כל עריכה נעשית כאן, ואז בונים מחדש ב-Claude Design |
 | `email/CountMe Confirmation Email.html` | תבנית מייל האישור, להדבקה ב-Brevo |
 
-## מה Netlify מגיש
-`netlify.toml` בשורש הריפו מפנה ל-`countme-site/` (בלי build). התיקייה הזו **לא** בריפו עדיין, כי היא קובץ בנוי מ-Claude Design:
+## איך זה מגיע לאתר
+`python3 scripts/build-landing.py` בונה מהמקור הזה את `landing-site/index.html`, שמוגש ע"י פרויקט ה-Vercel `countme-landing-page`. פרטים ב-`landing-site/README.md`.
 
-```
-countme-site/
-├── index.html            (2.4MB, התמונות מוטמעות)
-└── legal/
-    ├── terms-of-use.pdf
-    └── privacy-policy.pdf
-```
-
-להוסיף אותה מ-ZIP של הפרויקט. `index.html` בשורש הפרויקט ב-Claude Design הוא גרסה ישנה — לא לפרסם אותו.
-
-## צ'קליסט בדיקה (בלפטופ, לפני שמפעילים דומיין)
-1. אחרי הפריסה: פותחים `/legal/terms-of-use.pdf` ו-`/legal/privacy-policy.pdf` ומוודאים שהם נפתחים (לא 404).
+## צ'קליסט בדיקה (בלפטופ, על ה-preview של Vercel)
+1. פותחים `/legal/terms-of-use.pdf` ו-`/legal/privacy-policy.pdf` ומוודאים שהם נפתחים (לא 404). הקבצים עוד לא בריפו.
 2. DevTools → Network, הרשמה אחת: האם הבקשה ל-`sibforms.com/serve/...?isAjax=1` חוזרת עם JSON `success`, או נכשלת ב-CORS ואז יוצאת בקשה שנייה (`no-cors`)?
 3. ב-Brevo: איש הקשר הופיע ברשימה `waiting list`, עם EMAIL, SMS ו-OPT_IN.
 4. מייל האישור הגיע (ובדיקה בתיקיית קידומים), עם תמונות, RTL וקישורים.
