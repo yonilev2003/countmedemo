@@ -11,6 +11,8 @@
 <meta property="og:url" content="https://www.countme.co.il">
 <link rel="canonical" href="https://www.countme.co.il">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="a11y-widget.css">
+<script src="a11y-widget.js"></script>
 <script src="assets/629a8f86-338d-444f-9417-e2998c0996cd.js"></script>
 </head>
 <body>
@@ -394,8 +396,7 @@ input::placeholder{color:#8A93A3;}
   </div>
 
   <a href="#cm-signup" style="position:absolute;top:-60px;right:16px;z-index:50;padding:10px 16px;border-radius:999px;background:#0F1626;color:#FFFFFF;font-size:14px;" style-focus="top:12px;color:#FFFFFF;">דילוג לטופס ההרשמה</a>
-  <button type="button" sc-camel-on-click="{{ toggleMotion }}" aria-pressed="{{ paused }}" style="position:fixed;bottom:16px;left:16px;z-index:40;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,0.9);background:rgba(255,255,255,0.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:'Rubik',sans-serif;font-size:12px;color:#0F1626;cursor:pointer;">{{ motionLabel }}</button>
-  <main id="main" style="position:relative;max-width:560px;margin:0 auto;padding:28px 22px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+    <main id="main" style="position:relative;max-width:560px;margin:0 auto;padding:28px 22px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;">
     <img src="assets/33e2741e-f398-4345-9e3c-5029e7ff4226.png" alt="CountMe" style="width:96px;height:auto;display:block;">
 
     <h1 style="margin:14px 0 0;font-family:{{ headingFont }};font-weight:600;font-size:clamp(30px,7.4vw,44px);line-height:1.15;letter-spacing:-0.01em;text-wrap:balance;">כמו רואה החשבון שלך.<br>זמין 24/7, בצ'אט.</h1>
@@ -409,10 +410,17 @@ input::placeholder{color:#8A93A3;}
       <form sc-camel-on-submit="{{ onSubmit }}" novalidate="" style="margin-top:12px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:8px;">
         <input type="email" dir="rtl" value="{{ email }}" sc-camel-on-change="{{ onEmail }}" placeholder="המייל שלך" aria-label="כתובת מייל" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);" style-focus="border-color:#5B3FD9;">
         <input type="tel" dir="rtl" value="{{ phone }}" sc-camel-on-change="{{ onPhone }}" placeholder="מספר טלפון" aria-label="מספר טלפון" inputmode="tel" style="width:100%;height:50px;padding:0 22px;border:1px solid #E3E6EB;border-radius:999px;background:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;color:#0F1626;box-shadow:0 2px 10px rgba(15,22,38,0.04);text-align:right;" style-focus="border-color:#5B3FD9;">
-        <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 4px;cursor:pointer;text-align:right;">
-          <input type="checkbox" checked="{{ consent }}" sc-camel-on-change="{{ onConsent }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
-          <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe, ומסכים/ה ל<a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a>. נשבעים שלא ספאם.</span>
-        </label>
+        <div role="group" aria-label="הסכמות להרשמה" style="display:flex;flex-direction:column;gap:4px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 2px;cursor:pointer;text-align:right;">
+            <input type="checkbox" checked="{{ consent }}" sc-camel-on-change="{{ onConsent }}" aria-required="true" aria-describedby="cm-consent-note" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
+            <span style="font-size:13px;line-height:1.55;color:#5A6273;">קראתי ואני מסכים/ה ל<a href="legal/terms-of-use.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">תנאי השימוש</a> ול<a href="legal/privacy-policy.html" target="_blank" rel="noopener" style="color:#0F1626;text-decoration:underline;text-underline-offset:2px;" style-hover="color:#5B3FD9;">מדיניות הפרטיות</a> של רשימת ההמתנה (חובה).</span>
+          </label>
+          <p id="cm-consent-note" style="margin:0;padding-inline-start:36px;padding-inline-end:8px;font-size:12px;line-height:1.5;color:#5A6273;text-align:right;">ההסכמה נוגעת לרשימת ההמתנה בלבד, ואינה הסכמה לתנאי השימוש ולמדיניות הפרטיות של האתר או של המוצר עצמו, שיחולו בנפרד. אין חובה להירשם לרשימה כדי להשתמש במוצר, ואין חובה להשתמש במוצר כדי להירשם.</p>
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:6px 8px 2px;cursor:pointer;text-align:right;">
+            <input type="checkbox" checked="{{ marketing }}" sc-camel-on-change="{{ onMarketing }}" style="flex:none;width:18px;height:18px;margin:1px 0 0;accent-color:#0F1626;cursor:pointer;">
+            <span style="font-size:13px;line-height:1.55;color:#5A6273;">אני מאשר/ת לקבל עדכונים ותוכן שיווקי מ-CountMe בדוא״ל ובהודעות SMS (רשות). אפשר לבטל בכל עת. נשבעים שלא ספאם.</span>
+          </label>
+        </div>
         <button type="submit" disabled="{{ sending }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border:0;border-radius:999px;background:#0F1626;color:#FFFFFF;font-family:'Rubik',sans-serif;font-size:15px;font-weight:500;cursor:pointer;" style-hover="background:#1E2A44;">
           תחזרו אליי כשזה מוכן
           <svg width="16" height="16" sc-camel-view-box="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
@@ -580,9 +588,9 @@ input::placeholder{color:#8A93A3;}
       <section id="a11y" aria-labelledby="a11y-title" style="margin-top:56px;width:100%;max-width:520px;padding:22px 20px;border-radius:20px;background:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.9);text-align:right;display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.7;color:#4A5466;">
         <h2 id="a11y-title" style="margin:0;font-size:18px;font-weight:600;color:#0F1626;">הצהרת נגישות</h2>
         <p style="margin:0;">ב-CountMe אנחנו רוצים שכל אחד ואחת יוכלו להשתמש באתר. האתר נבנה בהתאם לתקן הישראלי 5568 ולהנחיות WCAG 2.0 ברמה AA, ככל שהדבר אפשרי.</p>
-        <p style="margin:0;">מה עשינו: האתר בעברית ובכיוון ימין-לשמאל, ניתן לניווט מלא במקלדת עם סימון פוקוס ברור, כל השדות והכפתורים מתויגים לקוראי מסך, הודעות שגיאה מוקראות אוטומטית, ניגודיות הטקסט תקינה, וניתן לעצור את כל האנימציות בכפתור "עצירת אנימציות" או דרך הגדרות המכשיר.</p>
-        <p style="margin:0;">נתקלתם בבעיה? נשמח לשמוע ולתקן. רכז/ת הנגישות: {{ a11yName }}, מייל <a href="mailto:{{ a11yEmail }}" dir="ltr">{{ a11yEmail }}</a>.</p>
-        <p style="margin:0;">מגבלות ידועות: טרם נערכה בדיקה ידנית של האתר עם קוראי מסך (NVDA, JAWS, VoiceOver), וטרם התקבלה חוות דעת של מומחה נגישות מוסמך.</p>
+        <p style="margin:0;">מה עשינו: האתר בעברית ובכיוון ימין-לשמאל, ניתן לניווט מלא במקלדת עם סימון פוקוס ברור, כל השדות והכפתורים מתויגים לקוראי מסך, הודעות שגיאה מוקראות אוטומטית, ניגודיות הטקסט תקינה, וניתן להתאים ניגודיות, גודל טקסט, ריווח שורות, גופן ועצירת אנימציות דרך כפתור הנגישות (או בקיצור Alt+A) או דרך הגדרות המכשיר. הכפתור הוא כלי נוחות להתאמה אישית, והנגשת התוכן עצמו נעשית בקוד האתר.</p>
+        <p style="margin:0;">נתקלתם בבעיה? נשמח לשמוע ולתקן. רכז/ת הנגישות: {{ a11yName }}, מייל <a href="mailto:{{ a11yEmail }}" dir="ltr">{{ a11yEmail }}</a>, טלפון <a href="{{ a11yPhoneHref }}" dir="ltr">{{ a11yPhone }}</a>.</p>
+        <p style="margin:0;">מגבלות ידועות: טרם נערכה בדיקה ידנית של האתר עם קוראי מסך (NVDA, JAWS, VoiceOver).</p>
         <p style="margin:0;">מועד בדיקת הנגישות האחרונה: 26 באוקטובר 2026, בדיקה אוטומטית (axe-core) ובדיקת ניווט במקלדת.</p>
         <p style="margin:0;font-size:12px;color:#5A6273;">ההצהרה עודכנה לאחרונה: {{ a11yDate }}</p>
       </section>
@@ -601,7 +609,7 @@ input::placeholder{color:#8A93A3;}
   </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;headingFont&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Rubik&quot;,&quot;Frank Ruhl Libre&quot;],&quot;default&quot;:&quot;Rubik&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;טיפוגרפיה&quot;},&quot;a11yName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;תום לב שורץ&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;},&quot;a11yEmail&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;countme5555@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;headingFont&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Rubik&quot;,&quot;Frank Ruhl Libre&quot;],&quot;default&quot;:&quot;Rubik&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;טיפוגרפיה&quot;},&quot;a11yName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;יונתן לוי&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;},&quot;a11yEmail&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;yonilev2003@gmail.com&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;נגישות&quot;}}">
 const SEED = [
   { from: 'user', text: 'סגרתי עבודה של 4,500 ש״ח, תוציא חשבונית?' },
   { from: 'bot', text: 'הוצאתי. אגב, את על 82% מהתקרה השנתית. רוצה שנעבור על זה?', invoice: { no: '0142', sum: '₪4,500' } }
@@ -639,7 +647,7 @@ function matchTopic(q) {
 }
 
 class Component extends DCLogic {
-  state = { email: '', phone: '', consent: false, submitted: false, error: '', open: 0, msgs: SEED, typing: false, draft: '', chips: ['ceiling', 'later'], inv: 143 };
+  state = { email: '', phone: '', consent: false, marketing: false, submitted: false, error: '', open: 0, msgs: SEED, typing: false, draft: '', chips: ['ceiling', 'later'], inv: 143 };
   listRef = React.createRef();
   // The bundled runtime calls componentDidUpdate(prevProps) with no prevState, so track the previous values ourselves.
   componentDidUpdate() {
@@ -688,8 +696,10 @@ class Component extends DCLogic {
       toggleMotion: () => this.setState(s => ({ paused: !s.paused })),
       a11yOpen: !!this.state.a11yOpen,
       toggleA11y: () => this.setState(s => ({ a11yOpen: !s.a11yOpen })),
-      a11yName: p.a11yName ?? 'תום לב שורץ',
-      a11yEmail: p.a11yEmail ?? 'countme5555@gmail.com',
+      a11yName: p.a11yName ?? 'יונתן לוי',
+      a11yEmail: p.a11yEmail ?? 'yonilev2003@gmail.com',
+      a11yPhone: p.a11yPhone ?? '054-6192345',
+      a11yPhoneHref: 'tel:+972546192345',
       a11yDate: 'אוקטובר 2026',
       listRef: this.listRef,
       msgs: this.state.msgs.map(m => ({ ...m, isUser: m.from === 'user', isBot: m.from === 'bot', invoice: m.invoice || null })),
@@ -715,7 +725,7 @@ class Component extends DCLogic {
       tapeItems: Array.from({ length: 40 }, (_, i) => (i % 2 ? 'גישה מוקדמת לנרשמים הראשונים' : 'בקרוב')),
       phone: this.state.phone,
       sending: !!this.state.sending,
-      consent: this.state.consent,
+      consent: this.state.consent, marketing: this.state.marketing, onMarketing: e => this.setState({ marketing: e.target.checked }),
       onPhone: e => this.setState({ phone: e.target.value, error: '' }),
       onConsent: e => this.setState({ consent: e.target.checked }),
       email: this.state.email,
@@ -734,7 +744,7 @@ class Component extends DCLogic {
           return;
         }
         if (!this.state.consent) {
-          this.setState({ error: 'כדי שנוכל לחזור אליך, צריך לאשר קבלת עדכונים' });
+          this.setState({ error: 'כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות של רשימת ההמתנה' });
           return;
         }
         if (this.state.sending) return;
@@ -747,7 +757,7 @@ class Component extends DCLogic {
         fd.append('EMAIL', this.state.email.trim());
         fd.append('SMS__COUNTRY_CODE', '+972');
         fd.append('SMS', digits);
-        fd.append('OPT_IN', '1');
+        if (this.state.marketing) fd.append('OPT_IN', '1');
         fd.append('email_address_check', '');
         fd.append('locale', 'en');
         fd.append('html_type', 'simple');

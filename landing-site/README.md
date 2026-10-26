@@ -19,9 +19,13 @@ When the design changes: replace the source file, run the script, commit both.
 
 ## Accessibility (IS 5568 / WCAG 2.0 AA)
 Fixes live in `PATCHES` inside `scripts/build-landing.py` (contrast, focus ring, live regions, statement content) so they survive a re-export of the design; the build fails loudly if the design changes under a patch.
-Last check: axe-core (0 violations on `/` and both legal pages) + keyboard pass, 26.10.2026. Not yet done: manual screen-reader test and an expert opinion — the statement says so.
+`a11y-widget.js` + `a11y-widget.css` are the user-preference widget (contrast, text size, line spacing, links, readable font, stop animations; Alt+A). Port of `src/components/a11y/accessibility-widget.tsx` with the same preference schema and localStorage key (`countme_a11y_prefs_v1`). It only toggles classes on `<html>`; it is a comfort tool, not a compliance claim.
+Accessibility coordinator (statement): יונתן לוי, 054-6192345, yonilev2003@gmail.com.
+Last check: axe-core (0 violations on `/` incl. panel open + all preferences on, and on both legal pages) + keyboard pass, 26.10.2026. Not yet done: manual screen-reader test and an expert opinion — the statement says so.
 
-## Data
+## Data and consent
 The form posts straight from the browser to a Brevo form (`CountMe waiting list` -> list `waiting list`). Nothing is stored in Supabase or on our servers.
+Two checkboxes: (1) terms + privacy of the waiting list — required; (2) marketing (email/SMS) — optional. Phone is required. `OPT_IN` is sent **only** when the marketing box is checked.
+**Brevo setup needed:** make the `OPT_IN` field *not required* in the form, otherwise a registration without marketing consent is rejected by Brevo (the visitor sees "משהו השתבש"). Marketing campaigns must be sent only to contacts with `OPT_IN` = true; the welcome automation (operational message) can go to everyone on the list.
 
 When the real app goes live on countme.co.il, move the domain to the `countmedemo` project.
